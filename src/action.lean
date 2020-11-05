@@ -1,11 +1,13 @@
 import basic
 
-def origin := Type*
+inductive origin 
+  | logical : origin
+  | physical : origin 
 
 structure action :=
-(identifier : identifier)
-(delay : ℕ)
-(origin : origin)
+  (identifier : identifier)
+  (delay : ℕ)
+  (origin : origin)
 
 variable a : action
 
@@ -16,3 +18,4 @@ def d {a : action} (i : identifier) (h: a.identifier = i) : ℕ := a.delay
 
 --! Cf. `d` above.
 def o {a : action} (i : identifier) (h: a.identifier = i) : origin := a.origin
+

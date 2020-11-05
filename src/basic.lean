@@ -1,9 +1,8 @@
-def identifier := Type*
+inductive identifier : Type*
 
-def val := Type*
+inductive val : Type*
 inductive value
-| ε : value
-| mk (a : val) : value
-
+  | ε : value
+  | mk (a : val) : value
 
 
