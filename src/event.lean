@@ -16,29 +16,5 @@ namespace event
 
   protected def queue := list event
 
-  namespace queue 
-
-    -- Read chapter 8 so you can implement this.
-    private def peek' : event → event.queue → event
-    | e nil := e
-    | e (list.cons e' q') := peek' sorry sorry
-
-    begin
-      induction q,
-        case nil { exact e },
-        case cons :  { 
-          sorry
-        }
-    end
-
-    def peek (q : event.queue) : option event := 
-    begin
-      cases q,
-        case nil         { exact none },
-        case cons : e q' { exact some (peek' e q') }
-    end
-
-  end queue
-
 end event
 
