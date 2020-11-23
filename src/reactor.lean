@@ -9,4 +9,3 @@ structure reactor :=
   (state_vars:    set identifier)
   (reactions:     set reaction)
   (priority_func: reaction → priority)
-

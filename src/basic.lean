@@ -5,5 +5,4 @@ inductive value
   | ε : value
   | mk (a : val) : value
 
-inductive code : Type*
 

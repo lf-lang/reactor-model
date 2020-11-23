@@ -6,4 +6,3 @@ structure reaction :=
   (triggers:         set identifier)
   (body:             code)
   (antidependencies: set identifier)
-
