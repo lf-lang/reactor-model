@@ -5,26 +5,24 @@ namespace hidden
 
   variables i o s i' o' s' : ℕ 
 
-  -- CONTAINER
-
   def inputs := vector value i
   def outputs := vector value o
   def state := vector value s
-  def container := (inputs i) × (outputs o) × (state s)
 
   -- REACTION
 
-  def reaction := (container i o s) → (container i o s)
+  -- The output vector produced by a reaction contains ε for all of those ports which should remain unaffected.
+  def reaction := (inputs i × state s) → (outputs o × state s)
   
   namespace reaction
 
     def determinism {i o s : ℕ} (r : reaction i o s) : Prop := 
-      ∀ c₁ c₂ : (container i o s), c₁ = c₂ → r c₁ = r c₂
+      ∀ is₁ is₂ : (inputs i × state s), is₁ = is₂ → r is₁ = r is₂
 
     theorem deterministic (r : reaction i o s) : determinism r :=
-      assume c₁ c₂ : container i o s,
-      assume h : c₁ = c₂,
-      show r c₁ = r c₂,
+      assume is₁ is₂ : (inputs i × state s),
+      assume h : is₁ = is₂,
+      show r is₁ = r is₂,
       from congr_arg r h
 
   end reaction
@@ -38,47 +36,53 @@ namespace hidden
 
   namespace body
 
-    def process {i o s : ℕ} : (container i o s) → (body i o s) → (container i o s)
-      | c (body.single r) := r c
-      | c (body.composed h t) := process (h c) t
+    private def merge {o : ℕ} (o₁ o₂ : outputs o) : outputs o := sorry
+
+    private def process' {i o s : ℕ} : (inputs i × outputs o × state s) → (body i o s) → (outputs o × state s)
+      | ios (body.single r)     := let os := r ⟨ios.1, ios.2.2⟩ in ⟨merge os.1 ios.2.1, os.2⟩ 
+      | ios (body.composed r t) := let os := r ⟨ios.1, ios.2.2⟩ in let os' := process' ⟨ios.1, os.1, os.2⟩ t in ⟨merge os.1 os'.1, os'.2⟩ 
+
+    def process {i o s : ℕ} : (inputs i × state s) → (body i o s) → (outputs o × state s)
+      | is (body.single r)     := r is
+      | is (body.composed r t) := let os := r is in process' ⟨is.1, os.1, os.2⟩ t
 
     def determinism {i o s : ℕ} (b : body i o s) : Prop := 
-      ∀ c₁ c₂ : (container i o s), c₁ = c₂ → process c₁ b = process c₂ b
+      ∀ is₁ is₂ : (inputs i × state s), is₁ = is₂ → process is₁ b = process is₂ b
 
     theorem deterministic (b : body i o s) : determinism b :=
-      assume e₁ e₂ : container i o s,
-      assume h : e₁ = e₂,
-      show process e₁ b = process e₂ b,
+      assume is₁ is₂ : (inputs i × state s),
+      assume h : is₁ = is₂,
+      show process is₁ b = process is₂ b,
       from congr (congr_arg process h) (refl b)
 
   end body
 
-  -- BODY SEQUENCE
+  -- SEQUENCE
 
-  namespace body'
+  namespace sequence
     
-    -- Given a list of port assignments, an initial state and a body, `process` outputs the environment after the body has
-    -- processed the list of inputs. The `state` output of one reaction is fed as input to the next.
-    def process {i o s : ℕ} : list (inputs i × outputs o) → (state s) → (body i o s) → list (container i o s)
+    -- Given a list of inputs, an initial state and a body, `process` computes the resulting state and outputs.
+    def process {i o s : ℕ} : list (inputs i) → (state s) → (body i o s) → list (outputs o × state s)
       | [] _ _ := []
-      | (list.cons io_h io_t) s b := let c' := body.process ⟨io_h.1, io_h.2, s⟩ b in list.cons c' (process io_t c'.2.2 b) 
+      | (list.cons i_h i_t) s b := let os' := body.process ⟨i_h, s⟩ b in list.cons os' (process i_t os'.2 b) 
 
     def determinism {i o s : ℕ} (b : body i o s) : Prop := 
-      ∀ (io₁ io₂ : list (inputs i × outputs o)) (s₁ s₂ : state s), 
-      (io₁ = io₂ ∧ s₁ = s₂) → (process io₁ s₁ b) = (process io₂ s₂ b)
+      ∀ (i₁ i₂ : list (inputs i)) (s₁ s₂ : state s), 
+      (i₁ = i₂ ∧ s₁ = s₂) → (process i₁ s₁ b) = (process i₂ s₂ b)
 
     theorem deterministic (b : body i o s) : determinism b :=
-      assume io₁ io₂ : list (inputs i × outputs o),
+      assume i₁ i₂ : list (inputs i),
       assume s₁ s₂ : state s,
-      assume h : io₁ = io₂ ∧ s₁ = s₂,
-      show process io₁ s₁ b = process io₂ s₂ b, 
+      assume h : i₁ = i₂ ∧ s₁ = s₂,
+      show process i₁ s₁ b = process i₂ s₂ b, 
       from congr (congr (congr_arg process h.left) h.right) (refl b)
 
-  end body'
+  end sequence
 
   structure reactor :=
     (d : identifier)
-    (c : container i o s)
+    (in_ports : inputs i)
+    (out_ports : outputs o)
     (b : body i o s)
 
 end hidden
