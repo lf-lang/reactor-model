@@ -3,7 +3,7 @@ import data.vector
 
 namespace hidden 
 
-  variables i o s i' o' s' : ℕ 
+  variables i o s : ℕ 
 
   def inputs := vector value i
   def outputs := vector value o
@@ -47,7 +47,7 @@ namespace hidden
       | is (body.composed r t) := let os := r is in process' ⟨is.1, os.1, os.2⟩ t
 
     def determinism {i o s : ℕ} (b : body i o s) : Prop := 
-      ∀ is₁ is₂ : (inputs i × state s), is₁ = is₂ → process is₁ b = process is₂ b
+      ∀ is₁ is₂ : (inputs i × state s), is₁ = is₂ → (process is₁ b) = (process is₂ b)
 
     theorem deterministic (b : body i o s) : determinism b :=
       assume is₁ is₂ : (inputs i × state s),
@@ -79,10 +79,22 @@ namespace hidden
 
   end sequence
 
+  -- REACTOR
+
   structure reactor :=
-    (d : identifier)
     (in_ports : inputs i)
     (out_ports : outputs o)
+    (st : state s)
     (b : body i o s)
+
+  -- NETWORK
+
+  -- By defining the `reactors` as a list instead of a set, we can again drop the need for identifiers and use the index
+  -- into the list as a reactor's identifier.
+  --
+  -- The list needs to be homogenous over the type of rectors wrt. `i o s`. Is this possible?
+  structure network :=
+    (reactors : list (reactor i o s))
+    (connections : (reactor i o s) × ℕ → (reactor i o s) × ℕ)
 
 end hidden
