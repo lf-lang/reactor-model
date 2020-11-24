@@ -1,47 +1,53 @@
 import basic
 import data.vector
+import data.finset
 
 /- Reactor Primitives -/
 
--- A reactor's state fields and in-/output-ports are represented as lists of values with a fixed
--- length. Single ports and state values can then be identified by an index into these lists.
---! Using a `vector` makes reactors with different numbers of ports heterogenous, and therefore 
---! un`list`able. Therefore `list` is currently used, which is not optimal.
+-- A reactor's state fields and in-/output-ports are represented as vectors of values with a fixed
+-- length. Single ports and state values can then be identified by an index into these vectors.
 namespace reactor
 
-  def input  := list value
-  def output := list value
-  def state  := list value
+  def input_pins  (n : ℕ) := vector value n
+  def output_pins (n : ℕ) := vector value n
+  def state       (n : ℕ) := vector value n
 
 end reactor
+open reactor
 
 /- Reaction -/
 
-open reactor
+-- Mappings from exactly a given set of {in,out}put dependency indices to values.
+namespace reaction 
 
--- Given the current state and inputs, a reaction computes a new state and resulting outputs. 
--- 
--- Normally reactions are triggered upon a change to one of the input ports they depend on. In the
--- current definition, this behavior is implicit (i.e. is moved into the reactions themselves).
--- If a reaction wants to declare itself as non-dependent on the given inputs, it should output
--- only `ε`s for the `outputs`, and keep the `state` unchanged. This will then be equivalent to not
--- firing for the given input. 
--- If the reaction *does* change `outputs` or `state`, it is considered to be dependent on the
--- inputs that it used, and was therefore supposed to fire on their changing anyway. 
--- The `outputs` produced by a reaction should contain `ε` for all ports which should remain 
--- unaffected.
---! Can a reaction write `ε` to an output port on purpose, to delete values written there by other
---! reactions?
-def reaction := (input × state) → (output × state)
+  def input  {nᵢ : ℕ} (ins  : finset (fin nᵢ)) := {i // i ∈ ins}  → value
+  def output {nₒ : ℕ} (outs : finset (fin nₒ)) := {o // o ∈ outs} → value
+
+end reaction
+open reaction
+
+-- Reactions consist of a set of input dependencies `dᵢ`, a set of output dependencies `dₒ` and a
+-- function `body` that transforms a given input values and state to output values and a new state.
+--
+--? Define the body as a relation, define what determinism means for reactions (namely that the
+--? relation is actually a function), and then prove that determinism holds for more complex
+--? objects if the reactions themselves are deterministic.
+--? That way it would be more clear what is actually being shown: reactors are deterministic, if
+--? the underlying reaction body (the foreign code) behaves like a function.
+structure reaction (nᵢ nₒ nₛ : ℕ) :=
+  (ins : finset (fin nᵢ)) 
+  (outs : finset (fin nₒ))
+  (triggers : {i // i ∈ ins})
+  (body : (input ins) → (state nₛ) → (output outs) × (state nₛ))
 
 namespace reaction
 
-  -- A reaction is deterministic, if given equal inputs, it produces equal outputs.
-  -- Since reactions are functions, determinism is trivially fulfilled.
-  theorem deterministic (r : reaction) (is₁ is₂ : input × state) :
-    is₁ = is₂ → r is₁ = r is₂ := 
-    assume h : is₁ = is₂,
-    congr_arg r h
+  -- A reaction is deterministic, if given equal inputs and states, running the body produces
+  -- equal outputs and states. 
+  -- Since a reactions body is a function, determinism is trivially fulfilled.
+  theorem determinism {nᵢ nₒ nₛ : ℕ } (r : reaction nᵢ nₒ nₛ) (i₁ i₂ : input r.ins) (s₁ s₂ : state nₛ) :
+    i₁ = i₂ ∧ s₁ = s₂ → (r.body i₁ s₁) = (r.body i₂ s₂) := 
+    assume h, congr (congr_arg r.body h.left) h.right
 
 end reaction
 
@@ -62,6 +68,7 @@ namespace reactor
 
     -- Merges two outputs in such a way that all of the non-`ε` values of `o₁` override the values
     -- in `o₂`.
+    --? Require proof that lengths of o1/2 are equal and equal o.
     private def merge (o₁ o₂ : output) : output := sorry
 
     -- Cf. `process`.
@@ -117,9 +124,9 @@ namespace reactor
     -- just single reactions and (b) the outputs are listed individually rather than merged. The 
     -- state is passed along from iteration to iteration though, just like before.
     def process : list input → state → precedence_list → list (output × state)
-      | [] _ _ := []
-      | (list.cons i_h i_t) s b := let os' := precedence_list.process ⟨i_h, s⟩ b in
-                                   list.cons os' (process i_t os'.2 b) 
+      | []        _ _ := []
+      | (iₕ :: iₜ) s p := let os' := precedence_list.process ⟨iₕ, s⟩ p in
+                         os' :: (process iₜ os'.2 p) 
 
     -- Processing a sequential input to a collection of reactions is deterministic, if given equal 
     -- inputs, the results of processing them is equal. 
@@ -140,8 +147,10 @@ end reactor
 -- ever receive the reactor's own input values and state as input. The result of processing should
 -- only ever be written back to the reactor itself.
 structure reactor :=
-  («input» : input)
-  («output» : output)
+  (input_count : ℕ)
+  (output_count : ℕ)
+  («input» : vector value input_count)
+  («output» : vector value output_count)
   («state» : state)
   (reactions : precedence_list)
 
@@ -171,8 +180,21 @@ namespace reactor
 
   -- By defining the `reactors` as a list instead of a set, we remove the need for identifiers and
   -- use the index into the list as a reactor's identifier.
-  structure network :=
-    (reactors : list reactor)
-    (connections: (ℕ × ℕ) → (ℕ × ℕ))
+  structure network { rc : ℕ } :=
+    (reactors : vector reactor rc)
+    --? have this be a digraph of (ℕ × ℕ) instead (where each vertex can have at most one incoming edge)
+    (connections (si di : fin reactors.length) : (fin (vector.nth reactors si).output_count) → (fin (vector.nth reactors di).input_count)) 
+
+  namespace network
+
+    -- reactor.network.process should use the fixed-point approach from *dataflow with firing*.
+    -- reaching a fixed point is equivalent to the global reaction-queue being computed until it is empty
+    -- (which would then induce the next time-stamp to be run. without actions a reactor system will only have
+    -- one time stamp (because there are no actions to increase them), so the fixed point is a static final state?)
+
+    -- order.basic contains a definition of `monotone`
+    -- order.directed contains a definition of `directed`
+
+  end network
 
 end reactor
