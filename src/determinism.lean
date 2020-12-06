@@ -1,55 +1,125 @@
-import basic
-import data.vector
 import data.finset
+import data.set.finite
 
 /- Reactor Primitives -/
 
--- A reactor's state fields and in-/output-ports are represented as vectors of values with a fixed
--- length. Single ports and state values can then be identified by an index into these vectors.
+-- A reactor's state fields and ports are represented as maps from (a fixed set of) indices to
+-- (possibly absent) values. Single ports and state fields can therefore be identified by values
+-- of these maps' domains (i.e. indices).
 namespace reactor
 
-  def input_pins  (n : ℕ) := vector value n
-  def output_pins (n : ℕ) := vector value n
-  def state       (n : ℕ) := vector value n
+  inductive value : Type*
+  instance : decidable_eq value := sorry
+
+  def ports (n : ℕ) := (fin n) → (option value)
+  def state (n : ℕ) := (fin n) → (option value)
 
 end reactor
 open reactor
 
 /- Reaction -/
 
--- Mappings from exactly a given set of {in,out}put dependency indices to values.
+-- Mappings from *exactly* a given set of {in,out}put dependency-indices to (possibly absent)
+-- values.
+--? It should be possible to extract the "core" of these definitions into a single definition and
+--? then just have `input` and `output` be typealiases for that core.
 namespace reaction 
 
-  def input  {nᵢ : ℕ} (ins  : finset (fin nᵢ)) := {i // i ∈ ins}  → value
-  def output {nₒ : ℕ} (outs : finset (fin nₒ)) := {o // o ∈ outs} → value
+  def input  {nᵢ : ℕ} (dᵢ : finset (fin nᵢ)) := {i // i ∈ dᵢ} → (option value)
+  def output {nₒ : ℕ} (dₒ : finset (fin nₒ)) := {o // o ∈ dₒ} → (option value)
 
 end reaction
 open reaction
 
--- Reactions consist of a set of input dependencies `dᵢ`, a set of output dependencies `dₒ` and a
--- function `body` that transforms a given input values and state to output values and a new state.
+-- Reactions consist of a set of input dependencies `dᵢ`, output dependencies `dₒ`, `triggers` and
+-- a function `body` that transforms a given input map and state to an output map and a new state.
+-- Since *actions* are not defined in this simplified model of reactors, the set of `triggers` is
+-- simply a subset of the input dependencies `dᵢ`.
 --
 --? Define the body as a relation, define what determinism means for reactions (namely that the
 --? relation is actually a function), and then prove that determinism holds for more complex
 --? objects if the reactions themselves are deterministic.
 --? That way it would be more clear what is actually being shown: reactors are deterministic, if
 --? the underlying reaction body (the foreign code) behaves like a function.
+--
+--? Define a coercion from reactions with smaller bounds to ones with higher bounds, if necessary.
 structure reaction (nᵢ nₒ nₛ : ℕ) :=
-  (ins : finset (fin nᵢ)) 
-  (outs : finset (fin nₒ))
-  (triggers : {i // i ∈ ins})
-  (body : (input ins) → (state nₛ) → (output outs) × (state nₛ))
+  (dᵢ : finset (fin nᵢ)) 
+  (dₒ : finset (fin nₒ))
+  (triggers : finset {i // i ∈ dᵢ})
+  (body : input dᵢ → state nₛ → (output dₒ × state nₛ)) 
 
 namespace reaction
 
-  -- A reaction is deterministic, if given equal inputs and states, running the body produces
-  -- equal outputs and states. 
-  -- Since a reactions body is a function, determinism is trivially fulfilled.
-  theorem determinism {nᵢ nₒ nₛ : ℕ } (r : reaction nᵢ nₒ nₛ) (i₁ i₂ : input r.ins) (s₁ s₂ : state nₛ) :
+  -- A reaction is deterministic, if given equal inputs and states, running the body produces equal
+  -- outputs and states. 
+  -- Since a reaction's body is a function, determinism is trivially fulfilled.
+  theorem determinism {nᵢ nₒ nₛ : ℕ } (r : reaction nᵢ nₒ nₛ) (i₁ i₂ : input r.dᵢ) (s₁ s₂ : state nₛ) :
     i₁ = i₂ ∧ s₁ = s₂ → (r.body i₁ s₁) = (r.body i₂ s₂) := 
     assume h, congr (congr_arg r.body h.left) h.right
 
 end reaction
+
+/- Reactions -/
+
+namespace reactor 
+
+  -- The `reactions` type describes a non-empty list of reactions, which are thereby given an
+  -- implicit order.
+  -- In this simplified model of reactors, precendece between reactions arises *only* from an
+  -- *explicit* ordering. The precedence *graph* of reactions therefore collapses to a *list*.
+  inductive reactions (nᵢ nₒ nₛ : ℕ)
+    | just  (r : reaction nᵢ nₒ nₛ) : reactions
+    | chain (head : reaction nᵢ nₒ nₛ) (tail : reactions) : reactions
+
+end reactor
+open reactor
+
+/- Reactor -/
+
+structure reactor {nᵢ nₒ nₛ : ℕ} :=
+  (inputs : ports nᵢ)
+  (outputs : ports nₒ)
+  (st : state nₛ)
+  (rs : reactions nᵢ nₒ nₛ)
+
+namespace reactor 
+
+  private def input_from_ports {n : ℕ} (dᵢ : finset (fin n)) (p : ports n) : input dᵢ :=
+    λ i : {d // d ∈ dᵢ}, p i
+
+  private def ports_from_output {n : ℕ} {dₒ : finset (fin n)} (o: output dₒ) : ports n :=
+    λ i : fin n, if h : i ∈ dₒ then o ⟨i, h⟩ else none
+
+  private def merge_ports {n : ℕ} (first : ports n) (last : ports n) : ports n :=
+    λ i : fin n, (last i).elim (first i) (λ v, some v)
+
+  private lemma lt_le_trans {n₁ n₂ n₃ : ℕ} : (n₁ < n₂ ∧ n₂ ≤ n₃) → n₁ < n₃ := sorry
+  private lemma fn {n₁ n₂ : ℕ} (h : n₁ ≤ n₂) : fin n₁ → fin n₂ := λ i, ⟨↑i, lt_le_trans ⟨i.is_lt, h⟩⟩
+  private lemma fn_inj {n₁ n₂ : ℕ} (h : n₁ ≤ n₂) : function.injective (fn h) := sorry
+  private lemma exp_ind {nᵢ : ℕ} (is : finset (fin nᵢ)) (n : ℕ) (h : nᵢ ≤ n) : finset (fin n) := is.map ⟨fn h, fn_inj h⟩  
+
+  private def run' {nᵢ nₒ nₛ : ℕ} : (ports nᵢ) → (state nₛ) → (reactions nᵢ nₒ nₛ) → (ports nₒ × state nₛ)
+    | p s (reactions.just r) :=
+      let normed_trigs : finset (fin nᵢ) := finset.map (λ t, ↑t) r.triggers in
+      let vs := normed_trigs.image p in
+      if vs = ⟨none, refl⟩  
+      then let os := r.body (input_from_ports r.dᵢ p) s in 
+           ⟨ports_from_output os.1, os.2⟩ 
+      else ⟨(λ _, none), s⟩ 
+      
+    | p s (reactions.chain h t)
+      := let fos := h.body (input_from_ports h.dᵢ p) s in
+         let tps := run' p fos.2 t in
+         ⟨merge_ports (ports_from_output fos.1) tps.1, tps.2⟩ 
+
+  def run {nᵢ nₒ nₛ : ℕ} (r : @reactor nᵢ nₒ nₛ) : @reactor nᵢ nₒ nₛ :=
+     
+  --? Prove some theorems about `run` to show that it has desired behavior.
+
+end reactor
+
+/--
 
 /- Reactor Precedence List -/
 
@@ -146,7 +216,7 @@ end reactor
 -- as well as its state. The processing of values is performed by its reactions, which should only
 -- ever receive the reactor's own input values and state as input. The result of processing should
 -- only ever be written back to the reactor itself.
-structure reactor :=
+structure old_reactor :=
   (input_count : ℕ)
   (output_count : ℕ)
   («input» : vector value input_count)
@@ -198,3 +268,5 @@ namespace reactor
   end network
 
 end reactor
+
+-/
