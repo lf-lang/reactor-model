@@ -5,7 +5,8 @@ import reaction
 open reactor
 open reaction
 
-structure reactor (nᵢ nₒ nₛ : ℕ) :=
+structure reactor :=
+  {nᵢ nₒ nₛ : ℕ}
   (inputs : ports nᵢ)
   (outputs : ports nₒ)
   (st : state nₛ)
@@ -41,12 +42,11 @@ namespace reactor
       let osₜ := run' i osₕ.2 rₜ in
       ⟨merge_ports osₕ.1 osₜ.1, osₜ.2⟩
 
-  --? Prove some theorems about `run` to show that it has desired behavior.
-  def run {nᵢ nₒ nₛ : ℕ} (r : reactor nᵢ nₒ nₛ) : reactor nᵢ nₒ nₛ :=
+  def run (r : reactor) : reactor :=
     let os := run' r.inputs r.st r.rs in
     ⟨ports.absent, os.1, os.2, r.rs⟩ 
 
-  protected theorem volatile_input {nᵢ nₒ nₛ : ℕ} (r : reactor nᵢ nₒ nₛ) : 
+  protected theorem volatile_input (r : reactor) : 
     (run r).inputs = ports.absent :=
     refl (run r).inputs
 
@@ -81,7 +81,7 @@ namespace reactor
     end
 
       --? Prove the same for state.
-  protected theorem no_in_no_out {nᵢ nₒ nₛ : ℕ} (r : reactor nᵢ nₒ nₛ) : 
+  protected theorem no_in_no_out (r : reactor) : 
     r.inputs = ports.absent → (run r).outputs = ports.absent :=
     begin 
       assume h,
@@ -123,7 +123,7 @@ namespace reactor
   -- Running a single unconnected reactor is deterministic, if equal initial states lead to equal
   -- end states.
   -- Since `reactor.run` is a function, determinism is trivially fulfilled.
-  protected theorem determinism {nᵢ nₒ nₛ : ℕ} (r₁ r₂ : reactor nᵢ nₒ nₛ) : 
+  protected theorem determinism (r₁ r₂ : reactor) : 
     r₁ = r₂ → run r₁ = run r₂ :=
     assume h, congr_arg run h
 
