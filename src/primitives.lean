@@ -1,3 +1,2 @@
-inductive value : Type*
-instance : decidable_eq value := sorry
+def value := empty
 

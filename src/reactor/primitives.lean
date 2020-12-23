@@ -1,4 +1,5 @@
 import primitives
+open classical
 
 -- A reactor's state fields and ports are represented as maps from (a fixed set of) indices to
 -- (possibly absent) values. Single ports and state fields can therefore be identified by values
@@ -11,6 +12,7 @@ namespace reactor
   def ports (n : ℕ) := (fin n) → (option value)
   def state (n : ℕ) := (fin n) → (option value)
 
+  @[reducible]
   def ports.absent {n : ℕ} : ports n := λ _, none
 
 end reactor

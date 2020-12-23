@@ -1,4 +1,5 @@
 import reactor.basic
+open classical
 
 namespace reactor
 
@@ -8,7 +9,7 @@ namespace reactor
       | r [] o := ⟨reactor.run r, o⟩ 
       | r (iₕ :: iₜ) o := 
         let rₕ := reactor.run r in
-        let rₜ : reactor := ⟨iₕ, ports.absent, rₕ.st, rₕ.rs⟩ in 
+        let rₜ : reactor := ⟨iₕ, ports.absent, rₕ.st, rₕ.reactions⟩ in 
         run' rₜ iₜ (o ++ [rₕ.outputs])
 
     -- The first input is already within the given reactor, and the last output will also be part
@@ -21,12 +22,7 @@ namespace reactor
     -- Since `reactor.sequence.run` is a function, determinism is trivially fulfilled.
     theorem deterministic (r : reactor) (i₁ i₂ : list (ports r.nᵢ)) : 
       i₁ = i₂ → (sequential.run r i₁) = (sequential.run r i₂) :=
-      begin
-      intro h, 
-      have sr : sequential.run r = sequential.run r, by apply congr_arg sequential.run (refl r), 
-      rw h,
-      sorry
-      end
+      assume h, h ▸ refl _
 
   end sequential
 

@@ -1,6 +1,7 @@
 import data.rel
 import reactor.basic
 import split_digraph
+open classical
 
 namespace reactor 
 
@@ -22,9 +23,8 @@ namespace reactor
 
   namespace network
 
-    private def topo_order' {c : ℕ} (n : network c) (acc : list (fin c)) : list (fin c)
-
-    def topo_order {c : ℕ} (n : network c) : list (fin c) := sorry -- topo sort
+    -- https://courses.cs.washington.edu/courses/cse326/03wi/lectures/RaoLect20.pdf
+    def topo_order {c : ℕ} (n : network c) : list (fin c) := sorry
 
     private def run' {c : ℕ} (n : network c) (topo : list (fin c)) : (network c) × list (fin c) :=
     begin

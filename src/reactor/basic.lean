@@ -2,35 +2,45 @@ import primitives
 import reactor.primitives
 import reaction
 
+open classical
 open reactor
-open reaction
 
+--? It would be nice to declare reactors in a similar fashion to reactions.
+--? I.e. reactions in themselves declare what they connect to (dᵢ and dₒ).
+--? The difference is that reactions themselves are just a single "connection point",
+--? so the mapping is a many-to-one (dependencies to reaction).
+--? For reactors the mapping would have to be a many to many mapping (other reactors'
+--? ports to own ports). This would on the one hand require the number of other reactors
+--? to become part of a reactor's type, which seems inelegant. And further the mapping
+--? would have to be implemented as a relation between another reactor's ports and the
+--? self-reactor's ports. This would in turn also require nᵢ and nₒ to move into a 
+--? reactor's type.
 structure reactor :=
   {nᵢ nₒ nₛ : ℕ}
   (inputs : ports nᵢ)
   (outputs : ports nₒ)
   (st : state nₛ)
-  (rs : list (reaction nᵢ nₒ nₛ))
+  (reactions : list (reaction nᵢ nₒ nₛ))
 
 namespace reactor 
 
-  instance ports_to_input {n : ℕ} {dᵢ : finset (fin n)} : has_lift (ports n) (input dᵢ) :=
+  instance ports_to_input {n : ℕ} {dᵢ : finset (fin n)} : has_lift (ports n) (reaction.input dᵢ) :=
     ⟨λ p, λ i : {d // d ∈ dᵢ}, p i⟩
 
-  instance output_to_ports {n : ℕ} {dₒ : finset (fin n)} : has_lift (output dₒ) (ports n) :=
+  instance output_to_ports {n : ℕ} {dₒ : finset (fin n)} : has_lift (reaction.output dₒ) (ports n) :=
     ⟨λ o, λ i : fin n, if h : i ∈ dₒ then o ⟨i, h⟩ else none⟩
 
   -- TEMPORARY (ports_to_input)
-  private def lift_ {n : ℕ} {dᵢ : finset (fin n)} : (ports n) → (input dᵢ) :=
+  private def lift_ {n : ℕ} {dᵢ : finset (fin n)} : (ports n) → (reaction.input dᵢ) :=
     λ p, λ i : {d // d ∈ dᵢ}, p i
   -- TEMPORARY (output_to_ports)
-  private def lift_ {n : ℕ} {dₒ : finset (fin n)} : (output dₒ) → (ports n) :=
+  private def lift_ {n : ℕ} {dₒ : finset (fin n)} : (reaction.output dₒ) → (ports n) :=
     λ o, λ i : fin n, if h : i ∈ dₒ then o ⟨i, h⟩ else none
 
   private def merge_ports {n : ℕ} (first last : ports n) : ports n :=
     λ i : fin n, (last i).elim (first i) (λ v, some v)
 
-  instance {nᵢ nₒ nₛ : ℕ} (r : reaction nᵢ nₒ nₛ) (is : reactor.ports nᵢ) : decidable (is_triggered_by r is) := sorry
+  instance {nᵢ nₒ nₛ : ℕ} (r : reaction nᵢ nₒ nₛ) (is : reactor.ports nᵢ) : decidable (r.is_triggered_by is) := sorry
 
   private def run' {nᵢ nₒ nₛ : ℕ} : (ports nᵢ) → (state nₛ) → (list (reaction nᵢ nₒ nₛ)) → (ports nₒ × state nₛ)
     | i s [] := ⟨ports.absent, s⟩ 
@@ -43,8 +53,8 @@ namespace reactor
       ⟨merge_ports osₕ.1 osₜ.1, osₜ.2⟩
 
   def run (r : reactor) : reactor :=
-    let os := run' r.inputs r.st r.rs in
-    ⟨ports.absent, os.1, os.2, r.rs⟩ 
+    let os := run' r.inputs r.st r.reactions in
+    ⟨ports.absent, os.1, os.2, r.reactions⟩  
 
   protected theorem volatile_input (r : reactor) : 
     (run r).inputs = ports.absent :=
@@ -88,7 +98,7 @@ namespace reactor
       rw run,
       simp,
       rw h,
-      induction r.rs,
+      induction r.reactions,
         rw run',
         {
           rw run',
