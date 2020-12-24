@@ -1,6 +1,6 @@
 import data.rel
 import reactor.basic
-import split_digraph
+import reactor.network.graph
 open classical
 
 namespace reactor 
@@ -11,15 +11,11 @@ namespace reactor
     def out_port {c : ℕ} (ns : vector reactor c) := Σ i : fin c, fin (ns.nth i).nₒ
 
   end network
-  open network
-
-  -- By defining the `reactors` as a list instead of a set, we remove the need for identifiers and
-  -- use the index into the list as a reactor's identifier.
+  
   structure network (c : ℕ) :=
-    (nodes : vector reactor c)
-    (graph : split_digraph (out_port nodes) (in_port nodes))
-    (unique_ins : graph.is_input_unique)  
-    (acylic : graph.is_acyclic) -- to be removed
+    (φ : network.graph c)
+    (unique_ins : φ.is_input_unique)
+    (acyclic : φ.is_acylic)
 
   namespace network
 

@@ -1,12 +1,19 @@
 import data.rel
 import data.finset
+import reactor.basic
+
 open classical
+
+--? There need to be two types of graphs involved.
+--? (1) The graph by which a "user" can declare the connections between reactors: split_digraph.
+--? (2) The graph in which the dependencies between reactions are shown. This graph can be generated from graph (1).
 
 -- Inspired by: https://gist.github.com/MonoidMusician/1c8cc2ec787ebaf91b95d67cbc5c3498
 
 namespace split_digraph
 
-  --! Use this at the level of reactions, not reactors.
+  --! This type can't contain S and D explicitly, since they differ from reactor to reactor. Since S and D are
+  --! fin n for a variety of n.
   structure node (U S D : Type*) :=
     (unit : U)
     (src : S)
