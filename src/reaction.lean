@@ -61,9 +61,9 @@ namespace reaction
   -- If a given port-assignment has no absent values and a reaction contains at least some trigger,
   -- then that reaction will definitely trigger for the given ports.
   protected theorem all_ins_nempty_trigs (r : reaction) (p : reactor.ports r.nᵢ) :
-    r.triggers.nonempty → (∀ i : fin r.nᵢ, p i ≠ none) → r.is_triggered_by p :=
+    (∀ i : fin r.nᵢ, p i ≠ none) → r.triggers.nonempty → r.is_triggered_by p :=
     begin
-      intros hₜ hᵢ,
+      intros hᵢ hₜ,
       have t : { i // i ∈ r.dᵢ }, from hₜ.some,
       have tm : t ∈ r.triggers, from sorry,
       have ptn : p t ≠ none, from hᵢ t,

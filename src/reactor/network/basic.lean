@@ -13,9 +13,14 @@ namespace reactor
 
   end network
   
+  --! The `nodes` should really be part of `φ`. 
+  --! This is currently not possible, because the network.graph needs to
+  --! know the type of it's nodes in order to know the type of its edges.
+  --! -> digraph needs to be adjusted to solve this
   structure network (c : ℕ) :=
-    (φ : network.graph c)
-    (unique_ins : φ.is_input_unique)
+    (reactors : fin c → reactor)
+    (φ : network.graph reactors)
+    (unique : φ.is_input_unique)
     (acyclic : φ.is_acyclic)
 
   namespace network

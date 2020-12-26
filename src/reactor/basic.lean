@@ -8,11 +8,11 @@ namespace reactor
 
   def uniform_reactions (nᵢ nₒ nₛ : ℕ) := list { r : reaction // r.nᵢ = nᵢ ∧ r.nₒ = nₒ ∧ r.nₛ = nₛ }
 
-  /-private-/ def ports_to_input {n : ℕ} {dᵢ : finset (fin n)} : (ports n) → (reaction.input dᵢ) :=
-    λ p, λ i : {d // d ∈ dᵢ}, p i
+  /-private-/ def ports_to_input {n : ℕ} {dᵢ : finset (fin n)} (p : ports n) : reaction.input dᵢ :=
+    λ i : {d // d ∈ dᵢ}, p i
 
-  /-private-/ def output_to_ports {n : ℕ} {dₒ : finset (fin n)} : (reaction.output dₒ) → (ports n) :=
-    λ o, λ i : fin n, if h : i ∈ dₒ then o ⟨i, h⟩ else none
+  /-private-/ def output_to_ports {n : ℕ} {dₒ : finset (fin n)} (o : reaction.output dₒ) : ports n :=
+    λ i : fin n, if h : i ∈ dₒ then o ⟨i, h⟩ else none
 
   --! These don't work when using them.
   instance lift_ports_to_input  {n : ℕ} {dᵢ : finset (fin n)} : has_lift (ports n) (reaction.input dᵢ)  := ⟨ports_to_input⟩
@@ -99,8 +99,7 @@ namespace reactor
       assume h,
       rw merge_ports,
       simp,
-      rw h,
-      rw ports.absent,
+      rw [h, ports.absent],
       simp,
     end
 

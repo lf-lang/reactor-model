@@ -1,12 +1,18 @@
 import data.rel
-import reactor.basic
+import digraph
 import reactor.network.basic
 
 namespace reactor 
 namespace network
 namespace «precedence» 
 
-  private def reaction_idx {c : ℕ} (n : network c) := Σ r : fin c, fin (n.φ.reactors r).reactions.length
+  private def reaction_idx {c : ℕ} (n : network c) := Σ r : fin c, fin (n.reactors r).reactions.length
+  def graph.edge {c : ℕ} (n : network c) := (reaction_idx n) × (reaction_idx n)
+
+  instance {c : ℕ} {n : network c} : digraph.edge (graph.edge n) reaction := 
+    ⟨(λ e, (n.reactors e.1.1).reactions e.1.2), (λ e, (n.reactors e.2.1).reactions e.2.2)⟩
+
+  def graph {c : ℕ} (r : fin c → reactor) := digraph (fin c) reactor (graph.edge r)
 
   structure graph {c : ℕ} (n : reactor.network c) :=
     (reactions : reaction_idx n → reaction)
