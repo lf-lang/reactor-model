@@ -1,6 +1,7 @@
 import data.finset
 import primitives
 import reactor.primitives
+
 open classical
 
 -- Mappings from *exactly* a given set of {in,out}put dependency-indices to (possibly absent)
@@ -27,7 +28,8 @@ open reaction
 --? the underlying reaction body (the foreign code) behaves like a function.
 --
 --? Define a coercion from reactions with smaller bounds to ones with higher bounds, if necessary.
-structure reaction (nᵢ nₒ nₛ : ℕ) :=
+structure reaction :=
+  {nᵢ nₒ nₛ : ℕ}
   (dᵢ : finset (fin nᵢ)) 
   (dₒ : finset (fin nₒ))
   (triggers : finset {i // i ∈ dᵢ})
@@ -35,22 +37,37 @@ structure reaction (nᵢ nₒ nₛ : ℕ) :=
 
 namespace reaction
 
-  -- (1) Get R's triggers T.
-  -- (2) Coerce the elements in T to be the input type of P.
-  -- (3) Get the image I of (T through P).
-  -- (4) Erase the absent value (`none`) from I.
-  -- (4) If I is empty (contained nothing but the absent value), R is not triggered by P.
-  def is_triggered_by {nᵢ nₒ nₛ : ℕ} (r : reaction nᵢ nₒ nₛ) (is : reactor.ports nᵢ) : Prop :=
-    let ts : finset (fin nᵢ) := r.triggers.map ⟨(λ i, ↑i), subtype.coe_injective⟩ in
-    let i : finset (option value) := ts.image is in
-    let vs := i.erase none in
-    vs.nonempty
+  def is_triggered_by (r : reaction) (is : reactor.ports r.nᵢ) :=
+    ∃ (t : { x // x ∈ r.dᵢ }) (h : t ∈ r.triggers), is t ≠ none
+
+  instance decidable_is_triggered_by (r : reaction) (is : reactor.ports r.nᵢ) : 
+    decidable (r.is_triggered_by is) := finset.decidable_dexists_finset
 
   -- A reaction is deterministic, if given equal inputs and states, running the body produces equal
   -- outputs and states. 
   -- Since a reaction's body is a function, determinism is trivially fulfilled.
-  protected theorem determinism {nᵢ nₒ nₛ : ℕ} (r : reaction nᵢ nₒ nₛ) (i₁ i₂ : reaction.input r.dᵢ) (s₁ s₂ : reactor.state nₛ) :
+  protected theorem determinism (r : reaction) (i₁ i₂ : reaction.input r.dᵢ) (s₁ s₂ : reactor.state r.nₛ) :
     i₁ = i₂ ∧ s₁ = s₂ → (r.body i₁ s₁) = (r.body i₂ s₂) := 
     assume ⟨hᵢ, hₛ⟩, hᵢ ▸ hₛ ▸ refl _
+
+  -- A reaction will never trigger for absent ports.
+  protected theorem no_in_no_trig (r : reaction) : 
+    r.is_triggered_by reactor.ports.absent = false :=
+    begin 
+      rw reaction.is_triggered_by,
+      simp,
+    end
+
+  -- If a given port-assignment has no absent values and a reaction contains at least some trigger,
+  -- then that reaction will definitely trigger for the given ports.
+  protected theorem all_ins_nempty_trigs (r : reaction) (p : reactor.ports r.nᵢ) :
+    r.triggers.nonempty → (∀ i : fin r.nᵢ, p i ≠ none) → r.is_triggered_by p :=
+    begin
+      intros hₜ hᵢ,
+      have t : { i // i ∈ r.dᵢ }, from hₜ.some,
+      have tm : t ∈ r.triggers, from sorry,
+      have ptn : p t ≠ none, from hᵢ t,
+      exact ⟨t, tm, ptn⟩,
+    end 
 
 end reaction

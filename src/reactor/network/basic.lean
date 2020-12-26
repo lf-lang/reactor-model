@@ -1,6 +1,7 @@
 import data.rel
 import reactor.basic
 import reactor.network.graph
+
 open classical
 
 namespace reactor 
@@ -15,7 +16,7 @@ namespace reactor
   structure network (c : ℕ) :=
     (φ : network.graph c)
     (unique_ins : φ.is_input_unique)
-    (acyclic : φ.is_acylic)
+    (acyclic : φ.is_acyclic)
 
   namespace network
 

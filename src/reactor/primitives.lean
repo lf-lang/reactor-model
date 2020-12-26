@@ -9,10 +9,13 @@ open classical
 --? then just have `ports` and `state` be typealiases for that core.
 namespace reactor
 
-  def ports (n : ℕ) := (fin n) → (option value)
-  def state (n : ℕ) := (fin n) → (option value)
+  def ports (n : ℕ) := fin n → option value
+  def state (n : ℕ) := fin n → option value
 
   @[reducible]
   def ports.absent {n : ℕ} : ports n := λ _, none
+
+  def convert {α : Type*} {n n' : ℕ} (f : fin n → α) (h : n' = n) : fin n' → α := 
+    λ i, f ⟨i.val, h ▸ i.property⟩
 
 end reactor
