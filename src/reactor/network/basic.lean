@@ -19,8 +19,8 @@ namespace reactor
   --! -> digraph needs to be adjusted to solve this
   structure network (c : ℕ) :=
     (φ : network.graph c)
-    (unique : φ.is_input_unique)
     (acyclic : φ.is_acyclic)
+    (unique : φ.is_input_unique)
 
   namespace network
 

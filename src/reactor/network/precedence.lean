@@ -6,23 +6,20 @@ namespace reactor
 namespace network
 namespace «precedence» 
 
-  variable  {c : ℕ}
+  variables {c : ℕ} (n : network c)
 
-  private structure reaction_index (n : network c) := 
-    (rtr : fin c)
-    (rcn : fin (n.φ.nodes rtr).nᵣ)
-  
-  structure graph.edge {n : network c} (_ : reaction_index n → reaction) := 
+  private structure reaction_index := 
+    (rtr : { i // i ∈ n.φ.ids })
+    (rcn : fin (n.φ.data rtr).nᵣ)
+
+  structure graph.edge := 
     (src : reaction_index n)
     (dst : reaction_index n)
 
-  instance prec_graph_edge {n : network c} {r : reaction_index n → reaction} : digraph.edge (graph.edge r) reaction := 
-    {
-      src := (λ e, r e.src), 
-      dst := (λ e, r e.dst)
-    }
+  instance graph.digraph_edge {n : network c} : digraph.edge (graph.edge n) (reaction_index n) := 
+    { src := (λ e, e.src), dst := (λ e, e.dst) }
 
-  def graph (n : network c) := digraph (reaction_index n) reaction graph.edge
+  def graph := dag (reaction_index n) reaction (λ _ _, graph.edge n)
 
   namespace graph
 

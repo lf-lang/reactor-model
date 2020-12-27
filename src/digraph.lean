@@ -4,19 +4,25 @@ import data.finset
 
 namespace digraph
 
-  -- Type `ε` is a `digraph.edge`-type over `α`, if any instance of it can produce a `src` and `dst` element of type `α`.
-  class edge (ε α : Type*) :=
-    (src : ε → α)
-    (dst : ε → α)
+  -- Type `ε` is a `digraph.edge`-type over indices `ι`, if any instance of it can produce a `src`
+  -- and `dst` index.
+  class edge (ε ι : Type*) :=
+    (src : ε → ι)
+    (dst : ε → ι)
 
   namespace edge 
 
-    def src_of {ε α : Type*} [digraph.edge ε α] (e : ε) : α := digraph.edge.src e
-    def dst_of {ε α : Type*} [digraph.edge ε α] (e : ε) : α := digraph.edge.dst e
+    variables {ε ι : Type*} [digraph.edge ε ι] 
+
+    def src_of (e : ε) : ι := digraph.edge.src e
+    def dst_of (e : ε) : ι := digraph.edge.dst e
 
   end edge
 
 end digraph
+
+variables (ι δ : Type*) (ε : Π is : finset ι, ({ i // i ∈ is } → δ) → Type*)
+variables [∀ i d, digraph.edge (ε i d) ι]
 
 -- The vertices (of type `α`) have to have an associated index (of type `ι`), because otherwise it
 -- wouldn't be possible to have multiple instances of the same reactor in a network.
@@ -25,52 +31,51 @@ end digraph
 --! this has to coincide with the reduction of the possible indices `ι`. Perhaps this can be
 --! achieved by using a subtype as the resulting index type, like:
 --! `ι' = { i : ι // i != index_of_removed_vertex }`.
-structure digraph (ι α : Type*) (ε : (ι → α) → Type*) [∀ n, digraph.edge (ε n) α] [fintype ι] [decidable_eq α] :=
-  (nodes : ι → α)
-  (edges : finset (ε nodes))
+structure digraph :=
+  (ids : finset ι)
+  (data : { i // i ∈ ids } → δ)
+  (edges : finset (ε ids data))
 
-variables {ι α : Type*} {ε : (ι → α) → Type*}
-variables [∀ n, digraph.edge (ε n) α] [fintype ι] [decidable_eq α]
+variables {ι δ ε}
 
 namespace digraph
 
   open edge
 
   -- The values of the nodes contained in digraph `g`.
-  def vertices (g : digraph ι α ε) : finset α :=
-    finset.image g.nodes finset.univ
+  def vertices (g : digraph ι δ ε) : finset δ := sorry
+    -- map -- finset.image g.nodes finset.univ
 
   -- The proposition that a given digraph connects two given vertices with an edge.
-  def has_edge_from_to (g : digraph ι α ε) (v v' : α) : Prop :=
-    ∃ e ∈ g.edges, (src_of e = v) ∧ (dst_of e = v')
+  def has_edge_from_to (g : digraph ι δ ε) (i i' : ι) : Prop :=
+    ∃ e ∈ g.edges, (src_of e = i) ∧ (dst_of e = i')
 
-  notation v-g->v' := g.has_edge_from_to v v'
+  notation i-g->i' := g.has_edge_from_to i i'
 
   -- The proposition that a given digraph connects two given vertices by some path.
-  inductive has_path_from_to (g : digraph ι α ε) : α → α → Prop
-    | direct {v v' : α} : (v-g->v') → has_path_from_to v v'
-    | composite {v vₘ v' : α} : has_path_from_to v vₘ → has_path_from_to vₘ v' → has_path_from_to v v'
+  inductive has_path_from_to (g : digraph ι δ ε) : ι → ι → Prop
+    | direct {i i' : ι} : (i-g->i') → has_path_from_to i i'
+    | composite {i iₘ i' : ι} : has_path_from_to i iₘ → has_path_from_to iₘ i' → has_path_from_to i i'
 
-  notation a~g~>a' := g.has_path_from_to a a'
+  notation i~g~>i' := g.has_path_from_to i i'
 
   -- The proposition that a given digraph is acyclic.
-  def is_acyclic (g : digraph ι α ε) : Prop :=
-    ∀ a a' : α, (a~g~>a') → a ≠ a'
+  def is_acyclic (g : digraph ι δ ε) : Prop :=
+    ∀ i i' : ι, (i~g~>i') → i ≠ i'
 
   -- The proposition that every node in a given digraph has an in-degree of ≤ 1.
-  def is_input_unique (g : digraph ι α ε) : Prop :=
-    ∀ (i₁ i₂ i : ι) (e₁ e₂ ∈ g.edges),
-      (src_of e₁ = g.nodes i₁) ∧ (src_of e₂ = g.nodes i₂) →
-      (dst_of e₁ = g.nodes i ) ∧ (dst_of e₂ = g.nodes i ) →
+  def is_input_unique (g : digraph ι δ ε) : Prop :=
+    ∀ (i₁ i₂ i ∈ g.ids) (e₁ e₂ ∈ g.edges),
+      (src_of e₁ = i₁) ∧ (src_of e₂ = i₂) ∧ (dst_of e₁ = i) ∧ (dst_of e₂ = i) → 
       i₁ = i₂ 
 
-  -- The proposition that `a` is a node of in-degree 0 in `g`.
-  def has_source_node (g : digraph ι α ε) (a : α) : Prop :=
-    a ∈ g.vertices ∧ ∀ e ∈ g.edges, dst_of e ≠ a
+  -- The proposition that `i` is a vertex of in-degree 0 in `g`.
+  def has_source_node (g : digraph ι δ ε) (i : ι) : Prop :=
+    i ∈ g.ids ∧ ∀ e ∈ g.edges, dst_of e ≠ i
 
   -- If a digraph is acyclic, it must contain a source node.
-  theorem acyclic_has_source (g : digraph ι α ε) :
-    g.is_acyclic → (∃ a : α, g.has_source_node a) :=
+  theorem acyclic_has_source (g : digraph ι δ ε) :
+    g.is_acyclic → (∃ i : ι, g.has_source_node i) :=
     begin
       intro h,
       --? rw has_source_node,
@@ -79,23 +84,25 @@ namespace digraph
 
 end digraph 
 
-variable [decidable_eq α]
+variables (ι δ ε)
 
 -- A directed acyclic graph, aka DAG. 
-def dag (ι α : Type*) (ε : (ι → α) → Type*) [∀ n, digraph.edge (ε n) α] [fintype ι] [decidable_eq α] := 
-  { d : digraph ι α ε // d.is_acyclic }
+def dag := { d : digraph ι δ ε // d.is_acyclic }
 
-def list.is_topological_order_of (l : list α) (g : dag ι α ε)  : Prop :=
-  ∀ a a' ∈ l, (a-(g.val)->a') → (l.index_of a < l.index_of a')
+variables {ι δ ε} [decidable_eq ι]
+
+def list.is_topological_order_of (l : list ι) (g : dag ι δ ε)  : Prop :=
+  ∀ i i' ∈ l, (i-g.val->i') → (l.index_of i < l.index_of i')
 
 namespace digraph
 
-  private def topological_sort' (g : dag ι α ε) (l : list (ι × α)) : (dag ι α ε) × list (ι × α) :=
+  private def topological_sort' (g : dag ι δ ε) (acc : list ι) : (dag ι δ ε) × list ι :=
+    -- The return type should work as `dag ι δ ε` now.
     sorry
 
-  def topological_sort (g : dag ι α ε) : list α := sorry
+  def topological_sort (g : dag ι δ ε) : list ι := sorry
 
-  protected theorem topological_sort_correctness (g : dag ι α ε) :
+  protected theorem topological_sort_correctness (g : dag ι δ ε) :
     (topological_sort g).is_topological_order_of g :=
     sorry
 
