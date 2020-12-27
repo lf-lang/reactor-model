@@ -10,14 +10,7 @@ namespace digraph
     (src : ε → ι)
     (dst : ε → ι)
 
-  namespace edge 
-
-    variables {ε ι : Type*} [digraph.edge ε ι] 
-
-    def src_of (e : ε) : ι := digraph.edge.src e
-    def dst_of (e : ε) : ι := digraph.edge.dst e
-
-  end edge
+  notation ⟨e⟩ := (digraph.edge.src e, digraph.edge.dst e)
 
 end digraph
 
@@ -42,13 +35,9 @@ namespace digraph
 
   open edge
 
-  -- The values of the nodes contained in digraph `g`.
-  def vertices (g : digraph ι δ ε) : finset δ := sorry
-    -- map -- finset.image g.nodes finset.univ
-
   -- The proposition that a given digraph connects two given vertices with an edge.
   def has_edge_from_to (g : digraph ι δ ε) (i i' : ι) : Prop :=
-    ∃ e ∈ g.edges, (src_of e = i) ∧ (dst_of e = i')
+    ∃ e ∈ g.edges, ⟨e⟩ = (i, i')
 
   notation i-g->i' := g.has_edge_from_to i i'
 
@@ -65,13 +54,12 @@ namespace digraph
 
   -- The proposition that every node in a given digraph has an in-degree of ≤ 1.
   def is_input_unique (g : digraph ι δ ε) : Prop :=
-    ∀ (i₁ i₂ i ∈ g.ids) (e₁ e₂ ∈ g.edges),
-      (src_of e₁ = i₁) ∧ (src_of e₂ = i₂) ∧ (dst_of e₁ = i) ∧ (dst_of e₂ = i) → 
-      i₁ = i₂ 
-
+    ∀ (i₁ i₂ i ∈ g.ids) (e₁ e₂ ∈ g.edges), 
+      ⟨e₁⟩ = (i₁, i) ∧ ⟨e₂⟩ = (i₂, i) → i₁ = i₂ 
+      
   -- The proposition that `i` is a vertex of in-degree 0 in `g`.
   def has_source_node (g : digraph ι δ ε) (i : ι) : Prop :=
-    i ∈ g.ids ∧ ∀ e ∈ g.edges, dst_of e ≠ i
+    i ∈ g.ids ∧ ∀ e ∈ g.edges, (digraph.edge.dst e) ≠ i
 
   -- If a digraph is acyclic, it must contain a source node.
   theorem acyclic_has_source (g : digraph ι δ ε) :
