@@ -35,6 +35,8 @@ structure reaction :=
   (triggers : finset {i // i ∈ dᵢ})
   (body : reaction.input dᵢ → reactor.state nₛ → (reaction.output dₒ × reactor.state nₛ)) 
 
+instance rcn_dec_eq : decidable_eq reaction := sorry
+
 namespace reaction
 
   def is_triggered_by (r : reaction) (is : reactor.ports r.nᵢ) :=
