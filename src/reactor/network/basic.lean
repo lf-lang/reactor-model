@@ -18,8 +18,7 @@ namespace reactor
   --! know the type of it's nodes in order to know the type of its edges.
   --! -> digraph needs to be adjusted to solve this
   structure network (c : ℕ) :=
-    (reactors : fin c → reactor)
-    (φ : network.graph reactors)
+    (φ : network.graph c)
     (unique : φ.is_input_unique)
     (acyclic : φ.is_acyclic)
 

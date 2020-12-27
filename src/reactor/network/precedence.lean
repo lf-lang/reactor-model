@@ -6,22 +6,26 @@ namespace reactor
 namespace network
 namespace «precedence» 
 
-  private def reaction_idx {c : ℕ} (n : network c) := Σ r : fin c, fin (n.reactors r).reactions.length
-  def graph.edge {c : ℕ} (n : network c) := (reaction_idx n) × (reaction_idx n)
+  private structure reaction_index {c : ℕ} (n : fin c → reactor) := 
+    (rtr : fin c)
+    (rcn : fin (n rtr).nᵣ)
+  
+  structure graph.edge {c : ℕ} {n : fin c → reactor} (_ : reaction_index n → reaction) := 
+    (src : reaction_index n)
+    (dst : reaction_index n)
 
-  instance {c : ℕ} {n : network c} : digraph.edge (graph.edge n) reaction := 
-    ⟨(λ e, (n.reactors e.1.1).reactions e.1.2), (λ e, (n.reactors e.2.1).reactions e.2.2)⟩
+  instance prec_graph_edge {c : ℕ} {n : fin c → reactor} {r : reaction_index n → reaction} : digraph.edge (graph.edge r) reaction := 
+    {
+      src := (λ e, r e.src), 
+      dst := (λ e, r e.dst)
+    }
 
-  def graph {c : ℕ} (r : fin c → reactor) := digraph (fin c) reactor (graph.edge r)
-
-  structure graph {c : ℕ} (n : reactor.network c) :=
-    (reactions : reaction_idx n → reaction)
-    (connects : rel (reaction_idx n) (reaction_idx n))
+  def graph {c : ℕ} (n : network c) := digraph (reaction_index n.φ.nodes) reaction graph.edge
 
   namespace graph
 
-    def is_topo_order_of {c : ℕ} {n : network c} (l : list (reaction_idx n)) (g : precedence.graph n) :=
-      ∀ r r' : reaction_idx n, (g.connects r r') → (l.index_of r < l.index_of r')
+    /-def is_topo_order_of {c : ℕ} {n : network c} (l : list (reaction_idx n)) (g : precedence.graph n) :=
+      ∀ r r' : reaction_idx n, (g.connects r r') → (l.index_of r < l.index_of r')-/
 
   end graph
 

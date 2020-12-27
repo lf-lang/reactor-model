@@ -6,7 +6,7 @@ open classical
 
 namespace reactor
 
-  def uniform_reactions (nᵢ nₒ nₛ : ℕ) := list { r : reaction // r.nᵢ = nᵢ ∧ r.nₒ = nₒ ∧ r.nₛ = nₛ }
+  def uniform_reactions (nᵢ nₒ nₛ nᵣ : ℕ) := vector { r : reaction // r.nᵢ = nᵢ ∧ r.nₒ = nₒ ∧ r.nₛ = nₛ } nᵣ
 
   /-private-/ def ports_to_input {n : ℕ} {dᵢ : finset (fin n)} (p : ports n) : reaction.input dᵢ :=
     λ i : {d // d ∈ dᵢ}, p i
@@ -34,18 +34,19 @@ open reactor
 --? self-reactor's ports. This would in turn also require nᵢ and nₒ to move into a 
 --? reactor's type.
 structure reactor :=
-  {nᵢ nₒ nₛ : ℕ}
+  {nᵢ nₒ nₛ nᵣ : ℕ}
   (inputs : ports nᵢ)
   (outputs : ports nₒ)
   (st : state nₛ)
-  (reactions : uniform_reactions nᵢ nₒ nₛ)
+  (reactions : uniform_reactions nᵢ nₒ nₛ nᵣ)
 
 namespace reactor 
 
   private def merge_ports {n : ℕ} (first last : ports n) : ports n :=
     λ i : fin n, (last i).elim (first i) (λ v, some v)
 
-  private def run' {nᵢ nₒ nₛ : ℕ} (rs : uniform_reactions nᵢ nₒ nₛ) (i : ports nᵢ) (s : state nₛ) : ports nₒ × state nₛ :=
+  private def run' {nᵢ nₒ nₛ nᵣ: ℕ} (rs : uniform_reactions nᵢ nₒ nₛ nᵣ) (i : ports nᵢ) (s : state nₛ) : ports nₒ × state nₛ :=
+    -- this is not a list anymore, but rather a vector
     list.rec_on rs
       (ports.absent, s)
       (
