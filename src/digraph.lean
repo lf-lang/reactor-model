@@ -18,6 +18,13 @@ namespace digraph
 
 end digraph
 
+-- The vertices (of type `α`) have to have an associated index (of type `ι`), because otherwise it
+-- wouldn't be possible to have multiple instances of the same reactor in a network.
+-- Multisets are not enough, because then their edges can't be distinguished from one another.
+--! The problem now is, that it is not easily possible to remove and edge from the graph, because
+--! this has to coincide with the reduction of the possible indices `ι`. Perhaps this can be
+--! achieved by using a subtype as the resulting index type, like:
+--! `ι' = { i : ι // i != index_of_removed_vertex }`.
 structure digraph (ι α : Type*) (ε : (ι → α) → Type*) [∀ n, digraph.edge (ε n) α] [fintype ι] [decidable_eq α] :=
   (nodes : ι → α)
   (edges : finset (ε nodes))
@@ -73,18 +80,23 @@ namespace digraph
 end digraph 
 
 variable [decidable_eq α]
-   
-def list.is_topological_order_of (l : list α) (g : digraph ι α ε)  : Prop :=
-  ∀ a a' ∈ l, (a-g->a') → (l.index_of a < l.index_of a')
-  
+
+-- A directed acyclic graph, aka DAG. 
+def dag (ι α : Type*) (ε : (ι → α) → Type*) [∀ n, digraph.edge (ε n) α] [fintype ι] [decidable_eq α] := 
+  { d : digraph ι α ε // d.is_acyclic }
+
+def list.is_topological_order_of (l : list α) (g : dag ι α ε)  : Prop :=
+  ∀ a a' ∈ l, (a-(g.val)->a') → (l.index_of a < l.index_of a')
+
 namespace digraph
 
-  private def topological_sort' (g : digraph ι α ε) (acylic : g.is_acyclic)
+  private def topological_sort' (g : dag ι α ε) (l : list (ι × α)) : (dag ι α ε) × list (ι × α) :=
+    sorry
 
-  def topological_sort (g : digraph ι α ε) (acylic : g.is_acyclic) : list α := sorry
+  def topological_sort (g : dag ι α ε) : list α := sorry
 
-  protected theorem topological_sort_correctness (g : digraph ι α ε) (acyclic : g.is_acyclic) :
-    (topological_sort g acyclic).is_topological_order_of g :=
+  protected theorem topological_sort_correctness (g : dag ι α ε) :
+    (topological_sort g).is_topological_order_of g :=
     sorry
 
 end digraph
