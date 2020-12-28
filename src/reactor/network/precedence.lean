@@ -1,5 +1,5 @@
 import data.rel
-import digraph
+import graphs.digraph
 import reactor.network.basic
 
 namespace reactor 
@@ -9,8 +9,8 @@ namespace «precedence»
   variables {c : ℕ} (n : network c)
 
   private structure reaction_index := 
-    (rtr : { i // i ∈ n.φ.ids })
-    (rcn : fin (n.φ.data rtr).nᵣ)
+    (rtr : { i // i ∈ n.graph.val.ids })
+    (rcn : fin (n.graph.val.data rtr).nᵣ)
 
   structure graph.edge := 
     (src : reaction_index n)

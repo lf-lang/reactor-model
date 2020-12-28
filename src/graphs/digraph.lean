@@ -6,7 +6,7 @@ namespace digraph
 
   -- Type `ε` is a `digraph.edge`-type over indices `ι`, if any instance of it can produce a `src`
   -- and `dst` index.
-  class edge (ε ι : Type*) :=
+  class edge (ε ι : Type*) [decidable_eq ι] :=
     (src : ε → ι)
     (dst : ε → ι)
 
@@ -15,7 +15,7 @@ namespace digraph
 end digraph
 
 variables (ι δ : Type*) (ε : Π is : finset ι, ({ i // i ∈ is } → δ) → Type*)
-variables [∀ i d, digraph.edge (ε i d) ι]
+variables [decidable_eq ι] [∀ i d, digraph.edge (ε i d) ι]
 
 -- The vertices (of type `α`) have to have an associated index (of type `ι`), because otherwise it
 -- wouldn't be possible to have multiple instances of the same reactor in a network.
@@ -51,47 +51,27 @@ namespace digraph
   -- The proposition that a given digraph is acyclic.
   def is_acyclic (g : digraph ι δ ε) : Prop :=
     ∀ i i' : ι, (i~g~>i') → i ≠ i'
-
-  -- The proposition that every node in a given digraph has an in-degree of ≤ 1.
-  def is_input_unique (g : digraph ι δ ε) : Prop :=
-    ∀ (i₁ i₂ i ∈ g.ids) (e₁ e₂ ∈ g.edges), 
-      ⟨e₁⟩ = (i₁, i) ∧ ⟨e₂⟩ = (i₂, i) → i₁ = i₂ 
       
-  -- The proposition that `i` is a vertex of in-degree 0 in `g`.
-  def has_source_node (g : digraph ι δ ε) (i : ι) : Prop :=
-    i ∈ g.ids ∧ ∀ e ∈ g.edges, (digraph.edge.dst e) ≠ i
+  -- The in-degree of vertex `i` in digraph `g`.
+  def in_degree (i : ι) (g : digraph ι δ ε) : ℕ :=
+    (g.edges.filter (λ e, dst e = i)).card
 
-  -- If a digraph is acyclic, it must contain a source node.
-  theorem acyclic_has_source (g : digraph ι δ ε) :
-    g.is_acyclic → (∃ i : ι, g.has_source_node i) :=
-    begin
-      intro h,
-      --? rw has_source_node,
-      sorry
-    end
+  -- The digraph that remains after removing a given vertex (and all of its associated edges).
+  def removing (g : digraph ι δ ε) (i : ι) : digraph ι δ ε :=
+    let ids' := g.ids.erase i in
+    let id_incl : Π x ∈ ids', x ∈ g.ids := λ x, finset.mem_of_subset (finset.erase_subset i g.ids) in
+    let data' : { x // x ∈ ids' } → δ := λ i, g.data { val := i.val, property := id_incl i.val i.property } in
+    let edges' := g.edges.filter (λ e, src e ≠ i ∧ dst e ≠ i) in
+    { ids := ids', data := data', edges := edges'.map (sorry) } 
 
 end digraph 
 
-variables (ι δ ε)
 
--- A directed acyclic graph, aka DAG. 
-def dag := { d : digraph ι δ ε // d.is_acyclic }
 
-variables {ι δ ε} [decidable_eq ι]
 
-def list.is_topological_order_of (l : list ι) (g : dag ι δ ε)  : Prop :=
-  ∀ i i' ∈ l, (i-g.val->i') → (l.index_of i < l.index_of i')
 
-namespace digraph
 
-  private def topological_sort' (g : dag ι δ ε) (acc : list ι) : (dag ι δ ε) × list ι :=
-    -- The return type should work as `dag ι δ ε` now.
-    sorry
 
-  def topological_sort (g : dag ι δ ε) : list ι := sorry
 
-  protected theorem topological_sort_correctness (g : dag ι δ ε) :
-    (topological_sort g).is_topological_order_of g :=
-    sorry
 
-end digraph
+
