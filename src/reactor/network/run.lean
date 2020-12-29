@@ -9,11 +9,10 @@ namespace network
 
   private def run' (topo : list (precedence.graph.reaction_id n)) : (network c) × list (precedence.graph.reaction_id n)
     := sorry
-    -- Run the first reaction is the topo. 
-    -- Adjust the reactors in the network accordingly.
-    -- Remove the run reaction from the topo.
-    -- Return the new network and topo.
   
+  -- # How do reactor networks run?
+  -- # Is it just sequential execution of the reactions that fire?
+
   variable (n)
   def run (h : (precedence.graph.from n).is_acyclic) : network c :=
     let pg := precedence.graph.from n in

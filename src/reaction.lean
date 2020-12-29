@@ -12,7 +12,6 @@ namespace reaction
   protected def output {nₒ : ℕ} (dₒ : finset (fin nₒ)) := {o // o ∈ dₒ} → (option value)
 
 end reaction
-open reaction
 
 -- Reactions consist of a set of input dependencies `dᵢ`, output dependencies `dₒ`, `triggers` and
 -- a function `body` that transforms a given input map and state to an output map and a new state.
@@ -24,16 +23,13 @@ open reaction
 --? objects if the reactions themselves are deterministic.
 --? That way it would be more clear what is actually being shown: reactors are deterministic, if
 --? the underlying reaction body (the foreign code) behaves like a function.
---
---? Define a coercion from reactions with smaller bounds to ones with higher bounds, if necessary.
 structure reaction :=
   {nᵢ nₒ nₛ : ℕ}
   (dᵢ : finset (fin nᵢ)) 
   (dₒ : finset (fin nₒ))
   (triggers : finset {i // i ∈ dᵢ})
+  (nonempty_triggers : triggers.nonempty)
   (body : reaction.input dᵢ → reactor.state nₛ → (reaction.output dₒ × reactor.state nₛ)) 
-
-instance rcn_dec_eq : decidable_eq reaction := sorry
 
 namespace reaction
 
@@ -57,14 +53,14 @@ namespace reaction
       simp,
     end
 
-  -- If a given port-assignment has no absent values and a reaction contains at least some trigger,
-  -- then that reaction will definitely fire for the given ports.
-  protected theorem all_ins_nempty_trigs_fires (r : reaction) (p : reactor.ports r.nᵢ) :
-    (∀ i : fin r.nᵢ, p i ≠ none) → r.triggers.nonempty → r.fires_on p :=
+  -- If a given port-assignment has no absent values then a reaction will definitely fire for the
+  -- given ports.
+  protected theorem all_ins_fires (r : reaction) (p : reactor.ports r.nᵢ) :
+    (∀ i : fin r.nᵢ, p i ≠ none) → r.fires_on p :=
     begin
-      intros hᵢ hₜ,
+      intros hᵢ,
       -- Get a `t ∈ r.triggers` (with membership-proof `hₘ`).
-      obtain ⟨t, hₘ⟩ := hₜ,
+      obtain ⟨t, hₘ⟩ := r.nonempty_triggers,
       -- Show that `p` has a value for `t` by virtue of `hᵢ`.
       have hₚ : p t ≠ none, from hᵢ t, 
       exact ⟨t, hₘ, hₚ⟩,
