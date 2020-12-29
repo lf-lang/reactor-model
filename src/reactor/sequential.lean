@@ -8,7 +8,7 @@ namespace reactor
       | r [] o := ⟨reactor.run r, o⟩ 
       | r (iₕ :: iₜ) o := 
         let rₕ := reactor.run r in
-        let rₜ : reactor := ⟨iₕ, ports.absent, rₕ.st, rₕ.reactions⟩ in 
+        let rₜ : reactor := ⟨iₕ, ports.empty, rₕ.st, rₕ.reactions⟩ in 
         run' rₜ iₜ (o ++ [rₕ.outputs])
 
     -- The first input is already within the given reactor, and the last output will also be part

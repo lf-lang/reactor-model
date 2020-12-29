@@ -1,62 +1,53 @@
 import data.finset
+import data.rel
 import primitives
 import reactor.primitives
 
--- Mappings from *exactly* a given set of {in,out}put dependency-indices to (possibly absent)
--- values.
---? It should be possible to extract the "core" of these definitions into a single definition and
---? then just have `input` and `output` be typealiases for that core.
-namespace reaction 
+-- Mappings from *exactly* a given set of dependency-indices to (possibly absent) values.
+def reaction.dep_map {n : ℕ} (d : finset (fin n)) := {i // i ∈ d} → option value
 
-  protected def input {nᵢ : ℕ} (dᵢ : finset (fin nᵢ)) := {i // i ∈ dᵢ} → (option value)  
-  protected def output {nₒ : ℕ} (dₒ : finset (fin nₒ)) := {o // o ∈ dₒ} → (option value)
-
-end reaction
+open reaction
 
 -- Reactions consist of a set of input dependencies `dᵢ`, output dependencies `dₒ`, `triggers` and
--- a function `body` that transforms a given input map and state to an output map and a new state.
+-- a function `body` that transforms a given input map and reactor state to an output map and a new
+-- reactor state.
 -- Since *actions* are not defined in this simplified model of reactors, the set of `triggers` is
--- simply a subset of the input dependencies `dᵢ`.
---
---? Define the body as a relation, define what determinism means for reactions (namely that the
---? relation is actually a function), and then prove that determinism holds for more complex
---? objects if the reactions themselves are deterministic.
---? That way it would be more clear what is actually being shown: reactors are deterministic, if
---? the underlying reaction body (the foreign code) behaves like a function.
+-- simply a subset of the input dependencies `dᵢ`. The proof `nonempty_triggers` assures that a
+-- reaction has at *least* some trigger.
 structure reaction :=
   {nᵢ nₒ nₛ : ℕ}
   (dᵢ : finset (fin nᵢ)) 
   (dₒ : finset (fin nₒ))
   (triggers : finset {i // i ∈ dᵢ})
   (nonempty_triggers : triggers.nonempty)
-  (body : reaction.input dᵢ → reactor.state nₛ → (reaction.output dₒ × reactor.state nₛ)) 
+  (body : rel (dep_map dᵢ × reactor.state nₛ) (dep_map dₒ × reactor.state nₛ)) 
 
 namespace reaction
 
-  def fires_on (r : reaction) (is : reactor.ports r.nᵢ) :=
-    ∃ (t : { x // x ∈ r.dᵢ }) (h : t ∈ r.triggers), is t ≠ none
+  -- The proposition, that a given reaction fires on a given port map.
+  def fires_on (r : reaction) (p : reactor.ports r.nᵢ) : Prop :=
+    ∃ (t : { x // x ∈ r.dᵢ }) (h : t ∈ r.triggers), p t ≠ none
 
   instance dec_fires_on (r : reaction) (is : reactor.ports r.nᵢ) : decidable (r.fires_on is) := 
     finset.decidable_dexists_finset
 
-  -- A reaction is deterministic, if given equal inputs and states, running the body produces equal
-  -- outputs and states. Since a reaction's body is a function, determinism is trivially fulfilled.
-  protected theorem determinism (r : reaction) (i₁ i₂ : reaction.input r.dᵢ) (s₁ s₂ : reactor.state r.nₛ) :
-    i₁ = i₂ ∧ s₁ = s₂ → (r.body i₁ s₁) = (r.body i₂ s₂) := 
+  -- A reaction is deterministic, if given equal inputs, running the body produces equal outputs
+  -- This is only true if the reaction's body is actually a function.
+  protected theorem determinism (r : reaction) (h : r.body.is_function) (i₁ i₂ : dep_map r.dᵢ) (s₁ s₂ : reactor.state r.nₛ) :
+    i₁ = i₂ ∧ s₁ = s₂ → (r.body.function h) (i₁, s₁) = (r.body.function h) (i₂, s₂) := 
     assume ⟨hᵢ, hₛ⟩, hᵢ ▸ hₛ ▸ refl _
 
-  -- A reaction will never fire for absent ports.
+  -- A reaction will never fire on empty ports.
   protected theorem no_in_no_fire (r : reaction) : 
-    r.fires_on reactor.ports.absent = false :=
+    ¬ (r.fires_on reactor.ports.empty) :=
     begin 
       rw reaction.fires_on,
       simp,
     end
 
-  -- If a given port-assignment has no absent values then a reaction will definitely fire for the
-  -- given ports.
-  protected theorem all_ins_fires (r : reaction) (p : reactor.ports r.nᵢ) :
-    (∀ i : fin r.nᵢ, p i ≠ none) → r.fires_on p :=
+  -- If a given port-assignment has no empty values then a reaction will definitely fire on them.
+  protected theorem total_ins_fires (r : reaction) (p : reactor.ports r.nᵢ) :
+    p.is_total → r.fires_on p :=
     begin
       intros hᵢ,
       -- Get a `t ∈ r.triggers` (with membership-proof `hₘ`).

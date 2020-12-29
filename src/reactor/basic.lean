@@ -2,14 +2,16 @@ import primitives
 import reactor.primitives
 import reaction
 
+open reaction
+
 namespace reactor
 
   def uniform_reactions (nᵢ nₒ nₛ nᵣ : ℕ) := vector { r : reaction // r.nᵢ = nᵢ ∧ r.nₒ = nₒ ∧ r.nₛ = nₛ } nᵣ
 
-  def ports_to_input {n : ℕ} {dᵢ : finset (fin n)} (p : ports n) : reaction.input dᵢ :=
+  def ports_to_input {n : ℕ} {dᵢ : finset (fin n)} (p : ports n) : dep_map dᵢ :=
     λ i : {d // d ∈ dᵢ}, p i
 
-  def output_to_ports {n : ℕ} {dₒ : finset (fin n)} (o : reaction.output dₒ) : ports n :=
+  def output_to_ports {n : ℕ} {dₒ : finset (fin n)} (o : dep_map dₒ) : ports n :=
     λ i : fin n, if h : i ∈ dₒ then o ⟨i, h⟩ else none
 
 end reactor
@@ -41,7 +43,7 @@ namespace reactor
   private def run' {nᵢ nₒ nₛ nᵣ: ℕ} (rs : uniform_reactions nᵢ nₒ nₛ nᵣ) (i : ports nᵢ) (s : state nₛ) : ports nₒ × state nₛ :=
     -- this is not a list anymore, but rather a vector
     list.rec_on rs
-      (ports.absent, s)
+      (ports.empty, s)
       (
         λ head tail tail_output,
           let ⟨i_eq, o_eq, s_eq⟩ := head.property in 
@@ -55,22 +57,22 @@ namespace reactor
               let os'ₛ := convert os.2 (symm s_eq) in
               ⟨os'ₒ, os'ₛ⟩
             else 
-              ⟨ports.absent, s⟩ 
+              ⟨ports.empty, s⟩ 
           in
             ⟨merge_ports osₕ.1 tail_output.1, tail_output.2⟩
       )
 
   def run (r : reactor) : reactor :=
     let os := run' r.reactions r.inputs r.st in
-    ⟨ports.absent, os.1, os.2, r.reactions⟩  
+    ⟨ports.empty, os.1, os.2, r.reactions⟩  
 
   protected theorem volatile_input (r : reactor) : 
-    (run r).inputs = ports.absent :=
+    (run r).inputs = ports.empty :=
     refl (run r).inputs
 
   --? Prove the same for state.
   protected theorem no_in_no_out (r : reactor) : 
-    r.inputs = ports.absent → (run r).outputs = ports.absent :=
+    r.inputs = ports.empty → (run r).outputs = ports.empty :=
     begin 
       assume h,
       rw run,
@@ -81,23 +83,23 @@ namespace reactor
         {
           rw run',
           simp,
-          have no_fire : hd.fires_on ports.absent = false := no_in_no_fire hd,
+          have no_fire : hd.fires_on ports.empty = false := no_in_no_fire hd,
           -- rw no_fire,
           sorry
         }
     end
 
-  private lemma merge_absent_is_neutral {n : ℕ} (first last : ports n) :
-    last = ports.absent → (merge_ports first last) = first := 
+  private lemma merge_empty_is_neutral {n : ℕ} (first last : ports n) :
+    last = ports.empty → (merge_ports first last) = first := 
     begin
       assume h,
       rw merge_ports,
       simp,
-      rw [h, ports.absent],
+      rw [h, ports.empty],
       simp,
     end
 
-  private lemma merge_skips_absent {n : ℕ} (first last : ports n) (i : fin n) :
+  private lemma merge_skips_empty {n : ℕ} (first last : ports n) (i : fin n) :
     (last i) = none → (merge_ports first last) i = (first i) := 
     begin
       assume h,
