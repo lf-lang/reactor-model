@@ -15,12 +15,16 @@ namespace reactor
     instance graph.digraph_edge : digraph.edge (graph.edge ids reactors) (fin c) := 
       { src := (λ e, e.src.1), dst := (λ e, e.dst.1) }
 
+    -- The proposition, that for all input ports (`i`) in `g` the number of edges that have `i` as
+    -- destination must be ≤ 1.
+    def graph.port_unique_ins (g : digraph (fin c) reactor network.graph.edge) : Prop :=
+      ∀ i : Σ r : { x // x ∈ g.ids }, fin (g.data r).nᵢ,
+        (g.edges.filter (λ e', graph.edge.dst e' = i)).card ≤ 1
+
   end network
 
   structure network (c : ℕ) :=
     (graph : digraph (fin c) reactor network.graph.edge)
-    (unique : Prop)
-    -- The proposition that every port in the network graph an in-degree of ≤ 1.
-    -- ∀ (i₁ i₂ i ∈ g.ids) (e₁ e₂ ∈ g.edges), ⟨e₁⟩ = (i₁, i) ∧ ⟨e₂⟩ = (i₂, i) → i₁ = i₂ )
-
+    (unique_ins : network.graph.port_unique_ins graph)
+    
 end reactor
