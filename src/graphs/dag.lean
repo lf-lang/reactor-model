@@ -1,5 +1,4 @@
 import graphs.digraph
-import init.algebra.classes
 
 variables (ι δ : Type*) (ε : Π is : finset ι, ({ i // i ∈ is } → δ) → Type*)
 variables [∀ i d, digraph.edge (ε i d) ι]
@@ -11,52 +10,18 @@ namespace dag
 
   variables {ι δ ε} [decidable_eq ι]
 
-  def is_topological_order_of (l : list ι) (g : dag ι δ ε) : Prop :=
-    ∀ i i' ∈ l, (i-g.val->i') → (l.index_of i < l.index_of i')
-
   def removing (g : dag ι δ ε) (i : { x // x ∈ g.val.ids}) : dag ι δ ε :=
     let g' := g.val.removing i in
     let acyclic' : g'.is_acyclic := sorry in
     { val := g', property := acyclic' }
 
-  section
+  def source_vertex (g : dag ι δ ε) (i : ι) (h : i ∈ g.val.ids) : Prop :=
+    g.val.in_degree_of ⟨i, h⟩ = 0
 
-    variable (g : dag ι δ ε) 
-    variables [has_lt { i // i ∈ g.val.ids }] [@decidable_rel { i // i ∈ g.val.ids } (<)] [is_linear_order { i // i ∈ g.val.ids } (<)]
-
-    private lemma ex_edge_no_pred : ∃ e ∈ g.val.edges, ∀ e' ∈ g.val.edges, (digraph.edge.src e : ι) ≠ (digraph.edge.dst e') :=
-    begin
-      by_contra,
-      sorry
-    end
-
-    -- A predicate that identifies source vertices.
-    private def is_source_vertex {g : dag ι δ ε} (i : { x // x ∈ g.val.ids }) : Prop := 
-      g.val.in_degree_of i = 0
-
-    private lemma has_source_vertex (h : g.val.ids.nonempty) : 
-      ∃ i : { x // x ∈ g.val.ids }, is_source_vertex i :=
-      begin
-        intro g.property,
-      end
-
-    -- If a DAG is non-empty, it must contain a source vertex.
-    def source_vertex (h : g.val.ids.nonempty) : { i // i ∈ g.val.ids } :=
-      -- Flatten the vertices into a list sorted by their own order.
-      let ids := g.val.ids.attach.sort (<) in
-      -- Get a proof of the fact that `ids` must contain a source vertex (i.e. a vertex of in-degree 0).
-      let list_contains_src_vert : ∃ i : { x // x ∈ g.val.ids }, i ∈ ids ∧ is_source_vertex i := 
-      begin
-        sorry
-      end in
-      -- Get the first vertex that has a in-degree of 0.
-      ids.choose_x is_source_vertex list_contains_src_vert
-
-    theorem src_vert_deg_0 (h : g.val.ids.nonempty) :
-      (g.val.in_degree_of (g.source_vertex h)) = 0 :=
-      sorry
-
-  end
+  -- If a DAG is non-empty, it must contain a source vertex.
+  theorem has_source_vertex (g : dag ι δ ε) (h : g.val.ids.nonempty) : 
+    ∃ (i : ι) (h : i ∈ g.val.ids), source_vertex g i h :=
+    sorry
 
   instance {g : dag ι δ ε} : decidable g.val.ids.nonempty := sorry
 
@@ -64,16 +29,33 @@ namespace dag
 
   private def topological_sort' (g : dag ι δ ε) (acc : list ι) : (dag ι δ ε) × list ι :=
     if h : g.val.ids.nonempty then 
-      let src_vert := source_vertex g h in
+      let src_vert : { x // x ∈ g.val.ids } := sorry in
       let g' := g.removing src_vert in
       (g', acc ++ [src_vert])
     else 
       (g, acc)
 
-  def topological_sort (g : dag ι δ ε) : list ι := sorry
+  def topological_sort (g : dag ι δ ε) : list ι :=
+    (topological_sort' g []).2
+
+  def has_topological_order (g : dag ι δ ε) (l : list ι) : Prop :=
+    ∀ i i' ∈ l, (i-g.val->i') → (l.index_of i < l.index_of i')
 
   protected theorem topological_sort_correctness (g : dag ι δ ε) :
-    (topological_sort g).is_topological_order_of g :=
-    sorry
+    g.has_topological_order (topological_sort g) :=
+    begin
+      unfold has_topological_order,
+      intros,
+      unfold topological_sort,
+      unfold topological_sort',
+      simp,
+      by_cases h_empty : g.val.ids.nonempty,
+        {
+          sorry
+        },
+        {
+          sorry
+        },
+    end
 
 end dag

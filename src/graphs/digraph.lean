@@ -46,8 +46,7 @@ namespace digraph
   notation i~g~>i' := g.has_path_from_to i i'
 
   -- The proposition that a given digraph is acyclic.
-  def is_acyclic (g : digraph ι δ ε) : Prop :=
-    ∀ i i' : ι, (i~g~>i') → i ≠ i'
+  def is_acyclic (g : digraph ι δ ε) := ∀ i, ¬ i~g~>i
       
   variable [decidable_eq ι]
 

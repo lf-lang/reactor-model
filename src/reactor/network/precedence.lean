@@ -11,8 +11,8 @@ namespace «precedence»
   namespace graph
 
     structure reaction_id := 
-      (rtr : { i // i ∈ n.graph.val.ids })
-      (rcn : fin (n.graph.val.data rtr).nᵣ)
+      (rtr : { i // i ∈ n.graph.ids })
+      (rcn : fin (n.graph.data rtr).nᵣ)
 
     instance dec_eq_rcn_id : decidable_eq (reaction_id n) := sorry
 
@@ -25,7 +25,7 @@ namespace «precedence»
 
   end graph
 
-  def graph := dag (graph.reaction_id n) reaction (λ _ _, graph.edge n)
+  def graph := digraph (graph.reaction_id n) reaction (λ _ _, graph.edge n)
 
   namespace graph
 
