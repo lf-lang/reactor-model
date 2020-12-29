@@ -8,18 +8,24 @@ namespace «precedence»
 
   variables {c : ℕ} (n : network c)
 
-  private structure reaction_index := 
-    (rtr : { i // i ∈ n.graph.val.ids })
-    (rcn : fin (n.graph.val.data rtr).nᵣ)
+  namespace graph
 
-  structure graph.edge := 
-    (src : reaction_index n)
-    (dst : reaction_index n)
+    structure reaction_id := 
+      (rtr : { i // i ∈ n.graph.val.ids })
+      (rcn : fin (n.graph.val.data rtr).nᵣ)
 
-  instance graph.digraph_edge {n : network c} : digraph.edge (graph.edge n) (reaction_index n) := 
-    { src := (λ e, e.src), dst := (λ e, e.dst) }
+    instance dec_eq_rcn_id : decidable_eq (reaction_id n) := sorry
 
-  def graph := dag (reaction_index n) reaction (λ _ _, graph.edge n)
+    structure edge := 
+      (src : reaction_id n)
+      (dst : reaction_id n)
+
+    instance digraph_edge {n : network c} : digraph.edge (graph.edge n) (reaction_id n) := 
+      { src := (λ e, e.src), dst := (λ e, e.dst) }
+
+  end graph
+
+  def graph := dag (graph.reaction_id n) reaction (λ _ _, graph.edge n)
 
   namespace graph
 

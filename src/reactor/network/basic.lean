@@ -2,8 +2,6 @@ import data.rel
 import graphs.dag
 import reactor.basic
 
-open classical
-
 namespace reactor 
 
   namespace network

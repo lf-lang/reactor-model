@@ -2,8 +2,6 @@ import primitives
 import reactor.primitives
 import reaction
 
-open classical
-
 namespace reactor
 
   def uniform_reactions (nᵢ nₒ nₛ nᵣ : ℕ) := vector { r : reaction // r.nᵢ = nᵢ ∧ r.nₒ = nₒ ∧ r.nₛ = nₛ } nᵣ
@@ -56,7 +54,7 @@ namespace reactor
           let i' := convert i i_eq in
           let s' := convert s s_eq in
           let osₕ : ports nₒ × state nₛ := 
-            if rₕ.is_triggered_by i' then 
+            if rₕ.fires_on i' then 
               let os := rₕ.body (ports_to_input i') s' in
               let os'ₒ := convert (output_to_ports os.1) (symm o_eq) in
               let os'ₛ := convert os.2 (symm s_eq) in
@@ -88,8 +86,8 @@ namespace reactor
         {
           rw run',
           simp,
-          have no_trig : hd.is_triggered_by ports.absent = false := no_in_no_trig hd,
-          -- rw no_trig,
+          have no_fire : hd.fires_on ports.absent = false := no_in_no_fire hd,
+          -- rw no_fire,
           sorry
         }
     end

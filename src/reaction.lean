@@ -2,8 +2,6 @@ import data.finset
 import primitives
 import reactor.primitives
 
-open classical
-
 -- Mappings from *exactly* a given set of {in,out}put dependency-indices to (possibly absent)
 -- values.
 --? It should be possible to extract the "core" of these definitions into a single definition and
@@ -39,37 +37,37 @@ instance rcn_dec_eq : decidable_eq reaction := sorry
 
 namespace reaction
 
-  def is_triggered_by (r : reaction) (is : reactor.ports r.nᵢ) :=
+  def fires_on (r : reaction) (is : reactor.ports r.nᵢ) :=
     ∃ (t : { x // x ∈ r.dᵢ }) (h : t ∈ r.triggers), is t ≠ none
 
-  instance decidable_is_triggered_by (r : reaction) (is : reactor.ports r.nᵢ) : 
-    decidable (r.is_triggered_by is) := finset.decidable_dexists_finset
+  instance dec_fires_on (r : reaction) (is : reactor.ports r.nᵢ) : decidable (r.fires_on is) := 
+    finset.decidable_dexists_finset
 
   -- A reaction is deterministic, if given equal inputs and states, running the body produces equal
-  -- outputs and states. 
-  -- Since a reaction's body is a function, determinism is trivially fulfilled.
+  -- outputs and states. Since a reaction's body is a function, determinism is trivially fulfilled.
   protected theorem determinism (r : reaction) (i₁ i₂ : reaction.input r.dᵢ) (s₁ s₂ : reactor.state r.nₛ) :
     i₁ = i₂ ∧ s₁ = s₂ → (r.body i₁ s₁) = (r.body i₂ s₂) := 
     assume ⟨hᵢ, hₛ⟩, hᵢ ▸ hₛ ▸ refl _
 
-  -- A reaction will never trigger for absent ports.
-  protected theorem no_in_no_trig (r : reaction) : 
-    r.is_triggered_by reactor.ports.absent = false :=
+  -- A reaction will never fire for absent ports.
+  protected theorem no_in_no_fire (r : reaction) : 
+    r.fires_on reactor.ports.absent = false :=
     begin 
-      rw reaction.is_triggered_by,
+      rw reaction.fires_on,
       simp,
     end
 
   -- If a given port-assignment has no absent values and a reaction contains at least some trigger,
-  -- then that reaction will definitely trigger for the given ports.
-  protected theorem all_ins_nempty_trigs (r : reaction) (p : reactor.ports r.nᵢ) :
-    (∀ i : fin r.nᵢ, p i ≠ none) → r.triggers.nonempty → r.is_triggered_by p :=
+  -- then that reaction will definitely fire for the given ports.
+  protected theorem all_ins_nempty_trigs_fires (r : reaction) (p : reactor.ports r.nᵢ) :
+    (∀ i : fin r.nᵢ, p i ≠ none) → r.triggers.nonempty → r.fires_on p :=
     begin
       intros hᵢ hₜ,
-      have t : { i // i ∈ r.dᵢ }, from hₜ.some,
-      have tm : t ∈ r.triggers, from sorry,
-      have ptn : p t ≠ none, from hᵢ t,
-      exact ⟨t, tm, ptn⟩,
+      -- Get a `t ∈ r.triggers` (with membership-proof `hₘ`).
+      obtain ⟨t, hₘ⟩ := hₜ,
+      -- Show that `p` has a value for `t` by virtue of `hᵢ`.
+      have hₚ : p t ≠ none, from hᵢ t, 
+      exact ⟨t, hₘ, hₚ⟩,
     end 
 
 end reaction

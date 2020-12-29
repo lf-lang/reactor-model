@@ -1,5 +1,4 @@
 import primitives
-open classical
 
 -- A reactor's state fields and ports are represented as maps from (a fixed set of) indices to
 -- (possibly absent) values. Single ports and state fields can therefore be identified by values

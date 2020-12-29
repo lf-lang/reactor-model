@@ -1,5 +1,4 @@
 import reactor.basic
-open classical
 
 namespace reactor
 
