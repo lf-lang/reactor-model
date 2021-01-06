@@ -28,9 +28,11 @@ structure digraph :=
   (data : { i // i ∈ ids } → δ)
   (edges : finset (ε ids data))
 
-namespace digraph
+variables {ι δ ε}
 
-  variables {ι δ ε}
+instance : has_mem δ (digraph ι δ ε) := {mem := λ d g, ∃ i, g.data i = d}
+
+namespace digraph
 
   -- The proposition that a given digraph connects two given vertices with an edge.
   def has_edge_from_to (g : digraph ι δ ε) (i i' : ι) : Prop :=
@@ -53,14 +55,6 @@ namespace digraph
   -- The in-degree of vertex `i` in digraph `g`. 
   def in_degree_of (g : digraph ι δ ε) (i : { x // x ∈ g.ids}) : ℕ :=
     (g.edges.filter (λ e, edge.dst e = i.val)).card
-
-  -- The digraph that remains after removing a given vertex (and all of its associated edges).
-  def removing (g : digraph ι δ ε) (i : { x // x ∈ g.ids}) : digraph ι δ ε :=
-    let ids' := g.ids.erase i in
-    let h_id : Π x ∈ ids', x ∈ g.ids := λ x, finset.mem_of_subset (finset.erase_subset i g.ids) in
-    let data' : { x // x ∈ ids' } → δ := λ i, g.data { val := i.val, property := h_id i.val i.property } in
-    let edges' := g.edges.filter (λ e, edge.src e ≠ i.val ∧ edge.dst e ≠ i.val) in
-    { ids := ids', data := data', edges := edges'.map (sorry) } 
 
 end digraph 
 

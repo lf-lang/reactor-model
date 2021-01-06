@@ -26,5 +26,16 @@ namespace network
       subst hn,
     end
 
+  -- Execution of the reactor network needs to be the same no matter which concrete topo-list it gets.
+  --
+  -- noncomputable def run (n : network) :=
+  -- let p := n.prec in
+  -- let topo := classical.choice theorem in
+  --
+  -- still need show that the result of running will still be the same no matter which topo we get.
+  -- noncomputable func arent same-in-same-out
+  --
+  -- the core of the determinism-proof is the fact that run is the same no matter which topo order we get.
+
 end network
 end reactor

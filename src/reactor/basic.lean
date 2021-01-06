@@ -20,14 +20,20 @@ structure reactor :=
   (input : ports nᵢ)
   (output : ports nₒ)
   (state : vars nₛ)
-  (reactions : (priority nᵣ) → reaction.fixed nᵢ nₒ nₛ)
+  (reactions : priority nᵣ → reaction)
+  (rcn_dims : ∀ r, (∃ p, reactions p = r) → r.dimensions = (nᵢ, nₒ, nₛ)) -- The ∃-term is just the explicit way of writing `r ∈ reactions`.
+
+instance : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
 
 namespace reactor 
 
   -- A list of a given reactors reactions, ordered by their priority.
-  def ordered_reactions (r : reactor) : list (reaction.fixed r.nᵢ r.nₒ r.nₛ) :=
+  def ordered_reactions (r : reactor) : list reaction :=
     let priorities := (fintype.elems (priority r.nᵣ)).sort (<) in
     priorities.map r.reactions
+
+  noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : priority rtr.nᵣ := 
+    h.some
 
   private def merge_ports {n : ℕ} (first last : ports n) : ports n :=
     λ i : fin n, (last i).elim (first i) (λ v, some v)
