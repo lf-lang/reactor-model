@@ -1,8 +1,7 @@
-import reactor.network.basic
-import reactor.network.precedence
+import network.basic
+import network.precedence
 import graphs.dag
 
-namespace reactor
 namespace network
 
   variables {c : ℕ} {n : network c}
@@ -38,4 +37,3 @@ namespace network
   -- the core of the determinism-proof is the fact that run is the same no matter which topo order we get.
 
 end network
-end reactor

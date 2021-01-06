@@ -12,55 +12,63 @@ open reactor
 -- simply a subset of the input dependencies `dᵢ`. The proof `nonempty_triggers` assures that a
 -- reaction has at *least* some trigger.
 structure reaction :=
-  {nᵢ nₒ nₛ : ℕ}
+  {nᵢ nₒ : ℕ}
   (dᵢ : finset (fin nᵢ)) 
   (dₒ : finset (fin nₒ))
   (triggers : finset {i // i ∈ dᵢ})
-  (body : rel (input dᵢ × vars nₛ) (output dₒ × vars nₛ)) 
+  (body : rel (input dᵢ × state_vars) (output dₒ × state_vars)) 
 
 namespace reaction
 
   -- The characteristic dimensions of a given reaction.
-  def dimensions (r : reaction) : ℕ × ℕ × ℕ :=
-    (r.nᵢ, r.nₒ, r.nₛ)
+  def dim (r : reaction) : ℕ × ℕ :=
+    (r.nᵢ, r.nₒ)
 
   -- The subtype of reactors with given fixed dimensions.
-  protected def fixed (nᵢ nₒ nₛ : ℕ) : Type* := 
-    { r : reaction // r.dimensions = (nᵢ, nₒ, nₛ) }
+  protected def fixed (nᵢ nₒ: ℕ) : Type* := 
+    { r : reaction // r.dim = (nᵢ, nₒ) }
 
   --! DERIVABLE
-  instance {nᵢ nₒ nₛ : ℕ} : has_coe (reaction.fixed nᵢ nₒ nₛ) reaction := ⟨λ r, r.val⟩ 
+  instance {nᵢ nₒ : ℕ} : has_coe (reaction.fixed nᵢ nₒ) reaction := ⟨λ r, r.val⟩ 
 
-  -- The proposition, that a given reaction fires on a given port map.
-  def fires_on (r : reaction) (p : ports r.nᵢ) : Prop :=
-    ∃ (t : { x // x ∈ r.dᵢ }) (h : t ∈ r.triggers), p t ≠ none
+  -- The proposition, that a given reaction fires on a given port map. This is only defined when
+  -- the dimensions of the given port map match the reaction's input dimensions (hence `h`).
+  def fires_on {n : ℕ} (r : reaction) (p : ports n) (h : r.nᵢ = n) : Prop :=
+    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers), p (fin.cast h t) ≠ none
 
-  instance dec_fires_on (r : reaction) (is : ports r.nᵢ) : decidable (r.fires_on is) := 
+  instance dec_fires_on {n : ℕ} (r : reaction) (p : ports n) (h : r.nᵢ = n) : decidable (r.fires_on p h) := 
     finset.decidable_dexists_finset
 
-  -- A reaction is deterministic, if given equal inputs, running the body produces equal outputs
+  -- A reaction is deterministic, if given equal inputs, running the body produces equal outputs.
   -- This is only true if the reaction's body is actually a function.
-  protected theorem determinism (r : reaction) (h : r.body.is_function) (i₁ i₂ : input r.dᵢ) (v₁ v₂ : vars r.nₛ) :
-    i₁ = i₂ ∧ v₁ = v₂ → (r.body.function h) (i₁, v₁) = (r.body.function h) (i₂, v₂) := 
-    assume ⟨hᵢ, hₛ⟩, hᵢ ▸ hₛ ▸ refl _
+  protected theorem determinism (r : reaction) (h : r.body.is_function) (i₁ i₂ : input r.dᵢ) (s₁ s₂ : state_vars) :
+    i₁ = i₂ → s₁ = s₂ → (r.body.function h) (i₁, s₁) = (r.body.function h) (i₂, s₂) := 
+    assume hᵢ hₛ, hᵢ ▸ hₛ ▸ refl _
 
   -- A reaction will never fire on empty ports.
+  --
+  -- The `refl _` is the proof that the port map's dimensions are equal to the reaction's input
+  -- dimensions (cf. `reaction.fires_on`).
   protected theorem no_in_no_fire (r : reaction) : 
-    ¬ (r.fires_on ports.empty) :=
+    ¬ r.fires_on (ports.empty r.nᵢ) (refl _) :=
     begin 
       rw reaction.fires_on,
       simp
     end
 
-  -- If a given port-assignment has no empty values then a reaction will definitely fire on them.
-  protected theorem total_ins_fires (r : reaction) (p : ports r.nᵢ) :
-    r.triggers.nonempty → p.is_total → r.fires_on p :=
+  -- If a given port map has no empty values (i.e. is total) then a reaction will definitely fire
+  -- on it.
+  --
+  -- Two technicalities are that the reaction's triggers are non-empty, and the port map has the
+  -- right dimensions.
+  protected theorem total_ins_fires {n : ℕ} (r : reaction) (p : ports n) (hₜ : r.triggers.nonempty) (hₙ : r.nᵢ = n) :
+    p.is_total → r.fires_on p hₙ :=
     begin
-      intros hₜ hᵢ,
+      intros hᵢ,
       -- Get a `t ∈ r.triggers` (with membership-proof `hₘ`).
       obtain ⟨t, hₘ⟩ := hₜ,
-      -- Show that `p` has a value for `t` by virtue of `hᵢ`.
-      have hₚ : p t ≠ none, from hᵢ t, 
+      -- Show that `p` has a value for `t` (cast to `fin n`) by virtue of `hᵢ`.
+      have hₚ : p (fin.cast hₙ t) ≠ none, from hᵢ (fin.cast hₙ t), 
       exact ⟨t, hₘ, hₚ⟩
     end 
 

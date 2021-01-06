@@ -1,8 +1,7 @@
 import data.rel
 import graphs.digraph
-import reactor.network.basic
+import network.basic
 
-namespace reactor 
 namespace network
 namespace «precedence» 
 
@@ -61,4 +60,3 @@ namespace «precedence»
 
 end «precedence»
 end network
-end reactor

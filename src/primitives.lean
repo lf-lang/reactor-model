@@ -31,17 +31,19 @@ def reaction.priority (n : ℕ) := fin n
 
 instance {n : ℕ} : is_total (reaction.priority n) has_lt.lt := sorry
 
+-- A list of values values.
+-- This represents the state fields of a reactor.
+-- Since we don't ever need to work with the state fields within Lean, their definition is fuzzy
+-- for the sake of simplicity (we don't need to define a `nₛ` on reactors and reactions).
+def reactor.state_vars := list value
+
 -- A mapping from port ids to (possibly empty) values.
 -- This represents the ports of a reactor.
 def reactor.ports (n : ℕ) := fin n → option value
 
--- A mapping from variable ids to (possibly empty) values.
--- This represents the state fields of a reactor.
-def reactor.vars (n : ℕ) := fin n → option value
-
 -- A port assignment where all values are empty.
 @[reducible]
-def reactor.ports.empty {n : ℕ} : reactor.ports n := λ _, none
+def reactor.ports.empty (n : ℕ) : reactor.ports n := λ _, none
 
 -- A port assignment is "total" if all of its values are non-empty.
 def reactor.ports.is_total {n : ℕ} (p : reactor.ports n) : Prop := 
@@ -50,8 +52,8 @@ def reactor.ports.is_total {n : ℕ} (p : reactor.ports n) : Prop :=
 namespace temporary
 
   def map_to_map {α : Type*} {n n' : ℕ} (f : fin n → α) (h : n' = n) : fin n' → α := 
-    λ i, f ⟨i.val, h ▸ i.property⟩
-
+    f ∘ fin.cast h
+ 
   notation f↑h := map_to_map f h
 
   def ports_to_input {n : ℕ} {dᵢ : finset (fin n)} (p : reactor.ports n) : reaction.input dᵢ :=
