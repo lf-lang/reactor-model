@@ -2,6 +2,7 @@ import primitives
 import reaction
 
 open reactor
+open reaction
 
 -- It would be nice to declare reactors in a similar fashion to reactions.
 -- I.e. reactions in themselves declare what they connect to (dᵢ and dₒ).
@@ -19,21 +20,26 @@ structure reactor :=
   (input : ports nᵢ)
   (output : ports nₒ)
   (state : vars nₛ)
-  (reactions : vector (reaction.fixed nᵢ nₒ nₛ) nᵣ)
+  (reactions : (priority nᵣ) → reaction.fixed nᵢ nₒ nₛ)
 
 namespace reactor 
+
+  -- A list of a given reactors reactions, ordered by their priority.
+  def ordered_reactions (r : reactor) : list (reaction.fixed r.nᵢ r.nₒ r.nₛ) :=
+    let priorities := (fintype.elems (priority r.nᵣ)).sort (<) in
+    priorities.map r.reactions
 
   private def merge_ports {n : ℕ} (first last : ports n) : ports n :=
     λ i : fin n, (last i).elim (first i) (λ v, some v)
 
-  private def run' {nᵢ nₒ nₛ nᵣ : ℕ} (rs : vector (reaction.fixed nᵢ nₒ nₛ) nᵣ) (i : ports nᵢ) (s : vars nₛ) : ports nₒ × vars nₛ :=
-    -- this is not a list anymore, but rather a vector
+  private def run' {nᵢ nₒ nₛ : ℕ} (rs : list (reaction.fixed nᵢ nₒ nₛ)) (i : ports nᵢ) (s : vars nₛ) : ports nₒ × vars nₛ :=
     list.rec_on rs
       (ports.empty, s)
       (
-        λ head tail tail_output,
-          let ⟨i_eq, o_eq, s_eq⟩ := head.property in 
-          let rₕ : reaction := ↑head in
+        λ head _ osₜ,
+          let rₕ : reaction := head in
+          let ios_eq := head.property in 
+          let asd : rₕ.nᵢ = nᵢ := ios_eq.1 in
           let i' := i↑i_eq in
           let s' := s↑s_eq in
           let osₕ : ports nₒ × state nₛ := 
@@ -45,16 +51,16 @@ namespace reactor
             else 
               ⟨ports.empty, s⟩ 
           in
-            ⟨merge_ports osₕ.1 tail_output.1, tail_output.2⟩
+            ⟨merge_ports osₕ.1 osₜ.1, osₜ.2⟩
       )
 
   def run (r : reactor) : reactor :=
-    let os := run' r.reactions r.input r.state in
-    ⟨ports.empty, os.1, os.2, r.reactions⟩  
+    let os := run' r.ordered_reactions r.input r.state in
+    {input := ports.empty, output := os.1, state := os.2, ..r}
 
   protected theorem volatile_input (r : reactor) : 
     (run r).input = ports.empty :=
-    refl (run r).input
+    by refl 
 
   --? Prove the same for state.
   protected theorem no_in_no_out (r : reactor) : 

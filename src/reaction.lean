@@ -16,7 +16,6 @@ structure reaction :=
   (dᵢ : finset (fin nᵢ)) 
   (dₒ : finset (fin nₒ))
   (triggers : finset {i // i ∈ dᵢ})
-  (nonempty_triggers : triggers.nonempty)
   (body : rel (input dᵢ × vars nₛ) (output dₒ × vars nₛ)) 
 
 namespace reaction
@@ -28,6 +27,9 @@ namespace reaction
   -- The subtype of reactors with given fixed dimensions.
   protected def fixed (nᵢ nₒ nₛ : ℕ) : Type* := 
     { r : reaction // r.dimensions = (nᵢ, nₒ, nₛ) }
+
+  --! DERIVABLE
+  instance {nᵢ nₒ nₛ : ℕ} : has_coe (reaction.fixed nᵢ nₒ nₛ) reaction := ⟨λ r, r.val⟩ 
 
   -- The proposition, that a given reaction fires on a given port map.
   def fires_on (r : reaction) (p : ports r.nᵢ) : Prop :=
@@ -52,11 +54,11 @@ namespace reaction
 
   -- If a given port-assignment has no empty values then a reaction will definitely fire on them.
   protected theorem total_ins_fires (r : reaction) (p : ports r.nᵢ) :
-    p.is_total → r.fires_on p :=
+    r.triggers.nonempty → p.is_total → r.fires_on p :=
     begin
-      intros hᵢ,
+      intros hₜ hᵢ,
       -- Get a `t ∈ r.triggers` (with membership-proof `hₘ`).
-      obtain ⟨t, hₘ⟩ := r.nonempty_triggers,
+      obtain ⟨t, hₘ⟩ := hₜ,
       -- Show that `p` has a value for `t` by virtue of `hᵢ`.
       have hₚ : p t ≠ none, from hᵢ t, 
       exact ⟨t, hₘ, hₚ⟩

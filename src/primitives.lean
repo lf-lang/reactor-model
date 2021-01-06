@@ -25,6 +25,12 @@ def reaction.input {n : ℕ} (d : finset (fin n)) := {i // i ∈ d} → option v
 -- This represents the ports of a reactor.
 def reaction.output {n : ℕ} (d : finset (fin n)) := {i // i ∈ d} → option value
 
+-- A priority for a reaction, where 0 is the highest priority.
+@[reducible, derive fintype, derive has_lt, derive linear_order]
+def reaction.priority (n : ℕ) := fin n
+
+instance {n : ℕ} : is_total (reaction.priority n) has_lt.lt := sorry
+
 -- A mapping from port ids to (possibly empty) values.
 -- This represents the ports of a reactor.
 def reactor.ports (n : ℕ) := fin n → option value
@@ -63,11 +69,15 @@ end temporary
 namespace rel
 
   -- The proposition, that a given relation has the "function" property.
-  def is_function {α β : Type*} (r : rel α β) : Prop :=
+  def is_function {α β : Type*} (r : rel α β) /-(f : α → β)-/ : Prop :=
     ∀ a : α, ∃! b : β, r a b
+    -- ∀ (a : α) (b : β), r a b ↔ (f a = b)
 
   -- Produces the function corresponding to a given relation that has the function-property.
   noncomputable def function {α β : Type*} (r : rel α β) (h : r.is_function) : α → β :=
     λ a : α, (h a).some 
 
-  end rel
+end rel
+
+--! New/Old notation: abbreviation C := ℕ 
+

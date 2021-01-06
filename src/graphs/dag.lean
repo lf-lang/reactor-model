@@ -41,6 +41,18 @@ namespace dag
   def has_topological_order (g : dag ι δ ε) (l : list ι) : Prop :=
     ∀ i i' ∈ l, (i-g.val->i') → (l.index_of i < l.index_of i')
 
+  -- Execution of the reactor network needs to be the same no matter which concrete topo-list it gets.
+  -- -> have thereom: ∀ dag: ∃ topo sort
+  --
+  -- noncomputable def run (n : network) :=
+  -- let p := n.prec in
+  -- let topo := classical.choice theorem in
+  --
+  -- still need show that the result of running will still be the same no matter which topo we get.
+  -- noncomputable func arent same-in-same-out
+  --
+  -- the core of the determinism-proof is the fact that run is the same no matter which topo order we get.
+
   protected theorem topological_sort_correctness (g : dag ι δ ε) :
     g.has_topological_order (topological_sort g) :=
     begin

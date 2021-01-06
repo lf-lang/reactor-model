@@ -6,24 +6,34 @@ namespace reactor
 
   namespace network
 
-    variables {c : ℕ} (ids : finset (fin c)) (reactors : { i // i ∈ ids } → reactor)
-    structure graph.edge :=
-      (src : Σ r : { i // i ∈ ids }, fin (reactors r).nₒ)
-      (dst : Σ r : { i // i ∈ ids }, fin (reactors r).nᵢ)
+    def reactor_id (c : ℕ) := fin c
+    def port_id (c : ℕ) := fin c
 
-    variables {c ids reactors}
-    instance graph.digraph_edge : digraph.edge (graph.edge ids reactors) (fin c) := 
-      { src := (λ e, e.src.1), dst := (λ e, e.dst.1) }
+    namespace graph
+      
+      variables {c : ℕ} (ids : finset (reactor_id c)) (reactors : { i // i ∈ ids } → reactor)
+      structure edge :=
+        (src : Σ r : { i // i ∈ ids }, port_id (reactors r).nₒ)
+        (dst : Σ r : { i // i ∈ ids }, port_id (reactors r).nᵢ)
 
-    -- The proposition, that for all input ports (`i`) in `g` the number of edges that have `i` as
-    -- destination must be ≤ 1.
-    def graph.port_unique_ins (g : digraph (fin c) reactor network.graph.edge) : Prop :=
-      ∀ i, (g.edges.filter (λ e', graph.edge.dst e' = i)).card ≤ 1
+      variables {ids reactors}
+      instance digraph_edge : digraph.edge (graph.edge ids reactors) (reactor_id c) := 
+        { src := (λ e, e.src.1), dst := (λ e, e.dst.1) }
+
+      -- The proposition, that for all input ports (`i`) in `g` the number of edges that have `i` as
+      -- destination must be ≤ 1.
+      def port_unique_ins (g : digraph (reactor_id c) reactor network.graph.edge) : Prop :=
+        ∀ i, (g.edges.filter (λ e', graph.edge.dst e' = i)).card ≤ 1
+
+    end graph
 
   end network
 
+  open network
+  open network.graph
+
   structure network (c : ℕ) :=
-    (graph : digraph (fin c) reactor network.graph.edge)
-    (unique_ins : network.graph.port_unique_ins graph)
+    (graph : digraph (reactor_id c) reactor edge)
+    (unique_ins : port_unique_ins graph)
     
 end reactor

@@ -9,9 +9,9 @@ namespace network
 
   private def run' (topo : list (precedence.graph.reaction_id n)) : (network c) × list (precedence.graph.reaction_id n)
     := sorry
-  
-  -- # How do reactor networks run?
-  -- # Is it just sequential execution of the reactions that fire?
+    -- # How do reactor networks run?
+    -- # Is it just sequential execution of the reactions that fire?
+    -- # Do we need an event queue already for this?
 
   variable (n)
   def run (h : (precedence.graph.from n).is_acyclic) : network c :=
