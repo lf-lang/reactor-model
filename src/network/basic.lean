@@ -1,35 +1,12 @@
-import data.rel
-import graphs.digraph
-import reactor
-
-namespace network
-
-  def reactor_id (c : ℕ) := fin c
-  def port_id (c : ℕ) := fin c
-
-  namespace graph
-    
-    variables {c : ℕ} (ids : finset (reactor_id c)) (reactors : { i // i ∈ ids } → reactor)
-    structure edge :=
-      (src : Σ r : { i // i ∈ ids }, port_id (reactors r).nₒ)
-      (dst : Σ r : { i // i ∈ ids }, port_id (reactors r).nᵢ)
-
-    variables {ids reactors}
-    instance digraph_edge : digraph.edge (graph.edge ids reactors) (reactor_id c) := 
-      { src := (λ e, e.src.1), dst := (λ e, e.dst.1) }
-
-    -- The proposition, that for all input ports (`i`) in `g` the number of edges that have `i` as
-    -- destination must be ≤ 1.
-    def port_unique_ins (g : digraph (reactor_id c) reactor network.graph.edge) : Prop :=
-      ∀ i, (g.edges.filter (λ e', graph.edge.dst e' = i)).card ≤ 1
-
-  end graph
-
-end network
+import network.graph
+import network.precedence
 
 open network
-open network.graph
+
+def network.precedence_constraints {c : ℕ} (n : network.graph c) : Prop :=
+  ∃ g : precedence.graph n, g.is_well_formed ∧ g.is_acyclic
 
 structure network (c : ℕ) :=
-  (graph : digraph (reactor_id c) reactor edge)
-  (unique_ins : port_unique_ins graph)
+  (depiction : network.graph c)
+  (unique_ins : depiction.has_unique_port_ins)
+  (constraints : network.precedence_constraints depiction)

@@ -16,7 +16,7 @@ structure reaction :=
   (dᵢ : finset (fin nᵢ)) 
   (dₒ : finset (fin nₒ))
   (triggers : finset {i // i ∈ dᵢ})
-  (body : rel (input dᵢ × state_vars) (output dₒ × state_vars)) 
+  (body : rel (ports nᵢ × state_vars) (ports nₒ × state_vars)) 
 
 namespace reaction
 
@@ -41,7 +41,7 @@ namespace reaction
 
   -- A reaction is deterministic, if given equal inputs, running the body produces equal outputs.
   -- This is only true if the reaction's body is actually a function.
-  protected theorem determinism (r : reaction) (h : r.body.is_function) (i₁ i₂ : input r.dᵢ) (s₁ s₂ : state_vars) :
+  protected theorem determinism (r : reaction) (h : r.body.is_function) (i₁ i₂ : ports r.nᵢ) (s₁ s₂ : state_vars) :
     i₁ = i₂ → s₁ = s₂ → (r.body.function h) (i₁, s₁) = (r.body.function h) (i₂, s₂) := 
     assume hᵢ hₛ, hᵢ ▸ hₛ ▸ refl _
 

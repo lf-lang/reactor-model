@@ -18,13 +18,6 @@ notation `value` := empty
 -- map that associates each of the indices of an `in-/output` with the indices of the `ports` from
 -- which they were derived.
 
--- A mapping from *exactly* a given set of input-dependency ids to (possibly empty) values.
-def reaction.input {n : ℕ} (d : finset (fin n)) := {i // i ∈ d} → option value
-
--- A mapping from *exactly* a given set of output-dependency ids to (possibly empty) values.
--- This represents the ports of a reactor.
-def reaction.output {n : ℕ} (d : finset (fin n)) := {i // i ∈ d} → option value
-
 -- A priority for a reaction, where 0 is the highest priority.
 @[reducible, derive fintype, derive has_lt, derive linear_order]
 def reaction.priority (n : ℕ) := fin n
@@ -41,32 +34,22 @@ def reactor.state_vars := list value
 -- This represents the ports of a reactor.
 def reactor.ports (n : ℕ) := fin n → option value
 
--- A port assignment where all values are empty.
-@[reducible]
-def reactor.ports.empty (n : ℕ) : reactor.ports n := λ _, none
+namespace reactor.ports
 
--- A port assignment is "total" if all of its values are non-empty.
-def reactor.ports.is_total {n : ℕ} (p : reactor.ports n) : Prop := 
-  ∀ i, p i ≠ none
+  -- A port assignment where all values are empty.
+  @[reducible]
+  def empty (n : ℕ) : reactor.ports n := λ _, none
 
-namespace temporary
+  -- A port assignment is "total" if all of its values are non-empty.
+  def is_total {n : ℕ} (p : reactor.ports n) : Prop := 
+    ∀ i, p i ≠ none
 
-  def map_to_map {α : Type*} {n n' : ℕ} (f : fin n → α) (h : n' = n) : fin n' → α := 
-    f ∘ fin.cast h
- 
-  notation f↑h := map_to_map f h
+  -- Merges a given port map onto another port map.
+  -- The `last` ports override the `first` ports.
+  def merge {n : ℕ} (first last : reactor.ports n) : reactor.ports n :=
+    λ i : fin n, (last i).elim (first i) (λ v, some v)
 
-  def ports_to_input {n : ℕ} {dᵢ : finset (fin n)} (p : reactor.ports n) : reaction.input dᵢ :=
-    λ i : {d // d ∈ dᵢ}, p i
-
-  notation ↑p := ports_to_input p
-
-  def output_to_ports {n : ℕ} {dₒ : finset (fin n)} (o : reaction.output dₒ) : reactor.ports n :=
-    λ i : fin n, if h : i ∈ dₒ then o ⟨i, h⟩ else none
-
-  notation ↑o := output_to_ports o
-
-end temporary
+end reactor.ports
 
 namespace rel
 

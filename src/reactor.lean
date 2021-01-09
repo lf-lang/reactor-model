@@ -79,14 +79,11 @@ namespace reactor
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : priority rtr.nᵣ := 
     h.some
 
-  private def merge_ports {n : ℕ} (first last : ports n) : ports n :=
-    λ i : fin n, (last i).elim (first i) (λ v, some v)
-
   private noncomputable def run_aux 
   {nᵢ nₒ : ℕ} (rs : list reaction) 
   (h_dim : ∀ r : reaction, r ∈ rs → r.dim = (nᵢ, nₒ))
   (h_fun : ∀ r : reaction, r ∈ rs → r.body.is_function) 
-  (p : ports nᵢ) (s : state_vars) 
+  (i : ports nᵢ) (s : state_vars) 
   : ports nₒ × state_vars :=
     list.rec_on rs.attach
       (ports.empty nₒ, s)
@@ -94,14 +91,16 @@ namespace reactor
         λ rₕ _ osₜ,
           let dim_rₕ : (rₕ : reaction).nᵢ = nᵢ := (prod.mk.inj (h_dim rₕ rₕ.property)).left in 
           let osₕ : ports nₒ × state_vars := 
-            if (rₕ : reaction).fires_on p dim_rₕ then 
+            if (rₕ : reaction).fires_on i dim_rₕ then 
               let rₕ_fun := (rₕ : reaction).body.function (h_fun rₕ rₕ.property) in
-              let os := rₕ_fun (p, s) in
-              ⟨os.1, os.2⟩
+              let h_i := (prod.mk.inj (h_dim rₕ rₕ.property)).left in
+              let h_o := (symm (prod.mk.inj (h_dim rₕ rₕ.property)).right) in
+              let os := rₕ_fun (i ∘ fin.cast h_i, s) in
+              ⟨os.1 ∘ fin.cast h_o, os.2⟩
             else 
               ⟨ports.empty nₒ, s⟩ 
           in
-            ⟨merge_ports osₕ.1 osₜ.1, osₜ.2⟩
+            ⟨osₕ.1.merge osₜ.1, osₜ.2⟩
       )
 
   --* Technically it would be better to define a run-relation that can handle non-functional 
@@ -121,20 +120,20 @@ namespace reactor
     sorry
 
   private lemma merge_empty_is_neutral {n : ℕ} (first last : ports n) :
-    last = ports.empty n → (merge_ports first last) = first := 
+    last = ports.empty n → (first.merge last) = first := 
     begin
       assume h,
-      rw merge_ports,
+      rw ports.merge,
       simp,
       rw [h, ports.empty],
       simp,
     end
 
   private lemma merge_skips_empty {n : ℕ} (first last : ports n) (i : fin n) :
-    (last i) = none → (merge_ports first last) i = (first i) := 
+    (last i) = none → (first.merge last) i = (first i) := 
     begin
       assume h,
-      rw merge_ports,
+      rw ports.merge,
       simp,
       rw h,
       simp,
