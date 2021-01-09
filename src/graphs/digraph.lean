@@ -9,8 +9,8 @@ class digraph.edge (ε ι : Type*) :=
   (src : ε → ι)
   (dst : ε → ι)
 
-variables (ι δ : Type*) (ε : Π is : finset ι, ({ i // i ∈ is } → δ) → Type*)
-variables [∀ i d, digraph.edge (ε i d) ι]
+variables (ι δ : Type*) (ε : (ι → δ) → Type*)
+variables [∀ d, digraph.edge (ε d) ι]
 
 -- The vertices (of type `α`) have to have an associated index (of type `ι`), because otherwise it
 -- wouldn't be possible to have multiple instances of the same reactor in a network.
@@ -25,8 +25,8 @@ variables [∀ i d, digraph.edge (ε i d) ι]
 -- parameter instead of just `(i : ι)`.
 structure digraph :=
   (ids : finset ι)
-  (data : { i // i ∈ ids } → δ)
-  (edges : finset (ε ids data))
+  (data : ι → δ)
+  (edges : finset (ε data))
 
 variables {ι δ ε}
 

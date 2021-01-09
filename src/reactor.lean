@@ -21,12 +21,16 @@ structure reactor :=
   (output : ports nₒ)
   (state : state_vars)
   (reactions : priority nᵣ → reaction)
-  (rcn_dims : ∀ r, (∃ p, reactions p = r) → r.dim = (nᵢ, nₒ)) -- The ∃-term is just the explicit way of writing `r ∈ reactions`.
+  (rcn_dims : ∀ r, (∃ p, reactions p = r) → r.dims = (nᵢ, nₒ)) -- The ∃-term is just the explicit way of writing `r ∈ reactions`.
 
 @[reducible]
 instance : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
 
 namespace reactor 
+
+  -- The characteristic dimensions of a given reactor.
+  def dims (r : reactor) : ℕ × ℕ :=
+    (r.nᵢ, r.nₒ)
 
   -- A reactor is runnable iff all of it's reactions' bodies are functions.
   def is_runnable (r : reactor) : Prop :=
@@ -60,7 +64,7 @@ namespace reactor
   -- The dimensions of the reactions in a reactor's list of `ordered_reactions` are the same as the
   -- dimensions of the reactor itself.
   theorem ord_rcns_dims_eq_rtr_dims (rtr : reactor) : 
-    ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns → rcn.dim = (rtr.nᵢ, rtr.nₒ) :=
+    ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns → rcn.dims = (rtr.nᵢ, rtr.nₒ) :=
     begin
       intros rcn h,
       suffices hₘ : rcn ∈ rtr, from rtr.rcn_dims rcn hₘ,
@@ -81,7 +85,7 @@ namespace reactor
 
   private noncomputable def run_aux 
   {nᵢ nₒ : ℕ} (rs : list reaction) 
-  (h_dim : ∀ r : reaction, r ∈ rs → r.dim = (nᵢ, nₒ))
+  (h_dim : ∀ r : reaction, r ∈ rs → r.dims = (nᵢ, nₒ))
   (h_fun : ∀ r : reaction, r ∈ rs → r.body.is_function) 
   (i : ports nᵢ) (s : state_vars) 
   : ports nₒ × state_vars :=

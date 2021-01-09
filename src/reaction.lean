@@ -21,12 +21,12 @@ structure reaction :=
 namespace reaction
 
   -- The characteristic dimensions of a given reaction.
-  def dim (r : reaction) : ℕ × ℕ :=
+  def dims (r : reaction) : ℕ × ℕ :=
     (r.nᵢ, r.nₒ)
 
   -- The subtype of reactors with given fixed dimensions.
   protected def fixed (nᵢ nₒ: ℕ) : Type* := 
-    { r : reaction // r.dim = (nᵢ, nₒ) }
+    { r : reaction // r.dims = (nᵢ, nₒ) }
 
   --! DERIVABLE
   instance {nᵢ nₒ : ℕ} : has_coe (reaction.fixed nᵢ nₒ) reaction := ⟨λ r, r.val⟩ 

@@ -1,12 +1,13 @@
 import network.basic
 import network.precedence
+import network.ids
 import graphs.dag
 
 namespace network
 
   variable {c : ℕ}
 
-  private def run_topo (n : network.graph c) (topo : list (precedence.graph.reaction_id n)) : (network.graph c) × list (precedence.graph.reaction_id n)
+  private def run_topo (n : network.graph c) (topo : list (reaction.id n.data)) : (network.graph c) × list (reaction.id n.data)
     := sorry
 
   -- Thinking:
@@ -22,16 +23,16 @@ namespace network
   -- (1) + (3): The resulting N of `run_topo` still has input-port-uniqueness.
   -- (2) + (3): There still exists a suitable prec-graph for the N resulting from `run_topo`.
 
-  theorem run_topo_unique_ports_inv (n : network.graph c) (topo : list (precedence.graph.reaction_id n)) : 
+  theorem run_topo_unique_ports_inv (n : network.graph c) (topo : list (reaction.id n.data)) : 
     (run_topo n topo).1.has_unique_port_ins :=
     sorry
 
-  theorem run_topo_prec_constr_inv (n : network.graph c) (topo : list (precedence.graph.reaction_id n)) : 
+  theorem run_topo_prec_constr_inv (n : network.graph c) (topo : list (reaction.id n.data)) : 
     precedence_constraints (run_topo n topo).1 :=
     sorry
 
   theorem run_topo_indep (n : network.graph c) (p : precedence.graph n) (h_a : p.is_acyclic) (h_w : p.is_well_formed) :
-    ∃! output, ∀ (topo : list (precedence.graph.reaction_id n)) (h : dag.topological_order ⟨p, h_a⟩ topo), 
+    ∃! output, ∀ (topo : list (reaction.id n.data)) (h : dag.topological_order ⟨p, h_a⟩ topo), 
       run_topo n topo = output :=
     sorry
 

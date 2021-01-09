@@ -1,7 +1,7 @@
 import graphs.digraph
 
-variables (ι δ : Type*) (ε : Π is : finset ι, ({ i // i ∈ is } → δ) → Type*)
-variables [∀ i d, digraph.edge (ε i d) ι]
+variables (ι δ : Type*) (ε : (ι → δ) → Type*)
+variables [∀ d, digraph.edge (ε d) ι]
 
 -- A directed acyclic graph, aka DAG. 
 def dag := { d : digraph ι δ ε // d.is_acyclic } 
