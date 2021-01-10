@@ -1,3 +1,4 @@
+import nondet
 import primitives
 import reaction
 
@@ -32,9 +33,9 @@ namespace reactor
   def dims (r : reactor) : ℕ × ℕ :=
     (r.nᵢ, r.nₒ)
 
-  -- A reactor is runnable iff all of it's reactions' bodies are functions.
-  def is_runnable (r : reactor) : Prop :=
-    ∀ rcn : reaction, rcn ∈ r → rcn.body.is_function
+  -- A reactor is deterministic iff all of it's reactions are deterministic.
+  def is_det (r : reactor) : Prop :=
+    ∀ rcn : reaction, rcn ∈ r → rcn.is_det
 
   -- A list of a given reactors reactions, ordered by their priority.
   def ordered_rcns (r : reactor) : list reaction :=
@@ -71,9 +72,9 @@ namespace reactor
       apply (ord_rcns_mem_rtr rtr rcn).mp h
     end
 
-  -- If a given reactor is runnable, then all of its reactions' bodies are functions.
-  theorem ord_rcns_runnable (rtr : reactor) (h : rtr.is_runnable) :
-    ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns → rcn.body.is_function :=
+  -- If a given reactor is deterministic, then all of its ordered reactions are deterministic.
+  theorem ord_rcns_det (rtr : reactor) (h : rtr.is_det) :
+    ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns → rcn.is_det :=
     begin
       intros rcn hₘ,
       apply h,
@@ -83,71 +84,71 @@ namespace reactor
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : priority rtr.nᵣ := 
     h.some
 
-  private noncomputable def run_aux 
-  {nᵢ nₒ : ℕ} (rs : list reaction) 
-  (h_dim : ∀ r : reaction, r ∈ rs → r.dims = (nᵢ, nₒ))
-  (h_fun : ∀ r : reaction, r ∈ rs → r.body.is_function) 
-  (i : ports nᵢ) (s : state_vars) 
-  : ports nₒ × state_vars :=
+  private def run_func_aux_main {nₒ : ℕ} (r : reaction) (h : nₒ = r.nₒ) (i : ports r.nᵢ) (ps : ports nₒ × state_vars) : set (ports nₒ × state_vars) :=
+    if r.fires_on i (refl _) then 
+      let psᵣ := r.body (i, ps.2) in
+      let ps' := psᵣ.image (λ ⟨pᵣ, sᵣ⟩, (pᵣ.cast h, sᵣ)) in 
+      ps'.image (λ ⟨p', s'⟩, (ps.1.merge p', s'))
+    else 
+      {(ports.empty, ps.2)}
+
+  private def run_func_aux {nᵢ nₒ : ℕ} (rs : list reaction) (h : ∀ r : reaction, r ∈ rs → r.dims = (nᵢ, nₒ)) (i : ports nᵢ) (s : state_vars) : set (ports nₒ × state_vars) :=
     list.rec_on rs.attach
-      (ports.empty nₒ, s)
+      {(ports.empty, s)}
       (
-        λ rₕ _ osₜ,
-          let dim_rₕ : (rₕ : reaction).nᵢ = nᵢ := (prod.mk.inj (h_dim rₕ rₕ.property)).left in 
-          let osₕ : ports nₒ × state_vars := 
-            if (rₕ : reaction).fires_on i dim_rₕ then 
-              let rₕ_fun := (rₕ : reaction).body.function (h_fun rₕ rₕ.property) in
-              let h_i := (prod.mk.inj (h_dim rₕ rₕ.property)).left in
-              let h_o := (symm (prod.mk.inj (h_dim rₕ rₕ.property)).right) in
-              let os := rₕ_fun (i ∘ fin.cast h_i, s) in
-              ⟨os.1 ∘ fin.cast h_o, os.2⟩
-            else 
-              ⟨ports.empty nₒ, s⟩ 
-          in
-            ⟨osₕ.1.merge osₜ.1, osₜ.2⟩
+        λ rₕ _ psₜ,
+          let ⟨hᵢ, hₒ⟩ := prod.mk.inj (h rₕ rₕ.property) in 
+          let ps' := psₜ.image (run_func_aux_main rₕ (symm hₒ) (i.cast hᵢ)) in
+          ps'.sUnion
       )
+ 
+  private def run_func : reactor ~?> reactor := λ r,
+    let ps := run_func_aux r.ordered_rcns (ord_rcns_dims_eq_rtr_dims r) r.input r.state in
+    ps.image (λ e, {input := ports.empty, output := e.1, state := e.2, ..r})
 
-  --* Technically it would be better to define a run-relation that can handle non-functional 
-  --* reaction bodies, and then show that if the function-property is satisfied the run-relation is
-  --* also a function. But that would be too time-intensive right now.
-  noncomputable def run (r : reactor) (h : r.is_runnable) : reactor :=
-    let os := run_aux r.ordered_rcns (ord_rcns_dims_eq_rtr_dims r) (ord_rcns_runnable r h) r.input r.state in
-    {input := ports.empty r.nᵢ, output := os.1, state := os.2, ..r}
+  private lemma run_func_is_total : 
+    partial_nondet_func.is_total run_func :=
+    begin
+      rw partial_nondet_func.is_total,
+      intro r,
+      rw run_func,
+      simp,
+      rw run_func_aux,
+      simp,
+      induction r.ordered_rcns.attach,
+        simp,
+        {
+          sorry
+        }
+    end
 
-  theorem volatile_input (r : reactor) (h : r.is_runnable) : 
-    (run r h).input = ports.empty r.nᵢ :=
-    by refl 
+  def run : reactor ~> reactor := 
+    {func := run_func, total := run_func_is_total}
 
-  --? Prove the same for state.
-  theorem no_in_no_out (r : reactor) (h : r.is_runnable) : 
-    r.input = ports.empty r.nᵢ → (run r h).output = ports.empty r.nₒ :=
+  theorem rtr_det_run_det {r : reactor} :
+    r.is_det → run.is_det :=
+    begin
+      rw is_det,
+      intro h,
+      rw total_nondet_func.is_det,
+      intro r,
+      rw exists_unique,
+      sorry
+    end
+
+  theorem volatile_input (r : reactor) (h : r.is_det) : 
+    (run.det (rtr_det_run_det h) r).input = ports.empty :=
     sorry
 
-  private lemma merge_empty_is_neutral {n : ℕ} (first last : ports n) :
-    last = ports.empty n → (first.merge last) = first := 
-    begin
-      assume h,
-      rw ports.merge,
-      simp,
-      rw [h, ports.empty],
-      simp,
-    end
+  --? Prove the same for state.
+  theorem no_in_no_out (r : reactor) (h : r.is_det) : 
+    r.input = ports.empty → (run.det (rtr_det_run_det h) r).output = ports.empty :=
+    sorry
 
-  private lemma merge_skips_empty {n : ℕ} (first last : ports n) (i : fin n) :
-    (last i) = none → (first.merge last) i = (first i) := 
-    begin
-      assume h,
-      rw ports.merge,
-      simp,
-      rw h,
-      simp,
-    end
-
-  -- Running a single unconnected reactor is deterministic, if it is runnable
-  -- (cf. `reactor.is_runnable`) and if equal initial states lead to equal end states. 
-  -- Since `reactor.run` is a function, determinism is trivially fulfilled.
-  protected theorem determinism (r₁ r₂ : reactor) (h₁ : r₁.is_runnable) (h₂ : r₂.is_runnable) : 
-    r₁ = r₂ → run r₁ h₁ = run r₂ h₂ :=
+  -- Running a single unconnected deterministic reactor on equal initial states leads to equal end
+  -- states. 
+  protected theorem determinism (r₁ r₂ : reactor) (h₁ : r₁.is_det) (h₂ : r₂.is_det) : 
+    r₁ = r₂ → run.det (rtr_det_run_det h₁) r₁ = run.det (rtr_det_run_det h₂) r₂ :=
     begin
       intro h,
       subst h,

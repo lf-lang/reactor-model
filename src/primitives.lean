@@ -38,31 +38,39 @@ namespace reactor.ports
 
   -- A port assignment where all values are empty.
   @[reducible]
-  def empty (n : ℕ) : reactor.ports n := λ _, none
+  def empty {n : ℕ} : reactor.ports n := λ _, none
 
   -- A port assignment is "total" if all of its values are non-empty.
   def is_total {n : ℕ} (p : reactor.ports n) : Prop := 
     ∀ i, p i ≠ none
+
+  -- Casts a port assigment to another type that is actually equal.
+  def cast {n n' : ℕ} (p : reactor.ports n) (h : n' = n) : reactor.ports n' :=
+    λ i : fin n', p (fin.cast h i) 
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports.
   def merge {n : ℕ} (first last : reactor.ports n) : reactor.ports n :=
     λ i : fin n, (last i).elim (first i) (λ v, some v)
 
+  theorem merge_empty_is_neutral {n : ℕ} (first last : reactor.ports n) :
+    last = reactor.ports.empty → (first.merge last) = first := 
+    begin
+      assume h,
+      rw reactor.ports.merge,
+      simp,
+      rw [h, reactor.ports.empty],
+      simp,
+    end
+
+  theorem merge_skips_empty {n : ℕ} (first last : reactor.ports n) (i : fin n) :
+    (last i) = none → (first.merge last) i = (first i) := 
+    begin
+      assume h,
+      rw reactor.ports.merge,
+      simp,
+      rw h,
+      simp,
+    end
+
 end reactor.ports
-
-namespace rel
-
-  -- The proposition, that a given relation has the "function" property.
-  def is_function {α β : Type*} (r : rel α β) /-(f : α → β)-/ : Prop :=
-    ∀ a : α, ∃! b : β, r a b
-    -- ∀ (a : α) (b : β), r a b ↔ (f a = b)
-
-  -- Produces the function corresponding to a given relation that has the function-property.
-  noncomputable def function {α β : Type*} (r : rel α β) (h : r.is_function) : α → β :=
-    λ a : α, (h a).some 
-
-end rel
-
---! New/Old notation: abbreviation C := ℕ 
-

@@ -33,7 +33,7 @@ namespace «precedence»
 
     private def externally_dependent (r r' : reaction.id n.data) (g : precedence.graph n) : Prop :=
       ∃ o : port.id n.data reactor.nₒ, port_depends_on_reaction o r → 
-      ∃ i : port.id n.data reactor.nᵢ, reaction_depends_on_port r i → 
+      ∃ i : port.id n.data reactor.nᵢ, reaction_depends_on_port r' i → 
         {network.graph.edge . src := o, dst := i} ∈ n.edges
 
     -- For all reactions that are implicitly connected in a certain way in the network,
