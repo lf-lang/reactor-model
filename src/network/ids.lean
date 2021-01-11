@@ -15,40 +15,19 @@ protected structure reaction.id :=
 noncomputable instance : decidable_eq (reaction.id reactors) := 
   classical.type_decidable_eq _
 
--- The `dim` here is like a keypath and will usually be `reactor.nₒ` or `reactor.nᵢ`.
-protected structure port.id (dim : reactor → ℕ) := 
+protected structure port.id (c : ℕ):= 
   (rtr : reactor.id c)
-  (prt : fin (dim (reactors rtr)))
+  (prt : ℕ)
 
-noncomputable instance {dim : reactor → ℕ} : decidable_eq (port.id reactors dim) := 
+noncomputable instance : decidable_eq (port.id c) := 
   classical.type_decidable_eq _
 
 variable {reactors}
 
-theorem same_rtr_same_dims {dim : reactor → ℕ} (p : port.id reactors dim) (r : reaction.id reactors) :
-  p.rtr = r.rtr → (reactors p.rtr).dims = ((reactors r.rtr).reactions r.rcn).dims :=
-  begin
-    intro h,
-    rw h,
-    let rtr := reactors r.rtr,
-    let rcn := rtr.reactions r.rcn,
-    have hₘ : rcn ∈ rtr, from ⟨r.rcn, refl _⟩, -- ∈ means ∃ p, rtr.reactions p = rcn
-    rw reactor.dims,
-    apply symm (rtr.rcn_dims rcn hₘ)
-  end
-
-def port_depends_on_reaction (p : port.id reactors reactor.nₒ) (r : reaction.id reactors) : Prop :=
+def port_depends_on_reaction (p : port.id c) (r : reaction.id reactors) : Prop :=
   -- The ∃ is used as a dependent ∧ here.
-  ∃ h : p.rtr = r.rtr,
-    -- The `let`s are nothing more than a type cast.
-    let dim_eq := (prod.mk.inj (same_rtr_same_dims p r h)).right in 
-    let port_index := (fin.cast dim_eq p.prt) in
-    port_index ∈ ((reactors r.rtr).reactions r.rcn).dₒ 
+  ∃ h : p.rtr = r.rtr, p.prt ∈ ((reactors r.rtr).reactions r.rcn).dₒ 
 
-def reaction_depends_on_port (r : reaction.id reactors) (p : port.id reactors reactor.nᵢ) : Prop :=
+def reaction_depends_on_port (r : reaction.id reactors) (p : port.id c) : Prop :=
   -- The ∃ is used as a dependent ∧ here.
-  ∃ h : p.rtr = r.rtr, 
-    -- The `let`s are nothing more than a type cast.
-    let dim_eq := (prod.mk.inj (same_rtr_same_dims p r h)).left in 
-    let port_index := (fin.cast dim_eq p.prt) in
-    port_index ∈ ((reactors r.rtr).reactions r.rcn).dᵢ 
+  ∃ h : p.rtr = r.rtr, p.prt ∈ ((reactors r.rtr).reactions r.rcn).dᵢ 

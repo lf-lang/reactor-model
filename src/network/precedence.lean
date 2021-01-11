@@ -20,7 +20,7 @@ namespace «precedence»
   end graph
 
   variable (n : network.graph c)
-  def graph := digraph (reaction.id n.data) reaction (λ _, graph.edge n.data)
+  def graph := digraph (reaction.id n.data) reaction (graph.edge n.data)
 
   variable {n}
   instance : has_mem reaction (graph n) := {mem := λ r g, ∃ i, g.data i = r}

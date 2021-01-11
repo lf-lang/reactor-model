@@ -1,4 +1,3 @@
-import data.rel
 import data.finset
 
 -- Typealias via `notation`:
@@ -32,45 +31,43 @@ def reactor.state_vars := list value
 
 -- A mapping from port ids to (possibly empty) values.
 -- This represents the ports of a reactor.
-def reactor.ports (n : ℕ) := fin n → option value
+def reactor.ports := list (option value)
 
 namespace reactor.ports
 
   -- A port assignment where all values are empty.
   @[reducible]
-  def empty {n : ℕ} : reactor.ports n := λ _, none
+  def empty (n : ℕ) : reactor.ports := list.repeat none n
 
   -- A port assignment is "total" if all of its values are non-empty.
-  def is_total {n : ℕ} (p : reactor.ports n) : Prop := 
-    ∀ i, p i ≠ none
-
-  -- Casts a port assigment to another type that is actually equal.
-  def cast {n n' : ℕ} (p : reactor.ports n) (h : n' = n) : reactor.ports n' :=
-    λ i : fin n', p (fin.cast h i) 
+  def is_total (p : reactor.ports) : Prop := 
+    p.all (λ e, e ≠ none)
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports.
-  def merge {n : ℕ} (first last : reactor.ports n) : reactor.ports n :=
-    λ i : fin n, (last i).elim (first i) (λ v, some v)
+  def merge (first last : reactor.ports) : reactor.ports :=
+    last.enum.map (λ ⟨i, e⟩, if e ≠ none then e else mjoin (first.nth i))
 
-  theorem merge_empty_is_neutral {n : ℕ} (first last : reactor.ports n) :
-    last = reactor.ports.empty → (first.merge last) = first := 
+  theorem merge_empty_is_neutral (first last : reactor.ports) :
+    last = reactor.ports.empty last.length → (first.merge last) = first := 
     begin
       assume h,
       rw reactor.ports.merge,
       simp,
-      rw [h, reactor.ports.empty],
-      simp,
+      rw h,
+      rw reactor.ports.empty,
+      sorry
     end
 
-  theorem merge_skips_empty {n : ℕ} (first last : reactor.ports n) (i : fin n) :
-    (last i) = none → (first.merge last) i = (first i) := 
+  theorem merge_skips_empty (first last : reactor.ports) (i : ℕ) :
+    last.nth i = none → (first.merge last).nth i = first.nth i := 
     begin
       assume h,
       rw reactor.ports.merge,
       simp,
       rw h,
       simp,
+      sorry
     end
 
 end reactor.ports

@@ -29,13 +29,10 @@ namespace network
     list.rec_on topo n (λ idₕ _ nₜ,
       let rtr := nₜ.data idₕ.rtr in
       let rcn := rtr.reactions idₕ.rcn in
-      let hᵢ : rcn.nᵢ = rtr.nᵢ := sorry in
-      let hₒ : rtr.nₒ = rcn.nₒ := sorry in
-      let hᵣ : rcn.is_det := sorry in
-      let i := rtr.input.cast hᵢ in
-        if rcn.fires_on i then
-          let ps := rcn.body.det hᵣ (i, rtr.state) in
-          let rtr' := {reactor . output := ps.1.cast hₒ, state := ps.2, ..rtr} in
+      let h : rcn.is_det := sorry in
+        if rcn.fires_on rtr.input then
+          let ps := rcn.body.det h (rtr.input, rtr.state) in
+          let rtr' := {reactor . output := ps.1, state := ps.2, ..rtr} in
           let n' := n.setting idₕ.rtr rtr' in
           propagating_output n' idₕ
         else

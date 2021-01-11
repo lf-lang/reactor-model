@@ -1,8 +1,8 @@
 import nondet
 import graphs.digraph
 
-variables (ι δ : Type*) (ε : (ι → δ) → Type*)
-variables [decidable_eq δ] [∀ d, digraph.edge (ε d) ι]
+variables (ι δ ε : Type*)
+variables [decidable_eq δ] [digraph.edge ε ι]
 
 -- A directed acyclic graph, aka DAG. 
 def dag := { d : digraph ι δ ε // d.is_acyclic } 

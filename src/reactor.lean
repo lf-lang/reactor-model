@@ -17,12 +17,11 @@ open reaction
 -- reactor's type.
 
 structure reactor :=
-  {nᵢ nₒ nᵣ : ℕ}
-  (input : ports nᵢ)
-  (output : ports nₒ)
+  {nᵣ : ℕ}
+  (input : ports)
+  (output : ports)
   (state : state_vars)
   (reactions : priority nᵣ → reaction)
-  (rcn_dims : ∀ r, (∃ p, reactions p = r) → r.dims = (nᵢ, nₒ)) -- The ∃-term is just the explicit way of writing `r ∈ reactions`.
 
 @[reducible]
 instance : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
@@ -30,10 +29,6 @@ instance : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions 
 noncomputable instance : decidable_eq reactor := classical.dec_eq _
 
 namespace reactor 
-
-  -- The characteristic dimensions of a given reactor.
-  def dims (r : reactor) : ℕ × ℕ :=
-    (r.nᵢ, r.nₒ)
 
   -- A reactor is deterministic iff all of it's reactions are deterministic.
   def is_det (r : reactor) : Prop :=
@@ -64,16 +59,6 @@ namespace reactor
         }
     end
 
-  -- The dimensions of the reactions in a reactor's list of `ordered_reactions` are the same as the
-  -- dimensions of the reactor itself.
-  theorem ord_rcns_dims_eq_rtr_dims (rtr : reactor) : 
-    ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns → rcn.dims = (rtr.nᵢ, rtr.nₒ) :=
-    begin
-      intros rcn h,
-      suffices hₘ : rcn ∈ rtr, from rtr.rcn_dims rcn hₘ,
-      apply (ord_rcns_mem_rtr rtr rcn).mp h
-    end
-
   -- If a given reactor is deterministic, then all of its ordered reactions are deterministic.
   theorem ord_rcns_det (rtr : reactor) (h : rtr.is_det) :
     ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns → rcn.is_det :=
@@ -86,26 +71,19 @@ namespace reactor
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : priority rtr.nᵣ := 
     h.some
 
-  private def run_func_aux_main (r : reaction) (i : ports r.nᵢ) (ps : ports r.nₒ × state_vars) : set (ports r.nₒ × state_vars) :=
+  private def run_func_aux_main (r : reaction) (i : ports) (ps : ports × state_vars) : set (ports × state_vars) :=
     if r.fires_on i 
     then (r.body (i, ps.2)).image (λ ⟨p', s'⟩, (ps.1.merge p', s'))
-    else {(ports.empty, ps.2)}
+    else {(ports.empty ps.1.length, ps.2)}
 
-  private def run_func_aux {nᵢ nₒ : ℕ} (rs : list reaction) (h : ∀ r : reaction, r ∈ rs → r.dims = (nᵢ, nₒ)) (i : ports nᵢ) (s : state_vars) : set (ports nₒ × state_vars) :=
+  private def run_func_aux (rs : list reaction) (i : ports) (s : state_vars) (nₒ : ℕ): set (ports × state_vars) :=
     list.rec_on rs.attach
-      {(ports.empty, s)}
-      (
-        λ rₕ _ psₜ,
-          let ⟨hᵢ, hₒ⟩ := prod.mk.inj (h rₕ rₕ.property) in
-          let psₜ' := psₜ.image (λ ⟨p, s⟩, (p.cast hₒ , s)) in -- Cast f
-          let ps' := psₜ'.image (run_func_aux_main rₕ (i.cast hᵢ)) in
-          let output := ps'.sUnion in
-            output.image (λ ⟨p, s⟩, (p.cast (symm hₒ), s)) -- Cast f⁻¹ 
-      )
+      {(ports.empty nₒ, s)}
+      (λ rₕ _ psₜ, (psₜ.image (run_func_aux_main rₕ i)).sUnion)
  
   private def run_func : reactor ~?> reactor := λ r,
-    let ps := run_func_aux r.ordered_rcns (ord_rcns_dims_eq_rtr_dims r) r.input r.state in
-    ps.image (λ ⟨p, s⟩, {input := ports.empty, output := p, state := s, ..r})
+    let ps := run_func_aux r.ordered_rcns r.input r.state r.output.length in
+    ps.image (λ ⟨p, s⟩, {input := ports.empty r.input.length, output := p, state := s, ..r})
 
   private lemma run_func_is_total : 
     partial_nondet_func.is_total run_func :=
@@ -138,12 +116,12 @@ namespace reactor
     end
 
   theorem volatile_input (r : reactor) (h : r.is_det) : 
-    (run.det (rtr_det_run_det h) r).input = ports.empty :=
+    (run.det (rtr_det_run_det h) r).input = (ports.empty r.input.length) :=
     sorry
 
   --? Prove the same for state.
   theorem no_in_no_out (r : reactor) (h : r.is_det) : 
-    r.input = ports.empty → (run.det (rtr_det_run_det h) r).output = ports.empty :=
+    r.input = (ports.empty r.input.length) → (run.det (rtr_det_run_det h) r).output = (ports.empty r.output.length) :=
     sorry
 
   -- Running a single unconnected deterministic reactor on equal initial states leads to equal end
