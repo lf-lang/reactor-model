@@ -10,7 +10,7 @@ class digraph.edge (ε ι : Type*) :=
   (dst : ε → ι)
 
 variables (ι δ : Type*) (ε : (ι → δ) → Type*)
-variables [∀ d, digraph.edge (ε d) ι]
+variables [decidable_eq δ] [∀ d, digraph.edge (ε d) ι]
 
 -- The vertices (of type `α`) have to have an associated index (of type `ι`), because otherwise it
 -- wouldn't be possible to have multiple instances of the same reactor in a network.
@@ -34,6 +34,10 @@ instance : has_mem δ (digraph ι δ ε) := {mem := λ d g, ∃ i, g.data i = d}
 
 namespace digraph
 
+  -- The data elements contained in a given digraph.
+  def members (g : digraph ι δ ε) : finset δ :=
+    g.ids.image g.data
+
   -- The proposition that a given digraph connects two given vertices with an edge.
   def has_edge_from_to (g : digraph ι δ ε) (i i' : ι) : Prop :=
     ∃ e ∈ g.edges, (edge.src e, edge.dst e) = (i, i')
@@ -50,6 +54,9 @@ namespace digraph
   -- The proposition that a given digraph is acyclic.
   def is_acyclic (g : digraph ι δ ε) := ∀ i, ¬ i~g~>i
       
+  def setting (g : digraph ι δ ε) (i : ι) (d : δ) : digraph ι δ ε :=
+    sorry
+
   variable [decidable_eq ι]
 
   -- The in-degree of vertex `i` in digraph `g`. 

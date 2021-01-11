@@ -32,8 +32,8 @@ namespace «precedence»
       r.rtr = r'.rtr ∧ r.rcn.val < r'.rcn.val
 
     private def externally_dependent (r r' : reaction.id n.data) (g : precedence.graph n) : Prop :=
-      ∃ o : port.id n.data reactor.nₒ, port_depends_on_reaction o r → 
-      ∃ i : port.id n.data reactor.nᵢ, reaction_depends_on_port r' i → 
+      ∃ o, port_depends_on_reaction o r → 
+      ∃ i, reaction_depends_on_port r' i → 
         {network.graph.edge . src := o, dst := i} ∈ n.edges
 
     -- For all reactions that are implicitly connected in a certain way in the network,
@@ -42,12 +42,39 @@ namespace «precedence»
       ∀ i i' ∈ g.ids,
         (internally_dependent i i' g ∨ externally_dependent i i' g) ↔ 
         {edge . src := i, dst := i'} ∈ g.edges
-
-    theorem any_acyc_net_graph_has_exactly_one_wf_prec_graph :
-      ∀ (n : network.graph c) (h : n.is_acyclic), ∃! p : precedence.graph n, p.is_well_formed :=
-      sorry
       
   end graph
+
+  theorem all_wf_prec_graphs_are_same {n : network.graph c} (p p' : precedence.graph n):
+      p.is_well_formed → p'.is_well_formed → p = p' :=
+      begin
+        sorry
+      end
+
+    theorem any_acyc_net_graph_has_wf_prec_graph (n : network.graph c) (h : n.is_acyclic) :
+      ∃ p : precedence.graph n, p.is_well_formed :=
+      sorry
+
+    theorem any_acyc_net_graph_has_exactly_one_wf_prec_graph (n : network.graph c) (h : n.is_acyclic) :
+      ∃! p : precedence.graph n, p.is_well_formed :=
+      begin
+        rw exists_unique,
+        let p := (any_acyc_net_graph_has_wf_prec_graph n h).some,
+        have hₚ, from (any_acyc_net_graph_has_wf_prec_graph n h).some_spec,
+        apply exists.intro,
+          {
+            apply and.intro,
+              exact hₚ,
+              {
+                intros m hₘ,
+                apply all_wf_prec_graphs_are_same m p hₘ hₚ,
+              }
+          }
+      end
+
+      theorem exis_ndet_prec_func (c : ℕ) :
+        ∃ f : (network.graph c) ~?> (λ n, precedence.graph n), ∀ n p, p ∈ (f n) → graph.is_well_formed p :=
+        sorry
 
 end «precedence»
 end network

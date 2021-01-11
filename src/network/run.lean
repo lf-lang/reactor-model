@@ -7,8 +7,40 @@ namespace network
 
   variable {c : ℕ}
 
-  private def run_topo (n : network.graph c) (topo : list (reaction.id n.data)) : (network.graph c) × list (reaction.id n.data)
-    := sorry
+  structure prec_func (c : ℕ) :=
+    (func : Π n : network c, precedence.graph n.φ)
+    (well_formed : ∀ n, (func n).is_well_formed)
+
+  instance prec_func_coe {c : ℕ} : has_coe_to_fun (prec_func c) := 
+    ⟨_, (λ f, f.func)⟩
+
+  structure topo_func {c : ℕ} (n : network c) :=
+    (func : precedence.graph n.φ → list (reaction.id n.φ.data))
+    (is_topo : ∀ (p : precedence.graph n.φ) (h : p.is_well_formed), dag.topological_order ⟨p, n.prec_acyclic p h⟩ (func p))
+
+  instance topo_func_coe {c : ℕ} {n : network c} : has_coe_to_fun (topo_func n) := 
+    ⟨_, (λ f, f.func)⟩
+
+  private def propagating_output (n : network.graph c) (r : reaction.id n.data) : network.graph c :=
+    sorry
+    -- For all edges `e` with `e.src ∈ rcn.dₒ`, set `e.dst` to `rtr.output e.src`.  
+
+  private noncomputable def run_topo (n : network.graph c) (topo : list (reaction.id n.data)) : network.graph c :=
+    list.rec_on topo n (λ idₕ _ nₜ,
+      let rtr := nₜ.data idₕ.rtr in
+      let rcn := rtr.reactions idₕ.rcn in
+      let hᵢ : rcn.nᵢ = rtr.nᵢ := sorry in
+      let hₒ : rtr.nₒ = rcn.nₒ := sorry in
+      let hᵣ : rcn.is_det := sorry in
+      let i := rtr.input.cast hᵢ in
+        if rcn.fires_on i then
+          let ps := rcn.body.det hᵣ (i, rtr.state) in
+          let rtr' := {reactor . output := ps.1.cast hₒ, state := ps.2, ..rtr} in
+          let n' := n.setting idₕ.rtr rtr' in
+          propagating_output n' idₕ
+        else
+          nₜ
+    )
 
   -- Thinking:
   -- We have a network graph N.
@@ -23,38 +55,49 @@ namespace network
   -- (1) + (3): The resulting N of `run_topo` still has input-port-uniqueness.
   -- (2) + (3): There still exists a suitable prec-graph for the N resulting from `run_topo`.
 
-  theorem run_topo_unique_ports_inv (n : network.graph c) (topo : list (reaction.id n.data)) : 
-    (run_topo n topo).1.has_unique_port_ins :=
+  lemma run_topo_unique_ports_inv (n : network.graph c) (topo : list (reaction.id n.data)) : 
+    (run_topo n topo).has_unique_port_ins :=
     sorry
 
-  theorem run_topo_prec_constr_inv (n : network.graph c) (topo : list (reaction.id n.data)) : 
-    precedence_constraints (run_topo n topo).1 :=
+  lemma run_topo_prec_acyc_inv (n : network.graph c) (topo : list (reaction.id n.data)) : 
+    network.is_prec_acyclic (run_topo n topo) :=
     sorry
+
+  lemma run_topo_det_inv (n : network.graph c) (topo : list (reaction.id n.data)) :
+    network.is_det (run_topo n topo) :=
+    sorry
+
+  -- Why do we choose to define a specific run-func instead of describing propositionally, what the
+  -- output of such a function should look like?
+  -- Because in this case it's easier to define the function, than it's properties.
+  noncomputable def run (n : network c) (prec_func : prec_func c) (topo_func : topo_func n) : network c :=
+    let topo := topo_func (prec_func n) in
+    let φ' := run_topo n.φ topo in
+    { network .
+      φ := φ',
+      unique_ins := run_topo_unique_ports_inv n.φ topo,
+      prec_acyclic := run_topo_prec_acyc_inv n.φ topo,
+      det := run_topo_det_inv n.φ topo
+    }
 
   theorem run_topo_indep (n : network.graph c) (p : precedence.graph n) (h_a : p.is_acyclic) (h_w : p.is_well_formed) :
     ∃! output, ∀ (topo : list (reaction.id n.data)) (h : dag.topological_order ⟨p, h_a⟩ topo), 
       run_topo n topo = output :=
     sorry
 
-  noncomputable def run (n : network c) : network c :=
-    let prec_graph := classical.subtype_of_exists n.constraints in
-    let topo := (dag.any_dag_has_topo ⟨prec_graph.val, prec_graph.property.2⟩).some in
-    let depiction' := (run_topo n.depiction topo).1 in
-    {network . 
-      depiction := depiction', 
-      unique_ins := run_topo_unique_ports_inv n.depiction topo, 
-      constraints := run_topo_prec_constr_inv n.depiction topo
-    }
-
-  -- Execution of the reactor network needs to be the same no matter which concrete topo-list it gets.
-  --
-  -- noncomputable def run (n : network) :=
-  -- let p := n.prec in
-  -- let topo := classical.choice theorem in
-  --
-  -- still need show that the result of running will still be the same no matter which topo we get.
-  -- noncomputable func arent same-in-same-out
-  --
-  -- the core of the determinism-proof is the fact that run is the same no matter which topo order we get.
+  theorem determinism (n : network c) (p p' : prec_func c) (t t' : topo_func n) :
+    run n p t = run n p' t' := 
+    sorry
+    -- There are two components to this proof:
+    --
+    -- (1) Showing that the specific `prec_func` doesn't matter can be done by showing that all
+    --    (well-formed!) `prec_func`s (for a given) `c` are equal.
+    --    This hinges on the fact that for any given network there exists exactly one well-formed
+    --    precedence graph. So if a `prec_func` wants to be well-formed, it has to return this
+    --    exact precedence graph - hence, there really only exists *one* well-formed `prec_func`.
+    --
+    -- (2) Showing that the specific `topo_func` doesn't matter, will be tied to `run` itself.
+    --     I.e. it's a quirk of `run` that the specific `topo_func` doesn't matter.
+    --     This fact is captured by the theorem `run_topo_indep`.
 
 end network

@@ -27,6 +27,8 @@ structure reactor :=
 @[reducible]
 instance : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
 
+noncomputable instance : decidable_eq reactor := classical.dec_eq _
+
 namespace reactor 
 
   -- The characteristic dimensions of a given reactor.
@@ -84,27 +86,26 @@ namespace reactor
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : priority rtr.nᵣ := 
     h.some
 
-  private def run_func_aux_main {nₒ : ℕ} (r : reaction) (h : nₒ = r.nₒ) (i : ports r.nᵢ) (ps : ports nₒ × state_vars) : set (ports nₒ × state_vars) :=
-    if r.fires_on i (refl _) then 
-      let psᵣ := r.body (i, ps.2) in
-      let ps' := psᵣ.image (λ ⟨pᵣ, sᵣ⟩, (pᵣ.cast h, sᵣ)) in 
-      ps'.image (λ ⟨p', s'⟩, (ps.1.merge p', s'))
-    else 
-      {(ports.empty, ps.2)}
+  private def run_func_aux_main (r : reaction) (i : ports r.nᵢ) (ps : ports r.nₒ × state_vars) : set (ports r.nₒ × state_vars) :=
+    if r.fires_on i 
+    then (r.body (i, ps.2)).image (λ ⟨p', s'⟩, (ps.1.merge p', s'))
+    else {(ports.empty, ps.2)}
 
   private def run_func_aux {nᵢ nₒ : ℕ} (rs : list reaction) (h : ∀ r : reaction, r ∈ rs → r.dims = (nᵢ, nₒ)) (i : ports nᵢ) (s : state_vars) : set (ports nₒ × state_vars) :=
     list.rec_on rs.attach
       {(ports.empty, s)}
       (
         λ rₕ _ psₜ,
-          let ⟨hᵢ, hₒ⟩ := prod.mk.inj (h rₕ rₕ.property) in 
-          let ps' := psₜ.image (run_func_aux_main rₕ (symm hₒ) (i.cast hᵢ)) in
-          ps'.sUnion
+          let ⟨hᵢ, hₒ⟩ := prod.mk.inj (h rₕ rₕ.property) in
+          let psₜ' := psₜ.image (λ ⟨p, s⟩, (p.cast hₒ , s)) in -- Cast f
+          let ps' := psₜ'.image (run_func_aux_main rₕ (i.cast hᵢ)) in
+          let output := ps'.sUnion in
+            output.image (λ ⟨p, s⟩, (p.cast (symm hₒ), s)) -- Cast f⁻¹ 
       )
  
   private def run_func : reactor ~?> reactor := λ r,
     let ps := run_func_aux r.ordered_rcns (ord_rcns_dims_eq_rtr_dims r) r.input r.state in
-    ps.image (λ e, {input := ports.empty, output := e.1, state := e.2, ..r})
+    ps.image (λ ⟨p, s⟩, {input := ports.empty, output := p, state := s, ..r})
 
   private lemma run_func_is_total : 
     partial_nondet_func.is_total run_func :=

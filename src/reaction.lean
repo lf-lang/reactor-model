@@ -18,6 +18,8 @@ structure reaction :=
   (triggers : finset {i // i ∈ dᵢ})
   (body : (ports nᵢ × state_vars) ~> (ports nₒ × state_vars)) 
 
+noncomputable instance : decidable_eq reaction := classical.dec_eq _
+
 namespace reaction
 
   -- The characteristic dimensions of a given reaction.
@@ -29,11 +31,11 @@ namespace reaction
     { r : reaction // r.dims = (nᵢ, nₒ) }
 
   -- The proposition, that a given reaction fires on a given port map. This is only defined when
-  -- the dimensions of the given port map match the reaction's input dimensions (hence `h`).
-  def fires_on {n : ℕ} (r : reaction) (p : ports n) (h : r.nᵢ = n) : Prop :=
-    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers), p (fin.cast h t) ≠ none
+  -- the dimensions of the given port map match the reaction's input dimensions (`r.nᵢ`).
+  def fires_on (r : reaction) (p : ports r.nᵢ) : Prop :=
+    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers), p t ≠ none
 
-  instance dec_fires_on {n : ℕ} (r : reaction) (p : ports n) (h : r.nᵢ = n) : decidable (r.fires_on p h) := 
+  instance dec_fires_on (r : reaction) (p : ports r.nᵢ) : decidable (r.fires_on p) := 
     finset.decidable_dexists_finset
 
   -- The proposition, that a given reaction is deterministic.
@@ -50,7 +52,7 @@ namespace reaction
   -- The `refl _` is the proof that the port map's dimensions are equal to the reaction's input
   -- dimensions (cf. `reaction.fires_on`).
   protected theorem no_in_no_fire (r : reaction) : 
-    ¬ r.fires_on ports.empty (refl _) :=
+    ¬ r.fires_on ports.empty :=
     begin 
       rw reaction.fires_on,
       simp
@@ -61,14 +63,14 @@ namespace reaction
   --
   -- Two technicalities are that the reaction's triggers are non-empty, and the port map has the
   -- right dimensions.
-  protected theorem total_ins_fires {n : ℕ} (r : reaction) (p : ports n) (hₜ : r.triggers.nonempty) (hₙ : r.nᵢ = n) :
-    p.is_total → r.fires_on p hₙ :=
+  protected theorem total_ins_fires {n : ℕ} (r : reaction) (p : ports r.nᵢ) (hₜ : r.triggers.nonempty) :
+    p.is_total → r.fires_on p :=
     begin
       intros hᵢ,
       -- Get a `t ∈ r.triggers` (with membership-proof `hₘ`).
       obtain ⟨t, hₘ⟩ := hₜ,
-      -- Show that `p` has a value for `t` (cast to `fin n`) by virtue of `hᵢ`.
-      have hₚ : p (fin.cast hₙ t) ≠ none, from hᵢ (fin.cast hₙ t), 
+      -- Show that `p` has a value for `t` by virtue of `hᵢ`.
+      have hₚ : p t ≠ none, from hᵢ t, 
       exact ⟨t, hₘ, hₚ⟩
     end 
 

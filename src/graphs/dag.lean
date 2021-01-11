@@ -1,7 +1,8 @@
+import nondet
 import graphs.digraph
 
 variables (ι δ : Type*) (ε : (ι → δ) → Type*)
-variables [∀ d, digraph.edge (ε d) ι]
+variables [decidable_eq δ] [∀ d, digraph.edge (ε d) ι]
 
 -- A directed acyclic graph, aka DAG. 
 def dag := { d : digraph ι δ ε // d.is_acyclic } 
@@ -17,6 +18,10 @@ namespace dag
   -- For any DAG there exists a list which is a topological order of the DAG.
   theorem any_dag_has_topo : 
     ∀ g : dag ι δ ε, ∃ l : list ι, topological_order g l :=
+    sorry
+
+  theorem exis_ndet_topo_func :
+    ∃ f : (dag ι δ ε) ~?> (list ι), ∀ g t, t ∈ (f g) → topological_order g t :=
     sorry
 
 end dag
