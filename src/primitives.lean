@@ -17,12 +17,6 @@ notation `value` := empty
 -- map that associates each of the indices of an `in-/output` with the indices of the `ports` from
 -- which they were derived.
 
--- A priority for a reaction, where 0 is the highest priority.
-@[reducible, derive fintype, derive has_lt, derive linear_order]
-def reaction.priority (n : ℕ) := fin n
-
-instance {n : ℕ} : is_total (reaction.priority n) has_lt.lt := sorry
-
 -- A list of values values.
 -- This represents the state fields of a reactor.
 -- Since we don't ever need to work with the state fields within Lean, their definition is fuzzy
@@ -46,27 +40,17 @@ namespace reactor.ports
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports.
   def merge (first last : reactor.ports) : reactor.ports :=
-    last.enum.map (λ ⟨i, e⟩, if e ≠ none then e else mjoin (first.nth i))
+    last.zip_with (<|>) first
 
-  theorem merge_empty_is_neutral (first last : reactor.ports) :
-    last = reactor.ports.empty last.length → (first.merge last) = first := 
-    begin
-      assume h,
-      rw reactor.ports.merge,
-      simp,
-      rw h,
-      rw reactor.ports.empty,
-      sorry
-    end
+  theorem merge_empty_is_neutral (p : reactor.ports) :
+    p.merge (reactor.ports.empty p.length) = p := 
+    sorry
 
   theorem merge_skips_empty (first last : reactor.ports) (i : ℕ) :
     last.nth i = none → (first.merge last).nth i = first.nth i := 
     begin
       assume h,
       rw reactor.ports.merge,
-      simp,
-      rw h,
-      simp,
       sorry
     end
 

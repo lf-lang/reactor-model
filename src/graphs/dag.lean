@@ -19,9 +19,5 @@ namespace dag
   theorem any_dag_has_topo : 
     ∀ g : dag ι δ ε, ∃ l : list ι, topological_order g l :=
     sorry
-
-  theorem exis_ndet_topo_func :
-    ∃ f : (dag ι δ ε) ~?> (list ι), ∀ g t, t ∈ (f g) → topological_order g t :=
-    sorry
-
+    
 end dag

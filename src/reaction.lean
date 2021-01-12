@@ -2,7 +2,6 @@ import data.finset
 import nondet
 import primitives
 
-open reaction
 open reactor
 
 -- Reactions consist of a set of input dependencies `dᵢ`, output dependencies `dₒ`, `triggers` and

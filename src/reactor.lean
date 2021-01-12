@@ -17,11 +17,11 @@ open reaction
 -- reactor's type.
 
 structure reactor :=
-  {nᵣ : ℕ}
   (input : ports)
   (output : ports)
   (state : state_vars)
-  (reactions : priority nᵣ → reaction)
+  (priorities : finset ℕ)
+  (reactions : ℕ → reaction)
 
 @[reducible]
 instance : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
@@ -34,10 +34,9 @@ namespace reactor
   def is_det (r : reactor) : Prop :=
     ∀ rcn : reaction, rcn ∈ r → rcn.is_det
 
-  -- A list of a given reactors reactions, ordered by their priority.
+  -- A list of a given reactor's reactions, ordered by their priority.
   def ordered_rcns (r : reactor) : list reaction :=
-    let priorities := (fintype.elems (priority r.nᵣ)).sort (<) in
-    priorities.map r.reactions
+    (r.priorities.sort (≥)).map r.reactions
 
   -- A reaction is a member of a reactor's list of `ordered_reactions` iff it is also a member of
   -- the reactor itself.
@@ -55,7 +54,7 @@ namespace reactor
         {
           simp,
           intros p h,
-          exact ⟨p, fintype.complete p, h⟩
+          sorry -- exact ⟨p, fintype.complete p, h⟩
         }
     end
 
