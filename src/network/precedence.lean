@@ -22,10 +22,6 @@ namespace «precedence»
 
   namespace graph
 
-    -- The proposition, that a precedence graph only contains deterministic reactions.
-    def is_det (ρ : precedence.graph) : Prop :=
-      ∀ r ∈ ρ, reaction.is_det r
-
     private def port_depends_on_reaction (p : port.id) (r : reaction.id) (η : network.graph) : Prop :=
       p.rtr = r.rtr ∧ p.prt ∈ ((η.data r.rtr).reactions r.rcn).dₒ 
 
@@ -60,10 +56,6 @@ def network.graph.is_prec_acyclic (η : network.graph) : Prop :=
 
 namespace network
 namespace «precedence» 
-
-  theorem det_net_graph_det_wf_prec (η : network.graph) (h : η.is_det) (ρ : precedence.graph) :
-    ρ.is_well_formed_over η → ∀ r ∈ ρ, reaction.is_det r :=
-    sorry
 
   theorem all_wf_prec_graphs_are_same (η : network.graph) (ρ ρ' : precedence.graph) :
     ρ.is_well_formed_over η ∧ ρ'.is_well_formed_over η → ρ = ρ' :=

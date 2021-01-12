@@ -1,5 +1,4 @@
 import data.finset
-import nondet
 import primitives
 
 open reactor
@@ -14,11 +13,15 @@ structure reaction :=
   (dᵢ : finset ℕ) 
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
-  (body : (ports × state_vars) ~> (ports × state_vars)) 
-
-noncomputable instance : decidable_eq reaction := classical.dec_eq _
+  (body : ports → state_vars → (ports × state_vars)) 
 
 namespace reaction
+
+  instance coe_to_fun : has_coe_to_fun reaction :=
+    ⟨_, (λ r, r.body)⟩
+
+  noncomputable instance dec_eq : decidable_eq reaction := 
+    classical.dec_eq _
 
   -- The proposition, that a given reaction fires on a given port map. This is only defined when
   -- the dimensions of the given port map match the reaction's input dimensions (`r.nᵢ`).
@@ -28,13 +31,9 @@ namespace reaction
   instance dec_fires_on (r : reaction) (p : ports) : decidable (r.fires_on p) := 
     finset.decidable_dexists_finset
 
-  -- The proposition, that a given reaction is deterministic.
-  def is_det (r : reaction) : Prop :=
-    r.body.is_det
-
-  -- If a reaction is deterministic, then running it on equal inputs produces equal outputs.
-  protected theorem determinism (r : reaction) (h : r.is_det) (i₁ i₂ : ports) (s₁ s₂ : state_vars) :
-    i₁ = i₂ ∧ s₁ = s₂ → (r.body.det h) (i₁, s₁) = (r.body.det h) (i₂, s₂) := 
+  -- Running a reaction on equal inputs produces equal outputs.
+  protected theorem determinism (r : reaction) (i₁ i₂ : ports) (s₁ s₂ : state_vars) :
+    i₁ = i₂ ∧ s₁ = s₂ → r i₁ s₁ = r i₂ s₂ := 
     assume ⟨hᵢ, hₛ⟩, hᵢ ▸ hₛ ▸ refl _
 
   -- A reaction will never fire on empty ports.

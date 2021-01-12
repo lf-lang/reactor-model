@@ -33,6 +33,10 @@ namespace reactor.ports
   @[reducible]
   def empty (n : ℕ) : reactor.ports := list.repeat none n
 
+  -- The proposition, that a given port assignment is empty.
+  def is_empty (p : reactor.ports) : Prop :=
+    p = reactor.ports.empty p.length
+
   -- A port assignment is "total" if all of its values are non-empty.
   def is_total (p : reactor.ports) : Prop := 
     p.all (λ e, e ≠ none)

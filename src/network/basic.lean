@@ -7,4 +7,3 @@ structure network :=
   (η : network.graph)
   (unique_ins : η.has_unique_port_ins)
   (prec_acyclic : η.is_prec_acyclic) -- In the long term this should be temporary.
-  (det : η.is_det) -- This should ultimately be temporary.

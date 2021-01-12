@@ -1,4 +1,3 @@
-import nondet
 import primitives
 import reaction
 
@@ -30,10 +29,6 @@ namespace reactor
   @[reducible]
   instance mem : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
 
-  -- A reactor is deterministic iff all of it's reactions are deterministic.
-  def is_det (r : reactor) : Prop :=
-    ∀ rcn : reaction, rcn ∈ r → rcn.is_det
-
   -- A list of a given reactor's reactions, ordered by their priority.
   def ordered_rcns (r : reactor) : list reaction :=
     (r.priorities.sort (≥)).map r.reactions
@@ -58,78 +53,39 @@ namespace reactor
         }
     end
 
-  -- If a given reactor is deterministic, then all of its ordered reactions are deterministic.
-  theorem ord_rcns_det (rtr : reactor) (h : rtr.is_det) :
-    ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns → rcn.is_det :=
-    begin
-      intros rcn hₘ,
-      apply h,
-      apply (ord_rcns_mem_rtr rtr rcn).mp hₘ
-    end
-
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
 
-  private def run_func_aux_main (r : reaction) (i : ports) (ps : ports × state_vars) : set (ports × state_vars) :=
-    if r.fires_on i 
-    then (r.body (i, ps.2)).image (λ ⟨p', s'⟩, (ps.1.merge p', s'))
-    else {(ports.empty ps.1.length, ps.2)}
+  private def run_aux (i : ports) (s : state_vars) (nₒ : ℕ) : list reaction → ports × state_vars
+    | [] := (ports.empty nₒ, s)
+    | (rₕ :: rsₜ) := let ⟨pₜ, sₜ⟩ := run_aux rsₜ in
+      if rₕ.fires_on i 
+      then let ⟨pₕ, sₕ⟩ := rₕ i sₜ in (pₜ.merge pₕ, sₕ)
+      else (pₜ, sₜ)
 
-  private def run_func_aux (rs : list reaction) (i : ports) (s : state_vars) (nₒ : ℕ): set (ports × state_vars) :=
-    list.rec_on rs.attach
-      {(ports.empty nₒ, s)}
-      (λ rₕ _ psₜ, (psₜ.image (run_func_aux_main rₕ i)).sUnion)
- 
-  private def run_func : reactor ~?> reactor := λ r,
-    let ps := run_func_aux r.ordered_rcns r.input r.state r.output.length in
-    ps.image (λ ⟨p, s⟩, {input := ports.empty r.input.length, output := p, state := s, ..r})
+  def run (r : reactor) : reactor := 
+    let ⟨p, s⟩ := run_aux r.input r.state r.output.length r.ordered_rcns.reverse in
+    {input := ports.empty r.input.length, output := p, state := s, ..r}
 
-  private lemma run_func_is_total : 
-    partial_nondet_func.is_total run_func :=
-    begin
-      rw partial_nondet_func.is_total,
-      intro r,
-      rw run_func,
-      simp,
-      rw run_func_aux,
-      simp,
-      induction r.ordered_rcns.attach,
-        simp,
-        {
-          sorry
-        }
-    end
-
-  def run : reactor ~> reactor := 
-    {func := run_func, total := run_func_is_total}
-
-  theorem rtr_det_run_det {r : reactor} :
-    r.is_det → run.is_det :=
-    begin
-      rw is_det,
-      intro h,
-      rw total_nondet_func.is_det,
-      intro r,
-      rw exists_unique,
-      sorry
-    end
-
-  theorem volatile_input (r : reactor) (h : r.is_det) : 
-    (run.det (rtr_det_run_det h) r).input = (ports.empty r.input.length) :=
+  theorem volatile_input (r : reactor) : 
+    r.run.input.is_empty :=
     sorry
 
-  --? Prove the same for state.
-  theorem no_in_no_out (r : reactor) (h : r.is_det) : 
-    r.input = (ports.empty r.input.length) → (run.det (rtr_det_run_det h) r).output = (ports.empty r.output.length) :=
+  theorem no_in_same_out (r : reactor) : 
+    r.input.is_empty → r.run.output = r.output :=
     sorry
 
-  -- Running a single unconnected deterministic reactor on equal initial states leads to equal end
-  -- states. 
-  protected theorem determinism (r₁ r₂ : reactor) (h₁ : r₁.is_det) (h₂ : r₂.is_det) : 
-    r₁ = r₂ → run.det (rtr_det_run_det h₁) r₁ = run.det (rtr_det_run_det h₂) r₂ :=
-    begin
-      intro h,
-      subst h,
-    end
+  theorem no_in_same_state (r : reactor) : 
+    r.input.is_empty → r.run.state = r.state :=
+    sorry
+
+  theorem idempotence (r : reactor) :
+    r.run = r.run.run :=
+    sorry
+
+  -- Running a single unconnected reactor on equal initial states leads to equal end states. 
+  protected theorem determinism (r₁ r₂ : reactor) : 
+    r₁ = r₂ → r₁.run = r₂.run :=
+    assume h, h ▸ refl _
 
 end reactor
