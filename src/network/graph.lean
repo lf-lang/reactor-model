@@ -34,6 +34,11 @@ namespace network
     def has_unique_port_ins (η : network.graph) : Prop :=
       ∀ i, (η.edges.filter (λ e', graph.edge.dst e' = i)).card ≤ 1
 
+    instance edge.has_le : has_le edge := ⟨λ l r, if l.src = r.src then l.dst ≤ r.dst else l.dst ≤ r.dst⟩
+    instance edge.is_trans : is_trans edge has_le.le := sorry
+    instance edge.is_antisymm : is_antisymm edge has_le.le := sorry
+    instance edge.is_total : is_total edge has_le.le := sorry
+
   end graph
 
 end network

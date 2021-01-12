@@ -22,7 +22,7 @@ namespace network
   -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
   private noncomputable def propagate_port (η : network.graph) (p : port.id) (v : value) : network.graph := 
     let affected := η.edges.filter (λ e, e.src = p) in
-    list.rec_on (affected.sort sorry) η (λ eₕ _ η',
+    list.rec_on (affected.sort (≤)) η (λ eₕ _ η',
       let rtr := (η'.data eₕ.dst.rtr) in
       let input' := rtr.input.update_nth eₕ.dst.prt v in
       let rtr' := {reactor . input := input', ..rtr} in
