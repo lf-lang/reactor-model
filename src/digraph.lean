@@ -10,7 +10,7 @@ class digraph.edge (ε ι : Type*) :=
   (dst : ε → ι)
 
 variables (ι δ ε : Type*)
-variables [decidable_eq δ] [digraph.edge ε ι]
+variables [decidable_eq ι] [decidable_eq δ] [digraph.edge ε ι]
 
 -- The vertices (of type `α`) have to have an associated index (of type `ι`), because otherwise it
 -- wouldn't be possible to have multiple instances of the same reactor in a network.
@@ -38,6 +38,10 @@ namespace digraph
   def members (g : digraph ι δ ε) : finset δ :=
     g.ids.image g.data
 
+  -- Produces a graph where the member at a given ID `i` is replaced by a new member `d`.
+  def update_data (g : digraph ι δ ε) (i : ι) (d : δ) : digraph ι δ ε :=
+    {digraph . data := (λ x : ι, if x = i then d else g.data x), ..g} 
+
   -- The proposition that a given digraph connects two given vertices with an edge.
   def has_edge_from_to (g : digraph ι δ ε) (i i' : ι) : Prop :=
     ∃ e ∈ g.edges, (edge.src e, edge.dst e) = (i, i')
@@ -53,11 +57,17 @@ namespace digraph
 
   -- The proposition that a given digraph is acyclic.
   def is_acyclic (g : digraph ι δ ε) := ∀ i, ¬ i~g~>i
-      
-  def setting (g : digraph ι δ ε) (i : ι) (d : δ) : digraph ι δ ε :=
-    sorry
 
   variable [decidable_eq ι]
+
+  -- The definition of what it means for a given list to be a topological order of a given DAG.
+  def topological_order (g : digraph ι δ ε) (h : g.is_acyclic) (l : list ι) : Prop :=
+    ∀ i i' ∈ l, (i-g->i') → (l.index_of i < l.index_of i')
+
+  -- For any DAG there exists a list which is a topological order of the DAG.
+  theorem any_dag_has_topo : 
+    ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, topological_order g h l :=
+    sorry
 
   -- The in-degree of vertex `i` in digraph `g`. 
   def in_degree_of (g : digraph ι δ ε) (i : { x // x ∈ g.ids}) : ℕ :=

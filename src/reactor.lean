@@ -23,12 +23,12 @@ structure reactor :=
   (priorities : finset ℕ)
   (reactions : ℕ → reaction)
 
-@[reducible]
-instance : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
-
 noncomputable instance : decidable_eq reactor := classical.dec_eq _
 
 namespace reactor 
+
+  @[reducible]
+  instance mem : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
 
   -- A reactor is deterministic iff all of it's reactions are deterministic.
   def is_det (r : reactor) : Prop :=
@@ -67,7 +67,7 @@ namespace reactor
       apply (ord_rcns_mem_rtr rtr rcn).mp hₘ
     end
 
-  noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : priority rtr.nᵣ := 
+  noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
 
   private def run_func_aux_main (r : reaction) (i : ports) (ps : ports × state_vars) : set (ports × state_vars) :=

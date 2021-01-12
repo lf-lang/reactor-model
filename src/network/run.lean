@@ -1,38 +1,52 @@
+import digraph
 import network.basic
 import network.precedence
 import network.ids
-import graphs.dag
 
 namespace network
 
   structure prec_func :=
     (func : network → precedence.graph)
-    (well_formed : ∀ n, (func n).is_well_formed_over n.φ)
+    (well_formed : ∀ n, (func n).is_well_formed_over n.η)
 
   instance prec_func_coe : has_coe_to_fun prec_func := 
     ⟨_, (λ f, f.func)⟩
 
   structure topo_func :=
     (func : precedence.graph → list reaction.id)
-    (is_topo : ∀ (n : network) (p : precedence.graph) (h : p.is_well_formed_over n.φ), dag.topological_order ⟨p, n.prec_acyclic p h⟩ (func p))
+    (is_topo : ∀ (n : network) (ρ : precedence.graph) (h : ρ.is_well_formed_over n.η), ρ.topological_order (n.prec_acyclic ρ h) (func ρ))
 
   instance topo_func_coe : has_coe_to_fun topo_func := 
     ⟨_, (λ f, f.func)⟩
 
-  private def propagating_output (n : network.graph) (r : reaction.id) : network.graph :=
-    sorry
-    -- For all edges `e` with `e.src ∈ rcn.dₒ`, set `e.dst` to `rtr.output e.src`.  
+  -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
+  private noncomputable def propagate_port (η : network.graph) (p : port.id) (v : value) : network.graph := 
+    let affected := η.edges.filter (λ e, e.src = p) in
+    list.rec_on (affected.sort sorry) η (λ eₕ _ η',
+      let rtr := (η'.data eₕ.dst.rtr) in
+      let input' := rtr.input.update_nth eₕ.dst.prt v in
+      let rtr' := {reactor . input := input', ..rtr} in
+      η'.update_data eₕ.dst.rtr rtr'
+    )
 
-  private noncomputable def run_topo (n : network.graph) (topo : list reaction.id) : network.graph :=
-    list.rec_on topo n (λ idₕ _ nₜ,
-      let rtr := nₜ.data idₕ.rtr in
-      let rcn := rtr.reactions idₕ.rcn in
-      let h : rcn.is_det := sorry in
+  -- For all edges `e` with `e.src ∈ p`, set `e.dst` to `rtr.output.nth e.src`.  
+  private noncomputable def propagate_output (η : network.graph) (p : finset port.id) : network.graph := 
+    list.rec_on (p.sort (≤)) η (λ pₕ _ η', -- You can avoid `list` by using `finset.fold`.
+      let v := option.join ((η.data pₕ.rtr).output.nth pₕ.prt) in
+      v.elim η' (λ v', propagate_port η' pₕ v')
+    ) 
+      
+  private noncomputable def run_topo (η : network.graph) (h : η.is_det) (topo : list reaction.id) : network.graph :=
+    list.rec_on topo η (λ idₕ _ nₜ,
+      let rtr := nₜ.rtr idₕ in
+      let rcn := nₜ.rcn idₕ in
+      let h : rcn.is_det := sorry in -- `∀ (i : reaction.id), (graph.rcn η i).is_det` via `network.graph.det_rcns h`
         if rcn.fires_on rtr.input then
           let ps := rcn.body.det h (rtr.input, rtr.state) in
           let rtr' := {reactor . output := ps.1, state := ps.2, ..rtr} in
-          let n' := n.setting idₕ.rtr rtr' in
-          propagating_output n' idₕ
+          let η' : network.graph := η.update_data idₕ.rtr rtr' in
+          let affected_ports := rcn.dₒ.image (λ d, {port.id . rtr := idₕ.rtr, prt := d}) in
+          propagate_output η affected_ports
         else
           nₜ
     )
@@ -50,16 +64,16 @@ namespace network
   -- (1) + (3): The resulting N of `run_topo` still has input-port-uniqueness.
   -- (2) + (3): There still exists a suitable prec-graph for the N resulting from `run_topo`.
 
-  lemma run_topo_unique_ports_inv (n : network.graph) (topo : list reaction.id) : 
-    (run_topo n topo).has_unique_port_ins :=
+  lemma run_topo_unique_ports_inv (η : network.graph) (h : η.is_det) (topo : list reaction.id) : 
+    (run_topo η h topo).has_unique_port_ins :=
     sorry
 
-  lemma run_topo_prec_acyc_inv (n : network.graph) (topo : list reaction.id) : 
-    network.is_prec_acyclic (run_topo n topo) :=
+  lemma run_topo_prec_acyc_inv (η : network.graph) (h : η.is_det) (topo : list reaction.id) : 
+    (run_topo η h topo).is_prec_acyclic :=
     sorry
 
-  lemma run_topo_det_inv (n : network.graph) (topo : list reaction.id) :
-    network.is_det (run_topo n topo) :=
+  lemma run_topo_det_inv (η : network.graph) (h : η.is_det) (topo : list reaction.id) :
+    (run_topo η h topo).is_det:=
     sorry
 
   -- Why do we choose to define a specific run-func instead of describing propositionally, what the
@@ -67,20 +81,20 @@ namespace network
   -- Because in this case it's easier to define the function, than it's properties.
   noncomputable def run (n : network) (prec_func : prec_func) (topo_func : topo_func) : network :=
     let topo := topo_func (prec_func n) in
-    let φ' := run_topo n.φ topo in
+    let η' := run_topo n.η n.det topo in
     { network .
-      φ := φ',
-      unique_ins := run_topo_unique_ports_inv n.φ topo,
-      prec_acyclic := run_topo_prec_acyc_inv n.φ topo,
-      det := run_topo_det_inv n.φ topo
+      η := η',
+      unique_ins := run_topo_unique_ports_inv n.η n.det topo,
+      prec_acyclic := run_topo_prec_acyc_inv n.η n.det topo,
+      det := run_topo_det_inv n.η n.det topo
     }
 
-  theorem run_topo_indep (n : network.graph) (p : precedence.graph) (h_a : p.is_acyclic) (h_w : p.is_well_formed_over n) :
-    ∃! output, ∀ (topo : list reaction.id) (h : dag.topological_order ⟨p, h_a⟩ topo), run_topo n topo = output :=
+  theorem run_topo_indep (η : network.graph) (h : η.is_det) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
+    ∃! output, ∀ (topo : list reaction.id) (_ : ρ.topological_order h_a topo), run_topo η h topo = output :=
     sorry
 
   theorem determinism (n : network) (p p' : prec_func) (t t' : topo_func) :
-    run n p t = run n p' t' := 
+    n.run p t = n.run p' t' := 
     sorry
     -- There are two components to this proof:
     --
