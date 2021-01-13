@@ -88,7 +88,7 @@ def network.graph.is_prec_acyclic (η : network.graph) : Prop :=
 namespace network
 namespace «precedence»
 
-  theorem any_acyc_net_graph_has_wf_prec_graph (η : network.graph) (h : η.is_acyclic) :
+  theorem any_acyc_net_graph_has_wf_prec_graph (η : network.graph) (h : η.is_prec_acyclic) :
     ∃ ρ : precedence.graph, ρ.is_well_formed_over η :=
     sorry
 
@@ -141,7 +141,7 @@ namespace «precedence»
         apply finset.ext_iff.mp h_e
     end
 
-  theorem any_acyc_net_graph_has_exactly_one_wf_prec_graph (η : network.graph) (h : η.is_acyclic) :
+  theorem any_acyc_net_graph_has_exactly_one_wf_prec_graph (η : network.graph) (h : η.is_prec_acyclic) :
     ∃! ρ : precedence.graph, ρ.is_well_formed_over η :=
     begin
       rw exists_unique,

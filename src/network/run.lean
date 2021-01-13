@@ -5,6 +5,7 @@ import network.ids
 
 namespace network
 
+  @[ext]
   structure prec_func :=
     (func : network → precedence.graph)
     (well_formed : ∀ n, (func n).is_well_formed_over n.η)
@@ -87,15 +88,28 @@ namespace network
     ∃! output, ∀ (topo : list reaction.id) (_ : ρ.topological_order h_a topo), run_topo η topo = output :=
     sorry
 
-  theorem exists_exactly_one_prec_func : 
+  theorem all_prec_funcs_are_eq : 
     ∀ p p' : prec_func, p = p' :=
     begin
-      sorry
+      intros p p',
+      have h_func : p.func = p'.func, {
+        suffices h : ∀ n, p.func n = p'.func n, from funext h,
+        intro n,
+        have h_unique : ∃! ρ : precedence.graph, ρ.is_well_formed_over n.η,
+          from precedence.any_acyc_net_graph_has_exactly_one_wf_prec_graph n.η n.prec_acyclic,
+        have h_wf, from p.well_formed n,
+        have h_wf', from p'.well_formed n,
+        exact exists_unique.unique h_unique h_wf h_wf'
+      },
+      exact prec_func.ext p p' h_func
     end
 
   theorem determinism (n : network) (p p' : prec_func) (t t' : topo_func) :
     n.run p t = n.run p' t' := 
-    sorry
+    begin
+      rw all_prec_funcs_are_eq p p',
+      sorry
+    end
     -- There are two components to this proof:
     --
     -- (1) Showing that the specific `prec_func` doesn't matter can be done by showing that all
