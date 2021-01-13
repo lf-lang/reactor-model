@@ -29,33 +29,61 @@ def reactor.ports := list (option value)
 
 namespace reactor.ports
 
+  open reactor
+
   -- A port assignment where all values are empty.
   @[reducible]
-  def empty (n : ℕ) : reactor.ports := list.repeat none n
+  def ports.empty (n : ℕ) : ports := list.repeat none n
+
+  theorem empty_ports_cons (n : ℕ) :
+    ports.empty (n + 1) = none :: ports.empty n :=
+    by refl
 
   -- The proposition, that a given port assignment is empty.
   def is_empty (p : reactor.ports) : Prop :=
-    p = reactor.ports.empty p.length
+    p = ports.empty p.length
 
   -- A port assignment is "total" if all of its values are non-empty.
-  def is_total (p : reactor.ports) : Prop := 
+  def is_total (p : ports) : Prop := 
     p.all (λ e, e ≠ none)
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports.
-  def merge (first last : reactor.ports) : reactor.ports :=
+  def merge (first last : ports) : ports :=
     last.zip_with (<|>) first
 
-  theorem merge_empty_is_neutral (p : reactor.ports) :
-    p.merge (reactor.ports.empty p.length) = p := 
-    sorry
+  theorem merge_length (p p' : ports) : 
+    (p.merge p').length = min p.length p'.length :=
+    begin
+      unfold merge,
+      rw list.length_zip_with,
+      apply min_comm
+    end
 
-  theorem merge_skips_empty (first last : reactor.ports) (i : ℕ) :
-    last.nth i = none → (first.merge last).nth i = first.nth i := 
+  theorem merge_empty_is_neutral (p : ports) :
+    p.merge (ports.empty p.length) = p := 
+    begin
+      unfold merge,
+      induction p,
+        refl,
+        {
+          rw [list.length_cons, empty_ports_cons, list.zip_with_cons_cons, p_ih],
+          simp [(<|>)]
+        }
+    end
+
+  theorem merge_skips_empty (first last : ports) (i : ℕ) :
+    last.nth i = some none → (first.merge last).nth i = first.nth i := 
     begin
       assume h,
-      rw reactor.ports.merge,
-      sorry
+      unfold merge,
+      rw list.nth_zip_with,
+      rw h,
+      rw option.map_some,
+      unfold has_orelse.orelse,
+      simp [(<*>)], 
+      cases first.nth i
+        ; simp
     end
 
 end reactor.ports
