@@ -23,6 +23,7 @@ variables [decidable_eq ι] [decidable_eq δ] [digraph.edge ε ι]
 -- used, so `ι` can stay the same. An inconvenience that arises as a result of this more flexible
 -- approach is that functions over indices might have to require `(i : { x // x ∈ g.ids})` as
 -- parameter instead of just `(i : ι)`.
+@[ext] -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/How.20to.20prove.20.20equality.20of.20structure/near/202105252
 structure digraph :=
   (ids : finset ι)
   (data : ι → δ)

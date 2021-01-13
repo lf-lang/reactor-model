@@ -87,6 +87,12 @@ namespace network
     ∃! output, ∀ (topo : list reaction.id) (_ : ρ.topological_order h_a topo), run_topo η topo = output :=
     sorry
 
+  theorem exists_exactly_one_prec_func : 
+    ∀ p p' : prec_func, p = p' :=
+    begin
+      sorry
+    end
+
   theorem determinism (n : network) (p p' : prec_func) (t t' : topo_func) :
     n.run p t = n.run p' t' := 
     sorry

@@ -42,20 +42,18 @@ namespace «precedence»
     -- Note, this implies that reactions can have multiple internal dependencies, and hence a
     -- well-formed precedence graph will have an edge for each of these. This doesn't matter
     -- though, because the topological order is not affected by this.
-    private def internally_dependent (r r' : reaction.id) : Prop :=
+    def internally_dependent (r r' : reaction.id) : Prop :=
       r.rtr = r'.rtr ∧ r.rcn > r'.rcn
 
     -- A reaction `r` is externally dependent on `r'` there is a connection from an output-port of
     -- `r` to an input-port of `r'`.
-    private def externally_dependent (r r' : reaction.id) (η : network.graph) : Prop :=
+    def externally_dependent (r r' : reaction.id) (η : network.graph) : Prop :=
       ∃ (o) (i), (r-η->o) ∧ {network.graph.edge . src := o, dst := i} ∈ η.edges ∧ (i-η->r')
 
     -- A well-formed precedence graph should contain edges between exactly those reactions that
     -- have a direct dependency in the corresponding network graph.
     def edges_are_well_formed_over (ρ : precedence.graph) (η : network.graph) : Prop :=
-      ∀ i i' ∈ ρ.ids,
-        {edge . src := i, dst := i'} ∈ ρ.edges ↔ 
-        (internally_dependent i i' ∨ externally_dependent i i' η)
+      ∀ e : graph.edge, e ∈ ρ.edges ↔ (internally_dependent e.src e.dst ∨ externally_dependent e.src e.dst η)
 
     -- A well-formed precedence graph should contain an ID (and by extension a member) iff
     -- the ID can be used to identify a reaction in the corresponding network graph.
@@ -64,13 +62,19 @@ namespace «precedence»
       
     -- A well-formed precedence graph's data map should return exactly those reactions that
     -- correspond to the given ID in the network graph.
+    --
+    -- Originally this was stated as: `∀ i ∈ ρ.ids, ρ.rcn i = η.rcn i`
+    -- The consequence of stating it this way though, is that `all_wf_prec_graphs_are_eq` is false,
+    -- since two precedence graphs may differ on `ρ.data i` for `i ∉ ρ.ids`. It would be possible
+    -- to adjust the theorem to state that all well-formed precedence graphs are equal, excluding
+    -- their `data` maps on non-important input - but that would be more work than it's worth.
     def data_is_well_formed_over (ρ : precedence.graph) (η : network.graph) : Prop :=
-      ∀ i ∈ ρ.ids, ρ.rcn i = η.rcn i
+      ∀ i, ρ.rcn i = η.rcn i
 
     def is_well_formed_over (ρ : precedence.graph) (η : network.graph) : Prop :=
-      ρ.edges_are_well_formed_over η ∧
       ρ.ids_are_well_formed_over   η ∧ 
-      ρ.data_is_well_formed_over   η 
+      ρ.data_is_well_formed_over   η ∧ 
+      ρ.edges_are_well_formed_over η 
 
   end graph
 
@@ -88,10 +92,53 @@ namespace «precedence»
     ∃ ρ : precedence.graph, ρ.is_well_formed_over η :=
     sorry
 
-  theorem all_wf_prec_graphs_are_same (η : network.graph) (ρ ρ' : precedence.graph) :
-    ρ.is_well_formed_over η ∧ ρ'.is_well_formed_over η → ρ = ρ' :=
+  lemma wf_prec_graphs_eq_ids (η : network.graph) (ρ ρ' : precedence.graph) :
+    ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ.ids = ρ'.ids :=
+    begin 
+      intros h_wf h_wf',
+      have h_i  :  ρ.ids_are_well_formed_over η, from h_wf.left,
+      have h_i' : ρ'.ids_are_well_formed_over η, from h_wf'.left,
+      rw graph.ids_are_well_formed_over at h_i h_i',
+      suffices h : ∀ i, i ∈ ρ.ids ↔ i ∈ ρ'.ids, from finset.ext_iff.mpr h,
+      intro i,
+      exact iff.trans (h_i i) (iff.symm (h_i' i))
+    end
+
+  lemma wf_prec_graphs_eq_data (η : network.graph) (ρ ρ' : precedence.graph) :
+    ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ.data = ρ'.data :=
     begin
-      sorry
+      intros h_wf h_wf',
+      have h_d  :  ρ.data_is_well_formed_over η, from h_wf.right.left,
+      have h_d' : ρ'.data_is_well_formed_over η, from h_wf'.right.left,
+      rw graph.data_is_well_formed_over at h_d h_d',
+      suffices h : ∀ i, ρ.data i = ρ'.data i, from funext h,
+      intro i,
+      exact eq.trans (h_d i) (eq.symm (h_d' i))
+    end
+
+  lemma wf_prec_graphs_eq_edges (η : network.graph) (ρ ρ' : precedence.graph) :
+    ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ.edges = ρ'.edges :=
+    begin
+      intros h_wf h_wf',
+      have h_e  :  ρ.edges_are_well_formed_over η, from h_wf.right.right,
+      have h_e' : ρ'.edges_are_well_formed_over η, from h_wf'.right.right,
+      rw graph.edges_are_well_formed_over at h_e h_e',
+      suffices h : ∀ e, e ∈ ρ.edges ↔ e ∈ ρ'.edges, from finset.ext_iff.mpr h,
+      intro e,
+      exact iff.trans (h_e e) (iff.symm (h_e' e)),
+    end
+
+  theorem all_wf_prec_graphs_are_eq (η : network.graph) (ρ ρ' : precedence.graph) :
+    ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ = ρ' :=
+    begin
+      intros h_wf h_wf',
+      have h_i : ρ.ids   = ρ'.ids,   from wf_prec_graphs_eq_ids   η ρ ρ' h_wf h_wf',
+      have h_d : ρ.data  = ρ'.data,  from wf_prec_graphs_eq_data  η ρ ρ' h_wf h_wf',
+      have h_e : ρ.edges = ρ'.edges, from wf_prec_graphs_eq_edges η ρ ρ' h_wf h_wf',
+      ext,
+        apply finset.ext_iff.mp h_i,
+        exact congr_fun h_d x,
+        apply finset.ext_iff.mp h_e
     end
 
   theorem any_acyc_net_graph_has_exactly_one_wf_prec_graph (η : network.graph) (h : η.is_acyclic) :
@@ -106,7 +153,7 @@ namespace «precedence»
             exact hₚ,
             {
               intros m hₘ,
-              apply all_wf_prec_graphs_are_same η m ρ ⟨hₘ, hₚ⟩
+              apply all_wf_prec_graphs_are_eq η m ρ hₘ hₚ
             }
         }
     end
