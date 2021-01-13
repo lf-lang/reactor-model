@@ -33,19 +33,15 @@ namespace reactor.ports
 
   -- A port assignment where all values are empty.
   @[reducible]
-  def ports.empty (n : ℕ) : ports := list.repeat none n
+  def empty (n : ℕ) : ports := list.repeat none n
 
-  theorem empty_ports_cons (n : ℕ) :
-    ports.empty (n + 1) = none :: ports.empty n :=
+  theorem empty_cons (n : ℕ) :
+    empty (n + 1) = none :: empty n :=
     by refl
 
   -- The proposition, that a given port assignment is empty.
-  def is_empty (p : reactor.ports) : Prop :=
-    p = ports.empty p.length
-
-  -- A port assignment is "total" if all of its values are non-empty.
-  def is_total (p : ports) : Prop := 
-    p.all (λ e, e ≠ none)
+  def is_empty (p : ports) : Prop :=
+    p = empty p.length
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports.
@@ -61,13 +57,13 @@ namespace reactor.ports
     end
 
   theorem merge_empty_is_neutral (p : ports) :
-    p.merge (ports.empty p.length) = p := 
+    p.merge (empty p.length) = p := 
     begin
       unfold merge,
       induction p,
         refl,
         {
-          rw [list.length_cons, empty_ports_cons, list.zip_with_cons_cons, p_ih],
+          rw [list.length_cons, empty_cons, list.zip_with_cons_cons, p_ih],
           simp [(<|>)]
         }
     end

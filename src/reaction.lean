@@ -26,7 +26,7 @@ namespace reaction
   -- The proposition, that a given reaction fires on a given port map. This is only defined when
   -- the dimensions of the given port map match the reaction's input dimensions (`r.nᵢ`).
   def fires_on (r : reaction) (p : ports) : Prop :=
-    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers), p.nth t ≠ none
+    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers) (v : value), p.nth t = some v
 
   instance dec_fires_on (r : reaction) (p : ports) : decidable (r.fires_on p) := 
     finset.decidable_dexists_finset
@@ -41,29 +41,18 @@ namespace reaction
   -- The `refl _` is the proof that the port map's dimensions are equal to the reaction's input
   -- dimensions (cf. `reaction.fires_on`).
   protected theorem no_in_no_fire (r : reaction) : 
-    ∀ n : ℕ, ¬ r.fires_on (ports.empty n) :=
+    ∀ n : ℕ, ¬ r.fires_on (ports.empty n) := 
     begin 
       intro n,
-      rw reaction.fires_on,
+      unfold reaction.fires_on,
       simp,
-      intros x hₘ,
-      sorry
+      intros i hₘ hₜ v,
+      unfold ports.empty,
+      rw list.nth_eq_some,
+      simp,
+      intro hᵢ,
+      change ¬ none = some v,
+      simp
     end
-
-  -- If a given port map has no empty values (i.e. is total) then a reaction will definitely fire
-  -- on it.
-  --
-  -- Two technicalities are that the reaction's triggers are non-empty, and the port map has the
-  -- right dimensions.
-  protected theorem total_ins_fires {n : ℕ} (r : reaction) (p : ports) (hₜ : r.triggers.nonempty) :
-    p.is_total → r.fires_on p :=
-    begin
-      intros hᵢ,
-      -- Get a `t ∈ r.triggers` (with membership-proof `hₘ`).
-      obtain ⟨t, hₘ⟩ := hₜ,
-      -- Show that `p` has a value for `t` by virtue of `hᵢ`.
-      have hₚ : p.nth t ≠ none, from sorry, -- from hᵢ t, 
-      exact ⟨t, hₘ, hₚ⟩
-    end 
 
 end reaction

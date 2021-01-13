@@ -27,7 +27,7 @@ noncomputable instance : decidable_eq reactor := classical.dec_eq _
 namespace reactor 
 
   @[reducible]
-  instance mem : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p, rtr.reactions p = rcn}
+  instance mem : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p ∈ rtr.priorities, rtr.reactions p = rcn}
 
   -- A list of a given reactor's reactions, ordered by their priority.
   def ordered_rcns (r : reactor) : list reaction :=
@@ -40,17 +40,7 @@ namespace reactor
     begin
       intro rcn,
       rw ordered_rcns,
-      split,
-        { 
-          simp,
-          intros p _ h,
-          exact ⟨p, h⟩
-        },
-        {
-          simp,
-          intros p h,
-          sorry -- exact ⟨p, fintype.complete p, h⟩
-        }
+      simp
     end
 
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 

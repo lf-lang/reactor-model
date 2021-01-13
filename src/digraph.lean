@@ -67,7 +67,8 @@ namespace digraph
   -- For any DAG there exists a list which is a topological order of the DAG.
   theorem any_dag_has_topo : 
     ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, topological_order g h l :=
-    sorry
+    -- https://ocw.tudelft.nl/wp-content/uploads/Algoritmiek_DAGs_and_Topological_Ordering.pdf
+    -- Lemma 3.20
 
   -- The in-degree of vertex `i` in digraph `g`. 
   def in_degree_of (g : digraph ι δ ε) (i : { x // x ∈ g.ids}) : ℕ :=
