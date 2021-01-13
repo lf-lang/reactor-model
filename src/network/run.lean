@@ -2,23 +2,9 @@ import digraph
 import network.basic
 import network.precedence
 import network.ids
+import network.algorithms
 
 namespace network
-
-  @[ext]
-  structure prec_func :=
-    (func : network → precedence.graph)
-    (well_formed : ∀ n, (func n).is_well_formed_over n.η)
-
-  instance prec_func_coe : has_coe_to_fun prec_func := 
-    ⟨_, (λ f, f.func)⟩
-
-  structure topo_func :=
-    (func : precedence.graph → list reaction.id)
-    (is_topo : ∀ (n : network) (ρ : precedence.graph) (h : ρ.is_well_formed_over n.η), ρ.topological_order (n.prec_acyclic ρ h) (func ρ))
-
-  instance topo_func_coe : has_coe_to_fun topo_func := 
-    ⟨_, (λ f, f.func)⟩
 
   -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
   private noncomputable def propagate_port (η : network.graph) (p : port.id) (v : value) : network.graph := 
@@ -42,35 +28,32 @@ namespace network
       let rtr := nₜ.rtr idₕ in
       let rcn := nₜ.rcn idₕ in
         if rcn.fires_on rtr.input then
-          let ps := rcn rtr.input rtr.state in
-          let rtr' := {reactor . output := ps.1, state := ps.2, ..rtr} in
-          let η' : network.graph := η.update_data idₕ.rtr rtr' in
+          let ⟨p', s'⟩ := rcn rtr.input rtr.state in
+          let rtr' := {reactor . output := p', state := s', ..rtr} in
+          let η' := η.update_data idₕ.rtr rtr' in
           let affected_ports := rcn.dₒ.image (λ d, {port.id . rtr := idₕ.rtr, prt := d}) in
           propagate_output η affected_ports
         else
           nₜ
     )
 
-  -- Thinking:
-  -- We have a network graph N.
-  -- By the contraints of a network, 
-  --  * we know that N has unique port inputs.
-  --  * we know there must exist a precedence graph P for N that is well-formed and acyclic.
-  -- 
-  -- Proposition 1: The uniqueness of port inputs in N is independent of the port-values in N.
-  -- Proposition 2: The existence of a well-formed, acyclic precedence graph for N is independent of N's port-values.
-  -- Proposition 3: `run_topo` only changes port-values of N, nothing else.
-  -- 
-  -- (1) + (3): The resulting N of `run_topo` still has input-port-uniqueness.
-  -- (2) + (3): There still exists a suitable prec-graph for the N resulting from `run_topo`.
-
-  lemma run_topo_unique_ports_inv (η : network.graph) (topo : list reaction.id) : 
-    (run_topo η topo).has_unique_port_ins :=
+  theorem run_topo_equiv_net_graph (η : network.graph) (topo : list reaction.id) :
+    η ≈ (run_topo η topo) :=
     sorry
 
-  lemma run_topo_prec_acyc_inv (η : network.graph) (topo : list reaction.id) : 
-    (run_topo η topo).is_prec_acyclic :=
-    sorry
+  lemma run_topo_unique_ports_inv (n : network) (topo : list reaction.id) : 
+    (run_topo n.η topo).has_unique_port_ins :=
+    begin
+      have h, from run_topo_equiv_net_graph n.η topo,
+      exact network.graph.edges_inv_unique_port_ins_inv h.left n.unique_ins
+    end 
+    
+  lemma run_topo_prec_acyc_inv (n : network) (topo : list reaction.id) : 
+    (run_topo n.η topo).is_prec_acyclic :=
+    begin
+      have h, from run_topo_equiv_net_graph n.η topo,
+      exact network.graph.equiv_prec_acyc_inv h n.prec_acyclic
+    end 
 
   -- Why do we choose to define a specific run-func instead of describing propositionally, what the
   -- output of such a function should look like?
@@ -80,46 +63,22 @@ namespace network
     let η' := run_topo n.η topo in
     { network .
       η := η',
-      unique_ins := run_topo_unique_ports_inv n.η topo,
-      prec_acyclic := run_topo_prec_acyc_inv n.η topo
+      unique_ins := run_topo_unique_ports_inv n topo,
+      prec_acyclic := run_topo_prec_acyc_inv n topo
     }
 
   theorem run_topo_indep (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
     ∃! output, ∀ (topo : list reaction.id) (_ : ρ.topological_order h_a topo), run_topo η topo = output :=
     sorry
 
-  theorem all_prec_funcs_are_eq : 
-    ∀ p p' : prec_func, p = p' :=
-    begin
-      intros p p',
-      have h_func : p.func = p'.func, {
-        suffices h : ∀ n, p.func n = p'.func n, from funext h,
-        intro n,
-        have h_unique : ∃! ρ : precedence.graph, ρ.is_well_formed_over n.η,
-          from precedence.any_acyc_net_graph_has_exactly_one_wf_prec_graph n.η n.prec_acyclic,
-        have h_wf, from p.well_formed n,
-        have h_wf', from p'.well_formed n,
-        exact exists_unique.unique h_unique h_wf h_wf'
-      },
-      exact prec_func.ext p p' h_func
-    end
-
   theorem determinism (n : network) (p p' : prec_func) (t t' : topo_func) :
     n.run p t = n.run p' t' := 
     begin
       rw all_prec_funcs_are_eq p p',
       sorry
+      -- Showing that the specific `topo_func` doesn't matter, will be tied to `run` itself.
+      -- I.e. it's a quirk of `run` that the specific `topo_func` doesn't matter.
+      -- This fact is captured by the theorem `run_topo_indep`.
     end
-    -- There are two components to this proof:
-    --
-    -- (1) Showing that the specific `prec_func` doesn't matter can be done by showing that all
-    --    (well-formed!) `prec_func`s (for a given) `c` are equal.
-    --    This hinges on the fact that for any given network there exists exactly one well-formed
-    --    precedence graph. So if a `prec_func` wants to be well-formed, it has to return this
-    --    exact precedence graph - hence, there really only exists *one* well-formed `prec_func`.
-    --
-    -- (2) Showing that the specific `topo_func` doesn't matter, will be tied to `run` itself.
-    --     I.e. it's a quirk of `run` that the specific `topo_func` doesn't matter.
-    --     This fact is captured by the theorem `run_topo_indep`.
 
 end network

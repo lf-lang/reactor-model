@@ -29,6 +29,9 @@ namespace reactor
   @[reducible]
   instance mem : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p ∈ rtr.priorities, rtr.reactions p = rcn}
 
+  @[reducible]
+  instance equiv : has_equiv reactor := ⟨λ r r', r.priorities = r'.priorities ∧ r.reactions = r'.reactions⟩
+
   -- A list of a given reactor's reactions, ordered by their priority.
   def ordered_rcns (r : reactor) : list reaction :=
     (r.priorities.sort (≥)).map r.reactions

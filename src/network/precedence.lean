@@ -26,13 +26,13 @@ namespace «precedence»
     noncomputable def rcn (ρ : precedence.graph) (i : reaction.id) : reaction :=
       ρ.data i
 
-    private def port_depends_on_reaction (p : port.id) (r : reaction.id) (η : network.graph) : Prop :=
-      p.rtr = r.rtr ∧ p.prt ∈ ((η.data r.rtr).reactions r.rcn).dₒ 
+    def port_depends_on_reaction (p : port.id) (r : reaction.id) (η : network.graph) : Prop :=
+      p.rtr = r.rtr ∧ p.prt ∈ (η.rcn r).dₒ 
 
     notation r-n->p := port_depends_on_reaction p r n
 
-    private def reaction_depends_on_port (r : reaction.id) (p : port.id) (η : network.graph) : Prop :=
-      p.rtr = r.rtr ∧ p.prt ∈ ((η.data r.rtr).reactions r.rcn).dᵢ
+    def reaction_depends_on_port (r : reaction.id) (p : port.id) (η : network.graph) : Prop :=
+      p.rtr = r.rtr ∧ p.prt ∈ (η.rcn r).dᵢ
 
     notation p-n->r := reaction_depends_on_port r p n
 
@@ -86,7 +86,7 @@ def network.graph.is_prec_acyclic (η : network.graph) : Prop :=
   ∀ ρ : network.precedence.graph, ρ.is_well_formed_over η → ρ.is_acyclic
 
 namespace network
-namespace «precedence»
+namespace «precedence» 
 
   theorem any_acyc_net_graph_has_wf_prec_graph (η : network.graph) (h : η.is_prec_acyclic) :
     ∃ ρ : precedence.graph, ρ.is_well_formed_over η :=
@@ -160,3 +160,61 @@ namespace «precedence»
 
 end «precedence»
 end network
+
+open network.precedence.graph
+
+theorem network.graph.equiv_eq_wf_prec_edges {η η' : network.graph} {ρ ρ' : network.precedence.graph} :
+  η ≈ η' → ρ.is_well_formed_over η → ρ'.is_well_formed_over η' → ρ.edges = ρ'.edges :=
+  begin
+    intros hₑ_η h_wf h_wf',
+    have hₑ, from h_wf.right.right,
+    have hₑ', from h_wf'.right.right,
+    unfold edges_are_well_formed_over at hₑ hₑ',
+    suffices h : ∀ e, e ∈ ρ.edges ↔ e ∈ ρ'.edges, from finset.ext_iff.mpr h,
+    intro e,
+    replace hₑ := hₑ e,
+    replace hₑ' := hₑ' e,
+    suffices h : externally_dependent e.src e.dst η ↔ externally_dependent e.src e.dst η', {
+      rw h at hₑ,
+      exact iff.trans hₑ (iff.symm hₑ')
+    },
+    simp at hₑ_η,
+    unfold externally_dependent,
+    rw hₑ_η.left,
+    have hᵣ_eq : ∀ (x : reactor.id), (η.data x).reactions = (η'.data x).reactions, {
+      have hᵣ, from hₑ_η.right,
+      rw forall_and_distrib at hᵣ,
+      exact hᵣ.right
+    },
+    have hₒ : ∀ o, (port_depends_on_reaction o e.src η) ↔ (port_depends_on_reaction o e.src η'), {
+      unfold port_depends_on_reaction,
+      intro o,
+      have h_d : (η.rcn e.src).dₒ = (η'.rcn e.src).dₒ, {
+        unfold network.graph.rcn,
+        rw hᵣ_eq e.src.rtr
+      },
+      rw h_d
+    },
+    have hᵢ : ∀ i, (reaction_depends_on_port e.dst i η) ↔ (reaction_depends_on_port e.dst i η'), {
+      unfold reaction_depends_on_port,
+      intro i,
+      have h_d : (η.rcn e.dst).dᵢ = (η'.rcn e.dst).dᵢ, {
+        unfold network.graph.rcn,
+        rw hᵣ_eq e.dst.rtr
+      },
+      rw h_d
+    },
+    finish
+  end
+
+theorem network.graph.equiv_prec_acyc_inv {η η' : network.graph} :
+  η ≈ η' → η.is_prec_acyclic → η'.is_prec_acyclic :=
+  begin
+    intros hₑ hₚ,
+    unfold network.graph.is_prec_acyclic at hₚ ⊢,
+    let ρ := classical.subtype_of_exists (network.precedence.any_acyc_net_graph_has_wf_prec_graph η hₚ),
+    intros ρ' h_wf',
+    have hₐ, from hₚ ρ ρ.property,
+    suffices h : (ρ : network.precedence.graph).edges = ρ'.edges, from digraph.edges_inv_acyclic_inv h hₐ,
+    exact network.graph.equiv_eq_wf_prec_edges hₑ ρ.property h_wf',
+  end
