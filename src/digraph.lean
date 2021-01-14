@@ -80,7 +80,15 @@ namespace digraph
 
   lemma edges_inv_path_inv {g g' : digraph ι δ ε} {i i' : ι} (h : g.edges = g'.edges) :
     (i~g~>i') → (i~g'~>i') :=
-    sorry
+    begin
+      intros h,
+      induction h with _ _ p _ _ _ p_α p_ω p_α' p_ω',
+        {
+          rw [has_edge_from_to, h] at p,
+          exact has_path_from_to.direct p
+        },
+        exact has_path_from_to.composite p_α' p_ω'
+    end
 
   lemma edges_inv_acyclic_inv {g g' : digraph ι δ ε} :
     g.edges = g'.edges → g.is_acyclic → g'.is_acyclic :=
