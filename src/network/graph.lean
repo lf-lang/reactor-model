@@ -23,9 +23,7 @@ namespace network
     instance mem : has_mem reactor graph := {mem := λ d g, ∃ i, g.data i = d}
 
     @[reducible]
-    instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ ∀ i, (η.data i) ≈ (η'.data i)⟩
-
-    notation a `≈` b := a.is_equivalent_to b 
+    instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.data i) ≈ (η'.data i)⟩
 
     -- The reactor contained in a network graph, that is associated with a given reaction ID.
     noncomputable def rtr (η : network.graph) (i : reaction.id) : reactor :=
@@ -34,6 +32,31 @@ namespace network
     -- The reaction contained in a network graph, that is associated with a given reaction ID.
     noncomputable def rcn (η : network.graph) (i : reaction.id) : reaction :=
       (η.data i.rtr).reactions i.rcn
+
+    -- Updating a network graph with an equivalent reactor keeps their `data` equivalent.
+    lemma update_with_equiv_rtr_all_data_equiv {η : network.graph} (i : reactor.id) (rtr : reactor) :
+      η.data i ≈ rtr → ∀ r, η.data r ≈ (η.update_data i rtr).data r :=
+      begin
+        intros hₑ r,
+        simp at hₑ,
+        unfold digraph.update_data,
+        by_cases (r = i)
+          ; finish
+      end
+
+    -- Updating a network graph with an equivalent reactor produces an equivalent network graph.
+    theorem update_with_equiv_rtr_is_equiv (η : network.graph) (i : reactor.id) (rtr : reactor) :
+      η.data i ≈ rtr → η ≈ η.update_data i rtr :=
+      begin
+        intro hₑ,
+        simp at hₑ ⊢,
+        have hₑ_η, from digraph.update_data_is_edges_inv η i rtr,
+        have hᵢ_η, from digraph.update_data_is_ids_inv η i rtr,
+        rw [hₑ_η, hᵢ_η],
+        simp,
+        apply update_with_equiv_rtr_all_data_equiv,
+        exact hₑ
+      end
 
     -- The proposition, that for all input ports (`i`) in `η` the number of edges that have `i` as
     -- destination is ≤ 1.

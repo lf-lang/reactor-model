@@ -12,6 +12,10 @@ class digraph.edge (ε ι : Type*) :=
 variables (ι δ ε : Type*)
 variables [decidable_eq ι] [decidable_eq δ] [digraph.edge ε ι]
 
+-- The proposition that a given set of edges makes connections only between given IDs.
+def digraph.edges_are_formed_over_ids {ι ε} [digraph.edge ε ι] (edges : finset ε) (ids : finset ι) : Prop :=
+  ∀ e ∈ edges, (digraph.edge.src e) ∈ ids ∧ (digraph.edge.dst e) ∈ ids
+
 -- The vertices (of type `α`) have to have an associated index (of type `ι`), because otherwise it
 -- wouldn't be possible to have multiple instances of the same reactor in a network.
 -- Multisets are not enough, because then their edges can't be distinguished from one another.
@@ -28,6 +32,7 @@ structure digraph :=
   (ids : finset ι)
   (data : ι → δ)
   (edges : finset ε)
+  (validity : digraph.edges_are_formed_over_ids edges ids)
 
 variables {ι δ ε}
 
@@ -57,13 +62,14 @@ namespace digraph
   notation i~g~>i' := g.has_path_from_to i i'
 
   -- The proposition that a given digraph is acyclic.
-  def is_acyclic (g : digraph ι δ ε) := ∀ i, ¬ i~g~>i
+  def is_acyclic (g : digraph ι δ ε) : Prop := 
+    ∀ i, ¬ i~g~>i
 
   variable [decidable_eq ι]
 
   -- The definition of what it means for a given list to be a topological order of a given DAG.
   def topological_order (g : digraph ι δ ε) (h : g.is_acyclic) (l : list ι) : Prop :=
-    ∀ i i' ∈ l, (i-g->i') → (l.index_of i < l.index_of i')
+    ∀ i i' ∈ l, (i~g~>i') → (l.index_of i < l.index_of i')
 
   -- For any DAG there exists a list which is a topological order of the DAG.
   theorem any_dag_has_topo : 
@@ -72,25 +78,29 @@ namespace digraph
     -- https://ocw.tudelft.nl/wp-content/uploads/Algoritmiek_DAGs_and_Topological_Ordering.pdf
     -- Lemma 3.20
 
+  lemma edges_inv_path_inv {g g' : digraph ι δ ε} {i i' : ι} (h : g.edges = g'.edges) :
+    (i~g~>i') → (i~g'~>i') :=
+    sorry
+
   lemma edges_inv_acyclic_inv {g g' : digraph ι δ ε} :
     g.edges = g'.edges → g.is_acyclic → g'.is_acyclic :=
     begin
-      sorry
+      intros hₑ hₐ,
+      unfold is_acyclic,
+      intro i,
+      by_contradiction h_f,
+      have h_c, from edges_inv_path_inv (symm hₑ) h_f,
+      have : ¬(i~g~>i), from hₐ i,
+      contradiction
     end
 
   lemma update_data_is_ids_inv (g : digraph ι δ ε) :
     ∀ i d, (g.update_data i d).ids = g.ids :=
-    begin
-      intros i d,
-      unfold update_data
-    end
+    by finish
 
   lemma update_data_is_edges_inv (g : digraph ι δ ε) :
     ∀ i d, (g.update_data i d).edges = g.edges :=
-    begin
-      intros i d,
-      unfold update_data
-    end
+    by finish
 
 end digraph 
 

@@ -184,7 +184,7 @@ theorem network.graph.equiv_eq_wf_prec_edges {η η' : network.graph} {ρ ρ' : 
     have hᵣ_eq : ∀ (x : reactor.id), (η.data x).reactions = (η'.data x).reactions, {
       have hᵣ, from hₑ_η.right,
       rw forall_and_distrib at hᵣ,
-      exact hᵣ.right
+      exact hᵣ.right.right
     },
     have hₒ : ∀ o, (port_depends_on_reaction o e.src η) ↔ (port_depends_on_reaction o e.src η'), {
       unfold port_depends_on_reaction,

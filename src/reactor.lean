@@ -32,6 +32,10 @@ namespace reactor
   @[reducible]
   instance equiv : has_equiv reactor := ⟨λ r r', r.priorities = r'.priorities ∧ r.reactions = r'.reactions⟩
 
+  lemma eq_imp_equiv {r r' : reactor} :
+    r = r' → r ≈ r' :=
+    by finish
+
   -- A list of a given reactor's reactions, ordered by their priority.
   def ordered_rcns (r : reactor) : list reaction :=
     (r.priorities.sort (≥)).map r.reactions
