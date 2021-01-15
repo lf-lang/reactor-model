@@ -56,16 +56,15 @@ namespace reactor
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
 
-  private def run_aux (i : ports) (s : state_vars) (nₒ : ℕ) : list reaction → ports × state_vars
-    | [] := (ports.empty nₒ, s)
-    | (rₕ :: rsₜ) := let ⟨pₜ, sₜ⟩ := run_aux rsₜ in
-      if rₕ.fires_on i 
-      then let ⟨pₕ, sₕ⟩ := rₕ i sₜ in (pₜ.merge pₕ, sₕ)
-      else (pₜ, sₜ)
+  private def run_aux (i : ports) : ports → state_vars → list reaction → ports × state_vars
+    | o s [] := (o, s)
+    | o s (rₕ :: rₜ) := 
+      let ⟨o', s'⟩ := if rₕ.fires_on i then let ⟨oₕ, sₕ⟩ := rₕ i s in (o.merge oₕ, sₕ) else (o, s) in
+      run_aux o' s' rₜ
 
   def run (r : reactor) : reactor := 
-    let ⟨p, s⟩ := run_aux r.input r.state r.output.length r.ordered_rcns.reverse in
-    {input := ports.empty r.input.length, output := p, state := s, ..r}
+    let ⟨o, s⟩ := run_aux r.input r.output r.state r.ordered_rcns in
+    {input := ports.empty r.input.length, output := o, state := s, ..r}
 
   theorem volatile_input (r : reactor) : 
     r.run.input.is_empty :=
