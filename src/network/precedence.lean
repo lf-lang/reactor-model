@@ -178,7 +178,7 @@ theorem network.graph.equiv_eq_wf_prec_edges {η η' : network.graph} {ρ ρ' : 
       rw h at hₑ,
       exact iff.trans hₑ (iff.symm hₑ')
     },
-    simp at hₑ_η,
+    simp only [(≈)] at hₑ_η,
     unfold externally_dependent,
     rw hₑ_η.left,
     have hᵣ_eq : ∀ (x : reactor.id), (η.data x).reactions = (η'.data x).reactions, {

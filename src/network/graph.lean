@@ -33,12 +33,16 @@ namespace network
     noncomputable def rcn (η : network.graph) (i : reaction.id) : reaction :=
       (η.data i.rtr).reactions i.rcn
 
+    -- The output port in a network graph, that is associated with a given port ID.
+    noncomputable def output (η : network.graph) (p : port.id) : option value :=
+      option.join ((η.data p.rtr).output.nth p.prt)
+
     -- Updating a network graph with an equivalent reactor keeps their `data` equivalent.
     lemma update_with_equiv_rtr_all_data_equiv {η : network.graph} (i : reactor.id) (rtr : reactor) :
       η.data i ≈ rtr → ∀ r, η.data r ≈ (η.update_data i rtr).data r :=
       begin
         intros hₑ r,
-        simp at hₑ,
+        simp only [(≈)] at hₑ ⊢,
         unfold digraph.update_data,
         by_cases (r = i)
           ; finish
@@ -72,11 +76,6 @@ namespace network
         rw ← hₑ,
         apply hᵤ
       end
-
-    instance edge.has_le : has_le edge := ⟨λ l r, if l.src = r.src then l.dst ≤ r.dst else l.dst ≤ r.dst⟩
-    instance edge.is_trans : is_trans edge has_le.le := sorry
-    instance edge.is_antisymm : is_antisymm edge has_le.le := sorry
-    instance edge.is_total : is_total edge has_le.le := sorry
 
   end graph
 
