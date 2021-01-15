@@ -22,7 +22,6 @@ namespace network
     @[reducible]
     instance mem : has_mem reactor graph := {mem := λ d g, ∃ i, g.data i = d}
 
-    @[reducible]
     instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.data i) ≈ (η'.data i)⟩
 
     -- The reactor contained in a network graph, that is associated with a given reaction ID.
@@ -53,7 +52,7 @@ namespace network
       η.data i ≈ rtr → η ≈ η.update_data i rtr :=
       begin
         intro hₑ,
-        simp at hₑ ⊢,
+        simp [(≈)] at hₑ ⊢,
         have hₑ_η, from digraph.update_data_is_edges_inv η i rtr,
         have hᵢ_η, from digraph.update_data_is_ids_inv η i rtr,
         rw [hₑ_η, hᵢ_η],

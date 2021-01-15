@@ -6,51 +6,43 @@ import network.algorithms
 
 namespace network
 
-  instance port.id.has_le : has_le port.id := ⟨λ l r, if l.rtr = r.rtr then l.prt ≤ r.prt else l.rtr < r.rtr⟩
-  instance port.id.is_trans : is_trans port.id has_le.le := sorry
-  instance port.id.is_antisymm : is_antisymm port.id has_le.le := sorry
-  instance port.id.is_total : is_total port.id has_le.le := sorry
-  instance graph.edge.has_le : has_le graph.edge := ⟨λ l r, if l.src = r.src then l.dst ≤ r.dst else l.dst ≤ r.dst⟩
-  instance graph.edge.is_trans : is_trans graph.edge has_le.le := sorry
-  instance graph.edge.is_antisymm : is_antisymm graph.edge has_le.le := sorry
-  instance graph.edge.is_total : is_total graph.edge has_le.le := sorry
+  structure unapplied_net_graph :=
+    (η : network.graph)
+    (target : port.id)
 
-  private noncomputable def propagate_edges (v : value) : network.graph → list network.graph.edge → network.graph
-    | η [] := η
-    | η (eₕ :: eₜ) :=
-      let rtr := (η.data eₕ.dst.rtr) in
-      let input' := rtr.input.update_nth eₕ.dst.prt v in
-      let rtr' := {reactor . input := input', ..rtr} in
-      let η' := η.update_data eₕ.dst.rtr rtr' in
-      propagate_edges η' eₜ
+  structure unapplied_edge_net_graph :=
+    (η : network.graph)
+    (edge : network.graph.edge)
 
-  lemma propagate_edges_equiv_net_graph (η : network.graph) (e : list network.graph.edge) (v : value) :
-    η ≈ (propagate_edges v η e) :=
-    begin
-      induction e,
-        {
-          simp only [(≈)],
-          finish
-        },
-        {
-          unfold propagate_edges,
-          simp only [(≈)],
-          sorry
-        }
-    end
+  structure partially_applied_net_graph :=
+    (η : network.graph)
+    (changed : finset port.id)
 
-  -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
-  private noncomputable def propagate_port (η : network.graph) (p : port.id) (v : value) : network.graph := 
-    let affected_edges := η.edges.filter (λ e, e.src = p) in
-    propagate_edges v η (affected_edges.sort (≤))
+  noncomputable instance : decidable_eq unapplied_edge_net_graph := classical.dec_eq _
+  noncomputable instance : decidable_eq unapplied_net_graph := classical.dec_eq _
+
+  private def merge (p p' : partially_applied_net_graph) : partially_applied_net_graph :=
+    sorry
+
+  instance : is_commutative partially_applied_net_graph merge := sorry
+  instance : is_associative partially_applied_net_graph merge := sorry
+
+  private noncomputable def single_apply (u : unapplied_edge_net_graph) : partially_applied_net_graph :=
+    let v := u.η.output u.edge.src in
+    let rtr := u.η.data u.edge.dst.rtr in
+    let input' := rtr.input.update_nth u.edge.dst.prt v in
+    let rtr' := {reactor . input := input', ..rtr} in
+    let η' := u.η.update_data u.edge.dst.rtr rtr' in
+    {η := η', changed := {u.edge.dst}}
+
+  private noncomputable def partially_apply (u : unapplied_net_graph) : partially_applied_net_graph :=
+    let e := (u.η.edges.filter (λ e, e.src = u.target)) in
+    let u' := e.image (λ x, {unapplied_edge_net_graph . η := u.η, edge := x}) in
+    {η := (finset.fold merge {partially_applied_net_graph . η := u.η, changed := ∅} single_apply u').η, changed := e.image graph.edge.dst} 
 
   -- For all edges `e` with `e.src ∈ p`, set `e.dst` to `rtr.output.nth e.src`.  
-  private noncomputable def propagate_ports : network.graph → list port.id → network.graph
-    | η [] := η 
-    | η (pₕ :: pₜ) :=
-      let v := η.output pₕ in
-      let η' := v.elim η (λ v', propagate_port η pₕ v') in
-      propagate_ports η' pₜ
+  private noncomputable def propagate_ports (η : network.graph) (u : finset unapplied_net_graph) : network.graph :=
+    (finset.fold merge {partially_applied_net_graph . η := η, changed := ∅} partially_apply u).η
 
   private noncomputable def run_reaction (η : network.graph) (r_id : reaction.id) : network.graph :=
     let rtr := η.rtr r_id in
@@ -58,9 +50,10 @@ namespace network
     if rcn.fires_on rtr.input then
       let ⟨p', s'⟩ := rcn rtr.input rtr.state in
       let rtr' := {reactor . output := p', state := s', ..rtr} in
-      let η' := η.update_data r_id.rtr rtr' in
+      let η' : network.graph := η.update_data r_id.rtr rtr' in
       let affected_ports := rcn.dₒ.image (λ d, {port.id . rtr := r_id.rtr, prt := d}) in
-      propagate_ports η (affected_ports.sort (≤))
+      let u := affected_ports.image (λ p, {unapplied_net_graph . η := η', target := p}) in
+      propagate_ports η' u
     else
       η
       
