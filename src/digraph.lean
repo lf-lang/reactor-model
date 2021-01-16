@@ -46,7 +46,7 @@ namespace digraph
 
   -- Produces a graph where the member at a given ID `i` is replaced by a new member `d`.
   def update_data (g : digraph ι δ ε) (i : ι) (d : δ) : digraph ι δ ε :=
-    {digraph . data := (λ x : ι, if x = i then d else g.data x), ..g} 
+    {digraph . data := function.update g.data i d, ..g} 
 
   -- The proposition that a given digraph connects two given vertices with an edge.
   def has_edge_from_to (g : digraph ι δ ε) (i i' : ι) : Prop :=
@@ -77,6 +77,14 @@ namespace digraph
     sorry
     -- https://ocw.tudelft.nl/wp-content/uploads/Algoritmiek_DAGs_and_Topological_Ordering.pdf
     -- Lemma 3.20
+
+  lemma update_data_comm {i i' : ι} (h : i ≠ i') (d d' : δ) (g : digraph ι δ ε) :
+    (g.update_data i d).update_data i' d' = (g.update_data i' d').update_data i d :=
+    begin
+      unfold update_data,
+      rw function.update_comm,
+      exact h,
+    end
 
   lemma edges_inv_path_inv {g g' : digraph ι δ ε} {i i' : ι} (h : g.edges = g'.edges) :
     (i~g~>i') → (i~g'~>i') :=

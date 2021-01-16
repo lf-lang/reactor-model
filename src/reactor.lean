@@ -63,6 +63,18 @@ namespace reactor
       simp [(≈)]
     end
 
+  lemma list.update_nth_comm {α : Type*} {i i' : ℕ} (h : i ≠ i') (a a' : α) (l : list α) :
+    (l.update_nth i a).update_nth i' a' = (l.update_nth i' a').update_nth i a :=
+    by sorry
+
+  lemma update_input_comm {i i' : ℕ} (h : i ≠ i') (v v' : option value) (rtr : reactor) :
+    (rtr.update_input i v).update_input i' v' = (rtr.update_input i' v').update_input i v :=
+    begin
+      unfold update_input,
+      simp,
+      apply list.update_nth_comm h
+    end
+
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
 

@@ -45,10 +45,37 @@ namespace network
       apply hₘ
     end
 
+  lemma update_reactor_equiv (n : network) (i : reactor.id) (r : reactor) (h : n.η.data i ≈ r) :
+    (n.update_reactor i r h) ≈ n :=
+    begin
+      unfold update_reactor,
+      exact symm (graph.update_with_equiv_rtr_is_equiv n.η i r h)
+    end
+
   lemma update_input_equiv (n : network) (p : port.id) (v : option value) :
     (n.update_input p v) ≈ n :=
     begin
-      sorry
+      unfold update_input,
+      simp [(≈)],
+      apply update_reactor_equiv
     end
+
+  lemma update_reactor_comm {i i' : reactor.id} (h : i ≠ i') (r r' : reactor) (n : network) :
+    ∀ hₗ hₗ' hᵣ' hᵣ, (n.update_reactor i r hₗ).update_reactor i' r' hₗ' = (n.update_reactor i' r' hᵣ').update_reactor i r hᵣ :=
+    begin
+      intros hₗ hₗ' hᵣ' hᵣ,
+      unfold update_reactor,
+      simp,
+      apply digraph.update_data_comm,
+      exact h,
+    end 
+
+    lemma update_input_comm {i i' : port.id} (h : i ≠ i') (v v' : option value) (n : network) :
+      (n.update_input i v).update_input i' v' = (n.update_input i' v').update_input i v :=
+      begin
+        unfold update_input,
+        by_cases hᵣ : i.rtr = i'.rtr
+          ; sorry
+      end
 
 end network

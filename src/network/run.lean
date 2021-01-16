@@ -8,15 +8,15 @@ namespace network
 
   noncomputable def propagate_edge (σ : network) : {n // n ≈ σ} → {e // e ∈ σ} → {n // n ≈ σ} := λ n e,
     {
-      val := (n : network).update_input (e : graph.edge).dst ((n : network).η.output (e : graph.edge).src),
+      val := (n : network).update_input (e : graph.edge).dst (σ.η.output (e : graph.edge).src),
       property := trans_of (≈) (update_input_equiv n _ _) (n.property)
     }
 
-  lemma r_comm_prop_edge : 
-    ∀ σ, right_commutative (propagate_edge σ) :=
+  lemma prop_edge_comm (σ : network) : 
+    right_commutative (propagate_edge σ) :=
     begin
       unfold right_commutative,
-      intros σ n e e',
+      intros n e e',
       by_cases (e : graph.edge) = ↑e',
         rw (subtype.eq h),
         {
@@ -28,18 +28,23 @@ namespace network
           have h_d : (e : graph.edge).dst ≠ (e' : graph.edge).dst, from hᵤ _ _ hₑ hₑ' h,
           unfold propagate_edge,
           simp,
-          sorry
+          exact update_input_comm h_d _ _ ↑n
         }
     end
 
   noncomputable def propagate_port (n : network) (p : port.id) : network :=
-    ↑((n.edges_out_of p).val.foldl (propagate_edge _) (r_comm_prop_edge _) ⟨n, refl _⟩)
+    ↑((n.edges_out_of p).val.foldl (propagate_edge _) (prop_edge_comm _) ⟨n, refl _⟩)
 
-  lemma r_comm_prop_port : right_commutative propagate_port :=
-    sorry
+  lemma prop_port_comm : right_commutative propagate_port :=
+    begin
+      unfold right_commutative,
+      intros n p p',
+      unfold propagate_port,
+      sorry
+    end
 
   private noncomputable def propagate_ports (n : network) (p : finset port.id) : network :=
-    p.val.foldl propagate_port r_comm_prop_port n 
+    p.val.foldl propagate_port prop_port_comm n 
 
   private noncomputable def propagate_output (n : network) (i : reaction.id) : network :=
     propagate_ports n ((n.η.rcn i).dₒ.image (λ d, {port.id . rtr := i.rtr, prt := d}))
