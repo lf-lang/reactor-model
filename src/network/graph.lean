@@ -20,9 +20,19 @@ namespace network
   namespace graph
 
     @[reducible]
-    instance mem : has_mem reactor graph := {mem := λ d g, ∃ i, g.data i = d}
+    instance rtr_mem : has_mem reactor graph := {mem := λ d g, ∃ i, g.data i = d}
+
+    @[reducible]
+    instance edge_mem : has_mem edge graph := {mem := λ e g, e ∈ g.edges}
 
     instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.data i) ≈ (η'.data i)⟩
+
+    instance : is_equiv graph (≈) := 
+      {
+        symm := begin simp [(≈)], finish end,
+        trans := begin simp [(≈)], finish end,
+        refl := by simp [(≈)]
+      }
 
     -- The reactor contained in a network graph, that is associated with a given reaction ID.
     noncomputable def rtr (η : network.graph) (i : reactor.id) : reactor :=
@@ -35,9 +45,6 @@ namespace network
     -- The output port in a network graph, that is associated with a given port ID.
     noncomputable def output (η : network.graph) (p : port.id) : option value :=
       option.join ((η.data p.rtr).output.nth p.prt)
-
-    noncomputable def edges_out_of (η : network.graph) (p : port.id) : finset {e // e ∈ η.edges} :=
-      η.edges.attach.filter (λ e, (e : edge).src = p)
 
     -- Updating a network graph with an equivalent reactor keeps their `data` equivalent.
     lemma update_with_equiv_rtr_all_data_equiv {η : network.graph} (i : reactor.id) (rtr : reactor) :
@@ -67,16 +74,18 @@ namespace network
     -- The proposition, that for all input ports (`i`) in `η` the number of edges that have `i` as
     -- destination is ≤ 1.
     def has_unique_port_ins (η : network.graph) : Prop :=
-      ∀ i, (η.edges.filter (λ e', graph.edge.dst e' = i)).card ≤ 1
+      ∀ e e' : edge, (e ∈ η) → (e' ∈ η) → e ≠ e' → e.dst ≠ e'.dst
 
     lemma edges_inv_unique_port_ins_inv {η η' : network.graph} :
       η.edges = η'.edges → η.has_unique_port_ins → η'.has_unique_port_ins :=
       begin
         intros hₑ hᵤ,
         unfold has_unique_port_ins,
-        intro i,
+        intros e e',
+        unfold has_unique_port_ins at hᵤ,
+        simp [(∈)] at hᵤ ⊢,
         rw ← hₑ,
-        apply hᵤ
+        apply hᵤ 
       end
 
   end graph

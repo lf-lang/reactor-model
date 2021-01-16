@@ -6,20 +6,34 @@ import network.algorithms
 
 namespace network
 
-  noncomputable def propagate_edge (n : network) (e : network.graph.edge) : network :=
-    n.update_input e.dst (n.η.output e.src)
+  noncomputable def propagate_edge (σ : network) : {n // n ≈ σ} → {e // e ∈ σ} → {n // n ≈ σ} := λ n e,
+    {
+      val := (n : network).update_input (e : graph.edge).dst ((n : network).η.output (e : graph.edge).src),
+      property := trans_of (≈) (update_input_equiv n _ _) (n.property)
+    }
 
   lemma r_comm_prop_edge : 
-    right_commutative propagate_edge :=
+    ∀ σ, right_commutative (propagate_edge σ) :=
     begin
       unfold right_commutative,
-      intros n e e',
-      unfold propagate_edge,
-      -- Prove that e.dst must be ≠ e'.dst
+      intros σ n e e',
+      by_cases (e : graph.edge) = ↑e',
+        rw (subtype.eq h),
+        {
+          have hₑ  : ↑e  ∈ (n : network), from edge_mem_equiv_trans n.property e.property,
+          have hₑ' : ↑e' ∈ (n : network), from edge_mem_equiv_trans n.property e'.property,
+          have hᵤ, from (n : network).unique_ins,
+          rw graph.has_unique_port_ins at hᵤ,
+          replace h : ↑e ≠ ↑e' := by exact h,
+          have h_d : (e : graph.edge).dst ≠ (e' : graph.edge).dst, from hᵤ _ _ hₑ hₑ' h,
+          unfold propagate_edge,
+          simp,
+          sorry
+        }
     end
 
   noncomputable def propagate_port (n : network) (p : port.id) : network :=
-    (n.η.edges_out_of p).val.foldl propagate_edge r_comm_prop_edge n 
+    ↑((n.edges_out_of p).val.foldl (propagate_edge _) (r_comm_prop_edge _) ⟨n, refl _⟩)
 
   lemma r_comm_prop_port : right_commutative propagate_port :=
     sorry

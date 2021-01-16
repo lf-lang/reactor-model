@@ -31,8 +31,12 @@ namespace reactor
 
   instance equiv : has_equiv reactor := ⟨λ r r', r.priorities = r'.priorities ∧ r.reactions = r'.reactions⟩
 
-  instance : is_refl reactor (≈) := 
-    ⟨by simp [(≈)]⟩
+  instance : is_equiv reactor (≈) := 
+    {
+      symm := begin simp [(≈)], finish end,
+      trans := begin simp [(≈)], finish end,
+      refl := by simp [(≈)]
+    }
 
   def run (rtr : reactor) (rcn_id : ℕ) : reactor :=
     if (rtr.reactions rcn_id).fires_on rtr.input then
