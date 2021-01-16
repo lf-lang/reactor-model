@@ -58,7 +58,7 @@ namespace «precedence»
     -- A well-formed precedence graph should contain an ID (and by extension a member) iff
     -- the ID can be used to identify a reaction in the corresponding network graph.
     def ids_are_well_formed_over (ρ : precedence.graph) (η : network.graph) : Prop :=
-      ∀ i : reaction.id, i ∈ ρ.ids ↔ (i.rtr ∈ η.ids ∧ i.rcn ∈ (η.rtr i).priorities)
+      ∀ i : reaction.id, i ∈ ρ.ids ↔ (i.rtr ∈ η.ids ∧ i.rcn ∈ (η.rtr i.rtr).priorities)
       
     -- A well-formed precedence graph's data map should return exactly those reactions that
     -- correspond to the given ID in the network graph.

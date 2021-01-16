@@ -25,8 +25,8 @@ namespace network
     instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.data i) ≈ (η'.data i)⟩
 
     -- The reactor contained in a network graph, that is associated with a given reaction ID.
-    noncomputable def rtr (η : network.graph) (i : reaction.id) : reactor :=
-      η.data i.rtr
+    noncomputable def rtr (η : network.graph) (i : reactor.id) : reactor :=
+      η.data i
 
     -- The reaction contained in a network graph, that is associated with a given reaction ID.
     noncomputable def rcn (η : network.graph) (i : reaction.id) : reaction :=
@@ -35,6 +35,9 @@ namespace network
     -- The output port in a network graph, that is associated with a given port ID.
     noncomputable def output (η : network.graph) (p : port.id) : option value :=
       option.join ((η.data p.rtr).output.nth p.prt)
+
+    noncomputable def edges_out_of (η : network.graph) (p : port.id) : finset {e // e ∈ η.edges} :=
+      η.edges.attach.filter (λ e, (e : edge).src = p)
 
     -- Updating a network graph with an equivalent reactor keeps their `data` equivalent.
     lemma update_with_equiv_rtr_all_data_equiv {η : network.graph} (i : reactor.id) (rtr : reactor) :

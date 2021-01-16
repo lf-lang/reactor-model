@@ -31,60 +31,35 @@ namespace reactor
 
   instance equiv : has_equiv reactor := ⟨λ r r', r.priorities = r'.priorities ∧ r.reactions = r'.reactions⟩
 
-  lemma eq_imp_equiv {r r' : reactor} :
-    r = r' → r ≈ r' :=
+  instance : is_refl reactor (≈) := 
+    ⟨by simp [(≈)]⟩
+
+  def run (rtr : reactor) (rcn_id : ℕ) : reactor :=
+    if (rtr.reactions rcn_id).fires_on rtr.input then
+      let os' := (rtr.reactions rcn_id) rtr.input rtr.state in
+      {output := os'.1, state := os'.2, ..rtr}
+    else 
+      rtr
+
+  lemma run_equiv (rtr : reactor) (rcn_id : ℕ) : 
+    rtr ≈ rtr.run rcn_id :=
     begin
-      intro h,
-      simp only [(≈)],
-      finish
+      unfold run,
+      by_cases (rtr.reactions rcn_id).fires_on rtr.input
+        ; simp [h, (≈)]
     end
 
-  -- A list of a given reactor's reactions, ordered by their priority.
-  def ordered_rcns (r : reactor) : list reaction :=
-    (r.priorities.sort (≥)).map r.reactions
+  def update_input (rtr : reactor) (i : ℕ) (v : option value) : reactor :=
+    {input := rtr.input.update_nth i v, ..rtr}
 
-  -- A reaction is a member of a reactor's list of `ordered_reactions` iff it is also a member of
-  -- the reactor itself.
-  theorem ord_rcns_mem_rtr (rtr : reactor) :
-    ∀ rcn : reaction, rcn ∈ rtr.ordered_rcns ↔ rcn ∈ rtr :=
+  lemma update_input_equiv (rtr : reactor) (i : ℕ) (v : option value) : 
+    rtr ≈ rtr.update_input i v :=
     begin
-      intro rcn,
-      rw ordered_rcns,
-      simp
+      unfold update_input,
+      simp [(≈)]
     end
 
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
-
-  private def run_aux (i : ports) : ports → state_vars → list reaction → ports × state_vars
-    | o s [] := (o, s)
-    | o s (rₕ :: rₜ) := 
-      let ⟨o', s'⟩ := if rₕ.fires_on i then let ⟨oₕ, sₕ⟩ := rₕ i s in (o.merge oₕ, sₕ) else (o, s) in
-      run_aux o' s' rₜ
-
-  def run (r : reactor) : reactor := 
-    let ⟨o, s⟩ := run_aux r.input r.output r.state r.ordered_rcns in
-    {input := ports.empty r.input.length, output := o, state := s, ..r}
-
-  theorem volatile_input (r : reactor) : 
-    r.run.input.is_empty :=
-    sorry
-
-  theorem no_in_same_out (r : reactor) : 
-    r.input.is_empty → r.run.output = r.output :=
-    sorry
-
-  theorem no_in_same_state (r : reactor) : 
-    r.input.is_empty → r.run.state = r.state :=
-    sorry
-
-  theorem idempotence (r : reactor) :
-    r.run = r.run.run :=
-    sorry
-
-  -- Running a single unconnected reactor on equal initial states leads to equal end states. 
-  protected theorem determinism (r₁ r₂ : reactor) : 
-    r₁ = r₂ → r₁.run = r₂.run :=
-    assume h, h ▸ refl _
 
 end reactor
