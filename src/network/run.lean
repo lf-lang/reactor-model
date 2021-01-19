@@ -24,16 +24,16 @@ namespace network
   lemma propagate_edges_equiv (η : network.graph) (e : list network.graph.edge) :
     propagate_edges η e ≈ η :=
     begin
-      induction e,
+      induction e generalizing η,
         {
           simp only [(≈)],
-          finish
+          finish 
         },
         {
           unfold propagate_edges,
-          simp only [(≈)],
-          repeat { split }
-            ; sorry
+          have h, from propagate_edge_equiv η e_hd,
+          have h', from e_ih (propagate_edge η e_hd),
+          exact trans_of (≈) h' h
         } 
     end
 

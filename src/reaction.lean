@@ -31,12 +31,7 @@ namespace reaction
   instance dec_fires_on (r : reaction) (p : ports) : decidable (r.fires_on p) := 
     finset.decidable_dexists_finset
 
-  -- Running a reaction on equal inputs produces equal outputs.
-  protected theorem determinism (r : reaction) (i₁ i₂ : ports) (s₁ s₂ : state_vars) :
-    i₁ = i₂ ∧ s₁ = s₂ → r i₁ s₁ = r i₂ s₂ := 
-    assume ⟨hᵢ, hₛ⟩, hᵢ ▸ hₛ ▸ refl _
-
-  -- A reaction will never fire on empty ports.
+    -- A reaction will never fire on empty ports.
   --
   -- The `refl _` is the proof that the port map's dimensions are equal to the reaction's input
   -- dimensions (cf. `reaction.fires_on`).

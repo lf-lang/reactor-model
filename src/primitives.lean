@@ -25,6 +25,7 @@ def reactor.state_vars := list value
 
 -- A mapping from port ids to (possibly empty) values.
 -- This represents the ports of a reactor.
+@[derive has_append]
 def reactor.ports := list (option value)
 
 namespace reactor.ports
@@ -35,7 +36,7 @@ namespace reactor.ports
   @[reducible]
   def empty (n : ℕ) : ports := list.repeat none n
 
-  theorem empty_cons (n : ℕ) :
+  lemma empty_cons (n : ℕ) :
     empty (n + 1) = none :: empty n :=
     by refl
 
@@ -44,42 +45,66 @@ namespace reactor.ports
     p = empty p.length
 
   -- Merges a given port map onto another port map.
-  -- The `last` ports override the `first` ports.
+  -- The `last` ports override the `first` ports, but the length remains that of `first`.
   def merge (first last : ports) : ports :=
-    last.zip_with (<|>) first
+    (last.zip_with (<|>) first) ++ 
+    if first.length ≤ last.length then [] else empty (first.length - last.length)
 
-  theorem merge_length (p p' : ports) : 
-    (p.merge p').length = min p.length p'.length :=
+  lemma merge_length (p p' : ports) : 
+    (p.merge p').length = p.length :=
     begin
       unfold merge,
-      rw list.length_zip_with,
-      apply min_comm
-    end
-
-  theorem merge_empty_is_neutral (p : ports) :
-    p.merge (empty p.length) = p := 
-    begin
-      unfold merge,
-      induction p,
-        refl,
+      simp,
+      by_cases h : p.length ≤ p'.length, 
+        finish,
         {
-          rw [list.length_cons, empty_cons, list.zip_with_cons_cons, p_ih],
-          simp [(<|>)]
+          rw if_neg h, 
+          unfold empty,
+          rw list.length_repeat,
+          simp at h,
+          rw min_eq_left (le_of_lt h),
+          rw [← nat.add_sub_assoc (le_of_lt h), nat.add_sub_cancel_left],
         }
     end
 
-  theorem merge_skips_empty (first last : ports) (i : ℕ) :
+  lemma merge_empty_is_neutral (p : ports) :
+    p.merge (empty p.length) = p := 
+    begin
+      unfold merge,
+      have h : list.length p ≤ list.length (empty (list.length p)), from sorry,
+      rw if_pos h,
+      induction p,
+        refl,
+        {
+          rw list.length_cons,
+          rw empty_cons, 
+          rw list.zip_with_cons_cons, 
+          have h' : (empty p_tl.length).length = p_tl.length, by apply list.length_repeat,
+          have h'', from p_ih (le_of_eq (symm h')),  
+          rw h''
+          simp [(<|>)],
+        }
+    end
+
+  lemma merge_skips_empty (first last : ports) (i : ℕ) :
     last.nth i = some none → (first.merge last).nth i = first.nth i := 
     begin
       assume h,
       unfold merge,
-      rw list.nth_zip_with,
-      rw h,
-      rw option.map_some,
-      unfold has_orelse.orelse,
-      simp [(<*>)], 
-      cases first.nth i
-        ; simp
+      by_cases hₗ : list.length first ≤ list.length last,
+        {
+          rw if_pos hₗ,
+          rw list.nth_zip_with,
+          rw h,
+          rw option.map_some,
+          unfold has_orelse.orelse,
+          simp [(<*>)], 
+          cases first.nth i
+            ; simp
+        },
+        {
+
+        }
     end
 
 end reactor.ports

@@ -10,13 +10,6 @@ namespace network
   instance prec_func_coe : has_coe_to_fun prec_func := 
     ⟨_, (λ f, f.func)⟩
 
-  structure topo_func :=
-    (func : precedence.graph → list reaction.id)
-    (is_topo : ∀ (n : network) (ρ : precedence.graph) (h : ρ.is_well_formed_over n.η), ρ.topological_order (n.prec_acyclic ρ h) (func ρ))
-
-  instance topo_func_coe : has_coe_to_fun topo_func := 
-    ⟨_, (λ f, f.func)⟩
-
   theorem all_prec_funcs_are_eq : 
     ∀ p p' : prec_func, p = p' :=
     begin
@@ -32,5 +25,12 @@ namespace network
       },
       exact prec_func.ext p p' h_func
     end
+
+  structure topo_func :=
+    (func : precedence.graph → list reaction.id)
+    (is_topo : ∀ (n : network) (ρ : precedence.graph) (h : ρ.is_well_formed_over n.η), ρ.topological_order (n.prec_acyclic ρ h) (func ρ))
+
+  instance topo_func_coe : has_coe_to_fun topo_func := 
+    ⟨_, (λ f, f.func)⟩
 
 end network
