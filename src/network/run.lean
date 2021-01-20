@@ -189,13 +189,13 @@ namespace network
       exact network.graph.equiv_prec_acyc_inv (symm h) n.prec_acyclic
     end 
 
-  noncomputable def run (n : network) (prec_func : prec_func) (topo_func : topo_func) : network :=
-    let topo := topo_func (prec_func n) in
+  noncomputable def run (n : network) (fₚ : prec_func) (fₜ : topo_func) : network :=
+    let topo := fₜ (fₚ n) in
     let η' := run_topo n.η topo in
     {network . η := η', unique_ins := run_topo_unique_ports_inv n topo, prec_acyclic := run_topo_prec_acyc_inv n topo}
 
-  lemma run_equiv (n : network) (p : prec_func) (t : topo_func) :
-    (n.run p t).η ≈ n.η :=
+  theorem run_equiv (n : network) (fₚ : prec_func) (fₜ : topo_func) :
+    (n.run fₚ fₜ).η ≈ n.η :=
     begin
       unfold run,
       simp,
@@ -205,6 +205,8 @@ namespace network
   theorem run_topo_indep (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
     ∃! output, ∀ (topo : list reaction.id) (_ : ρ.topological_order h_a topo), run_topo η topo = output :=
     sorry
+
+  -- INDEPENDENCE IS WHERE IT'S AT RIGHT NOW
 
   theorem determinism (n : network) (p p' : prec_func) (t t' : topo_func) :
     n.run p t = n.run p' t' := 

@@ -71,7 +71,10 @@ namespace reactor.ports
     p.merge (empty p.length) = p := 
     begin
       unfold merge,
-      have h : list.length p ≤ list.length (empty (list.length p)), from sorry,
+      have h : list.length p ≤ list.length (empty (list.length p)), {
+        unfold empty,
+        finish
+      },
       rw if_pos h,
       induction p,
         case list.nil { refl },
@@ -81,8 +84,9 @@ namespace reactor.ports
           rw list.zip_with_cons_cons, 
           have h' : (empty p_tl.length).length = p_tl.length, by apply list.length_repeat,
           have h'', from p_ih (le_of_eq (symm h')),  
-          rw h''
           simp [(<|>)],
+          rw list.append_nil at h'',
+          exact h''
         }
     end
 
@@ -93,17 +97,27 @@ namespace reactor.ports
       unfold merge,
       by_cases hₗ : list.length first ≤ list.length last,
         {
-          rw if_pos hₗ,
-          rw list.nth_zip_with,
-          rw h,
-          rw option.map_some,
+          rw [if_pos hₗ, list.append_nil, list.nth_zip_with, h, option.map_some],
           unfold has_orelse.orelse,
           simp [(<*>)], 
           cases first.nth i
             ; simp
         },
         {
-
+          rw if_neg hₗ,
+          have hₗ' : (list.zip_with has_orelse.orelse last first).length = first.length, 
+          from sorry,
+          by_cases hᵢ : i < first.length,
+            {
+              have hᵢ' : i < (list.zip_with has_orelse.orelse last first).length, by finish,
+              rw list.nth_append hᵢ',
+              rw list.nth_le_nth hᵢ',
+              rw list.nth_le_zip_with,
+              sorry
+            },
+            {
+              sorry
+            }
         }
     end
 
