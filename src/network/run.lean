@@ -3,18 +3,6 @@ import network.basic
 import network.precedence
 import network.ids
 import network.algorithms
-import set_theory.ordinal
-
-instance port.id.has_le : has_le port.id := sorry
-instance port.id.le_dec_rel : decidable_rel port.id.has_le.le := sorry
-instance port.id.is_trans : is_trans port.id has_le.le := sorry
-instance port.id.is_antisymm : is_antisymm port.id has_le.le := sorry
-instance port.id.is_total : is_total port.id has_le.le := sorry
-instance network.graph.edge.has_le : has_le network.graph.edge := sorry
-instance network.graph.edge.le_dec_rel : decidable_rel network.graph.edge.has_le.le := sorry
-instance network.graph.edge.is_trans : is_trans network.graph.edge has_le.le := sorry
-instance network.graph.edge.is_antisymm : is_antisymm network.graph.edge has_le.le := sorry
-instance network.graph.edge.is_total : is_total network.graph.edge has_le.le := sorry
 
 namespace network
 
@@ -100,13 +88,13 @@ namespace network
 
   -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
   private noncomputable def propagate_port (η : network.graph) (p : port.id) : network.graph := 
-    propagate_edges η ((η.edges_out_of p).sort (≤)) 
+    propagate_edges η (η.edges_out_of p).val.to_list 
 
   lemma propagate_port_equiv (η : network.graph) (p : port.id) :
     propagate_port η p ≈ η :=
     begin
       unfold propagate_port,
-      induction (finset.sort has_le.le (η.edges_out_of p))
+      induction (η.edges_out_of p).val.to_list
         ; apply propagate_edges_equiv
     end
 
@@ -139,13 +127,13 @@ namespace network
     end
 
   private noncomputable def propagate_output (η : network.graph) (i : reaction.id) : network.graph :=
-    propagate_ports η ((η.dₒ i).sort (≤))
+    propagate_ports η (η.dₒ i).val.to_list 
 
   lemma propagate_output_equiv (η η' : network.graph) (i : reaction.id) (h : η ≈ η') :
     propagate_output η i ≈ η' :=
     begin
       unfold propagate_output,
-      induction (finset.sort has_le.le (η.dₒ i))
+      induction (η.dₒ i).val.to_list
         ; apply propagate_ports_equiv
         ; exact h
     end
@@ -201,17 +189,16 @@ namespace network
       sorry
     end
 
+  private noncomputable def run_aux (n : network) (t : list reaction.id) : network :=
+    {η := run_topo n.η t, unique_ins := run_topo_unique_ports_inv n t, prec_acyclic := run_topo_prec_acyc_inv n t}
+
   noncomputable def run (n : network) (fₚ : prec_func) (fₜ : topo_func) : network :=
-    {network . 
-      η := run_topo n.η (fₜ (fₚ n)), 
-      unique_ins := run_topo_unique_ports_inv n (fₜ (fₚ n)), 
-      prec_acyclic := run_topo_prec_acyc_inv n (fₜ (fₚ n))
-    }
+    run_aux n (fₜ (fₚ n))
 
   theorem run_equiv (n : network) (fₚ : prec_func) (fₜ : topo_func) :
     (n.run fₚ fₜ).η ≈ n.η :=
     begin
-      unfold run,
+      unfold run run_aux,
       simp,
       apply run_topo_equiv
     end
@@ -220,7 +207,7 @@ namespace network
     n.run p t = n.run p' t' := 
     begin
       rw all_prec_funcs_are_eq p p',
-      unfold run,
+      unfold run run_aux,
       suffices h : run_topo n.η (t (p' n)) = run_topo n.η (t' (p' n)), {
         ext1,
         simp,
