@@ -115,6 +115,12 @@ namespace network
     | η [] := η 
     | η (pₕ :: pₜ) := propagate_ports (propagate_port η pₕ) pₜ 
 
+  lemma propagate_ports_order_indep (η : network.graph) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) (hₚ : p' ~ p) :
+    propagate_ports η p = propagate_ports η p' :=
+    begin
+      sorry
+    end
+
   lemma propagate_ports_equiv (η η' : network.graph) (p : list port.id) (h : η ≈ η') :
     propagate_ports η p ≈ η' :=
     begin
@@ -189,10 +195,18 @@ namespace network
       exact network.graph.equiv_prec_acyc_inv (symm h) n.prec_acyclic
     end 
 
+  theorem run_topo_indep (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
+    ∀ (t t') (h_t : ρ.topological_order h_a t) (h_t' : ρ.topological_order h_a t'), run_topo η t = run_topo η t' :=
+    begin
+      sorry
+    end
+
   noncomputable def run (n : network) (fₚ : prec_func) (fₜ : topo_func) : network :=
-    let topo := fₜ (fₚ n) in
-    let η' := run_topo n.η topo in
-    {network . η := η', unique_ins := run_topo_unique_ports_inv n topo, prec_acyclic := run_topo_prec_acyc_inv n topo}
+    {network . 
+      η := run_topo n.η (fₜ (fₚ n)), 
+      unique_ins := run_topo_unique_ports_inv n (fₜ (fₚ n)), 
+      prec_acyclic := run_topo_prec_acyc_inv n (fₜ (fₚ n))
+    }
 
   theorem run_equiv (n : network) (fₚ : prec_func) (fₜ : topo_func) :
     (n.run fₚ fₜ).η ≈ n.η :=
@@ -202,28 +216,21 @@ namespace network
       apply run_topo_equiv
     end
 
-  theorem run_topo_indep (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
-    ∃! output, ∀ (topo : list reaction.id) (_ : ρ.topological_order h_a topo), run_topo η topo = output :=
-    sorry
-
-  -- INDEPENDENCE IS WHERE IT'S AT RIGHT NOW
-
   theorem determinism (n : network) (p p' : prec_func) (t t' : topo_func) :
     n.run p t = n.run p' t' := 
     begin
       rw all_prec_funcs_are_eq p p',
-      sorry
-      -- Showing that the specific `topo_func` doesn't matter, will be tied to `run` itself.
-      -- I.e. it's a quirk of `run` that the specific `topo_func` doesn't matter.
-      -- This fact is captured by the theorem `run_topo_indep`.
+      unfold run,
+      suffices h : run_topo n.η (t (p' n)) = run_topo n.η (t' (p' n)), {
+        ext1,
+        simp,
+        exact h
+      },
+      have h_pnw : (p' n).is_well_formed_over n.η, from p'.well_formed n,
+      have h_pna : (p' n).is_acyclic, from n.prec_acyclic (p' n) h_pnw,
+      have h_t   : (p' n).topological_order h_pna (t (p' n)), from t.is_topo _ _ h_pnw,
+      have h_t'  : (p' n).topological_order h_pna (t' (p' n)), from t'.is_topo _ _ h_pnw,
+      exact run_topo_indep n.η _ h_pna h_pnw _ _ h_t h_t'
     end
-
-  /-lemma prop_port_comm : right_commutative propagate_port :=
-    begin
-      unfold right_commutative,
-      intros n p p',
-      unfold propagate_port,
-      sorry
-    end-/
 
 end network

@@ -3,6 +3,7 @@ import network.precedence
 
 open network
 
+@[ext]
 structure network :=
   (η : network.graph)
   (unique_ins : η.has_unique_port_ins)
