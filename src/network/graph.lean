@@ -19,6 +19,8 @@ namespace network
 
   namespace graph
 
+    noncomputable instance dec_eq : decidable_eq graph.edge := classical.dec_eq _
+
     @[reducible]
     instance rtr_mem : has_mem reactor graph := {mem := λ d g, ∃ i, g.data i = d}
 
@@ -91,6 +93,7 @@ namespace network
     -- destination is ≤ 1.
     def has_unique_port_ins (η : network.graph) : Prop :=
       ∀ e e' : edge, (e ∈ η) → (e' ∈ η) → e ≠ e' → e.dst ≠ e'.dst
+      -- Alternatively: ∀ e e' : edge, (e ∈ η) → (e' ∈ η) → e = e' ∨ e.dst ≠ e'.dst
 
     lemma edges_inv_unique_port_ins_inv {η η' : network.graph} :
       η.edges = η'.edges → η.has_unique_port_ins → η'.has_unique_port_ins :=
@@ -104,7 +107,7 @@ namespace network
         apply hᵤ 
       end
 
-    lemma update_reactor_equiv (η : network.graph) (i : reactor.id) (r : reactor) (h : η.data i ≈ r) :
+    lemma update_reactor_equiv (η : network.graph) (i : reactor.id) (r : reactor) (h : η.rtr i ≈ r) :
       (η.update_reactor i r h) ≈ η :=
       begin
         unfold update_reactor,
@@ -117,6 +120,31 @@ namespace network
         unfold update_input,
         simp [(≈)],
         apply update_reactor_equiv
+      end
+
+    lemma update_reactor_out_inv (η : network.graph) (i : reactor.id) (rtr : reactor) (hₑ : η.rtr i ≈ rtr) (h : rtr.output = (η.rtr i).output) :
+      ∀ o, (η.update_reactor i rtr hₑ).output o = η.output o :=
+      begin
+        intro o,
+        unfold output,
+        suffices h : ((η.update_reactor i rtr hₑ).data o.rtr).output = (η.data o.rtr).output, { rw h },
+        unfold update_reactor digraph.update_data,
+        simp,
+        rw function.update_apply,
+        by_cases hᵢ : o.rtr = i,
+          {
+            rw [if_pos hᵢ, hᵢ],
+            exact h
+          },
+          rw if_neg hᵢ
+      end
+
+    lemma update_input_out_inv (η : network.graph) (p : port.id) (v : option value) :
+      ∀ o, (η.update_input p v).output o = η.output o :=
+      begin
+        unfold update_input,
+        apply update_reactor_out_inv,
+        apply reactor.update_input_out_inv
       end
 
     lemma update_reactor_comm {i i' : reactor.id} (h : i ≠ i') (r r' : reactor) (η : network.graph) :

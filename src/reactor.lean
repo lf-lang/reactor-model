@@ -75,4 +75,8 @@ namespace reactor
       apply list.update_nth_comm _ _ _ _ _ h _,
     end
 
+  lemma update_input_out_inv (rtr : reactor) (i : ℕ) (v : option value) :
+    (rtr.update_input i v).output = rtr.output :=
+    by unfold update_input
+
 end reactor

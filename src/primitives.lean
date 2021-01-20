@@ -74,8 +74,8 @@ namespace reactor.ports
       have h : list.length p ≤ list.length (empty (list.length p)), from sorry,
       rw if_pos h,
       induction p,
-        refl,
-        {
+        case list.nil { refl },
+        case list.cons {
           rw list.length_cons,
           rw empty_cons, 
           rw list.zip_with_cons_cons, 
