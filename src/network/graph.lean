@@ -40,7 +40,9 @@ namespace network
       e ∈ η → e ∈ η' := 
       begin
         intro hₘ,
-        sorry
+        simp [(∈)],
+        rw ←h.left,
+        exact hₘ
       end
 
     -- The reactor contained in a network graph, that is associated with a given reaction ID.
