@@ -25,7 +25,7 @@ namespace network
     instance rtr_mem : has_mem reactor graph := {mem := λ d g, ∃ i, g.data i = d}
 
     @[reducible]
-    instance edge_mem : has_mem edge graph := {mem := λ e g, e ∈ g.edges}
+    instance edge_mem : has_mem edge graph := {mem := λ e η, e ∈ η.edges}
 
     instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.data i) ≈ (η'.data i)⟩
 
@@ -35,6 +35,13 @@ namespace network
         trans := begin simp [(≈)], finish end,
         refl := by simp [(≈)]
       }
+
+    lemma mem_equiv_trans (η η' : network.graph) (e : edge) (h : η ≈ η') :
+      e ∈ η → e ∈ η' := 
+      begin
+        intro hₘ,
+        sorry
+      end
 
     -- The reactor contained in a network graph, that is associated with a given reaction ID.
     noncomputable def rtr (η : network.graph) (i : reactor.id) : reactor :=
