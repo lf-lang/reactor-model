@@ -184,6 +184,15 @@ namespace network
         }
     end
 
+  lemma propagate_ports_comm' (η : network.graph) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) :
+    propagate_ports (propagate_ports η p) p' = propagate_ports (propagate_ports η p') p :=
+    begin
+      unfold propagate_ports,
+      conv_lhs { rw ←list.foldl_append },
+      conv_rhs { rw ←list.foldl_append },
+      apply propagate_ports_comm _ _ _ hᵤ list.perm_append_comm
+    end 
+
   lemma propagate_ports_equiv (η η' : network.graph) (p : list port.id) (h : η ≈ η') :
     propagate_ports η p ≈ η' :=
     begin
@@ -213,6 +222,10 @@ namespace network
         ; exact h
     end
 
+  lemma propagate_output_comm (η : network.graph) (i i' : reactor.id) (p p' : list ℕ) (hᵤ : η.has_unique_port_ins) :
+    propagate_output (propagate_output η i p) i' p' = propagate_output (propagate_output η i' p') i p :=
+    propagate_ports_comm' _ _ _ hᵤ
+
   private noncomputable def run_reaction (η : network.graph) (i : reaction.id) : network.graph :=
     propagate_output 
       (η.update_reactor i.rtr ((η.rtr i.rtr).run i.rcn) (reactor.run_equiv _ _))
@@ -225,6 +238,22 @@ namespace network
       unfold run_reaction,
       apply propagate_output_equiv,
       apply graph.update_reactor_equiv
+    end
+
+  -- If there is no path between two reactions in a precedence graph, then they are independent,
+  -- i.e. their order of execution doesn't matter.
+  lemma run_reaction_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_wf : ρ.is_well_formed_over η) (i i' : reaction.id) :
+    ¬(i~ρ~>i') → ¬(i'~ρ~>i) → run_reaction (run_reaction η i) i' = run_reaction (run_reaction η i') i :=
+    begin 
+      intros hₚ hₚ',
+      unfold run_reaction,
+      
+      -- for the results of run_reaction to be different, 
+      -- either (A) the commutativity of propagate_output would need to break
+      -- or (B) the intermediate (run) reactors would have to be different, which is only possible if their state or input differs
+      --
+      -- for (A) to break, the destinations of two reactions would have to be equal, which ...
+      
     end
 
   private noncomputable def run_topo : network.graph → list reaction.id → network.graph :=
@@ -260,13 +289,13 @@ namespace network
       exact network.graph.equiv_prec_acyc_inv (symm h) n.prec_acyclic
     end 
 
-  theorem run_topo_indep (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
+  theorem run_topo_comm (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
     ∀ (t t') (h_t : ρ.topological_order h_a t) (h_t' : ρ.topological_order h_a t'), run_topo η t = run_topo η t' :=
     begin
       intros t t' h_t h_t',
-      unfold run_topo,
-      
-
+      induction t generalizing η,
+        -- run_topo := foldl run_reaction
+        -- if we 
     end
 
   private noncomputable def run_aux (n : network) (t : list reaction.id) : network :=
@@ -297,7 +326,7 @@ namespace network
       have h_pna : (p' n).is_acyclic, from n.prec_acyclic (p' n) h_pnw,
       have h_t   : (p' n).topological_order h_pna (t (p' n)), from t.is_topo _ _ h_pnw,
       have h_t'  : (p' n).topological_order h_pna (t' (p' n)), from t'.is_topo _ _ h_pnw,
-      exact run_topo_indep n.η _ h_pna h_pnw _ _ h_t h_t'
+      exact run_topo_comm n.η _ h_pna h_pnw _ _ h_t h_t'
     end
 
 end network

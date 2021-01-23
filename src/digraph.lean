@@ -119,13 +119,3 @@ namespace digraph
     by finish
 
 end digraph 
-
-
-
-
-
-
-
-
-
-

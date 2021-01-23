@@ -76,6 +76,37 @@ namespace «precedence»
       ρ.data_is_well_formed_over   η ∧ 
       ρ.edges_are_well_formed_over η 
 
+    lemma indep_rcns_neq_rtrs {η : network.graph} {ρ : precedence.graph} (h : ρ.is_well_formed_over η) {i i' : reaction.id} :
+      i ≠ i' → ¬(i~ρ~>i') → ¬(i'~ρ~>i) → i.rtr ≠ i'.rtr :=
+      begin
+        intros hᵢ hₚ hₚ',
+        by_contradiction h_c,
+        simp at h_c,
+        by_cases h_g : i.rcn > i'.rcn,
+          {
+            let e := {graph.edge . src := i, dst := i'},
+            have h_d : internally_dependent i i', from ⟨h_c, h_g⟩,
+            have hₑ, from (h.right.right e).mpr (or.inl h_d),
+            have h_c', from digraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
+            contradiction,
+          },
+          {
+            by_cases h_g' : i.rcn = i'.rcn,
+              {
+                have hₑ : i = i', { ext, exact h_c, exact h_g' },
+                contradiction
+              },
+              {
+                simp at h_g h_g',
+                let e := {graph.edge . src := i', dst := i},
+                have h_d : internally_dependent i' i, from ⟨symm h_c, nat.lt_of_le_and_ne h_g h_g'⟩,
+                have hₑ, from (h.right.right e).mpr (or.inl h_d),
+                have h_c', from digraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
+                contradiction,
+              }
+          }
+      end
+
   end graph
 
 end «precedence»

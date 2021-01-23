@@ -2,6 +2,7 @@ import reactor
 
 protected def reactor.id := ℕ
 
+@[ext]
 protected structure reaction.id := 
   (rtr : ℕ) 
   (rcn : ℕ)
