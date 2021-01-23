@@ -13,7 +13,8 @@ structure reaction :=
   (dᵢ : finset ℕ) 
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
-  (body : ports → state_vars → (ports × state_vars)) 
+  (body : ports → state_vars → (ports × state_vars))
+  (well_behaved : ∀ i i' s, ports.correspond_at i i' dᵢ → body i s = body i' s) 
 
 namespace reaction
 
@@ -31,11 +32,24 @@ namespace reaction
   instance dec_fires_on (r : reaction) (p : ports) : decidable (r.fires_on p) := 
     finset.decidable_dexists_finset
 
-    -- A reaction will never fire on empty ports.
-  --
-  -- The `refl _` is the proof that the port map's dimensions are equal to the reaction's input
-  -- dimensions (cf. `reaction.fires_on`).
-  protected theorem no_in_no_fire (r : reaction) : 
+  lemma eq_fires_on_corr_input (r : reaction) (p p' : ports) (h : ports.correspond_at p p' r.dᵢ) :
+    r.fires_on p ↔ r.fires_on p' :=
+    begin
+      unfold fires_on,
+      unfold ports.correspond_at at h,
+      split
+        ; {
+          intro e,
+          obtain ⟨t, r, v, h'⟩ := e,
+          existsi t,
+          existsi r,
+          existsi v,
+          finish,
+        }
+    end
+
+  -- A reaction will never fire on empty ports.
+  lemma no_in_no_fire (r : reaction) : 
     ∀ n : ℕ, ¬ r.fires_on (ports.empty n) := 
     begin 
       intro n,

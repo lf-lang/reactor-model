@@ -226,11 +226,17 @@ namespace network
     propagate_output (propagate_output η i p) i' p' = propagate_output (propagate_output η i' p') i p :=
     propagate_ports_comm' _ _ _ hᵤ
 
+  private noncomputable def apply_reactor (η : network.graph) (i : reactor.id) (rp : reactor × list ℕ) (h : η.rtr i ≈ rp.1) : network.graph :=
+    propagate_output (η.update_reactor i rp.1 h) i rp.2
+
+  lemma apply_reactor_comm (η : network.graph) (i i' : reactor.id) (rp rp' : reactor × list ℕ) (hᵢ : i ≠ i') (hᵤ : η.has_unique_port_ins) :
+    ∀ hₗ hₗ' hᵣ' hᵣ, apply_reactor (apply_reactor η i rp hₗ) i' rp' hₗ' = apply_reactor (apply_reactor η i' rp' hᵣ') i rp hᵣ :=
+    begin
+      sorry
+    end
+
   private noncomputable def run_reaction (η : network.graph) (i : reaction.id) : network.graph :=
-    propagate_output 
-      (η.update_reactor i.rtr ((η.rtr i.rtr).run i.rcn) (reactor.run_equiv _ _))
-      i.rtr
-      ((η.rtr i.rtr).ports_affected_by i.rcn)
+    apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn) (reactor.run_equiv _ _) 
       
   lemma run_reaction_equiv (η : network.graph) (i : reaction.id) :
     run_reaction η i ≈ η :=
@@ -240,6 +246,16 @@ namespace network
       apply graph.update_reactor_equiv
     end
 
+  lemma apply_reactor_indep (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_wf : ρ.is_well_formed_over η) (i i' : reaction.id) (hᵢ : i ≠ i') (rp : reactor × list ℕ) :
+    ∀ hₑ, ¬(i~ρ~>i') → ¬(i'~ρ~>i) → ((apply_reactor η i.rtr rp hₑ).rtr i'.rtr) = η.rtr i'.rtr :=
+    begin
+      intros hₑ hₚ hₚ',    
+      have hᵣ, from precedence.graph.indep_rcns_neq_rtrs h_wf hᵢ hₚ hₚ',
+      -- I think this might be unprovable.
+      -- Say that the reactor of `i` is connected to that of `i'`.
+      -- This would not imply that there is a precedence connection between `i` and `i'`, but the reactor of `i` COULD change the input of reactor of `i'`.
+    end
+
   -- If there is no path between two reactions in a precedence graph, then they are independent,
   -- i.e. their order of execution doesn't matter.
   lemma run_reaction_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_wf : ρ.is_well_formed_over η) (i i' : reaction.id) :
@@ -247,13 +263,22 @@ namespace network
     begin 
       intros hₚ hₚ',
       unfold run_reaction,
-      
-      -- for the results of run_reaction to be different, 
-      -- either (A) the commutativity of propagate_output would need to break
-      -- or (B) the intermediate (run) reactors would have to be different, which is only possible if their state or input differs
-      --
-      -- for (A) to break, the destinations of two reactions would have to be equal, which ...
-      
+      by_cases hᵢ : i = i',
+        rw hᵢ,
+        {
+          have hₛ : ∀ hₑ, ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn) hₑ).rtr i'.rtr).run i'.rcn = (η.rtr i'.rtr).run i'.rcn, {
+            intro hₑ,
+            -- The two reactions that are run (after eachother) are not the same one (hᵣ)
+            -- and they don't depend on eachother (hₚ hₚ'), so running the first one, does
+            -- not affect the outcome of the second
+          },
+          have hₛ' : ∀ hₑ, ((apply_reactor η i'.rtr ((η.rtr i'.rtr).run i'.rcn) hₑ).rtr i.rtr).run i.rcn = (η.rtr i.rtr).run i.rcn, {
+            -- intros x x' hₑ h,
+            sorry
+          },
+          simp [hₛ, hₛ'],
+          rw apply_reactor_comm _ _ _ _ _ hᵣ hᵤ sorry sorry sorry sorry,
+        }
     end
 
   private noncomputable def run_topo : network.graph → list reaction.id → network.graph :=

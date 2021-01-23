@@ -39,28 +39,39 @@ namespace reactor
       refl := by simp [(≈)]
     }
 
+  -- Two reactors are equal relative to a given reaction if they agree on everything, excluding
+  -- their input-ports which only have to correspond relative to the given reaction.
+  def eq_rel_to (rtr rtr' : reactor) (rcn_id : ℕ) : Prop :=
+    rtr ≈ rtr' ∧ rtr.output = rtr'.output ∧ rtr.state = rtr'.state ∧ 
+    ports.correspond_at rtr.input rtr'.input (rtr.reactions rcn_id).dᵢ 
+
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
 
-  def run (rtr : reactor) (rcn_id : ℕ) : reactor :=
+  def run (rtr : reactor) (rcn_id : ℕ) : reactor × list ℕ :=
     if (rtr.reactions rcn_id).fires_on rtr.input then
       let os' := (rtr.reactions rcn_id) rtr.input rtr.state in
-      {output := os'.1, state := os'.2, ..rtr}
+      ({output := os'.1, state := os'.2, ..rtr}, os'.1.inhabited_indices)
     else 
-      rtr
-
-  def ports_affected_by (rtr : reactor) (rcn_id : ℕ) : list ℕ :=
-    if (rtr.reactions rcn_id).fires_on rtr.input then
-      ((rtr.reactions rcn_id) rtr.input rtr.state).1.inhabited_indices
-    else 
-      []
+      (rtr, [])
 
   lemma run_equiv (rtr : reactor) (rcn_id : ℕ) : 
-    rtr ≈ rtr.run rcn_id :=
+    rtr ≈ (rtr.run rcn_id).1 :=
     begin
       unfold run,
       by_cases (rtr.reactions rcn_id).fires_on rtr.input
         ; simp [h, (≈)]
+    end
+
+  theorem eq_rel_to_rcn_run (rtr rtr' : reactor) (rcn_id : ℕ) : 
+    rtr.eq_rel_to rtr' rcn_id → rtr.run rcn_id = rtr'.run rcn_id := -- this shouldnt be a direct equality.
+    begin
+      intro h,
+      unfold eq_rel_to at h,
+      simp [(≈)] at h,
+      unfold run,
+      rw [h.1.1, h.1.2, h.2.2.1],
+      -- simp [(reaction.eq_fires_on_corr_input _ _ _ h.2.2.2)],
     end
 
   def update_input (rtr : reactor) (i : ℕ) (v : option value) : reactor :=

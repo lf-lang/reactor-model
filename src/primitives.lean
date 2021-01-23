@@ -32,6 +32,9 @@ namespace reactor.ports
 
   open reactor
 
+  def correspond_at (p p' : ports) (i : finset ℕ) : Prop :=
+    ∀ x ∈ i, p.nth x = p'.nth x
+
   -- A port assignment where all values are empty.
   @[reducible]
   def empty (n : ℕ) : ports := list.repeat none n
