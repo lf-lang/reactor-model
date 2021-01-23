@@ -49,6 +49,12 @@ namespace reactor
     else 
       rtr
 
+  def ports_affected_by (rtr : reactor) (rcn_id : ℕ) : list ℕ :=
+    if (rtr.reactions rcn_id).fires_on rtr.input then
+      ((rtr.reactions rcn_id) rtr.input rtr.state).1.inhabited_indices
+    else 
+      []
+
   lemma run_equiv (rtr : reactor) (rcn_id : ℕ) : 
     rtr ≈ rtr.run rcn_id :=
     begin

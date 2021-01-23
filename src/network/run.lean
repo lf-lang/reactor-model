@@ -201,20 +201,23 @@ namespace network
         }
     end
 
-  private noncomputable def propagate_output (η : network.graph) (i : reaction.id) : network.graph :=
-    propagate_ports η (η.dₒ i).val.to_list 
-
-  lemma propagate_output_equiv (η η' : network.graph) (i : reaction.id) (h : η ≈ η') :
-    propagate_output η i ≈ η' :=
+  private noncomputable def propagate_output (η : network.graph) (i : reactor.id) (p : list ℕ) : network.graph :=
+    propagate_ports η (p.map (λ x, {rtr := i, prt := x}))
+    
+  lemma propagate_output_equiv (η η' : network.graph) (i : reactor.id) (p : list ℕ) (h : η ≈ η') :
+    propagate_output η i p ≈ η' :=
     begin
       unfold propagate_output,
-      induction (η.dₒ i).val.to_list
+      induction (p.map (λ x, {port.id . rtr := i, prt := x}))
         ; apply propagate_ports_equiv
         ; exact h
     end
 
   private noncomputable def run_reaction (η : network.graph) (i : reaction.id) : network.graph :=
-    propagate_output (η.update_reactor i.rtr ((η.rtr i.rtr).run i.rcn) (reactor.run_equiv _ _)) i
+    propagate_output 
+      (η.update_reactor i.rtr ((η.rtr i.rtr).run i.rcn) (reactor.run_equiv _ _))
+      i.rtr
+      ((η.rtr i.rtr).ports_affected_by i.rcn)
       
   lemma run_reaction_equiv (η : network.graph) (i : reaction.id) :
     run_reaction η i ≈ η :=
@@ -260,7 +263,10 @@ namespace network
   theorem run_topo_indep (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
     ∀ (t t') (h_t : ρ.topological_order h_a t) (h_t' : ρ.topological_order h_a t'), run_topo η t = run_topo η t' :=
     begin
-      sorry
+      intros t t' h_t h_t',
+      unfold run_topo,
+      
+
     end
 
   private noncomputable def run_aux (n : network) (t : list reaction.id) : network :=

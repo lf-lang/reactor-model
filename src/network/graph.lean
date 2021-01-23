@@ -60,9 +60,6 @@ namespace network
     noncomputable def edges_out_of (η : network.graph) (p : port.id) : finset graph.edge :=
       η.edges.filter (λ e, (e : graph.edge).src = p)
 
-    noncomputable def dₒ (η : network.graph) (i : reaction.id) : finset port.id :=
-      (η.rcn i).dₒ.image (λ p, {port.id . rtr := i.rtr, prt := p})
-
     noncomputable def update_reactor (η : network.graph) (i : reactor.id) (r : reactor) (h : η.data i ≈ r) : network.graph :=
       η.update_data i r
       /-
@@ -175,11 +172,7 @@ namespace network
 
     lemma update_input_comm {i i' : port.id} (h : i ≠ i') (v v' : option value) (η : network.graph) :
       (η.update_input i v).update_input i' v' = (η.update_input i' v').update_input i v :=
-      begin
-        unfold update_input,
-        by_cases hᵣ : i.rtr = i'.rtr
-          ; sorry
-      end
+      sorry
 
   end graph
 
