@@ -73,6 +73,14 @@ namespace network
     noncomputable def update_input (η : network.graph) (p : port.id) (v : option value) : network.graph :=
       update_reactor η p.rtr ((η.data p.rtr).update_input p.prt v) (reactor.update_input_equiv _ _ _)
 
+    lemma edges_out_of_mem (η : network.graph) (p : port.id) :
+      ∀ e ∈ η.edges_out_of p, e ∈ η :=
+      begin
+        intros e h,
+        simp [edges_out_of, finset.mem_filter] at h,
+        exact h.left,
+      end
+
     -- Updating a network graph with an equivalent reactor keeps their `data` equivalent.
     lemma update_with_equiv_rtr_all_data_equiv {η : network.graph} (i : reactor.id) (rtr : reactor) :
       η.data i ≈ rtr → ∀ r, η.data r ≈ (η.update_data i rtr).data r :=

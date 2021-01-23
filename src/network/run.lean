@@ -73,41 +73,49 @@ namespace network
       exact network.graph.edges_inv_unique_port_ins_inv (symm h).left hᵤ
     end
 
-  lemma propagate_edges_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (e e' : list graph.edge) (hₘ : ∀ x ∈ e, x ∈ η) (hₘ' : ∀ x ∈ e', x ∈ η) (hₚ : e ~ e') :
+  lemma propagate_edges_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (e e' : list graph.edge) (hₘ : ∀ x ∈ e, x ∈ η) (hₚ : e ~ e') :
     propagate_edges η e = propagate_edges η e' :=
     begin
+      have hₘ' : ∀ x ∈ e', x ∈ η, {
+        intros x h,
+        exact hₘ _ ((list.perm.mem_iff hₚ).mpr h),
+      },
       unfold propagate_edges,
       induction hₚ generalizing η,
-      case list.perm.nil {
-        refl,
-      },
-      case list.perm.cons : _ _ _ _ hᵢ {
-        unfold list.foldl,
-        apply hᵢ (propagate_edge η hₚ_x), 
-          exact (propagate_edge_unique_ins_inv _ _ hᵤ),
-          by { 
-            cases list.forall_mem_cons.mp hₘ with _ hₘ_l₁,
-            intros x hₓ, 
-            exact graph.mem_equiv_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₁ _ hₓ)
-          },
-          by { 
-            cases list.forall_mem_cons.mp hₘ' with _ hₘ_l₂,
-            intros x hₓ, 
-            exact graph.mem_equiv_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₂ _ hₓ) 
-          },
-      },
-      case list.perm.swap {
-        unfold list.foldl,
-        rw [list.forall_mem_cons, list.forall_mem_cons] at hₘ,
-        rcases hₘ with ⟨h1, h2, _⟩,
-        rw propagate_edge_comm η _ _ hᵤ h1 h2
-      },
-      case list.perm.trans : l₁ l₂ l₃ p₁ p₂ hᵢ₁ hᵢ₂ {
-        have m := λ x h, hₘ x (p₁.mem_iff.mpr h),
-        have m' := λ x h, hₘ' x (p₂.mem_iff.mp h),
-        exact (hᵢ₁ _ hᵤ hₘ m).trans (hᵢ₂ _ hᵤ m' hₘ')
-      }
+        case list.perm.nil {
+          refl,
+        },
+        case list.perm.cons : _ _ _ _ hᵢ {
+          unfold list.foldl,
+          apply hᵢ (propagate_edge η hₚ_x), 
+            exact (propagate_edge_unique_ins_inv _ _ hᵤ),
+            by { 
+              cases list.forall_mem_cons.mp hₘ with _ hₘ_l₁,
+              intros x hₓ, 
+              exact graph.mem_equiv_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₁ _ hₓ)
+            },
+            by { 
+              cases list.forall_mem_cons.mp hₘ' with _ hₘ_l₂,
+              intros x hₓ, 
+              exact graph.mem_equiv_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₂ _ hₓ) 
+            },
+        },
+        case list.perm.swap {
+          unfold list.foldl,
+          rw [list.forall_mem_cons, list.forall_mem_cons] at hₘ,
+          rcases hₘ with ⟨h1, h2, _⟩,
+          rw propagate_edge_comm η _ _ hᵤ h1 h2
+        },
+        case list.perm.trans : l₁ l₂ l₃ p₁ p₂ hᵢ₁ hᵢ₂ {
+          have m := λ x h, hₘ x (p₁.mem_iff.mpr h),
+          have m' := λ x h, hₘ' x (p₂.mem_iff.mp h),
+          exact (hᵢ₁ _ hᵤ hₘ m).trans (hᵢ₂ _ hᵤ m' hₘ')
+        }
     end
+
+  lemma propagate_edges_append (η : network.graph) (e e' : list graph.edge) :
+    propagate_edges (propagate_edges η e) e' = propagate_edges η (e ++ e') :=
+    by simp [propagate_edges, list.foldl_append]
 
   -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
   private noncomputable def propagate_port (η : network.graph) (p : port.id) : network.graph := 
@@ -132,22 +140,22 @@ namespace network
     propagate_port (propagate_port η p) p' = propagate_port (propagate_port η p') p :=
     begin
       unfold propagate_port,
-      have h  : (propagate_edges η (η.edges_out_of p ).val.to_list).edges_out_of p' = η.edges_out_of p', from sorry,
-      have h' : (propagate_edges η (η.edges_out_of p').val.to_list).edges_out_of p  = η.edges_out_of p, from sorry,
-      rw [h, h'],
-      
-      sorry
-
-      -- lhs : `propagate_edges (propagate_edges η (η.edges_out_of p).val.to_list) (η.edges_out_of p').val.to_list`
-      -- is equal to `propagate_edges η ((η.edges_out_of p).val.to_list ++ (η.edges_out_of p').val.to_list)`
-      -- this might hinge of a fact equivalent to h and h' above
-
-      -- rhs : `propagate_edges (propagate_edges η (η.edges_out_of p').val.to_list) (η.edges_out_of p).val.to_list`
-      -- is equal to `propagate_edges η ((η.edges_out_of p').val.to_list ++ (η.edges_out_of p).val.to_list)`
-      -- this might hinge of a fact equivalent to h and h' above
-
-      -- The simplified versions of lhs and rhs act on lists that are permutations of each other.
-      -- Hence we can apply propagate_edges_comm.
+      have h : ∀ x x', (propagate_edges η (η.edges_out_of x).val.to_list).edges_out_of x' = η.edges_out_of x', {
+        intros x x',
+        unfold graph.edges_out_of,
+        rw (propagate_edges_equiv η _).left,
+      },
+      conv_lhs { rw [h, propagate_edges_append] },
+      conv_rhs { rw [h, propagate_edges_append] },
+      suffices hₘ_l : ∀ x ∈ ((η.edges_out_of p).val.to_list ++ (η.edges_out_of p').val.to_list), x ∈ η,
+      from propagate_edges_comm _ hᵤ _ _ hₘ_l list.perm_append_comm,
+      rw list.forall_mem_append,
+      split
+        ; {
+          intro x,
+          rw multiset.mem_to_list,
+          exact (graph.edges_out_of_mem η _) x,
+        }
     end
 
   -- For all edges `e` with `e.src ∈ p`, set `e.dst` to `rtr.output.nth e.src`.  
@@ -159,21 +167,21 @@ namespace network
     begin
       unfold propagate_ports,
       induction hₚ generalizing η,
-      case list.perm.nil {
-        refl,
-      },
-      case list.perm.cons : _ _ _ _ hᵢ {
-        unfold list.foldl,
-        apply hᵢ (propagate_port η hₚ_x), 
-        exact propagate_port_unique_ins_inv _ _ hᵤ
-      },
-      case list.perm.swap {
-        unfold list.foldl,
-        rw propagate_port_comm η _ _ hᵤ
-      },
-      case list.perm.trans : l₁ l₂ l₃ p₁ p₂ hᵢ₁ hᵢ₂ {
-        exact (hᵢ₂ _ hᵤ).trans (hᵢ₁ _ hᵤ)
-      }
+        case list.perm.nil {
+          refl,
+        },
+        case list.perm.cons : _ _ _ _ hᵢ {
+          unfold list.foldl,
+          apply hᵢ (propagate_port η hₚ_x), 
+          exact propagate_port_unique_ins_inv _ _ hᵤ
+        },
+        case list.perm.swap {
+          unfold list.foldl,
+          rw propagate_port_comm η _ _ hᵤ
+        },
+        case list.perm.trans : l₁ l₂ l₃ p₁ p₂ hᵢ₁ hᵢ₂ {
+          exact (hᵢ₂ _ hᵤ).trans (hᵢ₁ _ hᵤ)
+        }
     end
 
   lemma propagate_ports_equiv (η η' : network.graph) (p : list port.id) (h : η ≈ η') :
