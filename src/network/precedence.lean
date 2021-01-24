@@ -194,7 +194,7 @@ end network
 
 open network.precedence.graph
 
-theorem network.graph.equiv_eq_wf_prec_edges {η η' : network.graph} {ρ ρ' : network.precedence.graph} :
+lemma network.graph.equiv_eq_wf_prec_edges {η η' : network.graph} {ρ ρ' : network.precedence.graph} :
   η ≈ η' → ρ.is_well_formed_over η → ρ'.is_well_formed_over η' → ρ.edges = ρ'.edges :=
   begin
     intros hₑ_η h_wf h_wf',
@@ -236,6 +236,16 @@ theorem network.graph.equiv_eq_wf_prec_edges {η η' : network.graph} {ρ ρ' : 
       rw h_d
     },
     finish
+  end
+
+theorem network.graph.equiv_wf {η η' : network.graph} {ρ : network.precedence.graph} :
+  η' ≈ η → ρ.is_well_formed_over η → ρ.is_well_formed_over η' :=
+  begin
+    intros h h_wf,
+    unfold network.precedence.graph.is_well_formed_over,
+    simp [(≈)] at h,
+    unfold ids_are_well_formed_over,
+    sorry,
   end
 
 theorem network.graph.equiv_prec_acyc_inv {η η' : network.graph} :

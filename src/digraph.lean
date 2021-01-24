@@ -1,4 +1,4 @@
-import data.finset  
+import data.finset 
 
 -- Associated discussion:
 -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Understanding.20Type.20Classes
@@ -34,11 +34,13 @@ structure digraph :=
   (edges : finset ε)
   (validity : digraph.edges_are_formed_over_ids edges ids)
 
-variables {ι δ ε}
-
-instance : has_mem δ (digraph ι δ ε) := {mem := λ d g, ∃ i, g.data i = d}
-
 namespace digraph
+
+  variables {ι δ ε}
+
+  instance i_mem : has_mem ι (digraph ι δ ε) := {mem := λ i g, i ∈ g.ids}
+  instance d_mem : has_mem δ (digraph ι δ ε) := {mem := λ d g, ∃ i, g.data i = d}
+  instance e_mem : has_mem ε (digraph ι δ ε) := {mem := λ e g, e ∈ g.edges}
 
   -- The data elements contained in a given digraph.
   def members (g : digraph ι δ ε) : finset δ :=
@@ -67,16 +69,54 @@ namespace digraph
 
   variable [decidable_eq ι]
 
-  -- The definition of what it means for a given list to be a topological order of a given DAG.
-  def topological_order (g : digraph ι δ ε) (h : g.is_acyclic) (l : list ι) : Prop :=
+  -- The definition of what it means for a given list to be a topological order wrt a given DAG.
+  def is_topological_order (l : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) : Prop :=
     ∀ i i' ∈ l, (i~g~>i') → (l.index_of i < l.index_of i')
 
+  def is_complete_topo_over (l : list ι) (g : digraph ι δ ε) (h : g.is_acyclic) : Prop :=
+    is_topological_order l h ∧ ∀ i : ι, i ∈ l ↔ i ∈ g  
+
   -- For any DAG there exists a list which is a topological order of the DAG.
-  theorem any_dag_has_topo : 
-    ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, topological_order g h l :=
+  theorem any_dag_has_complete_topo : 
+    ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, is_complete_topo_over l g h :=
     sorry
     -- https://ocw.tudelft.nl/wp-content/uploads/Algoritmiek_DAGs_and_Topological_Ordering.pdf
     -- Lemma 3.20
+
+  lemma topo_cons (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) :
+    is_topological_order (hd :: tl) h → is_topological_order tl h :=
+    begin
+      sorry
+    end
+
+  -- If it is possible to swap to entries in a topo and still have a topological order,
+  -- there can not have been any interdependence between those elements, i.e. no edge in the
+  -- graph. 
+  lemma topo_swap_indep (x y : ι) (tl : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) :
+    is_topological_order (x :: y :: tl) h → is_topological_order (y :: x :: tl) h → ¬(x~g~>y) ∧ ¬(y~g~>x) :=
+    begin
+      sorry
+    end
+
+  lemma topo_no_dup {g : digraph ι δ ε} {hₐ : g.is_acyclic} {l : list ι} :
+    is_topological_order l hₐ → l.nodup :=
+    begin
+      intro h,
+      sorry
+    end
+
+  lemma complete_topos_are_perm {g : digraph ι δ ε} {hₐ : g.is_acyclic} {l l' : list ι} :
+    is_complete_topo_over l g hₐ → is_complete_topo_over l' g hₐ → l ~ l' :=
+    begin
+      intros h h', 
+      suffices hₚ : ∀ x (y : is_complete_topo_over x g hₐ), x ~ g.ids.val.to_list,
+      from list.perm.trans (hₚ l h) (list.perm.symm (hₚ l' h')),
+      intros x y,
+      rw list.perm_ext (topo_no_dup y.left) sorry,
+      intro i,
+      rw multiset.mem_to_list,
+      exact y.right i,
+    end
 
   lemma update_data_comm {i i' : ι} (h : i ≠ i') (d d' : δ) (g : digraph ι δ ε) :
     (g.update_data i d).update_data i' d' = (g.update_data i' d').update_data i d :=

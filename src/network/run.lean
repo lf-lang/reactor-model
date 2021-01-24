@@ -226,6 +226,7 @@ namespace network
     propagate_output (propagate_output η i p) i' p' = propagate_output (propagate_output η i' p') i p :=
     propagate_ports_comm' _ _ _ hᵤ
 
+  -- `rp.2` indicates which output ports should be propagated
   private noncomputable def apply_reactor (η : network.graph) (i : reactor.id) (rp : reactor × list ℕ) : network.graph :=
     propagate_output (η.update_reactor i rp.1) i rp.2
 
@@ -238,23 +239,12 @@ namespace network
       exact h
     end
 
-
-  lemma apply_reactor_comm (η : network.graph) (i i' : reactor.id) (rp rp' : reactor × list ℕ) (hᵢ : i ≠ i') (hᵤ : η.has_unique_port_ins) :
+  -- This doesnt hold
+  /-lemma apply_reactor_comm (η : network.graph) (i i' : reactor.id) (rp rp' : reactor × list ℕ) (hᵢ : i ≠ i') (hᵤ : η.has_unique_port_ins) :
     apply_reactor (apply_reactor η i rp) i' rp' = apply_reactor (apply_reactor η i' rp') i rp :=
     begin
       sorry
-    end
-
-  private noncomputable def run_reaction (η : network.graph) (i : reaction.id) : network.graph :=
-    apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)
-      
-  lemma run_reaction_equiv (η : network.graph) (i : reaction.id) :
-    run_reaction η i ≈ η :=
-    begin
-      unfold run_reaction,
-      apply apply_reactor_equiv,
-      apply reactor.run_equiv
-    end
+    end-/
 
   lemma apply_reactor_run_eq_rel_to (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_wf : ρ.is_well_formed_over η) (i i' : reaction.id) (hᵢ : i ≠ i') :
     ¬(i~ρ~>i') → ¬(i'~ρ~>i) → reactor.eq_rel_to ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)).rtr i'.rtr) (η.rtr i'.rtr) i'.rcn :=
@@ -271,9 +261,20 @@ namespace network
       -- This would not imply that there is a precedence connection between `i` and `i'`, but the reactor of `i` COULD change the input of reactor of `i'`.
     end
 
+  private noncomputable def run_reaction (η : network.graph) (i : reaction.id) : network.graph :=
+    apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)
+      
+  lemma run_reaction_equiv (η : network.graph) (i : reaction.id) :
+    run_reaction η i ≈ η :=
+    begin
+      unfold run_reaction,
+      apply apply_reactor_equiv,
+      apply reactor.run_equiv
+    end
+
   -- If there is no path between two reactions in a precedence graph, then they are independent,
   -- i.e. their order of execution doesn't matter.
-  lemma run_reaction_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_wf : ρ.is_well_formed_over η) (i i' : reaction.id) :
+  lemma run_reaction_comm {η : network.graph} (hᵤ : η.has_unique_port_ins) {ρ : precedence.graph} (h_wf : ρ.is_well_formed_over η) {i i' : reaction.id} :
     ¬(i~ρ~>i') → ¬(i'~ρ~>i) → run_reaction (run_reaction η i) i' = run_reaction (run_reaction η i') i :=
     begin 
       intros hₚ hₚ',
@@ -281,15 +282,15 @@ namespace network
       by_cases hᵢ : i = i',
         rw hᵢ,
         {
-          -- have hₛ : ∀ hₑ, ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn) hₑ).rtr i'.rtr).run i'.rcn = (η.rtr i'.rtr).run i'.rcn, {
           have hₛ : reactor.eq_rel_to ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)).rtr i'.rtr) (η.rtr i'.rtr) i'.rcn,
           from apply_reactor_run_eq_rel_to _ hᵤ _ h_wf _ _ hᵢ hₚ hₚ',
-          -- have hₛ' : ∀ hₑ, ((apply_reactor η i'.rtr ((η.rtr i'.rtr).run i'.rcn) hₑ).rtr i.rtr).run i.rcn = (η.rtr i.rtr).run i.rcn, {
           have hₛ' : reactor.eq_rel_to ((apply_reactor η i'.rtr ((η.rtr i'.rtr).run i'.rcn)).rtr i.rtr) (η.rtr i.rtr) i.rcn,
           from apply_reactor_run_eq_rel_to _ hᵤ _ h_wf _ _ (ne.symm hᵢ) hₚ' hₚ,
-
           have hᵣ, from reactor.eq_rel_to_rcn_run _ _ _ hₛ,
           have hᵣ', from reactor.eq_rel_to_rcn_run _ _ _ hₛ',
+
+          have hh, from precedence.graph.indep_rcns_neq_rtrs h_wf hᵢ hₚ hₚ',
+
           -- simp [hₛ, hₛ'],
           -- rw apply_reactor_comm _ _ _ _ _ hᵣ hᵤ sorry sorry sorry sorry,
         }
@@ -328,12 +329,38 @@ namespace network
       exact network.graph.equiv_prec_acyc_inv (symm h) n.prec_acyclic
     end 
 
-  theorem run_topo_comm (η : network.graph) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_w : ρ.is_well_formed_over η) :
-    ∀ (t t') (h_t : ρ.topological_order h_a t) (h_t' : ρ.topological_order h_a t'), run_topo η t = run_topo η t' :=
+  theorem run_topo_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η) :
+    ∀ (t t') (h_t : digraph.is_topological_order t h_a) (h_t' : digraph.is_topological_order t' h_a) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
     begin
-      intros t t' h_t h_t',
-      induction t generalizing η
-        ; sorry
+      intros t t' h_t h_t' hₚ,
+      induction hₚ with generalizing η ρ,
+        case list.perm.nil {
+          refl,
+        },
+        case list.perm.cons {
+          unfold run_topo,
+          repeat { rw list.foldl_cons },
+          have h_t_tl, from digraph.topo_cons hₚ_x hₚ_l₁ h_a h_t,
+          have h_t'_tl, from digraph.topo_cons hₚ_x hₚ_l₂ h_a h_t',
+          have h_e, from run_reaction_equiv η hₚ_x,
+          have h_wf', from network.graph.equiv_wf h_e h_wf,
+          have hᵤ' : (run_reaction η hₚ_x).has_unique_port_ins, from sorry,
+          exact hₚ_ih (run_reaction η hₚ_x) ρ hᵤ' h_a h_wf' h_t_tl h_t'_tl,
+        },
+        case list.perm.swap {
+          obtain ⟨h_indep, h_indep'⟩ := digraph.topo_swap_indep hₚ_y hₚ_x hₚ_l h_a h_t h_t',
+          unfold run_topo,
+          repeat { rw list.foldl_cons }, 
+          rw run_reaction_comm hᵤ h_wf h_indep h_indep'
+        },
+        case list.perm.trans : l1 l2 l3 hp1 hp2 hi1 hi2 {
+          -- Is there away to force l2 into being a topological order
+          -- or is it possible to use the induction hypotheses without that fact?
+          have PROBLEM : digraph.is_topological_order l2 h_a, from sorry,
+          have hi1', from hi1 η ρ hᵤ h_a h_wf h_t PROBLEM,
+          have hi2', from hi2 η ρ hᵤ h_a h_wf PROBLEM h_t',
+          exact trans hi1' hi2', 
+        }
     end
 
   private noncomputable def run_aux (n : network) (t : list reaction.id) : network :=
@@ -362,9 +389,10 @@ namespace network
       },
       have h_pnw : (p' n).is_well_formed_over n.η, from p'.well_formed n,
       have h_pna : (p' n).is_acyclic, from n.prec_acyclic (p' n) h_pnw,
-      have h_t   : (p' n).topological_order h_pna (t (p' n)), from t.is_topo _ _ h_pnw,
-      have h_t'  : (p' n).topological_order h_pna (t' (p' n)), from t'.is_topo _ _ h_pnw,
-      exact run_topo_comm n.η _ h_pna h_pnw _ _ h_t h_t'
+      have h_t   : digraph.is_complete_topo_over (t (p' n)) (p' n) h_pna, from t.is_topo _ _ h_pnw,
+      have h_t'  : digraph.is_complete_topo_over (t' (p' n)) (p' n) h_pna, from t'.is_topo _ _ h_pnw,
+      have h_p   : (t (p' n)) ~ (t' (p' n)), from digraph.complete_topos_are_perm h_t h_t',
+      exact run_topo_comm n.η n.unique_ins _ h_pna h_pnw _ _ h_t.left h_t'.left h_p
     end
 
 end network

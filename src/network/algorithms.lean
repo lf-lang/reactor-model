@@ -28,7 +28,7 @@ namespace network
 
   structure topo_func :=
     (func : precedence.graph → list reaction.id)
-    (is_topo : ∀ (n : network) (ρ : precedence.graph) (h : ρ.is_well_formed_over n.η), ρ.topological_order (n.prec_acyclic ρ h) (func ρ))
+    (is_topo : ∀ (n : network) (ρ : precedence.graph) (h : ρ.is_well_formed_over n.η), digraph.is_complete_topo_over (func ρ) ρ (n.prec_acyclic ρ h))
 
   instance topo_func_coe : has_coe_to_fun topo_func := 
     ⟨_, (λ f, f.func)⟩

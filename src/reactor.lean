@@ -63,6 +63,15 @@ namespace reactor
         ; simp [h, (≈)]
     end
 
+  lemma run_input_inv (rtr : reactor) (rcn_id : ℕ) :
+    (rtr.run rcn_id).1.input = rtr.input :=
+    begin
+      unfold run,
+      simp,
+      by_cases hᵢ : (rtr.reactions rcn_id).fires_on rtr.input
+        ; finish
+    end
+
   theorem eq_rel_to_rcn_run (rtr rtr' : reactor) (rcn_id : ℕ) : 
     rtr.eq_rel_to rtr' rcn_id → (rtr.run rcn_id).1.eq_rel_to (rtr'.run rcn_id).1 rcn_id ∧ (rtr.run rcn_id).2 = (rtr'.run rcn_id).2 :=
     begin
