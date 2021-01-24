@@ -60,7 +60,7 @@ namespace network
     noncomputable def edges_out_of (η : network.graph) (p : port.id) : finset graph.edge :=
       η.edges.filter (λ e, (e : graph.edge).src = p)
 
-    noncomputable def update_reactor (η : network.graph) (i : reactor.id) (r : reactor) (h : η.data i ≈ r) : network.graph :=
+    noncomputable def update_reactor (η : network.graph) (i : reactor.id) (r : reactor) : network.graph :=
       η.update_data i r
       /-
         unique_ins := graph.edges_inv_unique_port_ins_inv (refl _) n.unique_ins,
@@ -68,7 +68,7 @@ namespace network
       -/
 
     noncomputable def update_input (η : network.graph) (p : port.id) (v : option value) : network.graph :=
-      update_reactor η p.rtr ((η.data p.rtr).update_input p.prt v) (reactor.update_input_equiv _ _ _)
+      update_reactor η p.rtr ((η.data p.rtr).update_input p.prt v)
 
     lemma edges_out_of_mem (η : network.graph) (p : port.id) :
       ∀ e ∈ η.edges_out_of p, e ∈ η :=
@@ -122,7 +122,7 @@ namespace network
       end
 
     lemma update_reactor_equiv (η : network.graph) (i : reactor.id) (r : reactor) (h : η.rtr i ≈ r) :
-      (η.update_reactor i r h) ≈ η :=
+      (η.update_reactor i r) ≈ η :=
       begin
         unfold update_reactor,
         exact symm_of (≈) (graph.update_with_equiv_rtr_is_equiv η i r h)
@@ -132,16 +132,17 @@ namespace network
       (η.update_input p v) ≈ η :=
       begin
         unfold update_input,
+        have h : (η.data p.rtr).update_input p.prt v ≈ (η.data p.rtr), from reactor.update_input_equiv _ p.prt v,
         simp [(≈)],
-        apply update_reactor_equiv
+        exact update_reactor_equiv _ _ _ h
       end
 
-    lemma update_reactor_out_inv (η : network.graph) (i : reactor.id) (rtr : reactor) (hₑ : η.rtr i ≈ rtr) (h : rtr.output = (η.rtr i).output) :
-      ∀ o, (η.update_reactor i rtr hₑ).output o = η.output o :=
+    lemma update_reactor_out_inv (η : network.graph) (i : reactor.id) (rtr : reactor) (h : rtr.output = (η.rtr i).output) :
+      ∀ o, (η.update_reactor i rtr).output o = η.output o :=
       begin
         intro o,
         unfold output,
-        suffices h : ((η.update_reactor i rtr hₑ).data o.rtr).output = (η.data o.rtr).output, { rw h },
+        suffices h : ((η.update_reactor i rtr).data o.rtr).output = (η.data o.rtr).output, { rw h },
         unfold update_reactor digraph.update_data,
         simp,
         rw function.update_apply,
@@ -162,9 +163,8 @@ namespace network
       end
 
     lemma update_reactor_comm {i i' : reactor.id} (h : i ≠ i') (r r' : reactor) (η : network.graph) :
-      ∀ hₗ hₗ' hᵣ' hᵣ, (η.update_reactor i r hₗ).update_reactor i' r' hₗ' = (η.update_reactor i' r' hᵣ').update_reactor i r hᵣ :=
+      (η.update_reactor i r).update_reactor i' r' = (η.update_reactor i' r').update_reactor i r :=
       begin
-        intros hₗ hₗ' hᵣ' hᵣ,
         unfold update_reactor,
         apply digraph.update_data_comm,
         exact h,

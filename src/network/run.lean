@@ -226,31 +226,46 @@ namespace network
     propagate_output (propagate_output η i p) i' p' = propagate_output (propagate_output η i' p') i p :=
     propagate_ports_comm' _ _ _ hᵤ
 
-  private noncomputable def apply_reactor (η : network.graph) (i : reactor.id) (rp : reactor × list ℕ) (h : η.rtr i ≈ rp.1) : network.graph :=
-    propagate_output (η.update_reactor i rp.1 h) i rp.2
+  private noncomputable def apply_reactor (η : network.graph) (i : reactor.id) (rp : reactor × list ℕ) : network.graph :=
+    propagate_output (η.update_reactor i rp.1) i rp.2
+
+  lemma apply_reactor_equiv (η : network.graph) (i : reactor.id) (rp : reactor × list ℕ) (h : η.rtr i ≈ rp.1) :
+    apply_reactor η i rp ≈ η :=
+    begin
+      unfold apply_reactor,
+      apply propagate_output_equiv,
+      apply graph.update_reactor_equiv,
+      exact h
+    end
+
 
   lemma apply_reactor_comm (η : network.graph) (i i' : reactor.id) (rp rp' : reactor × list ℕ) (hᵢ : i ≠ i') (hᵤ : η.has_unique_port_ins) :
-    ∀ hₗ hₗ' hᵣ' hᵣ, apply_reactor (apply_reactor η i rp hₗ) i' rp' hₗ' = apply_reactor (apply_reactor η i' rp' hᵣ') i rp hᵣ :=
+    apply_reactor (apply_reactor η i rp) i' rp' = apply_reactor (apply_reactor η i' rp') i rp :=
     begin
       sorry
     end
 
   private noncomputable def run_reaction (η : network.graph) (i : reaction.id) : network.graph :=
-    apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn) (reactor.run_equiv _ _) 
+    apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)
       
   lemma run_reaction_equiv (η : network.graph) (i : reaction.id) :
     run_reaction η i ≈ η :=
     begin
       unfold run_reaction,
-      apply propagate_output_equiv,
-      apply graph.update_reactor_equiv
+      apply apply_reactor_equiv,
+      apply reactor.run_equiv
     end
 
-  lemma apply_reactor_indep (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_wf : ρ.is_well_formed_over η) (i i' : reaction.id) (hᵢ : i ≠ i') (rp : reactor × list ℕ) :
-    ∀ hₑ, ¬(i~ρ~>i') → ¬(i'~ρ~>i) → ((apply_reactor η i.rtr rp hₑ).rtr i'.rtr) = η.rtr i'.rtr :=
+  lemma apply_reactor_run_eq_rel_to (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_wf : ρ.is_well_formed_over η) (i i' : reaction.id) (hᵢ : i ≠ i') :
+    ¬(i~ρ~>i') → ¬(i'~ρ~>i) → reactor.eq_rel_to ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)).rtr i'.rtr) (η.rtr i'.rtr) i'.rcn :=
     begin
-      intros hₑ hₚ hₚ',    
+      intros hₚ hₚ',    
       have hᵣ, from precedence.graph.indep_rcns_neq_rtrs h_wf hᵢ hₚ hₚ',
+      unfold apply_reactor,
+
+      -- unfold reactor.eq_rel_to,
+      -- repeat { split },
+
       -- I think this might be unprovable.
       -- Say that the reactor of `i` is connected to that of `i'`.
       -- This would not imply that there is a precedence connection between `i` and `i'`, but the reactor of `i` COULD change the input of reactor of `i'`.
@@ -266,18 +281,17 @@ namespace network
       by_cases hᵢ : i = i',
         rw hᵢ,
         {
-          have hₛ : ∀ hₑ, ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn) hₑ).rtr i'.rtr).run i'.rcn = (η.rtr i'.rtr).run i'.rcn, {
-            intro hₑ,
-            -- The two reactions that are run (after eachother) are not the same one (hᵣ)
-            -- and they don't depend on eachother (hₚ hₚ'), so running the first one, does
-            -- not affect the outcome of the second
-          },
-          have hₛ' : ∀ hₑ, ((apply_reactor η i'.rtr ((η.rtr i'.rtr).run i'.rcn) hₑ).rtr i.rtr).run i.rcn = (η.rtr i.rtr).run i.rcn, {
-            -- intros x x' hₑ h,
-            sorry
-          },
-          simp [hₛ, hₛ'],
-          rw apply_reactor_comm _ _ _ _ _ hᵣ hᵤ sorry sorry sorry sorry,
+          -- have hₛ : ∀ hₑ, ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn) hₑ).rtr i'.rtr).run i'.rcn = (η.rtr i'.rtr).run i'.rcn, {
+          have hₛ : reactor.eq_rel_to ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)).rtr i'.rtr) (η.rtr i'.rtr) i'.rcn,
+          from apply_reactor_run_eq_rel_to _ hᵤ _ h_wf _ _ hᵢ hₚ hₚ',
+          -- have hₛ' : ∀ hₑ, ((apply_reactor η i'.rtr ((η.rtr i'.rtr).run i'.rcn) hₑ).rtr i.rtr).run i.rcn = (η.rtr i.rtr).run i.rcn, {
+          have hₛ' : reactor.eq_rel_to ((apply_reactor η i'.rtr ((η.rtr i'.rtr).run i'.rcn)).rtr i.rtr) (η.rtr i.rtr) i.rcn,
+          from apply_reactor_run_eq_rel_to _ hᵤ _ h_wf _ _ (ne.symm hᵢ) hₚ' hₚ,
+
+          have hᵣ, from reactor.eq_rel_to_rcn_run _ _ _ hₛ,
+          have hᵣ', from reactor.eq_rel_to_rcn_run _ _ _ hₛ',
+          -- simp [hₛ, hₛ'],
+          -- rw apply_reactor_comm _ _ _ _ _ hᵣ hᵤ sorry sorry sorry sorry,
         }
     end
 
@@ -318,9 +332,8 @@ namespace network
     ∀ (t t') (h_t : ρ.topological_order h_a t) (h_t' : ρ.topological_order h_a t'), run_topo η t = run_topo η t' :=
     begin
       intros t t' h_t h_t',
-      induction t generalizing η,
-        -- run_topo := foldl run_reaction
-        -- if we 
+      induction t generalizing η
+        ; sorry
     end
 
   private noncomputable def run_aux (n : network) (t : list reaction.id) : network :=
