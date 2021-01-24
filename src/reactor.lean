@@ -43,7 +43,7 @@ namespace reactor
   -- their input-ports which only have to correspond relative to the given reaction.
   def eq_rel_to (rtr rtr' : reactor) (rcn_id : ℕ) : Prop :=
     rtr ≈ rtr' ∧ rtr.output = rtr'.output ∧ rtr.state = rtr'.state ∧ 
-    ports.correspond_at rtr.input rtr'.input (rtr.reactions rcn_id).dᵢ 
+    ports.correspond_at (rtr.reactions rcn_id).dᵢ rtr.input rtr'.input
 
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
@@ -51,7 +51,7 @@ namespace reactor
   def run (rtr : reactor) (rcn_id : ℕ) : reactor × list ℕ :=
     if (rtr.reactions rcn_id).fires_on rtr.input then
       let os' := (rtr.reactions rcn_id) rtr.input rtr.state in
-      ({output := os'.1, state := os'.2, ..rtr}, os'.1.inhabited_indices)
+      ({output := rtr.output.merge os'.1, state := os'.2, ..rtr}, os'.1.inhabited_indices)
     else 
       (rtr, [])
 
@@ -64,14 +64,36 @@ namespace reactor
     end
 
   theorem eq_rel_to_rcn_run (rtr rtr' : reactor) (rcn_id : ℕ) : 
-    rtr.eq_rel_to rtr' rcn_id → rtr.run rcn_id = rtr'.run rcn_id := -- this shouldnt be a direct equality.
+    rtr.eq_rel_to rtr' rcn_id → (rtr.run rcn_id).1.eq_rel_to (rtr'.run rcn_id).1 rcn_id ∧ (rtr.run rcn_id).2 = (rtr'.run rcn_id).2 :=
     begin
       intro h,
       unfold eq_rel_to at h,
       simp [(≈)] at h,
       unfold run,
-      rw [h.1.1, h.1.2, h.2.2.1],
-      -- simp [(reaction.eq_fires_on_corr_input _ _ _ h.2.2.2)],
+      simp,
+      have h_f : (rtr.reactions rcn_id).fires_on rtr.input ↔ (rtr.reactions rcn_id).fires_on rtr'.input,
+      from reaction.eq_fires_on_corr_input _ _ _ h.2.2.2,
+      have h_w : (rtr.reactions rcn_id) rtr.input rtr'.state = (rtr.reactions rcn_id) rtr'.input rtr'.state,
+      from (rtr.reactions rcn_id).well_behaved _ _ _ h.2.2.2,
+      rw [h.2.2.1, ←h.1.1, h_w, h.1.2, h.2.1],
+      by_cases hᵢ : (rtr'.reactions rcn_id).fires_on rtr.input,
+        {
+          rw if_pos hᵢ,
+          rw ←h.1.2 at hᵢ ⊢,
+          rw if_pos (h_f.mp hᵢ),
+          simp,
+          unfold eq_rel_to,
+            repeat { split },
+            exact h.2.2.2
+        },
+        {
+          rw if_neg hᵢ,
+          rw h.1.2 at h_f,
+          rw if_neg ((not_iff_not_of_iff h_f).mp hᵢ),
+          simp,
+          unfold eq_rel_to,
+          exact h
+        }
     end
 
   def update_input (rtr : reactor) (i : ℕ) (v : option value) : reactor :=

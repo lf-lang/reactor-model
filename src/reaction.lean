@@ -14,7 +14,7 @@ structure reaction :=
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
   (body : ports → state_vars → (ports × state_vars))
-  (well_behaved : ∀ i i' s, ports.correspond_at i i' dᵢ → body i s = body i' s) 
+  (well_behaved : ∀ i i' s, ports.correspond_at dᵢ i i' → body i s = body i' s) 
 
 namespace reaction
 
@@ -32,7 +32,7 @@ namespace reaction
   instance dec_fires_on (r : reaction) (p : ports) : decidable (r.fires_on p) := 
     finset.decidable_dexists_finset
 
-  lemma eq_fires_on_corr_input (r : reaction) (p p' : ports) (h : ports.correspond_at p p' r.dᵢ) :
+  lemma eq_fires_on_corr_input (r : reaction) (p p' : ports) (h : ports.correspond_at r.dᵢ p p') :
     r.fires_on p ↔ r.fires_on p' :=
     begin
       unfold fires_on,

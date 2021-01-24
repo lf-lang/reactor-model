@@ -32,8 +32,15 @@ namespace reactor.ports
 
   open reactor
 
-  def correspond_at (p p' : ports) (i : finset ℕ) : Prop :=
+  def correspond_at (i : finset ℕ) (p p' : ports) : Prop :=
     ∀ x ∈ i, p.nth x = p'.nth x
+
+  instance (i : finset ℕ) : is_equiv ports (correspond_at i) := 
+    {
+      symm :=  begin unfold correspond_at, finish end,
+      trans := begin unfold correspond_at, finish end,
+      refl :=  begin unfold correspond_at, finish end
+    }
 
   -- A port assignment where all values are empty.
   @[reducible]
