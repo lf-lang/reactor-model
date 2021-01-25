@@ -104,6 +104,12 @@ namespace precedence.graph
         }
     end
 
+  -- If two reactions `i` and `i'` are independent, then none of `i`'s antidependencies (output ports)
+  -- have a connection any of `i'`'s dependencies (input ports).
+  lemma indep_rcns_no_edge {η : network.graph} {ρ : precedence.graph} (h : ρ.is_well_formed_over η) {i i' : reaction.id} :
+    i ≠ i' → ¬(i~ρ~>i') → ¬(i'~ρ~>i) → ¬ externally_dependent i i' η :=
+    sorry
+
 end precedence.graph
 
 -- The proposition, that every well-formed precedence graph over a network is acyclic.

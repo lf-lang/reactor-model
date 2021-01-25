@@ -37,37 +37,50 @@ lemma run_topo_prec_acyc_inv (n : network) (topo : list reaction.id) :
     exact network.graph.equiv_prec_acyc_inv (symm h) n.prec_acyclic
   end 
 
+-- General proof : pulling a completely independent element out of the list to the front does not change the behaviour of run_topo.
+lemma run_topo_swap 
+{η : network.graph} (hᵤ : η.has_unique_port_ins) 
+{ρ : precedence.graph} (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η)
+(t : list reaction.id) (hₜ : digraph.is_topological_order t h_a) 
+(i : reaction.id) (h_ti : i ∈ t) (hᵢ : digraph.fully_indep i t ρ) :
+  run_topo η t = run_topo η (i :: (t.erase i)) :=
+  begin
+    -- (A.1) If `hd :: tl` is a topological order, then `hd` must be independent of all elements in `tl`. 
+            -- (A.2) Adding a completely independent element to the front of a topo still gives you a topologically ordered list.
+            -- (A.3) From (A.1) and `t = (t_hd :: t_tl)` and since `t` is a topo, it follows that `t_hd` is completely independent.
+            -- (A.4) Since `t ~ t'` they contain the same elements, so `t_hd` is also completely indep of all elements in `t'.erase t_hd`.
+            -- (A.5) From (A.2) it follows that `t_hd :: (t'.erase t_hd)` is topologically ordered.
+            -- (A.6) 
+
+            -- (A.3) Since `t' ~ (t_hd :: t_tl)`, `t'` not be empty, so `t' = t'_hd :: t'_tl`
+            have : ∃ t'_hd t'_tl, t' = t'_hd :: t'_tl, from sorry,
+            -- (A.4) Hence `run_topo η t' = run_topo η (t'_hd :: t'_tl)` and transitively
+            have : ∃ t'_hd t'_tl, run_topo η t' = run_topo η (t'_hd :: t'_tl), from sorry,
+            sorry
+  end
+
 theorem run_topo_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η) :
   ∀ (t t') (h_t : digraph.is_topological_order t h_a) (h_t' : digraph.is_topological_order t' h_a) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
   begin
     intros t t' h_t h_t' hₚ,
-    induction hₚ with generalizing η ρ,
-      case list.perm.nil {
-        refl,
-      },
-      case list.perm.cons {
+    induction t generalizing t' η,
+      rw list.perm.eq_nil (list.perm.symm hₚ),
+      {
+        have h_e, from run_reaction_equiv η t_hd,
+        have h_pe, from list.cons_perm_iff_perm_erase.mp hₚ, 
+        have h_tc, from (digraph.topo_cons t_hd t_tl h_a h_t),
+        have hte' : digraph.is_topological_order (t'.erase t_hd) h_a, from digraph.topo_erase t_hd t' h_a h_t',
+        have htep' : t_tl ~ (t'.erase t_hd), from h_pe.right,
+        have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, from network.graph.edges_inv_unique_port_ins_inv (symm h_e).left hᵤ,
+        have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), from network.graph.equiv_wf h_e h_wf,
+        have h_fi : digraph.fully_indep t_hd t' ρ, {
+          have h_fi₁ : digraph.fully_indep t_hd (t_hd :: t_tl) ρ, from digraph.topo_head_fully_indep _ _ h_a h_t,
+          exact digraph.fully_indep_perm t_hd h_a h_t h_t' hₚ h_fi₁,
+        }, 
+        have hₘ : t_hd ∈ t', from h_pe.left,
+        rw (run_topo_swap hᵤ h_a h_wf t' h_t' t_hd hₘ h_fi),
         unfold run_topo,
         repeat { rw list.foldl_cons },
-        have h_t_tl, from digraph.topo_cons hₚ_x hₚ_l₁ h_a h_t,
-        have h_t'_tl, from digraph.topo_cons hₚ_x hₚ_l₂ h_a h_t',
-        have h_e, from run_reaction_equiv η hₚ_x,
-        have h_wf' : ρ.is_well_formed_over (run_reaction η hₚ_x), from network.graph.equiv_wf h_e h_wf,
-        have hᵤ' : (run_reaction η hₚ_x).has_unique_port_ins, 
-        from network.graph.edges_inv_unique_port_ins_inv (symm (run_reaction_equiv _ _).left) hᵤ,
-        exact hₚ_ih (run_reaction η hₚ_x) ρ hᵤ' h_a h_wf' h_t_tl h_t'_tl
-      },
-      case list.perm.swap {
-        obtain ⟨h_indep, h_indep'⟩ := digraph.topo_swap_indep hₚ_y hₚ_x hₚ_l h_a h_t h_t',
-        unfold run_topo,
-        repeat { rw list.foldl_cons }, 
-        rw run_reaction_comm hᵤ h_wf h_indep h_indep'
-      },
-      case list.perm.trans : l1 l2 l3 hp1 hp2 hi1 hi2 {
-        -- Is there away to force l2 into being a topological order
-        -- or is it possible to use the induction hypotheses without that fact?
-        have PROBLEM : digraph.is_topological_order l2 h_a, from sorry,
-        have hi1', from hi1 η ρ hᵤ h_a h_wf h_t PROBLEM,
-        have hi2', from hi2 η ρ hᵤ h_a h_wf PROBLEM h_t',
-        exact trans hi1' hi2', 
+        exact t_ih h_tc (t'.erase t_hd) (run_reaction η t_hd) hᵤ' h_wf' hte' htep'
       }
   end

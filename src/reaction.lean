@@ -14,7 +14,8 @@ structure reaction :=
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
   (body : ports → state_vars → (ports × state_vars))
-  (well_behaved : ∀ i i' s, ports.correspond_at dᵢ i i' → body i s = body i' s) 
+  (well_behaved : ∀ i i' s, ports.correspond_at dᵢ i i' → body i s = body i' s)
+  (output_constrained : ∀ i s o, o ∉ dₒ → (body i s).1.nth o = none) 
 
 namespace reaction
 

@@ -76,6 +76,19 @@ namespace digraph
   def is_complete_topo_over (l : list ι) (g : digraph ι δ ε) (h : g.is_acyclic) : Prop :=
     is_topological_order l h ∧ ∀ i : ι, i ∈ l ↔ i ∈ g  
 
+  -- An item `i` in a topo list is fully independent if the corresponding graph contains no path
+  -- that starts with an element in the topo and ends in `i`.
+  def fully_indep (i : ι) (t : list ι) (g : digraph ι δ ε) : Prop :=
+    ∀ i' ∈ t, ¬(i'~g~>i)
+
+  lemma topo_head_fully_indep (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h_a : g.is_acyclic) (h_t : is_topological_order (hd :: tl) h_a) :
+    fully_indep hd (hd :: tl) g :=
+    sorry
+
+  lemma fully_indep_perm (i : ι) {t t' : list ι} {g : digraph ι δ ε} (h_a : g.is_acyclic) (h_t : is_topological_order t h_a) (h_t' : is_topological_order t' h_a) :
+    t ~ t' → fully_indep i t g → fully_indep i t' g :=
+    sorry
+
   -- For any DAG there exists a list which is a topological order of the DAG.
   theorem any_dag_has_complete_topo : 
     ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, is_complete_topo_over l g h :=
@@ -86,14 +99,17 @@ namespace digraph
   lemma topo_cons (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) :
     is_topological_order (hd :: tl) h → is_topological_order tl h :=
     begin
+      intro hₜ,
+      unfold is_topological_order at hₜ ⊢,
+      intros i i' hᵢ hᵢ' hₚ,
+      have hₜ', from hₜ i i' (list.mem_cons_of_mem _ hᵢ) (list.mem_cons_of_mem _ hᵢ') hₚ,
+      repeat { rw list.index_of_cons at hₜ' },
       sorry
     end
 
-  -- If it is possible to swap to entries in a topo and still have a topological order,
-  -- there can not have been any interdependence between those elements, i.e. no edge in the
-  -- graph. 
-  lemma topo_swap_indep (x y : ι) (tl : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) :
-    is_topological_order (x :: y :: tl) h → is_topological_order (y :: x :: tl) h → ¬(x~g~>y) ∧ ¬(y~g~>x) :=
+  -- Removing an element from a topological order still keeps it topo.
+  lemma topo_erase (i : ι) (t : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) :
+    is_topological_order t h → is_topological_order (t.erase i) h :=
     begin
       sorry
     end

@@ -72,6 +72,10 @@ namespace reactor
         ; finish
     end
 
+  lemma run_affected_ports_sub_dₒ (rtr : reactor) (rcn_id : ℕ) :
+    (rtr.run rcn_id).2.to_finset ⊆ (rtr.reactions rcn_id).dₒ :=
+    sorry
+
   theorem eq_rel_to_rcn_run (rtr rtr' : reactor) (rcn_id : ℕ) : 
     rtr.eq_rel_to rtr' rcn_id → (rtr.run rcn_id).1.eq_rel_to (rtr'.run rcn_id).1 rcn_id ∧ (rtr.run rcn_id).2 = (rtr'.run rcn_id).2 :=
     begin

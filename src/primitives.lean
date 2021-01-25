@@ -56,7 +56,11 @@ namespace reactor.ports
 
   -- The indices in the given port map that have a corresponding (non-`none`) value.
   def inhabited_indices (p : ports) : list ℕ :=
-    p.enum.filter_map (λ ⟨i, e⟩, e.elim none (λ _, i))
+    p.find_indexes (λ e, e ≠ none)
+
+  lemma inhabited_indices_nodup (p : ports) : 
+    list.nodup (inhabited_indices p) :=
+    sorry
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports, but the length remains that of `first`.

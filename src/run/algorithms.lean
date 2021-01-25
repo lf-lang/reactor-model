@@ -1,4 +1,5 @@
 import network.basic  
+import precedence.lemmas
 
 namespace network
 
@@ -18,7 +19,7 @@ namespace network
         suffices h : ∀ n, p.func n = p'.func n, from funext h,
         intro n,
         have h_unique : ∃! ρ : precedence.graph, ρ.is_well_formed_over n.η,
-          from precedence.any_acyc_net_graph_has_exactly_one_wf_prec_graph n.η n.prec_acyclic,
+        from precedence.any_acyc_net_graph_has_exactly_one_wf_prec_graph n.η n.prec_acyclic,
         have h_wf, from p.well_formed n,
         have h_wf', from p'.well_formed n,
         exact exists_unique.unique h_unique h_wf h_wf'
