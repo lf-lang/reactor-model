@@ -85,6 +85,10 @@ namespace digraph
     fully_indep hd (hd :: tl) g :=
     sorry
 
+  lemma topo_fully_indep_cons (i hd : ι) (tl : list ι) {g : digraph ι δ ε} (h_a : g.is_acyclic) (h_t : is_topological_order (hd :: tl) h_a) :
+    fully_indep i (hd :: tl) g → fully_indep i tl g :=
+    sorry
+
   lemma fully_indep_perm (i : ι) {t t' : list ι} {g : digraph ι δ ε} (h_a : g.is_acyclic) (h_t : is_topological_order t h_a) (h_t' : is_topological_order t' h_a) :
     t ~ t' → fully_indep i t g → fully_indep i t' g :=
     sorry

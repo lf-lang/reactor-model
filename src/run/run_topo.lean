@@ -45,18 +45,31 @@ lemma run_topo_swap
 (i : reaction.id) (h_ti : i ∈ t) (hᵢ : digraph.fully_indep i t ρ) :
   run_topo η t = run_topo η (i :: (t.erase i)) :=
   begin
-    -- (A.1) If `hd :: tl` is a topological order, then `hd` must be independent of all elements in `tl`. 
-            -- (A.2) Adding a completely independent element to the front of a topo still gives you a topologically ordered list.
-            -- (A.3) From (A.1) and `t = (t_hd :: t_tl)` and since `t` is a topo, it follows that `t_hd` is completely independent.
-            -- (A.4) Since `t ~ t'` they contain the same elements, so `t_hd` is also completely indep of all elements in `t'.erase t_hd`.
-            -- (A.5) From (A.2) it follows that `t_hd :: (t'.erase t_hd)` is topologically ordered.
-            -- (A.6) 
-
-            -- (A.3) Since `t' ~ (t_hd :: t_tl)`, `t'` not be empty, so `t' = t'_hd :: t'_tl`
-            have : ∃ t'_hd t'_tl, t' = t'_hd :: t'_tl, from sorry,
-            -- (A.4) Hence `run_topo η t' = run_topo η (t'_hd :: t'_tl)` and transitively
-            have : ∃ t'_hd t'_tl, run_topo η t' = run_topo η (t'_hd :: t'_tl), from sorry,
-            sorry
+    induction t generalizing i η,
+      { exfalso, exact h_ti },
+      {
+        unfold run_topo,
+        repeat { rw list.foldl_cons },
+        have h_tc, from (digraph.topo_cons t_hd t_tl h_a hₜ),
+        by_cases CH : i = t_hd,
+          simp [CH],
+          {
+            have h_e, from run_reaction_equiv η t_hd,
+            have h_ti', from or.resolve_left (list.eq_or_mem_of_mem_cons h_ti) CH,
+            have h_fi', from digraph.topo_fully_indep_cons i t_hd t_tl h_a hₜ hᵢ,
+            have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, from network.graph.edges_inv_unique_port_ins_inv (symm h_e).left hᵤ,
+            have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), from network.graph.equiv_wf h_e h_wf,
+            have hᵢ', from @t_ih h_tc i (run_reaction η t_hd) hᵤ' h_wf' h_ti' h_fi',
+            have h_rr : run_topo (run_reaction η t_hd) t_tl = list.foldl run_reaction (run_reaction η t_hd) t_tl, from refl _,
+            rw [←h_rr, hᵢ'],
+            unfold run_topo,
+            rw list.erase_cons_tail _ (ne.symm CH),
+            repeat { rw list.foldl_cons },
+            have h_ind : digraph.fully_indep t_hd (t_hd :: t_tl) ρ, from digraph.topo_head_fully_indep _ _ h_a hₜ,
+            unfold digraph.fully_indep at hᵢ h_ind,
+            rw run_reaction_comm hᵤ h_wf (hᵢ t_hd (list.mem_cons_self _ _)) (h_ind i h_ti),
+          }     
+      }
   end
 
 theorem run_topo_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η) :
