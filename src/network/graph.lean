@@ -27,7 +27,11 @@ namespace network
     @[reducible]
     instance edge_mem : has_mem edge graph := {mem := λ e η, e ∈ η.edges}
 
-    instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.data i) ≈ (η'.data i)⟩
+    -- The reactor contained in a network graph, that is associated with a given reaction ID.
+    noncomputable def rtr (η : network.graph) (i : reactor.id) : reactor :=
+      η.data i
+
+    instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.rtr i) ≈ (η'.rtr i)⟩
 
     instance : is_equiv graph (≈) := 
       {
@@ -44,10 +48,6 @@ namespace network
         rw ←h.left,
         exact hₘ
       end
-
-    -- The reactor contained in a network graph, that is associated with a given reaction ID.
-    noncomputable def rtr (η : network.graph) (i : reactor.id) : reactor :=
-      η.data i
 
     -- The reaction contained in a network graph, that is associated with a given reaction ID.
     noncomputable def rcn (η : network.graph) (i : reaction.id) : reaction :=

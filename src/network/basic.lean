@@ -1,5 +1,5 @@
 import network.graph
-import network.precedence
+import precedence.basic
 
 open network
 
