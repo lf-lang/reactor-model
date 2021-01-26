@@ -72,8 +72,6 @@ namespace «precedence»
         }
     end
 
-  lemma topo_head_is_fully_indep 
-
 end «precedence»
 
 open precedence.graph

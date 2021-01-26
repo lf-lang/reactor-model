@@ -1,15 +1,16 @@
 import digraph
 import network.basic
 import run.algorithms
-import run.topo
+import run.event
 
 namespace network
 
-  private noncomputable def run_aux (n : network) (t : list reaction.id) : network :=
-    {η := run_topo n.η t, unique_ins := run_topo_unique_ports_inv n t, prec_acyclic := run_topo_prec_acyc_inv n t}
+  private noncomputable def run_aux (n : network) (t : list reaction.id) : list event → network
+    | [] := n
+    | (eₕ :: eₜ) := run_event n t eₕ eₜ
 
   noncomputable def run (n : network) (fₚ : prec_func) (fₜ : topo_func) : network :=
-    run_aux n (fₜ (fₚ n))
+    run_aux n (fₜ (fₚ n)) n.event_queue
 
   theorem run_equiv (n : network) (fₚ : prec_func) (fₜ : topo_func) :
     (n.run fₚ fₜ).η ≈ n.η :=

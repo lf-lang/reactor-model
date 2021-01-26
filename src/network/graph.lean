@@ -2,6 +2,8 @@ import digraph
 import reactor
 import network.ids
 
+open reactor
+
 namespace network
 
   namespace graph
@@ -69,6 +71,14 @@ namespace network
 
     noncomputable def update_input (η : network.graph) (p : port.id) (v : option value) : network.graph :=
       update_reactor η p.rtr ((η.data p.rtr).update_input p.prt v)
+
+    private noncomputable def wipe_reactor (η : network.graph) (i : reactor.id) : network.graph :=
+      let rtr := η.rtr i in
+      η.update_reactor i {input := ports.empty rtr.input.length, output := ports.empty rtr.output.length, ..rtr}
+
+    -- Wipes all ports in the graph.
+    noncomputable def empty_ports (η : network.graph) : network.graph :=
+      list.foldl wipe_reactor η η.ids.val.to_list
 
     lemma edges_out_of_mem (η : network.graph) (p : port.id) :
       ∀ e ∈ η.edges_out_of p, e ∈ η :=
