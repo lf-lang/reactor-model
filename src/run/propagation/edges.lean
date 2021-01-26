@@ -1,5 +1,5 @@
 import network.graph
-import run.propagate_edge
+import run.propagation.edge
 
 open network
 

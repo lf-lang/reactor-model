@@ -1,7 +1,7 @@
 import digraph
 import network.basic
 import run.algorithms
-import run.run_topo
+import run.topo
 
 namespace network
 

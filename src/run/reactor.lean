@@ -1,7 +1,7 @@
 import network.graph
 import precedence.basic
 import precedence.lemmas
-import run.propagate_output
+import run.propagation.output
 
 open network
 

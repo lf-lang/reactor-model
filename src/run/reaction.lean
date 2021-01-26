@@ -1,6 +1,6 @@
 import network.graph
 import precedence.basic
-import run.apply_reactor
+import run.reactor
 
 open network
 
@@ -20,8 +20,8 @@ lemma run_reaction_output_inv (η : network.graph) {i : reaction.id} :
   begin
     intros r h,
     unfold run_reaction,
-    rw apply_reactor_output_inv _ h,
-    
+    -- rw apply_reactor_output_inv _ h,
+    sorry
   end
 
 lemma run_reaction_state_inv (η : network.graph) {i : reaction.id} :
@@ -68,5 +68,6 @@ lemma run_reaction_comm {η : network.graph} (hᵤ : η.has_unique_port_ins) {ρ
 
         -- simp [hₛ, hₛ'],
         -- rw apply_reactor_comm _ _ _ _ _ hᵣ hᵤ sorry sorry sorry sorry,
+        sorry
       }
   end

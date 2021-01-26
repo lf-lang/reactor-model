@@ -1,5 +1,5 @@
 import network.basic
-import run.run_reaction
+import run.reaction
 import precedence.lemmas
 
 open network
@@ -51,11 +51,11 @@ lemma run_topo_swap
         unfold run_topo,
         repeat { rw list.foldl_cons },
         have h_tc, from (digraph.topo_cons t_hd t_tl h_a hₜ),
-        by_cases CH : i = t_hd,
-          simp [CH],
+        by_cases h_c : i = t_hd,
+          simp [h_c],
           {
             have h_e, from run_reaction_equiv η t_hd,
-            have h_ti', from or.resolve_left (list.eq_or_mem_of_mem_cons h_ti) CH,
+            have h_ti', from or.resolve_left (list.eq_or_mem_of_mem_cons h_ti) h_c,
             have h_fi', from digraph.topo_fully_indep_cons i t_hd t_tl h_a hₜ hᵢ,
             have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, from network.graph.edges_inv_unique_port_ins_inv (symm h_e).left hᵤ,
             have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), from network.graph.equiv_wf h_e h_wf,
@@ -63,7 +63,7 @@ lemma run_topo_swap
             have h_rr : run_topo (run_reaction η t_hd) t_tl = list.foldl run_reaction (run_reaction η t_hd) t_tl, from refl _,
             rw [←h_rr, hᵢ'],
             unfold run_topo,
-            rw list.erase_cons_tail _ (ne.symm CH),
+            rw list.erase_cons_tail _ (ne.symm h_c),
             repeat { rw list.foldl_cons },
             have h_ind : digraph.fully_indep t_hd (t_hd :: t_tl) ρ, from digraph.topo_head_fully_indep _ _ h_a hₜ,
             unfold digraph.fully_indep at hᵢ h_ind,
