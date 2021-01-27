@@ -1,12 +1,14 @@
 import data.finset
+import order.lexicographic
 
--- Typealias via `notation`:
--- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Type.20alias 
+def tag := lex ℕ ℕ  
+def tag.time_val (t : tag) := t.1 
+def tag.micros_idx (t : tag) := t.2 
 
 -- The type of opaque values that can be passed between reactors and processed by reactions.
 -- Their equality has to be decidable, but beyond that their values are of no interest. Hence they
 -- are modeled as `empty`.
-notation `value` := empty
+variable {value : Type*}
 
 -- Rationale for using *functions* in the following definitions:
 -- An intuitive approach for the definition of `input`, `output`, `ports` and `state` might be to
@@ -17,7 +19,7 @@ notation `value` := empty
 -- map that associates each of the indices of an `in-/output` with the indices of the `ports` from
 -- which they were derived.
 
--- A list of values values.
+-- A list of values.
 -- This represents the state fields of a reactor.
 -- Since we don't ever need to work with the state fields within Lean, their definition is fuzzy
 -- for the sake of simplicity (we don't need to define a `nₛ` on reactors and reactions).
@@ -55,7 +57,7 @@ namespace reactor.ports
     p = empty p.length
 
   -- The indices in the given port map that have a corresponding (non-`none`) value.
-  def inhabited_indices (p : ports) : list ℕ :=
+  noncomputable def inhabited_indices (p : ports) : list ℕ :=
     p.find_indexes (λ e, e ≠ none)
 
   lemma inhabited_indices_nodup (p : ports) : 

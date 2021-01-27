@@ -31,7 +31,7 @@ namespace reaction
     ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers) (v : value), p.nth t = some v
 
   instance dec_fires_on (r : reaction) (p : ports) : decidable (r.fires_on p) := 
-    finset.decidable_dexists_finset
+    sorry
 
   lemma eq_fires_on_corr_input (r : reaction) (p p' : ports) (h : ports.correspond_at r.dᵢ p p') :
     r.fires_on p ↔ r.fires_on p' :=

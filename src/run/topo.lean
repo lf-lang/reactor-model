@@ -37,7 +37,7 @@ lemma run_topo_prec_acyc_inv (n : network) (topo : list reaction.id) :
     exact network.graph.equiv_prec_acyc_inv (symm h) n.prec_acyclic
   end 
 
--- General proof : pulling a completely independent element out of the list to the front does not change the behaviour of run_topo.
+-- pulling a completely independent element out of the list to the front does not change the behaviour of run_topo.
 lemma run_topo_swap 
 {η : network.graph} (hᵤ : η.has_unique_port_ins) 
 {ρ : precedence.graph} (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η)

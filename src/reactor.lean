@@ -48,7 +48,7 @@ namespace reactor
   noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
     h.some
 
-  def run (rtr : reactor) (rcn_id : ℕ) : reactor × list ℕ :=
+  noncomputable def run (rtr : reactor) (rcn_id : ℕ) : reactor × list ℕ :=
     if (rtr.reactions rcn_id).fires_on rtr.input then
       let os' := (rtr.reactions rcn_id) rtr.input rtr.state in
       ({output := rtr.output.merge os'.1, state := os'.2, ..rtr}, os'.1.inhabited_indices)
