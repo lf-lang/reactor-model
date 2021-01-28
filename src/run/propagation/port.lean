@@ -3,11 +3,13 @@ import run.propagation.edges
 
 open network
 
+variables {υ : Type*} [decidable_eq υ]
+
 -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
-noncomputable def propagate_port (η : network.graph) (p : port.id) : network.graph := 
+noncomputable def propagate_port (η : network.graph υ) (p : port.id) : network.graph υ := 
   propagate_edges η (η.edges_out_of p).val.to_list 
 
-lemma propagate_port_equiv (η : network.graph) (p : port.id) :
+lemma propagate_port_equiv (η : network.graph υ) (p : port.id) :
   propagate_port η p ≈ η :=
   begin
     unfold propagate_port,
@@ -15,18 +17,18 @@ lemma propagate_port_equiv (η : network.graph) (p : port.id) :
       ; apply propagate_edges_equiv
   end
 
-lemma propagate_port_out_inv (η : network.graph) {p : port.id}  :
+lemma propagate_port_out_inv (η : network.graph υ) {p : port.id}  :
   ∀ o, (propagate_port η p).output o = η.output o :=
   by apply propagate_edges_out_inv
 
-lemma propagate_port_unique_ins_inv (η : network.graph) (p : port.id) (hᵤ : η.has_unique_port_ins) :
+lemma propagate_port_unique_ins_inv (η : network.graph υ) (p : port.id) (hᵤ : η.has_unique_port_ins) :
   (propagate_port η p).has_unique_port_ins :=
   begin
     have h, from propagate_port_equiv η p,
     exact network.graph.edges_inv_unique_port_ins_inv (symm h).left hᵤ
   end
 
-lemma propagate_port_comm (η : network.graph) (p p' : port.id) (hᵤ : η.has_unique_port_ins) : 
+lemma propagate_port_comm (η : network.graph υ) (p p' : port.id) (hᵤ : η.has_unique_port_ins) : 
   propagate_port (propagate_port η p) p' = propagate_port (propagate_port η p') p :=
   begin
     unfold propagate_port,

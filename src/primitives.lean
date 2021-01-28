@@ -8,7 +8,7 @@ def tag.micros_idx (t : tag) := t.2
 -- The type of opaque values that can be passed between reactors and processed by reactions.
 -- Their equality has to be decidable, but beyond that their values are of no interest. Hence they
 -- are modeled as `empty`.
-variable {value : Type*}
+variables (υ : Type*) [decidable_eq υ]
 
 -- Rationale for using *functions* in the following definitions:
 -- An intuitive approach for the definition of `input`, `output`, `ports` and `state` might be to
@@ -23,21 +23,21 @@ variable {value : Type*}
 -- This represents the state fields of a reactor.
 -- Since we don't ever need to work with the state fields within Lean, their definition is fuzzy
 -- for the sake of simplicity (we don't need to define a `nₛ` on reactors and reactions).
-def reactor.state_vars := list value
+def reactor.state_vars := list υ
 
 -- A mapping from port ids to (possibly empty) values.
 -- This represents the ports of a reactor.
 @[derive has_append]
-def reactor.ports := list (option value)
+def reactor.ports := list (option υ)
 
 namespace reactor.ports
 
   open reactor
 
-  def correspond_at (i : finset ℕ) (p p' : ports) : Prop :=
+  def correspond_at {υ} [decidable_eq υ] (i : finset ℕ) (p p' : ports υ) : Prop :=
     ∀ x ∈ i, p.nth x = p'.nth x
 
-  instance (i : finset ℕ) : is_equiv ports (correspond_at i) := 
+  instance (i : finset ℕ) : is_equiv (ports υ) (correspond_at i) := 
     {
       symm :=  begin unfold correspond_at, finish end,
       trans := begin unfold correspond_at, finish end,
@@ -46,31 +46,31 @@ namespace reactor.ports
 
   -- A port assignment where all values are empty.
   @[reducible]
-  def empty (n : ℕ) : ports := list.repeat none n
+  def empty (n : ℕ) : ports υ := list.repeat none n
 
   lemma empty_cons (n : ℕ) :
-    empty (n + 1) = none :: empty n :=
+    empty υ (n + 1) = none :: empty υ n :=
     by refl
 
   -- The proposition, that a given port assignment is empty.
-  def is_empty (p : ports) : Prop :=
-    p = empty p.length
+  def is_empty (p : ports υ) : Prop :=
+    p = empty υ p.length
 
   -- The indices in the given port map that have a corresponding (non-`none`) value.
-  noncomputable def inhabited_indices (p : ports) : list ℕ :=
+  noncomputable def inhabited_indices {υ} [decidable_eq υ] (p : ports υ) : list ℕ :=
     p.find_indexes (λ e, e ≠ none)
 
-  lemma inhabited_indices_nodup (p : ports) : 
+  lemma inhabited_indices_nodup (p : ports υ) : 
     list.nodup (inhabited_indices p) :=
     sorry
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports, but the length remains that of `first`.
-  def merge (first last : ports) : ports :=
+  def merge {υ} [decidable_eq υ] (first last : ports υ) : ports υ :=
     (last.zip_with (<|>) first) ++ 
-    if first.length ≤ last.length then [] else empty (first.length - last.length)
+    if first.length ≤ last.length then [] else empty υ (first.length - last.length)
 
-  lemma merge_length (p p' : ports) : 
+  lemma merge_length (p p' : ports υ) : 
     (p.merge p').length = p.length :=
     begin
       unfold merge,
@@ -87,11 +87,11 @@ namespace reactor.ports
         }
     end
 
-  lemma merge_empty_is_neutral (p : ports) :
-    p.merge (empty p.length) = p := 
+  lemma merge_empty_is_neutral (p : ports υ) :
+    p.merge (empty υ p.length) = p := 
     begin
       unfold merge,
-      have h : list.length p ≤ list.length (empty (list.length p)), {
+      have h : list.length p ≤ list.length (empty υ (list.length p)), {
         unfold empty,
         finish
       },
@@ -102,7 +102,7 @@ namespace reactor.ports
           rw list.length_cons,
           rw empty_cons, 
           rw list.zip_with_cons_cons, 
-          have h' : (empty p_tl.length).length = p_tl.length, by apply list.length_repeat,
+          have h' : (empty υ p_tl.length).length = p_tl.length, by apply list.length_repeat,
           have h'', from p_ih (le_of_eq (symm h')),  
           simp [(<|>)],
           rw list.append_nil at h'',
@@ -110,7 +110,7 @@ namespace reactor.ports
         }
     end
 
-  lemma merge_skips_empty (first last : ports) (i : ℕ) :
+  lemma merge_skips_empty (first last : ports υ) (i : ℕ) :
     last.nth i = some none → (first.merge last).nth i = first.nth i := 
     begin
       assume h,

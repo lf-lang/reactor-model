@@ -1,7 +1,7 @@
 import network.basic
 import data.rel
 
-def tpm := finset (tag × option empty)
+def TPM := finset (tag × option empty)
 
 structure action_port_edge := 
   (src : port.id)
@@ -11,12 +11,12 @@ def finset.are_well_formed (es : finset action_port_edge) : Prop :=
   ∀ e e' : action_port_edge, e ∈ es → e' ∈ es → 
     e.src = e'.src → e = e'
 
-def finset.are_separate_from (es : finset action_port_edge) (n : network) : Prop :=
+def finset.are_separate_from (es : finset action_port_edge) (n : network TPM) : Prop :=
   ∀ (e : action_port_edge) (e' : network.graph.edge), e ∈ es → e' ∈ n.η → 
     e.dst ≠ e'.src ∧ e.src ≠ e'.dst
 
 structure timed_network :=
-  (n : network)
+  (n : network TPM)
   (time : tag)
   (event_queue : list tag)
   (action_ports : finset action_port_edge)

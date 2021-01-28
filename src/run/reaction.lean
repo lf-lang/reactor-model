@@ -4,10 +4,12 @@ import run.reactor
 
 open network
 
-noncomputable def run_reaction (η : network.graph) (i : reaction.id) : network.graph :=
+variables {υ : Type*} [decidable_eq υ]
+
+noncomputable def run_reaction (η : network.graph υ) (i : reaction.id) : network.graph υ :=
   apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)
     
-lemma run_reaction_equiv (η : network.graph) (i : reaction.id) :
+lemma run_reaction_equiv (η : network.graph υ) (i : reaction.id) :
   run_reaction η i ≈ η :=
   begin
     unfold run_reaction,
@@ -15,7 +17,7 @@ lemma run_reaction_equiv (η : network.graph) (i : reaction.id) :
     apply reactor.run_equiv
   end
 
-lemma run_reaction_output_inv (η : network.graph) {i : reaction.id} :
+lemma run_reaction_output_inv (η : network.graph υ) {i : reaction.id} :
   ∀ r, i.rtr ≠ r → ((run_reaction η i).rtr r).output = (η.rtr r).output :=
   begin
     intros r h,
@@ -24,13 +26,13 @@ lemma run_reaction_output_inv (η : network.graph) {i : reaction.id} :
     sorry
   end
 
-lemma run_reaction_state_inv (η : network.graph) {i : reaction.id} :
+lemma run_reaction_state_inv (η : network.graph υ) {i : reaction.id} :
   ∀ r, i.rtr ≠ r → ((run_reaction η i).rtr r).state = (η.rtr r).state :=
   begin
     sorry
   end
 
-lemma run_reaction_indep_eq {η : network.graph} (hᵤ : η.has_unique_port_ins) {ρ : precedence.graph} (h_wf : ρ.is_well_formed_over η) {i i' : reaction.id} :
+lemma run_reaction_indep_eq {η : network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : precedence.graph υ} (h_wf : ρ.is_well_formed_over η) {i i' : reaction.id} :
   ¬(i~ρ~>i') → i.rtr ≠ i'.rtr → ((run_reaction η i).rtr i'.rtr).eq_rel_to (η.rtr i'.rtr) i'.rcn :=
   begin
     intros hₚ hₙ,
@@ -49,7 +51,7 @@ lemma run_reaction_indep_eq {η : network.graph} (hᵤ : η.has_unique_port_ins)
 
 -- If there is no path between two reactions in a precedence graph, then they are independent,
 -- i.e. their order of execution doesn't matter.
-lemma run_reaction_comm {η : network.graph} (hᵤ : η.has_unique_port_ins) {ρ : precedence.graph} (h_wf : ρ.is_well_formed_over η) {i i' : reaction.id} :
+lemma run_reaction_comm {η : network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : precedence.graph υ} (h_wf : ρ.is_well_formed_over η) {i i' : reaction.id} :
   ¬(i~ρ~>i') → ¬(i'~ρ~>i) → run_reaction (run_reaction η i) i' = run_reaction (run_reaction η i') i :=
   begin 
     intros hₚ hₚ',

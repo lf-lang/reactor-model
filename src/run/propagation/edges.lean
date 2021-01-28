@@ -3,10 +3,12 @@ import run.propagation.edge
 
 open network
 
-noncomputable def propagate_edges : network.graph → list graph.edge → network.graph :=
+variables {υ : Type*} [decidable_eq υ]
+
+noncomputable def propagate_edges : network.graph υ → list graph.edge → network.graph υ :=
   list.foldl propagate_edge
 
-lemma propagate_edges_equiv (η : network.graph) (e : list network.graph.edge) :
+lemma propagate_edges_equiv (η : network.graph υ) (e : list network.graph.edge) :
   propagate_edges η e ≈ η :=
   begin
     induction e generalizing η,
@@ -22,7 +24,7 @@ lemma propagate_edges_equiv (η : network.graph) (e : list network.graph.edge) :
       } 
   end
 
-lemma propagate_edges_out_inv (η : network.graph) {e : list graph.edge}  :
+lemma propagate_edges_out_inv (η : network.graph υ) {e : list graph.edge}  :
   ∀ o, (propagate_edges η e).output o = η.output o :=
   begin
     intro o,
@@ -32,14 +34,14 @@ lemma propagate_edges_out_inv (η : network.graph) {e : list graph.edge}  :
       rw [list.foldl_cons, e_ih, propagate_edge_out_inv]
   end
 
-lemma propagate_edges_unique_ins_inv (η : network.graph) (e : list graph.edge) (hᵤ : η.has_unique_port_ins) :
+lemma propagate_edges_unique_ins_inv (η : network.graph υ) (e : list graph.edge) (hᵤ : η.has_unique_port_ins) :
   (propagate_edges η e).has_unique_port_ins :=
   begin
     have h, from propagate_edges_equiv η e,
     exact network.graph.edges_inv_unique_port_ins_inv (symm h).left hᵤ
   end
 
-lemma propagate_edges_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (e e' : list graph.edge) (hₘ : ∀ x ∈ e, x ∈ η) (hₚ : e ~ e') :
+lemma propagate_edges_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (e e' : list graph.edge) (hₘ : ∀ x ∈ e, x ∈ η) (hₚ : e ~ e') :
   propagate_edges η e = propagate_edges η e' :=
   begin
     have hₘ' : ∀ x ∈ e', x ∈ η, {
@@ -79,6 +81,6 @@ lemma propagate_edges_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) 
       }
   end
 
-lemma propagate_edges_append (η : network.graph) (e e' : list graph.edge) :
+lemma propagate_edges_append (η : network.graph υ) (e e' : list graph.edge) :
   propagate_edges (propagate_edges η e) e' = propagate_edges η (e ++ e') :=
   by simp [propagate_edges, list.foldl_append]

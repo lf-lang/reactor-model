@@ -3,11 +3,13 @@ import run.propagation.port
 
 open network
 
+variables {υ : Type*} [decidable_eq υ]
+
 -- For all edges `e` with `e.src ∈ p`, set `e.dst` to `rtr.output.nth e.src`.  
-noncomputable def propagate_ports : network.graph → list port.id → network.graph :=
+noncomputable def propagate_ports : network.graph υ → list port.id → network.graph υ :=
   list.foldl propagate_port
 
-lemma propagate_ports_out_inv (η : network.graph) {p : list port.id}  :
+lemma propagate_ports_out_inv (η : network.graph υ) {p : list port.id}  :
   ∀ o, (propagate_ports η p).output o = η.output o :=
   begin
     intro o,
@@ -17,7 +19,7 @@ lemma propagate_ports_out_inv (η : network.graph) {p : list port.id}  :
       rw [list.foldl_cons, p_ih, propagate_port_out_inv]
   end
 
-lemma propagate_ports_comm (η : network.graph) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) (hₚ : p' ~ p) :
+lemma propagate_ports_comm (η : network.graph υ) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) (hₚ : p' ~ p) :
   propagate_ports η p = propagate_ports η p' :=
   begin
     unfold propagate_ports,
@@ -39,7 +41,7 @@ lemma propagate_ports_comm (η : network.graph) (p p' : list port.id) (hᵤ : η
       }
   end
 
-lemma propagate_ports_comm' (η : network.graph) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) :
+lemma propagate_ports_comm' (η : network.graph υ) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) :
   propagate_ports (propagate_ports η p) p' = propagate_ports (propagate_ports η p') p :=
   begin
     unfold propagate_ports,
@@ -48,7 +50,7 @@ lemma propagate_ports_comm' (η : network.graph) (p p' : list port.id) (hᵤ : �
     apply propagate_ports_comm _ _ _ hᵤ list.perm_append_comm
   end 
 
-lemma propagate_ports_equiv (η η' : network.graph) (p : list port.id) (h : η ≈ η') :
+lemma propagate_ports_equiv (η η' : network.graph υ) (p : list port.id) (h : η ≈ η') :
   propagate_ports η p ≈ η' :=
   begin
     induction p with pₕ pₜ hᵢ generalizing η,

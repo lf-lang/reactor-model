@@ -9,31 +9,33 @@ open reactor
 -- Since *actions* are not defined in this simplified model of reactors, the set of `triggers` is
 -- simply a subset of the input dependencies `dᵢ`. The proof `nonempty_triggers` assures that a
 -- reaction has at *least* some trigger.
-structure reaction :=
+structure reaction (υ : Type*) [decidable_eq υ] :=
   (dᵢ : finset ℕ) 
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
-  (body : ports → state_vars → (ports × state_vars))
+  (body : ports υ → state_vars υ → (ports υ × state_vars υ))
   (well_behaved : ∀ i i' s, ports.correspond_at dᵢ i i' → body i s = body i' s)
   (output_constrained : ∀ i s o, o ∉ dₒ → (body i s).1.nth o = none) 
 
 namespace reaction
 
-  instance coe_to_fun : has_coe_to_fun reaction :=
+  variables {υ : Type*} [decidable_eq υ]
+
+  instance coe_to_fun : has_coe_to_fun (reaction υ) :=
     ⟨_, (λ r, r.body)⟩
 
-  noncomputable instance dec_eq : decidable_eq reaction := 
+  noncomputable instance dec_eq : decidable_eq (reaction υ) := 
     classical.dec_eq _
 
   -- The proposition, that a given reaction fires on a given port map. This is only defined when
   -- the dimensions of the given port map match the reaction's input dimensions (`r.nᵢ`).
-  def fires_on (r : reaction) (p : ports) : Prop :=
-    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers) (v : value), p.nth t = some v
+  def fires_on (r : reaction υ) (p : ports υ) : Prop :=
+    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers) (v : υ), p.nth t = some v
 
-  instance dec_fires_on (r : reaction) (p : ports) : decidable (r.fires_on p) := 
+  instance dec_fires_on (r : reaction υ) (p : ports υ) : decidable (r.fires_on p) := 
     sorry
 
-  lemma eq_fires_on_corr_input (r : reaction) (p p' : ports) (h : ports.correspond_at r.dᵢ p p') :
+  lemma eq_fires_on_corr_input (r : reaction υ) (p p' : ports υ) (h : ports.correspond_at r.dᵢ p p') :
     r.fires_on p ↔ r.fires_on p' :=
     begin
       unfold fires_on,
@@ -50,8 +52,8 @@ namespace reaction
     end
 
   -- A reaction will never fire on empty ports.
-  lemma no_in_no_fire (r : reaction) : 
-    ∀ n : ℕ, ¬ r.fires_on (ports.empty n) := 
+  lemma no_in_no_fire (r : reaction υ) : 
+    ∀ n : ℕ, ¬ r.fires_on (ports.empty υ n) := 
     begin 
       intro n,
       unfold reaction.fires_on,

@@ -17,32 +17,35 @@ namespace network
 
   end graph
 
-  def graph := digraph reactor.id reactor graph.edge
+  def graph (υ : Type*) [decidable_eq υ] : Type* := 
+    digraph reactor.id (reactor υ) graph.edge
+
+  variables {υ : Type*} [decidable_eq υ]
 
   namespace graph
 
     noncomputable instance dec_eq : decidable_eq graph.edge := classical.dec_eq _
 
     @[reducible]
-    instance rtr_mem : has_mem reactor graph := {mem := λ d g, ∃ i, g.data i = d}
+    instance rtr_mem : has_mem (reactor υ) (graph υ) := {mem := λ d g, ∃ i, g.data i = d}
 
     @[reducible]
-    instance edge_mem : has_mem edge graph := {mem := λ e η, e ∈ η.edges}
+    instance edge_mem : has_mem edge (graph υ) := {mem := λ e η, e ∈ η.edges}
 
     -- The reactor contained in a network graph, that is associated with a given reaction ID.
-    noncomputable def rtr (η : network.graph) (i : reactor.id) : reactor :=
+    noncomputable def rtr (η : network.graph υ) (i : reactor.id) : reactor υ :=
       η.data i
 
-    instance equiv : has_equiv graph := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.rtr i) ≈ (η'.rtr i)⟩
+    instance equiv : has_equiv (graph υ) := ⟨λ η η', η.edges = η'.edges ∧ η.ids = η'.ids ∧ ∀ i, (η.rtr i) ≈ (η'.rtr i)⟩
 
-    instance : is_equiv graph (≈) := 
+    instance : is_equiv (graph υ) (≈) := 
       {
         symm := begin simp [(≈)], finish end,
         trans := begin simp [(≈)], finish end,
         refl := by simp [(≈)]
       }
 
-    lemma mem_equiv_trans (η η' : network.graph) (e : edge) (h : η ≈ η') :
+    lemma mem_equiv_trans (η η' : graph υ) (e : edge) (h : η ≈ η') :
       e ∈ η → e ∈ η' := 
       begin
         intro hₘ,
@@ -52,35 +55,35 @@ namespace network
       end
 
     -- The reaction contained in a network graph, that is associated with a given reaction ID.
-    noncomputable def rcn (η : network.graph) (i : reaction.id) : reaction :=
+    noncomputable def rcn (η : graph υ) (i : reaction.id) : reaction υ :=
       (η.data i.rtr).reactions i.rcn
 
     -- The output port in a network graph, that is associated with a given port ID.
-    noncomputable def output (η : network.graph) (p : port.id) : option value :=
+    noncomputable def output (η : graph υ) (p : port.id) : option υ :=
       option.join ((η.data p.rtr).output.nth p.prt)
 
-    noncomputable def edges_out_of (η : network.graph) (p : port.id) : finset graph.edge :=
+    noncomputable def edges_out_of (η : graph υ) (p : port.id) : finset graph.edge :=
       η.edges.filter (λ e, (e : graph.edge).src = p)
 
-    noncomputable def update_reactor (η : network.graph) (i : reactor.id) (r : reactor) : network.graph :=
+    noncomputable def update_reactor (η : graph υ) (i : reactor.id) (r : reactor υ) : graph υ :=
       η.update_data i r
       /-
         unique_ins := graph.edges_inv_unique_port_ins_inv (refl _) n.unique_ins,
         prec_acyclic := graph.equiv_prec_acyc_inv (graph.update_with_equiv_rtr_is_equiv _ _ _ h) n.prec_acyclic
       -/
 
-    noncomputable def update_input (η : network.graph) (p : port.id) (v : option value) : network.graph :=
+    noncomputable def update_input (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
       update_reactor η p.rtr ((η.data p.rtr).update_input p.prt v)
 
-    private noncomputable def wipe_reactor (η : network.graph) (i : reactor.id) : network.graph :=
+    private noncomputable def wipe_reactor (η : graph υ) (i : reactor.id) : graph υ :=
       let rtr := η.rtr i in
-      η.update_reactor i {input := ports.empty rtr.input.length, output := ports.empty rtr.output.length, ..rtr}
+      η.update_reactor i {input := (ports.empty _) rtr.input.length, output := (ports.empty _) rtr.output.length, ..rtr}
 
     -- Wipes all ports in the graph.
-    noncomputable def empty_ports (η : network.graph) : network.graph :=
+    noncomputable def empty_ports (η : graph υ) : graph υ :=
       list.foldl wipe_reactor η η.ids.val.to_list
 
-    lemma edges_out_of_mem (η : network.graph) (p : port.id) :
+    lemma edges_out_of_mem (η : graph υ) (p : port.id) :
       ∀ e ∈ η.edges_out_of p, e ∈ η :=
       begin
         intros e h,
@@ -89,7 +92,7 @@ namespace network
       end
 
     -- Updating a network graph with an equivalent reactor keeps their `data` equivalent.
-    lemma update_with_equiv_rtr_all_data_equiv {η : network.graph} (i : reactor.id) (rtr : reactor) :
+    lemma update_with_equiv_rtr_all_data_equiv {η : graph υ} (i : reactor.id) (rtr : reactor υ) :
       η.data i ≈ rtr → ∀ r, η.data r ≈ (η.update_data i rtr).data r :=
       begin
         intros hₑ r,
@@ -100,7 +103,7 @@ namespace network
       end
 
     -- Updating a network graph with an equivalent reactor produces an equivalent network graph.
-    theorem update_with_equiv_rtr_is_equiv (η : network.graph) (i : reactor.id) (rtr : reactor) :
+    theorem update_with_equiv_rtr_is_equiv (η : graph υ) (i : reactor.id) (rtr : reactor υ) :
       η.data i ≈ rtr → η ≈ η.update_data i rtr :=
       begin
         intro hₑ,
@@ -115,11 +118,11 @@ namespace network
 
     -- The proposition, that for all input ports (`i`) in `η` the number of edges that have `i` as
     -- destination is ≤ 1.
-    def has_unique_port_ins (η : network.graph) : Prop :=
+    def has_unique_port_ins (η : graph υ) : Prop :=
       ∀ e e' : edge, (e ∈ η) → (e' ∈ η) → e ≠ e' → e.dst ≠ e'.dst
       -- Alternatively: ∀ e e' : edge, (e ∈ η) → (e' ∈ η) → e = e' ∨ e.dst ≠ e'.dst
 
-    lemma edges_inv_unique_port_ins_inv {η η' : network.graph} :
+    lemma edges_inv_unique_port_ins_inv {η η' : graph υ} :
       η.edges = η'.edges → η.has_unique_port_ins → η'.has_unique_port_ins :=
       begin
         intros hₑ hᵤ,
@@ -131,14 +134,14 @@ namespace network
         apply hᵤ 
       end
 
-    lemma update_reactor_equiv (η : network.graph) (i : reactor.id) (r : reactor) (h : η.rtr i ≈ r) :
+    lemma update_reactor_equiv (η : graph υ) (i : reactor.id) (r : reactor υ) (h : η.rtr i ≈ r) :
       (η.update_reactor i r) ≈ η :=
       begin
         unfold update_reactor,
         exact symm_of (≈) (graph.update_with_equiv_rtr_is_equiv η i r h)
       end
 
-    lemma update_input_equiv (η : network.graph) (p : port.id) (v : option value) :
+    lemma update_input_equiv (η : graph υ) (p : port.id) (v : option υ) :
       (η.update_input p v) ≈ η :=
       begin
         unfold update_input,
@@ -147,7 +150,7 @@ namespace network
         exact update_reactor_equiv _ _ _ h
       end
 
-    lemma update_reactor_out_inv (η : network.graph) (i : reactor.id) (rtr : reactor) (h : rtr.output = (η.rtr i).output) :
+    lemma update_reactor_out_inv (η : graph υ) (i : reactor.id) (rtr : reactor υ) (h : rtr.output = (η.rtr i).output) :
       ∀ o, (η.update_reactor i rtr).output o = η.output o :=
       begin
         intro o,
@@ -164,7 +167,7 @@ namespace network
           rw if_neg hᵢ
       end
 
-    lemma update_input_out_inv (η : network.graph) (p : port.id) (v : option value) :
+    lemma update_input_out_inv (η : graph υ) (p : port.id) (v : option υ) :
       ∀ o, (η.update_input p v).output o = η.output o :=
       begin
         unfold update_input,
@@ -172,7 +175,7 @@ namespace network
         apply reactor.update_input_out_inv
       end
 
-    lemma update_reactor_comm {i i' : reactor.id} (h : i ≠ i') (r r' : reactor) (η : network.graph) :
+    lemma update_reactor_comm {i i' : reactor.id} (h : i ≠ i') (r r' : reactor υ) (η : graph υ) :
       (η.update_reactor i r).update_reactor i' r' = (η.update_reactor i' r').update_reactor i r :=
       begin
         unfold update_reactor,
@@ -180,7 +183,7 @@ namespace network
         exact h,
       end 
 
-    lemma update_input_comm {i i' : port.id} (h : i ≠ i') (v v' : option value) (η : network.graph) :
+    lemma update_input_comm {i i' : port.id} (h : i ≠ i') (v v' : option υ) (η : graph υ) :
       (η.update_input i v).update_input i' v' = (η.update_input i' v').update_input i v :=
       sorry
 

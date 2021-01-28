@@ -1,24 +1,26 @@
 import network.basic  
 import precedence.lemmas
 
+variables (υ : Type*) [decidable_eq υ]
+
 namespace network
 
   @[ext]
   structure prec_func :=
-    (func : network → precedence.graph)
+    (func : network υ → precedence.graph υ)
     (well_formed : ∀ n, (func n).is_well_formed_over n.η)
 
-  instance prec_func_coe : has_coe_to_fun prec_func := 
+  instance prec_func_coe : has_coe_to_fun (prec_func υ) := 
     ⟨_, (λ f, f.func)⟩
 
   theorem all_prec_funcs_are_eq : 
-    ∀ p p' : prec_func, p = p' :=
+    ∀ p p' : prec_func υ, p = p' :=
     begin
       intros p p',
       have h_func : p.func = p'.func, {
         suffices h : ∀ n, p.func n = p'.func n, from funext h,
         intro n,
-        have h_unique : ∃! ρ : precedence.graph, ρ.is_well_formed_over n.η,
+        have h_unique : ∃! ρ : precedence.graph _, ρ.is_well_formed_over n.η,
         from precedence.any_acyc_net_graph_has_exactly_one_wf_prec_graph n.η n.prec_acyclic,
         have h_wf, from p.well_formed n,
         have h_wf', from p'.well_formed n,
@@ -28,10 +30,10 @@ namespace network
     end
 
   structure topo_func :=
-    (func : precedence.graph → list reaction.id)
-    (is_topo : ∀ (n : network) (ρ : precedence.graph) (h : ρ.is_well_formed_over n.η), digraph.is_complete_topo_over (func ρ) ρ (n.prec_acyclic ρ h))
+    (func : precedence.graph υ → list reaction.id)
+    (is_topo : ∀ (n : network υ) (ρ : precedence.graph υ) (h : ρ.is_well_formed_over n.η), digraph.is_complete_topo_over (func ρ) ρ (n.prec_acyclic ρ h))
 
-  instance topo_func_coe : has_coe_to_fun topo_func := 
+  instance topo_func_coe : has_coe_to_fun (topo_func υ) := 
     ⟨_, (λ f, f.func)⟩
 
 end network

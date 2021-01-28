@@ -16,23 +16,25 @@ open reaction
 -- self-reactor's ports. This would in turn also require nᵢ and nₒ to move into a 
 -- reactor's type.
 
-structure reactor :=
-  (input : ports)
-  (output : ports)
-  (state : state_vars)
+structure reactor (υ : Type*) [decidable_eq υ] :=
+  (input : ports υ)
+  (output : ports υ)
+  (state : state_vars υ)
   (priorities : finset ℕ)
-  (reactions : ℕ → reaction)
-
-noncomputable instance : decidable_eq reactor := classical.dec_eq _
+  (reactions : ℕ → reaction υ)
 
 namespace reactor 
 
+  variables {υ : Type*} [decidable_eq υ]
+
+  noncomputable instance : decidable_eq (reactor υ) := classical.dec_eq _
+
   @[reducible]
-  instance mem : has_mem reaction reactor := {mem := λ rcn rtr, ∃ p ∈ rtr.priorities, rtr.reactions p = rcn}
+  instance mem : has_mem (reaction υ) (reactor υ) := {mem := λ rcn rtr, ∃ p ∈ rtr.priorities, rtr.reactions p = rcn}
 
-  instance equiv : has_equiv reactor := ⟨λ r r', r.priorities = r'.priorities ∧ r.reactions = r'.reactions⟩
+  instance equiv : has_equiv (reactor υ) := ⟨λ r r', r.priorities = r'.priorities ∧ r.reactions = r'.reactions⟩
 
-  instance : is_equiv reactor (≈) := 
+  instance : is_equiv (reactor υ) (≈) := 
     {
       symm := begin simp [(≈)], finish end,
       trans := begin simp [(≈)], finish end,
@@ -41,21 +43,21 @@ namespace reactor
 
   -- Two reactors are equal relative to a given reaction if they agree on everything, excluding
   -- their input-ports which only have to correspond relative to the given reaction.
-  def eq_rel_to (rtr rtr' : reactor) (rcn_id : ℕ) : Prop :=
+  def eq_rel_to (rtr rtr' : reactor υ) (rcn_id : ℕ) : Prop :=
     rtr ≈ rtr' ∧ rtr.output = rtr'.output ∧ rtr.state = rtr'.state ∧ 
     ports.correspond_at (rtr.reactions rcn_id).dᵢ rtr.input rtr'.input
 
-  noncomputable def priority_of (rtr : reactor) (rcn : reaction) (h : rcn ∈ rtr) : ℕ := 
+  noncomputable def priority_of (rtr : reactor υ) (rcn : reaction υ) (h : rcn ∈ rtr) : ℕ := 
     h.some
 
-  noncomputable def run (rtr : reactor) (rcn_id : ℕ) : reactor × list ℕ :=
+  noncomputable def run (rtr : reactor υ) (rcn_id : ℕ) : reactor υ × list ℕ :=
     if (rtr.reactions rcn_id).fires_on rtr.input then
       let os' := (rtr.reactions rcn_id) rtr.input rtr.state in
       ({output := rtr.output.merge os'.1, state := os'.2, ..rtr}, os'.1.inhabited_indices)
     else 
       (rtr, [])
 
-  lemma run_equiv (rtr : reactor) (rcn_id : ℕ) : 
+  lemma run_equiv (rtr : reactor υ) (rcn_id : ℕ) : 
     rtr ≈ (rtr.run rcn_id).1 :=
     begin
       unfold run,
@@ -63,7 +65,7 @@ namespace reactor
         ; simp [h, (≈)]
     end
 
-  lemma run_input_inv (rtr : reactor) (rcn_id : ℕ) :
+  lemma run_input_inv (rtr : reactor υ) (rcn_id : ℕ) :
     (rtr.run rcn_id).1.input = rtr.input :=
     begin
       unfold run,
@@ -72,11 +74,11 @@ namespace reactor
         ; finish
     end
 
-  lemma run_affected_ports_sub_dₒ (rtr : reactor) (rcn_id : ℕ) :
+  lemma run_affected_ports_sub_dₒ (rtr : reactor υ) (rcn_id : ℕ) :
     (rtr.run rcn_id).2.to_finset ⊆ (rtr.reactions rcn_id).dₒ :=
     sorry
 
-  theorem eq_rel_to_rcn_run (rtr rtr' : reactor) (rcn_id : ℕ) : 
+  theorem eq_rel_to_rcn_run (rtr rtr' : reactor υ) (rcn_id : ℕ) : 
     rtr.eq_rel_to rtr' rcn_id → (rtr.run rcn_id).1.eq_rel_to (rtr'.run rcn_id).1 rcn_id ∧ (rtr.run rcn_id).2 = (rtr'.run rcn_id).2 :=
     begin
       intro h,
@@ -109,17 +111,17 @@ namespace reactor
         }
     end
 
-  def update_input (rtr : reactor) (i : ℕ) (v : option value) : reactor :=
+  def update_input (rtr : reactor υ) (i : ℕ) (v : option υ) : reactor υ :=
     {input := rtr.input.update_nth i v, ..rtr}
 
-  lemma update_input_equiv (rtr : reactor) (i : ℕ) (v : option value) : 
+  lemma update_input_equiv (rtr : reactor υ) (i : ℕ) (v : option υ) : 
     rtr ≈ rtr.update_input i v :=
     begin
       unfold update_input,
       simp [(≈)]
     end
 
-  lemma update_input_comm {i i' : ℕ} (h : i ≠ i') (v v' : option value) (rtr : reactor) :
+  lemma update_input_comm {i i' : ℕ} (h : i ≠ i') (v v' : option υ) (rtr : reactor υ) :
     (rtr.update_input i v).update_input i' v' = (rtr.update_input i' v').update_input i v :=
     begin
       unfold update_input,
@@ -127,7 +129,7 @@ namespace reactor
       apply list.update_nth_comm _ _ _ _ _ h _,
     end
 
-  lemma update_input_out_inv (rtr : reactor) (i : ℕ) (v : option value) :
+  lemma update_input_out_inv (rtr : reactor υ) (i : ℕ) (v : option υ) :
     (rtr.update_input i v).output = rtr.output :=
     by unfold update_input
 

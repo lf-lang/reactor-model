@@ -4,10 +4,12 @@ import precedence.lemmas
 
 open network
 
-noncomputable def run_topo : network.graph → list reaction.id → network.graph :=
+variables {υ : Type*} [decidable_eq υ]
+
+noncomputable def run_topo : network.graph υ → list reaction.id → network.graph υ :=
   list.foldl run_reaction
 
-lemma run_topo_equiv (η : network.graph) (t : list reaction.id) :
+lemma run_topo_equiv (η : network.graph υ) (t : list reaction.id) :
   run_topo η t ≈ η :=
   begin
     induction t with tₕ tₜ hᵢ generalizing η,
@@ -23,14 +25,14 @@ lemma run_topo_equiv (η : network.graph) (t : list reaction.id) :
       }
   end
 
-lemma run_topo_unique_ports_inv (n : network) (topo : list reaction.id) : 
+lemma run_topo_unique_ports_inv (n : network υ) (topo : list reaction.id) : 
   (run_topo n.η topo).has_unique_port_ins :=
   begin
     have h, from run_topo_equiv n.η topo,
     exact network.graph.edges_inv_unique_port_ins_inv (symm h).left n.unique_ins
   end 
   
-lemma run_topo_prec_acyc_inv (n : network) (topo : list reaction.id) : 
+lemma run_topo_prec_acyc_inv (n : network υ) (topo : list reaction.id) : 
   (run_topo n.η topo).is_prec_acyclic :=
   begin
     have h, from run_topo_equiv n.η topo,
@@ -39,8 +41,8 @@ lemma run_topo_prec_acyc_inv (n : network) (topo : list reaction.id) :
 
 -- pulling a completely independent element out of the list to the front does not change the behaviour of run_topo.
 lemma run_topo_swap 
-{η : network.graph} (hᵤ : η.has_unique_port_ins) 
-{ρ : precedence.graph} (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η)
+{η : network.graph υ} (hᵤ : η.has_unique_port_ins) 
+{ρ : precedence.graph υ} (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η)
 (t : list reaction.id) (hₜ : digraph.is_topological_order t h_a) 
 (i : reaction.id) (h_ti : i ∈ t) (hᵢ : digraph.fully_indep i t ρ) :
   run_topo η t = run_topo η (i :: (t.erase i)) :=
@@ -72,7 +74,7 @@ lemma run_topo_swap
       }
   end
 
-theorem run_topo_comm (η : network.graph) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph) (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η) :
+theorem run_topo_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph υ) (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η) :
   ∀ (t t') (h_t : digraph.is_topological_order t h_a) (h_t' : digraph.is_topological_order t' h_a) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
   begin
     intros t t' h_t h_t' hₚ,

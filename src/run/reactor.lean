@@ -5,11 +5,13 @@ import run.propagation.output
 
 open network
 
+variables {υ : Type*} [decidable_eq υ]
+
 -- `rp.2` indicates which output ports should be propagated
-noncomputable def apply_reactor (η : network.graph) (i : reactor.id) (rp : reactor × list ℕ) : network.graph :=
+noncomputable def apply_reactor (η : network.graph υ) (i : reactor.id) (rp : reactor υ × list ℕ) : network.graph υ :=
   propagate_output (η.update_reactor i rp.1) i rp.2
 
-lemma apply_reactor_equiv (η : network.graph) (i : reactor.id) (rp : reactor × list ℕ) (h : η.rtr i ≈ rp.1) :
+lemma apply_reactor_equiv (η : network.graph υ) (i : reactor.id) (rp : reactor υ × list ℕ) (h : η.rtr i ≈ rp.1) :
   apply_reactor η i rp ≈ η :=
   begin
     unfold apply_reactor,
@@ -18,18 +20,18 @@ lemma apply_reactor_equiv (η : network.graph) (i : reactor.id) (rp : reactor ×
     exact h
   end
 
-lemma apply_reactor_output_inv (η : network.graph) {i : reactor.id} {rp : reactor × list ℕ} :
+lemma apply_reactor_output_inv (η : network.graph υ) {i : reactor.id} {rp : reactor υ × list ℕ} :
   ∀ o : port.id, o.rtr ≠ i → (apply_reactor η i rp).output o = η.output o :=
   sorry
 
 -- THIS IS FALSE
 -- The second reactor needs to be able to depend on the first one, in the sense that the first one might change some of the second reactor's input ports.
 -- Hence we get `apply_reactor_run_eq_rel_to` below.
-lemma apply_reactor_comm_ (η : network.graph) (i i' : reactor.id) (rp rp' : reactor × list ℕ) (hᵤ : η.has_unique_port_ins) :
+lemma apply_reactor_comm_ (η : network.graph υ) (i i' : reactor.id) (rp rp' : reactor υ × list ℕ) (hᵤ : η.has_unique_port_ins) :
   apply_reactor (apply_reactor η i rp) i' rp' = apply_reactor (apply_reactor η i' rp') i rp :=
   sorry
 
-lemma apply_reactor_comm {η : network.graph} {ρ : precedence.graph} (h : ρ.is_well_formed_over η) {i i' : reaction.id} :
+lemma apply_reactor_comm {η : network.graph υ} {ρ : precedence.graph υ} (h : ρ.is_well_formed_over η) {i i' : reaction.id} :
   i ≠ i' → ¬(i~ρ~>i') → ¬(i'~ρ~>i) → true :=
   begin
     intros hₙ hₚ hₚ',
@@ -45,7 +47,7 @@ lemma apply_reactor_comm {η : network.graph} {ρ : precedence.graph} (h : ρ.is
 -- dependencies. 
 -- Then applying that reactor, i.e. setting it and propagating its outputs, does not affect any of
 -- `i'`'s dependencies (`dᵢ` ports).
-lemma apply_reactor_run_eq_rel_to {η : network.graph} (hᵤ : η.has_unique_port_ins) {ρ : precedence.graph} (h_wf : ρ.is_well_formed_over η) {i i' : reaction.id} (hᵢ : i ≠ i') {rp : reactor × list ℕ} (h_rp : rp.2.to_finset ⊆ (η.rcn i).dₒ) :
+lemma apply_reactor_run_eq_rel_to {η : network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : precedence.graph υ} (h_wf : ρ.is_well_formed_over η) {i i' : reaction.id} (hᵢ : i ≠ i') {rp : reactor υ × list ℕ} (h_rp : rp.2.to_finset ⊆ (η.rcn i).dₒ) :
   ¬(i~ρ~>i') → ¬(i'~ρ~>i) → reactor.eq_rel_to ((apply_reactor η i.rtr rp).rtr i'.rtr) (η.rtr i'.rtr) i'.rcn :=
   -- ¬(i~ρ~>i') → ¬(i'~ρ~>i) → reactor.eq_rel_to ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)).rtr i'.rtr) (η.rtr i'.rtr) i'.rcn :=
   begin
