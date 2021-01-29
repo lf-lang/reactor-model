@@ -58,9 +58,16 @@ namespace network
     noncomputable def rcn (η : graph υ) (i : reaction.id) : reaction υ :=
       (η.data i.rtr).reactions i.rcn
 
+    -- The input port in a network graph, that is associated with a given port ID.
+    noncomputable def input (η : graph υ) (p : port.id) : option υ :=
+      option.join ((η.data p.rtr).input.nth p.prt)
+
     -- The output port in a network graph, that is associated with a given port ID.
     noncomputable def output (η : graph υ) (p : port.id) : option υ :=
       option.join ((η.data p.rtr).output.nth p.prt)
+
+    noncomputable def dₒ (η : graph υ) (i : reaction.id) : finset port.id :=
+      (η.rcn i).dₒ.image (λ p, {port.id . rtr := i.rtr, prt := p})
 
     noncomputable def edges_out_of (η : graph υ) (p : port.id) : finset graph.edge :=
       η.edges.filter (λ e, (e : graph.edge).src = p)
@@ -75,13 +82,14 @@ namespace network
     noncomputable def update_input (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
       update_reactor η p.rtr ((η.data p.rtr).update_input p.prt v)
 
-    private noncomputable def wipe_reactor (η : graph υ) (i : reactor.id) : graph υ :=
-      let rtr := η.rtr i in
-      η.update_reactor i {input := (ports.empty _) rtr.input.length, output := (ports.empty _) rtr.output.length, ..rtr}
+    noncomputable def update_output (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
+      update_reactor η p.rtr ((η.data p.rtr).update_output p.prt v)
 
-    -- Wipes all ports in the graph.
-    noncomputable def empty_ports (η : graph υ) : graph υ :=
-      list.foldl wipe_reactor η η.ids.val.to_list
+    noncomputable def clear_reactor_excluding (η : graph υ) (r : reactor.id) (i : finset port.id) (o : finset port.id) : graph υ :=
+      η.update_reactor r ((η.rtr r).clear_ports_excluding (i.image (λ x, x.prt)) (o.image (λ x, x.prt)))
+
+    noncomputable def clear_ports_excluding (η : graph υ) (i : finset port.id) (o : finset port.id) : graph υ :=
+      η.ids.val.to_list.foldl (λ η' r, η'.clear_reactor_excluding r (i.filter (λ x, x.rtr = r)) (o.filter (λ x, x.rtr = r))) η
 
     lemma edges_out_of_mem (η : graph υ) (p : port.id) :
       ∀ e ∈ η.edges_out_of p, e ∈ η :=

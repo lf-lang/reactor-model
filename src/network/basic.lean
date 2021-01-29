@@ -35,4 +35,11 @@ namespace network
       apply hₘ
     end
 
+  noncomputable def clear_ports_excluding (n : network υ) (i : finset port.id) (o : finset port.id) : network υ :=
+    {
+      η := n.η.clear_ports_excluding i o,
+      unique_ins := sorry,
+      prec_acyclic := sorry
+    }
+
 end network

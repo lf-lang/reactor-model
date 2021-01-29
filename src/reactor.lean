@@ -47,8 +47,8 @@ namespace reactor
     rtr ≈ rtr' ∧ rtr.output = rtr'.output ∧ rtr.state = rtr'.state ∧ 
     ports.correspond_at (rtr.reactions rcn_id).dᵢ rtr.input rtr'.input
 
-  noncomputable def priority_of (rtr : reactor υ) (rcn : reaction υ) (h : rcn ∈ rtr) : ℕ := 
-    h.some
+  def rcns_with_dₒ (rtr : reactor υ) (p : ℕ) : finset ℕ :=
+    rtr.priorities.filter (λ p, p ∈ (rtr.reactions p).dₒ)
 
   noncomputable def run (rtr : reactor υ) (rcn_id : ℕ) : reactor υ × list ℕ :=
     if (rtr.reactions rcn_id).fires_on rtr.input then
@@ -132,5 +132,11 @@ namespace reactor
   lemma update_input_out_inv (rtr : reactor υ) (i : ℕ) (v : option υ) :
     (rtr.update_input i v).output = rtr.output :=
     by unfold update_input
+
+  def update_output (rtr : reactor υ) (i : ℕ) (v : option υ) : reactor υ :=
+    {input := rtr.output.update_nth i v, ..rtr}
+
+  noncomputable def clear_ports_excluding (rtr : reactor υ) (i : finset ℕ) (o : finset ℕ) : reactor υ :=
+    {input := rtr.input.clear_excluding i, output := rtr.output.clear_excluding o, ..rtr}
 
 end reactor

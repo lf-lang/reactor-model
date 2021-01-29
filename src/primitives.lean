@@ -1,10 +1,6 @@
 import data.finset
 import order.lexicographic
 
-def tag := lex ℕ ℕ  
-def tag.time_val (t : tag) := t.1 
-def tag.micros_idx (t : tag) := t.2 
-
 -- The type of opaque values that can be passed between reactors and processed by reactions.
 -- Their equality has to be decidable, but beyond that their values are of no interest. Hence they
 -- are modeled as `empty`.
@@ -140,5 +136,8 @@ namespace reactor.ports
             }
         }
     end
+
+  def clear_excluding {υ} [decidable_eq υ] (p : ports υ) (e : finset ℕ) : ports υ :=
+    p.enum.map (λ iv, if (iv.1 ∈ e) then iv.2 else none)
 
 end reactor.ports
