@@ -32,8 +32,8 @@ namespace reaction
   def fires_on (r : reaction υ) (p : ports υ) : Prop :=
     ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers) (v : υ), p.nth t = some v
 
-  instance dec_fires_on (r : reaction υ) (p : ports υ) : decidable (r.fires_on p) := 
-    sorry
+  noncomputable instance dec_fires_on (r : reaction υ) (p : ports υ) : decidable (r.fires_on p) := 
+    classical.prop_decidable _
 
   lemma eq_fires_on_corr_input (r : reaction υ) (p p' : ports υ) (h : ports.correspond_at r.dᵢ p p') :
     r.fires_on p ↔ r.fires_on p' :=

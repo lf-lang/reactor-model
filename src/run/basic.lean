@@ -1,4 +1,5 @@
 import digraph
+import topo
 import network.basic
 import run.algorithms
 import run.topo
@@ -33,9 +34,9 @@ namespace network
       },
       have h_pnw : (p' n).is_well_formed_over n.η, from p'.well_formed n,
       have h_pna : (p' n).is_acyclic, from n.prec_acyclic (p' n) h_pnw,
-      have h_t   : digraph.is_complete_topo_over (t (p' n)) (p' n) h_pna, from t.is_topo _ _ h_pnw,
-      have h_t'  : digraph.is_complete_topo_over (t' (p' n)) (p' n) h_pna, from t'.is_topo _ _ h_pnw,
-      have h_p   : (t (p' n)) ~ (t' (p' n)), from digraph.complete_topos_are_perm h_t h_t',
+      have h_t   : (t (p' n)).is_complete_topo h_pna, from t.is_topo _ _ h_pnw,
+      have h_t'  : (t' (p' n)).is_complete_topo h_pna, from t'.is_topo _ _ h_pnw,
+      have h_p   : (t (p' n)) ~ (t' (p' n)), from topo.complete_topos_are_perm h_t h_t',
       exact run_topo_comm n.η n.unique_ins _ h_pna h_pnw _ _ h_t.left h_t'.left h_p
     end
 

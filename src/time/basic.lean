@@ -29,7 +29,7 @@ def finset.are_functionally_unique_in (es : finset action_edge) (n : network τ)
 
 def finset.are_separate_from (es : finset action_edge) (n : network τ) : Prop :=
   ∀ (ae : action_edge) (ne : network.graph.edge), ae ∈ es → ne ∈ n.η → 
-    ae.dst ≠ ne.src ∧ ae.src ≠ ne.dst
+    ae.dst ≠ ne.dst ∧ ae.src ≠ ne.src
 
 def finset.are_well_formed_for (es : finset action_edge) (n : network τ) : Prop :=
   es.are_many_to_one ∧ 

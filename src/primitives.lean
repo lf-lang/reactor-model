@@ -1,5 +1,6 @@
 import data.finset
 import order.lexicographic
+import missing
 
 -- The type of opaque values that can be passed between reactors and processed by reactions.
 -- Their equality has to be decidable, but beyond that their values are of no interest. Hence they
@@ -53,12 +54,11 @@ namespace reactor.ports
     p = empty υ p.length
 
   -- The indices in the given port map that have a corresponding (non-`none`) value.
-  noncomputable def inhabited_indices {υ} [decidable_eq υ] (p : ports υ) : list ℕ :=
+  def inhabited_indices {υ} [decidable_eq υ] (p : ports υ) : list ℕ :=
     p.find_indexes (λ e, e ≠ none)
 
-  lemma inhabited_indices_nodup (p : ports υ) : 
-    list.nodup (inhabited_indices p) :=
-    sorry
+  lemma inhabited_indices_nodup (p : ports υ) : p.inhabited_indices.nodup :=
+    by simp [inhabited_indices, list.find_indexes_nodup]
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports, but the length remains that of `first`.
@@ -103,37 +103,6 @@ namespace reactor.ports
           simp [(<|>)],
           rw list.append_nil at h'',
           exact h''
-        }
-    end
-
-  lemma merge_skips_empty (first last : ports υ) (i : ℕ) :
-    last.nth i = some none → (first.merge last).nth i = first.nth i := 
-    begin
-      assume h,
-      unfold merge,
-      by_cases hₗ : list.length first ≤ list.length last,
-        {
-          rw [if_pos hₗ, list.append_nil, list.nth_zip_with, h, option.map_some],
-          unfold has_orelse.orelse,
-          simp [(<*>)], 
-          cases first.nth i
-            ; simp
-        },
-        {
-          rw if_neg hₗ,
-          have hₗ' : (list.zip_with has_orelse.orelse last first).length = first.length, 
-          from sorry,
-          by_cases hᵢ : i < first.length,
-            {
-              have hᵢ' : i < (list.zip_with has_orelse.orelse last first).length, by finish,
-              rw list.nth_append hᵢ',
-              rw list.nth_le_nth hᵢ',
-              rw list.nth_le_zip_with,
-              sorry
-            },
-            {
-              sorry
-            }
         }
     end
 

@@ -4,7 +4,6 @@ namespace timed_network
   
   def priority_pred (η : network.graph τ) (e e' : action_edge) : Prop :=
     match priority_of η e, priority_of η e' with
-    | none,   none    := true
     | _,      none    := true
     | none,   _       := true
     | some p, some p' := p ≥ p'
@@ -71,13 +70,13 @@ namespace timed_network
   noncomputable def run_aux (n : timed_network) (fₚ : prec_func τ) (tₚ : topo_func τ) : list tag → timed_network
     | [] := n
     | (hd :: tl) := 
-      let σ' := run_inst n.σ fₚ tₚ n.actions in
+      let σ' := run_inst (n.at_tag hd) fₚ tₚ n.actions in
       {
         σ := σ',
         time := hd,
         event_queue := (tl ++ (events_for σ' n.output_action_ports).val.to_list).merge_sort (≤),
         actions := n.actions,
-        well_formed := equiv_inst_net_wf_actions n σ' (run_inst_equiv _ _ _ _),
+        well_formed := equiv_inst_net_wf_actions n σ' (run_inst_equiv _ _ _ _)
       }
 
   noncomputable def run (n : timed_network) (fₚ : prec_func τ) (tₚ : topo_func τ) : timed_network :=
