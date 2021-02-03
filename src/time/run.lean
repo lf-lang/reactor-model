@@ -2,56 +2,51 @@ import time.basic
 
 namespace timed_network
   
-  def priority_pred (η : network.graph τ) (e e' : action_edge) : Prop :=
-    match priority_of η e, priority_of η e' with
+  def priority_pred (σ : network τ) (e e' : action_edge) : Prop :=
+    match priority_of e σ, priority_of e' σ with
     | _,      none    := true
     | none,   _       := true
     | some p, some p' := p ≥ p'
     end
 
-  instance {η : network.graph τ} : is_total action_edge (priority_pred η) := sorry
-  instance {η : network.graph τ} : is_antisymm action_edge (priority_pred η) := sorry
-  instance {η : network.graph τ} : is_trans action_edge (priority_pred η) := sorry
-  instance {η : network.graph τ} : decidable_rel (priority_pred η) := sorry
+  instance {n : network τ} : is_total action_edge (priority_pred n) := sorry
+  instance {n : network τ} : is_antisymm action_edge (priority_pred n) := sorry
+  instance {n : network τ} : is_trans action_edge (priority_pred n) := sorry
+  instance {n : network τ} : decidable_rel (priority_pred n) := sorry
 
-  def merge_τs (o o' : option τ) (cutoff : tag) : option τ :=
-    let t := match o, o' with
-      | none,   none    := ∅
-      | some t, none    := t
-      | none,   some t' := t'
-      | some t, some t' := t ∪ (t'.filter (λ tv', ∀ tv : (tag × option empty), tv ∈ t → tv.1 ≠ tv'.1))
-    end in
-    let o' := t.filter (λ tv, cutoff ≤ tv.1) in
-    if o' = ∅ then none else some o'
+  def merge_τs : option τ → option τ → τ
+    |  none     none     := ∅
+    | (some t)  none     := t
+    |  none    (some t') := t'
+    | (some t) (some t') := t ∪ (t'.filter (λ tv', ∀ tv : (tag × option empty), tv ∈ t → tv.1 ≠ tv'.1))
 
   -- In this context "propagating" means consuming the source value, i.e. setting it to `none` once used.
-  noncomputable def propagate_τ (cutoff : tag) (η : network.graph τ) (e : action_edge) : network.graph τ :=
-    (η.update_input e.dst (merge_τs (η.input e.dst) (η.output e.src) cutoff))
+  noncomputable def propagate_τ (σ : network τ) (e : action_edge) : network τ :=
+    (σ.update_input e.dst (merge_τs (σ.η.input e.dst) (σ.η.output e.src)))
       .update_output e.src none
 
-  noncomputable def gather_input_action_port (cutoff : tag) (as : finset action_edge) (η : network.graph τ) (p : port.id) : network.graph τ :=
+  noncomputable def gather_input_action_port (as : finset action_edge) (σ : network τ) (p : port.id) : network τ :=
     ((as
       .filter (λ a : action_edge, a.dst = p))
-      .sort (priority_pred η))
-      .foldl (propagate_τ cutoff) η
+      .sort (priority_pred σ))
+      .foldl propagate_τ σ
 
-  private noncomputable def at_tag_aux (n : timed_network) (t : tag) : network.graph τ :=
-    n.input_action_ports.val.to_list.foldl (gather_input_action_port t n.actions) n.σ.η 
+  noncomputable def propagate_actions (n : timed_network) : network τ :=
+    n.input_action_ports.val.to_list.foldl (gather_input_action_port n.actions) n.σ
 
-  lemma at_tag_aux_unique_ins {n : timed_network} (t : tag) :
-    n.σ.η.has_unique_port_ins → (at_tag_aux n t).has_unique_port_ins :=
-    sorry
+  def τ_at_tag (tpm : option τ) (t : tag) : option τ :=
+    match tpm with 
+      | none := none
+      | some s := 
+        let tpm' := s.filter (λ tv : tag × option empty, tv.1 = t) in
+        if tpm' = ∅ then none else some tpm'
+    end
 
-  lemma at_tag_aux_prec_acyclic {n : timed_network} (t : tag) :
-    n.σ.η.is_prec_acyclic → (at_tag_aux n t).is_prec_acyclic :=
-    sorry
+  noncomputable def reduce_input_to_tag (t : tag) (σ : network τ) (i : port.id) : network τ :=
+    σ.update_input i (τ_at_tag (σ.η.input i) t)
 
-  noncomputable def at_tag (n : timed_network) (t : tag) : network τ :=
-    {
-      η := at_tag_aux n t,
-      unique_ins := at_tag_aux_unique_ins t n.σ.unique_ins,
-      prec_acyclic := at_tag_aux_prec_acyclic t n.σ.prec_acyclic
-    }
+  noncomputable def at_tag (σ : network τ) (iaps : finset port.id) (t : tag) : network τ :=  
+    iaps.val.to_list.foldl (reduce_input_to_tag t) σ 
 
   noncomputable def ports_for_actions (actions : finset action_edge) : finset port.id × finset port.id :=
     let ps := actions.image (λ e : action_edge, (e.dst, e.src)) in
@@ -60,23 +55,23 @@ namespace timed_network
   noncomputable def run_inst (σ : network τ) (fₚ : prec_func τ) (tₚ : topo_func τ) (actions : finset action_edge) : network τ :=
     let ⟨i, o⟩ := ports_for_actions actions in (σ.run fₚ tₚ).clear_ports_excluding i o
 
-  lemma run_inst_equiv (σ : network τ) (fₚ : prec_func τ) (tₚ : topo_func τ) (a : finset action_edge) :
-    (run_inst σ fₚ tₚ a) ≈ σ :=
-    sorry
+  noncomputable def inherit_iaps_from (σ σ' : network τ) (iaps : finset port.id) : network τ :=
+    iaps.val.to_list.foldl (λ s i, s.update_input i (σ'.η.input i)) σ
 
   noncomputable def events_for (σ : network τ) (aops : finset port.id) : finset tag :=
     aops.bind (λ p, let o := σ.η.output p in o.elim ∅ (finset.image prod.fst))
 
   noncomputable def run_aux (n : timed_network) (fₚ : prec_func τ) (tₚ : topo_func τ) : list tag → timed_network
     | [] := n
-    | (hd :: tl) := 
-      let σ' := run_inst (n.at_tag hd) fₚ tₚ n.actions in
+    | (hd :: tl) :=
+      let σ := n.propagate_actions in  
+      let σ' := run_inst (at_tag σ n.input_action_ports hd) fₚ tₚ n.actions in
       {
-        σ := σ',
+        σ := inherit_iaps_from σ' σ n.input_action_ports,
         time := hd,
         event_queue := (tl ++ (events_for σ' n.output_action_ports).val.to_list).merge_sort (≤),
         actions := n.actions,
-        well_formed := equiv_inst_net_wf_actions n σ' (run_inst_equiv _ _ _ _)
+        well_formed := sorry
       }
 
   noncomputable def run (n : timed_network) (fₚ : prec_func τ) (tₚ : topo_func τ) : timed_network :=

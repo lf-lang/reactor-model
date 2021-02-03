@@ -35,6 +35,20 @@ namespace network
       apply hₘ
     end
 
+  noncomputable def update_input (n : network υ) (p : port.id) (v : option υ) : network υ :=
+    {
+      η := n.η.update_input p v,
+      unique_ins := sorry,
+      prec_acyclic := sorry
+    }
+
+  noncomputable def update_output (n : network υ) (p : port.id) (v : option υ) : network υ :=
+    {
+      η := n.η.update_output p v,
+      unique_ins := sorry,
+      prec_acyclic := sorry
+    }
+
   noncomputable def clear_ports_excluding (n : network υ) (i : finset port.id) (o : finset port.id) : network υ :=
     {
       η := n.η.clear_ports_excluding i o,

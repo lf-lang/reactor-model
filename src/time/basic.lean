@@ -19,6 +19,10 @@ def finset.are_many_to_one (es : finset action_edge) : Prop :=
   ∀ e e' : action_edge, e ∈ es → e' ∈ es →
     e.src = e'.src → e = e'
 
+def finset.are_local (es : finset action_edge) : Prop :=
+  ∀ e : action_edge, e ∈ es →
+    e.src.rtr = e.dst.rtr
+
 def finset.have_unique_source_in (es : finset action_edge) (n : network τ) : Prop :=
   ∀ (e : action_edge) (r r' : reaction.id), e ∈ es → 
     (e.src ∈ n.η.dₒ r) → (e.src ∈ n.η.dₒ r') → r = r
@@ -33,6 +37,7 @@ def finset.are_separate_from (es : finset action_edge) (n : network τ) : Prop :
 
 def finset.are_well_formed_for (es : finset action_edge) (n : network τ) : Prop :=
   es.are_many_to_one ∧ 
+  es.are_local ∧
   es.have_unique_source_in n ∧ 
   es.are_functionally_unique_in n ∧
   es.are_separate_from n
@@ -56,8 +61,8 @@ namespace timed_network
   noncomputable def output_action_ports (n : timed_network) : finset port.id :=
     n.actions.image (λ e, e.src)
 
-  noncomputable def priority_of (η : network.graph τ) (e : action_edge) : option ℕ :=
-    let rcns := (η.rtr e.src.rtr).rcns_with_dₒ e.src.prt in
+  noncomputable def priority_of (e : action_edge) (n : network τ) : option ℕ :=
+    let rcns := (n.η.rtr e.src.rtr).rcns_with_dₒ e.src.prt in
     if h : rcns.card = 1 then (finset.card_eq_one.mp h).some else none
 
 end timed_network

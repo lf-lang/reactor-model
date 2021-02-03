@@ -80,10 +80,10 @@ namespace network
       -/
 
     noncomputable def update_input (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
-      update_reactor η p.rtr ((η.data p.rtr).update_input p.prt v)
+      η.update_reactor p.rtr ((η.data p.rtr).update_input p.prt v)
 
     noncomputable def update_output (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
-      update_reactor η p.rtr ((η.data p.rtr).update_output p.prt v)
+      η.update_reactor p.rtr ((η.data p.rtr).update_output p.prt v)
 
     noncomputable def clear_reactor_excluding (η : graph υ) (r : reactor.id) (i : finset port.id) (o : finset port.id) : graph υ :=
       η.update_reactor r ((η.rtr r).clear_ports_excluding (i.image (λ x, x.prt)) (o.image (λ x, x.prt)))
