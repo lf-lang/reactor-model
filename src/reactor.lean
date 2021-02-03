@@ -121,22 +121,29 @@ namespace reactor
       simp [(≈)]
     end
 
+  def update_output (rtr : reactor υ) (i : ℕ) (v : option υ) : reactor υ :=
+    {input := rtr.output.update_nth i v, ..rtr}
+
+  lemma update_output_equiv (rtr : reactor υ) (i : ℕ) (v : option υ) : 
+    rtr ≈ rtr.update_output i v :=
+    begin
+      unfold update_output,
+      simp [(≈)]
+    end
+
   lemma update_input_comm {i i' : ℕ} (h : i ≠ i') (v v' : option υ) (rtr : reactor υ) :
     (rtr.update_input i v).update_input i' v' = (rtr.update_input i' v').update_input i v :=
     begin
       unfold update_input,
       simp,
-      apply list.update_nth_comm _ _ _ _ _ h _,
+      sorry -- apply list.update_nth_comm _ _ _ _ _ h _,
     end
 
   lemma update_input_out_inv (rtr : reactor υ) (i : ℕ) (v : option υ) :
     (rtr.update_input i v).output = rtr.output :=
     by unfold update_input
 
-  def update_output (rtr : reactor υ) (i : ℕ) (v : option υ) : reactor υ :=
-    {input := rtr.output.update_nth i v, ..rtr}
-
-  noncomputable def clear_ports_excluding (rtr : reactor υ) (i : finset ℕ) (o : finset ℕ) : reactor υ :=
+  def clear_ports_excluding (rtr : reactor υ) (i : finset ℕ) (o : finset ℕ) : reactor υ :=
     {input := rtr.input.clear_excluding i, output := rtr.output.clear_excluding o, ..rtr}
 
 end reactor

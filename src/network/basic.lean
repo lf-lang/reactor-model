@@ -1,5 +1,6 @@
 import network.graph
 import precedence.basic
+import precedence.lemmas
 
 open network
 
@@ -38,22 +39,22 @@ namespace network
   noncomputable def update_input (n : network υ) (p : port.id) (v : option υ) : network υ :=
     {
       η := n.η.update_input p v,
-      unique_ins := sorry,
-      prec_acyclic := sorry
+      unique_ins := graph.edges_inv_unique_port_ins_inv (refl _) n.unique_ins,
+      prec_acyclic := graph.equiv_prec_acyc_inv (symm (graph.update_input_equiv _ _ _)) n.prec_acyclic
     }
 
   noncomputable def update_output (n : network υ) (p : port.id) (v : option υ) : network υ :=
     {
       η := n.η.update_output p v,
-      unique_ins := sorry,
-      prec_acyclic := sorry
+      unique_ins := graph.edges_inv_unique_port_ins_inv (refl _) n.unique_ins,
+      prec_acyclic := graph.equiv_prec_acyc_inv (symm (graph.update_output_equiv _ _ _)) n.prec_acyclic
     }
 
   noncomputable def clear_ports_excluding (n : network υ) (i : finset port.id) (o : finset port.id) : network υ :=
     {
       η := n.η.clear_ports_excluding i o,
-      unique_ins := sorry,
-      prec_acyclic := sorry
+      unique_ins := sorry, -- TIME
+      prec_acyclic := sorry -- TIME
     }
 
 end network

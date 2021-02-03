@@ -74,10 +74,6 @@ namespace network
 
     noncomputable def update_reactor (η : graph υ) (i : reactor.id) (r : reactor υ) : graph υ :=
       η.update_data i r
-      /-
-        unique_ins := graph.edges_inv_unique_port_ins_inv (refl _) n.unique_ins,
-        prec_acyclic := graph.equiv_prec_acyc_inv (graph.update_with_equiv_rtr_is_equiv _ _ _ h) n.prec_acyclic
-      -/
 
     noncomputable def update_input (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
       η.update_reactor p.rtr ((η.data p.rtr).update_input p.prt v)
@@ -154,6 +150,15 @@ namespace network
       begin
         unfold update_input,
         have h : (η.data p.rtr).update_input p.prt v ≈ (η.data p.rtr), from reactor.update_input_equiv _ p.prt v,
+        simp [(≈)],
+        exact update_reactor_equiv _ _ _ h
+      end
+
+    lemma update_output_equiv (η : graph υ) (p : port.id) (v : option υ) :
+      (η.update_output p v) ≈ η :=
+      begin
+        unfold update_output,
+        have h : (η.data p.rtr).update_output p.prt v ≈ (η.data p.rtr), from reactor.update_output_equiv _ p.prt v,
         simp [(≈)],
         exact update_reactor_equiv _ _ _ h
       end
