@@ -58,7 +58,7 @@ namespace reactor.ports
     p.find_indexes (λ e, e ≠ none)
 
   lemma inhabited_indices_nodup (p : ports υ) : p.inhabited_indices.nodup :=
-    by simp [inhabited_indices, list.find_indexes_nodup]
+    by simp [inhabited_indices, nodup_find_indexes]
 
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports, but the length remains that of `first`.
