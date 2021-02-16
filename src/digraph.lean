@@ -9,7 +9,7 @@ class digraph.edge (ε ι : Type*) :=
   (src : ε → ι)
   (dst : ε → ι)
 
-variables (ι δ ε : Type*)
+variables ι δ ε : Type*
 variables [decidable_eq ι] [decidable_eq δ] [digraph.edge ε ι]
 
 -- The proposition that a given set of edges makes connections only between given IDs.

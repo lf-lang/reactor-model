@@ -59,8 +59,11 @@ lemma run_reaction_comm {η : network.graph υ} (hᵤ : η.has_unique_port_ins) 
       rw hᵢ,
       {
         have h_ir, from precedence.graph.indep_rcns_neq_rtrs h_wf hᵢ hₚ hₚ',
-        have h_ert  : ((run_reaction η i).rtr i'.rtr).eq_rel_to (η.rtr i'.rtr) i'.rcn, from run_reaction_indep_eq hᵤ h_wf hₚ h_ir,
-        have h_ert' : ((run_reaction η i').rtr i.rtr).eq_rel_to (η.rtr i.rtr) i.rcn, from run_reaction_indep_eq hᵤ h_wf hₚ' (ne.symm h_ir),
+        have h_ned, from precedence.graph.indep_rcns_not_ext_dep h_wf hᵢ hₚ,
+        have h_ned', from precedence.graph.indep_rcns_not_ext_dep h_wf (ne.symm hᵢ) hₚ',
+        unfold run_reaction,
+        -- have h_ert  : ((run_reaction η i).rtr i'.rtr).eq_rel_to (η.rtr i'.rtr) i'.rcn, from run_reaction_indep_eq hᵤ h_wf hₚ h_ir,
+        -- have h_ert' : ((run_reaction η i').rtr i.rtr).eq_rel_to (η.rtr i.rtr) i.rcn, from run_reaction_indep_eq hᵤ h_wf hₚ' (ne.symm h_ir),
         -- have hₛ : reactor.eq_rel_to ((apply_reactor η i.rtr ((η.rtr i.rtr).run i.rcn)).rtr i'.rtr) (η.rtr i'.rtr) i'.rcn,
         -- from apply_reactor_run_eq_rel_to _ hᵤ _ h_wf _ _ hᵢ hₚ hₚ',
         -- have hₛ' : reactor.eq_rel_to ((apply_reactor η i'.rtr ((η.rtr i'.rtr).run i'.rcn)).rtr i.rtr) (η.rtr i.rtr) i.rcn,

@@ -50,10 +50,12 @@ namespace reactor
   def rcns_with_dₒ (rtr : reactor υ) (p : ℕ) : finset ℕ :=
     rtr.priorities.filter (λ p, p ∈ (rtr.reactions p).dₒ)
 
+  private def run_aux (rtr : reactor υ) (os : ports υ × state_vars υ) : reactor υ × list ℕ :=
+    ({output := rtr.output.merge os.1, state := os.2, ..rtr}, os.1.inhabited_indices)
+
   noncomputable def run (rtr : reactor υ) (rcn_id : ℕ) : reactor υ × list ℕ :=
     if (rtr.reactions rcn_id).fires_on rtr.input then
-      let os' := (rtr.reactions rcn_id) rtr.input rtr.state in
-      ({output := rtr.output.merge os'.1, state := os'.2, ..rtr}, os'.1.inhabited_indices)
+      run_aux rtr ((rtr.reactions rcn_id) rtr.input rtr.state)
     else 
       (rtr, [])
 
@@ -61,22 +63,33 @@ namespace reactor
     rtr ≈ (rtr.run rcn_id).1 :=
     begin
       unfold run,
-      by_cases (rtr.reactions rcn_id).fires_on rtr.input
-        ; simp [h, (≈)]
+      by_cases h : (rtr.reactions rcn_id).fires_on rtr.input
+        ; simp [run_aux, h, (≈)]
     end
 
   lemma run_input_inv (rtr : reactor υ) (rcn_id : ℕ) :
     (rtr.run rcn_id).1.input = rtr.input :=
     begin
       unfold run,
-      simp,
-      by_cases hᵢ : (rtr.reactions rcn_id).fires_on rtr.input
+      by_cases h : (rtr.reactions rcn_id).fires_on rtr.input
         ; finish
     end
 
   lemma run_affected_ports_sub_dₒ (rtr : reactor υ) (rcn_id : ℕ) :
     (rtr.run rcn_id).2.to_finset ⊆ (rtr.reactions rcn_id).dₒ :=
-    sorry
+    begin
+      unfold run,
+      by_cases h_c : ((rtr.reactions rcn_id).fires_on rtr.input),
+        {
+          rw (if_pos h_c),
+          simp [run_aux],
+          apply reaction.output_ports_sub_dₒ
+        },
+        {
+          rw (if_neg h_c),
+          simp
+        }
+    end
 
   theorem eq_rel_to_rcn_run (rtr rtr' : reactor υ) (rcn_id : ℕ) : 
     rtr.eq_rel_to rtr' rcn_id → (rtr.run rcn_id).1.eq_rel_to (rtr'.run rcn_id).1 rcn_id ∧ (rtr.run rcn_id).2 = (rtr'.run rcn_id).2 :=
@@ -136,7 +149,7 @@ namespace reactor
     begin
       unfold update_input,
       simp,
-      sorry -- apply list.update_nth_comm _ _ _ _ _ h _,
+      exact list.update_nth_comm _ _ h _
     end
 
   lemma update_input_out_inv (rtr : reactor υ) (i : ℕ) (v : option υ) :

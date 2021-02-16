@@ -13,9 +13,9 @@ structure reaction (υ : Type*) [decidable_eq υ] :=
   (dᵢ : finset ℕ) 
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
-  (body : ports υ → state_vars υ → (ports υ × state_vars υ))
+  (body : ports υ → state_vars υ → ports υ × state_vars υ)
   (well_behaved : ∀ i i' s, ports.correspond_at dᵢ i i' → body i s = body i' s)
-  (output_constrained : ∀ i s o, o ∉ dₒ → (body i s).1.nth o = none) 
+  (output_constrained : ∀ i s o, o ∉ dₒ → ((body i s).1.nth o).join = none) 
 
 namespace reaction
 
@@ -65,6 +65,18 @@ namespace reaction
       intro hᵢ,
       change ¬ none = some v,
       simp
+    end
+
+  lemma output_ports_sub_dₒ (rcn : reaction υ) :
+    ∀ i s, (rcn i s).1.inhabited_indices.to_finset ⊆ rcn.dₒ :=
+    begin
+      intros i s,
+      simp [(⊆)],
+      intro o,
+      suffices h : o ∉ rcn.dₒ → o ∉ (rcn i s).fst.inhabited_indices, from not_imp_not.mp h,
+      intro h,
+      apply ports.inhabited_indices_excl,
+      exact rcn.output_constrained i s _ h
     end
 
 end reaction

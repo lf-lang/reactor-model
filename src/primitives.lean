@@ -60,6 +60,21 @@ namespace reactor.ports
   lemma inhabited_indices_nodup (p : ports υ) : p.inhabited_indices.nodup :=
     by simp [inhabited_indices, nodup_find_indexes]
 
+  lemma inhabited_indices_excl {υ} [decidable_eq υ] {p : ports υ} :
+    ∀ o, (p.nth o).join = none → o ∉ p.inhabited_indices :=
+    begin
+      intro o,
+      assume h,
+      have h', from (option.join_eq_none (p.nth o)).mp h,
+      cases h',
+        exact list.find_indexes_nth_none h',
+        {
+          unfold inhabited_indices,
+          apply list.find_indexes_nth_nmem h',
+          simp,
+        }
+    end
+
   -- Merges a given port map onto another port map.
   -- The `last` ports override the `first` ports, but the length remains that of `first`.
   def merge {υ} [decidable_eq υ] (first last : ports υ) : ports υ :=
