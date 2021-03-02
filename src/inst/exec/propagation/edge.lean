@@ -1,4 +1,4 @@
-import network.graph
+import inst.network.graph
 
 open network
 

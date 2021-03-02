@@ -1,6 +1,6 @@
-import network.graph
-import precedence.basic
-import precedence.lemmas
+import inst.network.graph
+import inst.prec.basic
+import inst.prec.lemmas
 
 open network
 

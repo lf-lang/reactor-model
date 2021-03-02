@@ -1,5 +1,5 @@
-import network.basic
-import run.basic
+import inst.network.basic
+import inst.exec.basic
 import data.rel
 import data.finset.basic
 

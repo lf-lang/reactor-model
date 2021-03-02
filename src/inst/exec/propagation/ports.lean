@@ -1,5 +1,5 @@
-import network.graph
-import run.propagation.port
+import inst.network.graph
+import inst.exec.propagation.port
 
 open network
 

@@ -1,77 +1,98 @@
 import digraph
+import mathlib
 
 variables {ι δ ε : Type*}
 variables [decidable_eq ι] [decidable_eq δ] [digraph.edge ε ι]
 
--- The definition of what it means for a given list to be a topological order wrt a given DAG.
-def list.is_topological_order (l : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) : Prop :=
-  ∀ i i' ∈ l, (i~g~>i') → (l.index_of i < l.index_of i')
-
-def list.is_complete_topo (l : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) : Prop :=
-  l.is_topological_order h ∧ ∀ i : ι, i ∈ l ↔ i ∈ g  
+-- The definition of what it means for a given list to be a topological ordering for a given graph.
+-- Note that this is not the same as a "complete" topological ordering (`list.is_complete_topo_over`).
+def list.is_topo_over (l : list ι) (g : digraph ι δ ε) : Prop :=
+  l.nodup ∧ ∀ i i' ∈ l, (i~g~>i') → (l.index_of i < l.index_of i')
 
 namespace topo
 
-  -- An item `i` in a topo list is fully independent if the corresponding graph contains no path
-  -- that starts with an element in the topo and ends in `i`.
-  def fully_indep (i : ι) (t : list ι) (g : digraph ι δ ε) : Prop :=
+  -- Removing an element from a topological ordering does not break the property of it being a topological ordering.
+  lemma topo_erase (i : ι) {t : list ι} {g : digraph ι δ ε} (h : t.is_topo_over g) :
+    (t.erase i).is_topo_over g :=
+    begin
+      unfold list.is_topo_over at h ⊢,
+      split,
+        exact list.nodup_erase_of_nodup _ h.left,
+        {
+          intros x x' hₓ hₓ' hₚ,
+          have hᵢ, from h.right x x' (list.mem_of_mem_erase hₓ) (list.mem_of_mem_erase hₓ') hₚ,
+          exact list.index_of_erase_lt hᵢ hₓ hₓ' h.left
+        }
+    end
+
+  -- If a list is a topological ordering for some graph, then so is its tail.
+  lemma topo_cons {hd : ι} {tl : list ι} {g : digraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
+    tl.is_topo_over g :=
+    begin
+      rw ←list.erase_cons_head hd tl,
+      exact topo_erase hd h
+    end
+
+end topo
+
+-- A topological ordering is "complete" if it contains all of its graph's vertices.
+def list.is_complete_topo_over (l : list ι) (g : digraph ι δ ε) : Prop :=
+  l.is_topo_over g ∧ ∀ i : ι, i ∈ l ↔ i ∈ g  
+
+namespace topo
+
+  -- For any acyclic digraph there exists a complete topological ordering of that graph.
+  -- https://ocw.tudelft.nl/wp-content/uploads/Algoritmiek_DAGs_and_Topological_Ordering.pdf
+  -- Lemma 3.20
+  theorem any_dag_has_complete_topo : 
+    ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, l.is_complete_topo_over g := 
+    sorry
+
+  -- Complete topological orderings are permutations of each other.
+  lemma complete_perm {g : digraph ι δ ε} {l l' : list ι} (h : l.is_complete_topo_over g) (h' : l'.is_complete_topo_over g) :
+    l ~ l' :=
+    begin
+      rw list.perm_ext h.left.left h'.left.left,
+      intro x,
+      unfold list.is_complete_topo_over at h h',
+      rw [h.right x, h'.right x]
+    end
+
+  -- An item `i` in a topological ordering is independent if the corresponding graph contains no path
+  -- that starts with an element in the ordering and ends in `i`.
+  def indep (i : ι) (t : list ι) (g : digraph ι δ ε) : Prop :=
     ∀ i' ∈ t, ¬(i'~g~>i)
 
-  lemma topo_head_fully_indep (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h_a : g.is_acyclic) (h_t : (hd :: tl).is_topological_order h_a) :
-    fully_indep hd (hd :: tl) g :=
-    sorry
-
-  lemma topo_fully_indep_cons (i hd : ι) (tl : list ι) {g : digraph ι δ ε} (h_a : g.is_acyclic) (h_t : (hd :: tl).is_topological_order h_a) :
-    fully_indep i (hd :: tl) g → fully_indep i tl g :=
-    sorry
-
-  lemma fully_indep_perm (i : ι) {t t' : list ι} {g : digraph ι δ ε} (h_a : g.is_acyclic) (h_t : t.is_topological_order h_a) (h_t' : t'.is_topological_order h_a) :
-    t ~ t' → fully_indep i t g → fully_indep i t' g :=
-    sorry
-
-  -- For any DAG there exists a list which is a topological order of the DAG.
-  theorem any_dag_has_complete_topo : 
-    ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, l.is_complete_topo h :=
-    sorry
-    -- https://ocw.tudelft.nl/wp-content/uploads/Algoritmiek_DAGs_and_Topological_Ordering.pdf
-    -- Lemma 3.20
-
-  lemma topo_cons (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) :
-    (hd :: tl).is_topological_order h → tl.is_topological_order h :=
+  -- The head of a topological ordering is always independent.
+  lemma indep_head (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
+    indep hd (hd :: tl) g :=
     begin
-      intro hₜ,
-      unfold list.is_topological_order at hₜ ⊢,
-      intros i i' hᵢ hᵢ' hₚ,
-      have hₜ', from hₜ i i' (list.mem_cons_of_mem _ hᵢ) (list.mem_cons_of_mem _ hᵢ') hₚ,
-      repeat { rw list.index_of_cons at hₜ' },
-      sorry
+      unfold indep,
+      unfold list.is_topo_over at h,
+      intros x hₓ,
+      by_contradiction hc,
+      have hᵢ, from h.right x hd hₓ (list.mem_cons_self hd tl) hc,
+      rw list.index_of_cons_self hd tl at hᵢ,
+      exact nat.not_lt_zero _ hᵢ
     end
 
-  -- Removing an element from a topological order still keeps it topo.
-  lemma topo_erase (i : ι) (t : list ι) {g : digraph ι δ ε} (h : g.is_acyclic) :
-    t.is_topological_order h → (t.erase i).is_topological_order h :=
+  -- If an element is independent in a list, then it is also independent in its tail.
+  lemma indep_cons {i hd : ι} {tl : list ι} {g : digraph ι δ ε} (h : indep i (hd :: tl) g) :
+    indep i tl g :=
     begin
-      sorry
+      unfold indep at h ⊢,
+      intros x hₓ,
+      exact h x (list.mem_cons_of_mem _ hₓ)
     end
 
-  lemma topo_no_dup {g : digraph ι δ ε} {hₐ : g.is_acyclic} {l : list ι} :
-    l.is_topological_order hₐ → l.nodup :=
-    begin
-      intro h,
-      sorry
-    end
-
-  lemma complete_topos_are_perm {g : digraph ι δ ε} {hₐ : g.is_acyclic} {l l' : list ι} :
-    l.is_complete_topo hₐ → l'.is_complete_topo hₐ → l ~ l' :=
-    begin
-      intros h h', 
-      suffices hₚ : ∀ (x : list _) (y : x.is_complete_topo hₐ), x ~ g.ids.val.to_list,
-      from list.perm.trans (hₚ l h) (list.perm.symm (hₚ l' h')),
-      intros x y,
-      rw list.perm_ext (topo_no_dup y.left) sorry,
-      intro i,
-      rw multiset.mem_to_list,
-      exact y.right i,
+  -- If an element is independent in a list, then if is also independent in a permutation of that list.
+  lemma indep_perm {i : ι} {t t' : list ι} {g : digraph ι δ ε} (hₚ : t ~ t') (hᵢ : indep i t g) :
+    indep i t' g :=
+    begin 
+      unfold indep at hᵢ ⊢,
+      intros x hₓ,
+      have hₘ, from (list.perm.mem_iff hₚ).mpr hₓ,
+      exact hᵢ x hₘ
     end
 
 end topo

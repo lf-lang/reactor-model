@@ -1,4 +1,4 @@
-import time.basic
+import timed.basic
 
 namespace timed_network
   

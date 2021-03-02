@@ -1,6 +1,6 @@
 import data.finset
 import order.lexicographic
-import missing
+import mathlib
 
 -- The type of opaque values that can be passed between reactors and processed by reactions.
 -- Their equality has to be decidable, but beyond that their values are of no interest. Hence they

@@ -1,7 +1,7 @@
-import network.graph
-import precedence.basic
-import precedence.lemmas
-import run.propagation.output
+import inst.network.graph
+import inst.prec.basic
+import inst.prec.lemmas
+import inst.exec.propagation.output
 
 open network
 

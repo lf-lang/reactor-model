@@ -1,4 +1,4 @@
-import reactor
+import inst.reactor
 
 protected def reactor.id := ℕ
 

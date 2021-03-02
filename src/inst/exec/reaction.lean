@@ -1,6 +1,6 @@
-import network.graph
-import precedence.basic
-import run.reactor
+import inst.network.graph
+import inst.prec.basic
+import inst.exec.reactor
 
 open network
 

@@ -1,6 +1,6 @@
 import topo
-import network.basic  
-import precedence.lemmas
+import inst.network.basic  
+import inst.prec.lemmas
 
 variables (υ : Type*) [decidable_eq υ]
 
@@ -30,7 +30,7 @@ theorem all_prec_funcs_are_eq :
 
 structure topo_func :=
   (func : precedence.graph υ → list reaction.id)
-  (is_topo : ∀ (n : network υ) (ρ : precedence.graph υ) (h : ρ.is_well_formed_over n.η), (func ρ).is_complete_topo (n.prec_acyclic ρ h))
+  (is_topo : ∀ (n : network υ) (ρ : precedence.graph υ) (h : ρ.is_well_formed_over n.η), (func ρ).is_complete_topo_over ρ)
 
 instance topo_func_coe : has_coe_to_fun (topo_func υ) := 
   ⟨_, (λ f, f.func)⟩

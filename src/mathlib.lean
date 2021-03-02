@@ -11,6 +11,60 @@ lemma list.find_indexes_nth_none {α : Type*} {l : list α} {n : ℕ} {p : α �
   l.nth n = none → n ∉ (l.find_indexes p) :=
   sorry
 
+-- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/ne.20of.20mem.20and.20not.20mem/near/228463288
+lemma list.mem_nmem_ne {α : Type*} {l : list α} {x x' : α} (h : x ∈ l) (h' : x' ∉ l) : 
+  x ≠ x' :=
+  begin 
+    rintro rfl,
+    exact h' h
+  end
+
+lemma list.index_of_cons_lt {α : Type*} [decidable_eq α] {hd : α} {tl : list α} {x x' : α} (h : (hd :: tl).index_of x < (hd :: tl).index_of x') (hₘ : x ∈ tl) (hₘ' : x' ∈ tl) (hₙ : (hd :: tl).nodup) :
+  tl.index_of x < tl.index_of x' :=
+  begin
+    have hₕ, from list.not_mem_of_nodup_cons hₙ,
+    have hₓ, from list.mem_nmem_ne hₘ hₕ,
+    have hₓ', from list.mem_nmem_ne hₘ' hₕ,
+    have hₛ, from list.index_of_cons_ne tl hₓ,
+    have hₛ', from list.index_of_cons_ne tl hₓ',
+    rw [hₛ, hₛ'] at h,
+    exact nat.succ_lt_succ_iff.mp h
+  end
+
+lemma list.index_of_erase_lt {α : Type*} [decidable_eq α] {l : list α} {e x x' : α} (h : l.index_of x < l.index_of x') (hₘ : x ∈ l.erase e) (hₘ' : x' ∈ l.erase e) (hₙ : l.nodup) :
+  (l.erase e).index_of x < (l.erase e).index_of x' :=
+  begin
+    have hₕ : e ∉ l.erase e, from list.mem_erase_of_nodup hₙ,
+    have hₓ, from list.mem_nmem_ne hₘ hₕ,
+    have hₓ', from list.mem_nmem_ne hₘ' hₕ,
+    cases l,
+      case list.nil { 
+        exfalso,
+        exact hₘ
+      },
+      case list.cons {
+        by_cases hc : l_hd = e,
+          {
+            rw [hc, list.erase_cons_head e l_tl] at hₘ hₘ' ⊢,
+            exact list.index_of_cons_lt h hₘ hₘ' hₙ
+          },
+          {
+            rw list.erase_cons_tail l_tl hc at hₘ hₘ' ⊢,
+            have hₑ : x ≠ x', from sorry,
+            by_cases hcₓ : x = l_hd,
+              {
+                rw [hcₓ, list.index_of_cons_self, list.index_of_cons],
+                have hₑ', from ne.symm (ne_of_eq_of_ne (symm hcₓ) hₑ),
+                simp [if_neg hₑ']
+              },
+              {
+                rw list.index_of_cons_ne (l_tl.erase e) hcₓ,
+                sorry
+              }
+          }
+      }
+  end
+
 -- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/list.2Enth.20is.20either.20none/near/226562824
 lemma option.join_eq_none {α : Type*} (o : option (option α)) : o.join = none ↔ o = none ∨ o = some none :=
   by rcases o with _|_|_; simp

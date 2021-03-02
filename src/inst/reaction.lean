@@ -1,5 +1,5 @@
 import data.finset
-import primitives
+import inst.primitives
 
 open reactor
 

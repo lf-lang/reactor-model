@@ -1,6 +1,6 @@
 import digraph
-import reactor
-import network.ids
+import inst.reactor
+import inst.network.ids
 
 open reactor
 
@@ -115,8 +115,8 @@ namespace network
       begin
         intro hₑ,
         simp [(≈)] at hₑ ⊢,
-        have hₑ_η, from digraph.update_data_is_edges_inv η i rtr,
-        have hᵢ_η, from digraph.update_data_is_ids_inv η i rtr,
+        have hₑ_η, from digraph.update_data_eq_edges η i rtr,
+        have hᵢ_η, from digraph.update_data_eq_ids η i rtr,
         rw [hₑ_η, hᵢ_η],
         simp,
         apply update_with_equiv_rtr_all_data_equiv,

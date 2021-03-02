@@ -1,6 +1,6 @@
 import digraph
-import network.graph
-import network.ids
+import inst.network.graph
+import inst.network.ids
 
 namespace precedence.graph
 

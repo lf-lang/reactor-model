@@ -1,4 +1,4 @@
-import precedence.basic
+import inst.prec.basic
 
 variables {υ : Type*} [decidable_eq υ]
 
@@ -158,6 +158,6 @@ theorem network.graph.equiv_prec_acyc_inv {η η' : network.graph υ} :
     let ρ := classical.subtype_of_exists (precedence.any_acyc_net_graph_has_wf_prec_graph η hₚ),
     intros ρ' h_wf',
     have hₐ, from hₚ ρ ρ.property,
-    suffices h : (ρ : precedence.graph υ).edges = ρ'.edges, from digraph.edges_inv_acyclic_inv h hₐ,
+    suffices h : (ρ : precedence.graph υ).edges = ρ'.edges, from digraph.eq_edges_acyclic h hₐ,
     exact network.graph.equiv_eq_wf_prec_edges hₑ ρ.property h_wf',
   end

@@ -1,7 +1,7 @@
 import topo
-import network.basic
-import run.reaction
-import precedence.lemmas
+import inst.network.basic
+import inst.exec.reaction
+import inst.prec.lemmas
 
 open network
 
@@ -43,9 +43,9 @@ lemma run_topo_prec_acyc_inv (n : network υ) (topo : list reaction.id) :
 -- pulling a completely independent element out of the list to the front does not change the behaviour of run_topo.
 lemma run_topo_swap 
 {η : network.graph υ} (hᵤ : η.has_unique_port_ins) 
-{ρ : precedence.graph υ} (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η)
-(t : list reaction.id) (hₜ : t.is_topological_order h_a) 
-(i : reaction.id) (h_ti : i ∈ t) (hᵢ : topo.fully_indep i t ρ) :
+{ρ : precedence.graph υ} (h_wf : ρ.is_well_formed_over η)
+(t : list reaction.id) (hₜ : t.is_topo_over ρ) 
+(i : reaction.id) (h_ti : i ∈ t) (hᵢ : topo.indep i t ρ) :
   run_topo η t = run_topo η (i :: (t.erase i)) :=
   begin
     induction t generalizing i η,
@@ -53,13 +53,13 @@ lemma run_topo_swap
       {
         unfold run_topo,
         repeat { rw list.foldl_cons },
-        have h_tc, from (topo.topo_cons t_hd t_tl h_a hₜ),
+        have h_tc, from (topo.topo_cons hₜ),
         by_cases h_c : i = t_hd,
           simp [h_c],
           {
             have h_e, from run_reaction_equiv η t_hd,
             have h_ti', from or.resolve_left (list.eq_or_mem_of_mem_cons h_ti) h_c,
-            have h_fi', from topo.topo_fully_indep_cons i t_hd t_tl h_a hₜ hᵢ,
+            have h_fi', from topo.indep_cons hᵢ,
             have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, from network.graph.edges_inv_unique_port_ins_inv (symm h_e).left hᵤ,
             have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), from network.graph.equiv_wf h_e h_wf,
             have hᵢ', from @t_ih h_tc i (run_reaction η t_hd) hᵤ' h_wf' h_ti' h_fi',
@@ -68,15 +68,15 @@ lemma run_topo_swap
             unfold run_topo,
             rw list.erase_cons_tail _ (ne.symm h_c),
             repeat { rw list.foldl_cons },
-            have h_ind : topo.fully_indep t_hd (t_hd :: t_tl) ρ, from topo.topo_head_fully_indep _ _ h_a hₜ,
-            unfold topo.fully_indep at hᵢ h_ind,
+            have h_ind : topo.indep t_hd (t_hd :: t_tl) ρ, from topo.indep_head _ _ hₜ,
+            unfold topo.indep at hᵢ h_ind,
             rw run_reaction_comm hᵤ h_wf (hᵢ t_hd (list.mem_cons_self _ _)) (h_ind i h_ti),
           }     
       }
   end
 
-theorem run_topo_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph υ) (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η) :
-  ∀ (t t' : list reaction.id) (h_t : t.is_topological_order h_a) (h_t' : t'.is_topological_order h_a) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
+theorem run_topo_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph υ) (h_wf : ρ.is_well_formed_over η) :
+  ∀ (t t' : list reaction.id) (h_t : t.is_topo_over ρ) (h_t' : t'.is_topo_over ρ) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
   begin
     intros t t' h_t h_t' hₚ,
     induction t generalizing t' η,
@@ -84,17 +84,17 @@ theorem run_topo_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (�
       {
         have h_e, from run_reaction_equiv η t_hd,
         have h_pe, from list.cons_perm_iff_perm_erase.mp hₚ, 
-        have h_tc, from (topo.topo_cons t_hd t_tl h_a h_t),
-        have hte' : (t'.erase t_hd).is_topological_order h_a, from topo.topo_erase t_hd t' h_a h_t',
+        have h_tc, from (topo.topo_cons h_t),
+        have hte' : (t'.erase t_hd).is_topo_over ρ, from topo.topo_erase t_hd t' h_t',
         have htep' : t_tl ~ (t'.erase t_hd), from h_pe.right,
         have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, from network.graph.edges_inv_unique_port_ins_inv (symm h_e).left hᵤ,
         have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), from network.graph.equiv_wf h_e h_wf,
-        have h_fi : topo.fully_indep t_hd t' ρ, {
-          have h_fi₁ : topo.fully_indep t_hd (t_hd :: t_tl) ρ, from topo.topo_head_fully_indep _ _ h_a h_t,
-          exact topo.fully_indep_perm t_hd h_a h_t h_t' hₚ h_fi₁,
+        have h_fi : topo.indep t_hd t' ρ, {
+          have h_fi₁ : topo.indep t_hd (t_hd :: t_tl) ρ, from topo.indep_head _ _ h_t,
+          exact topo.indep_perm hₚ h_fi₁,
         }, 
         have hₘ : t_hd ∈ t', from h_pe.left,
-        rw (run_topo_swap hᵤ h_a h_wf t' h_t' t_hd hₘ h_fi),
+        rw (run_topo_swap hᵤ h_wf t' h_t' t_hd hₘ h_fi),
         unfold run_topo,
         repeat { rw list.foldl_cons },
         exact t_ih h_tc (t'.erase t_hd) (run_reaction η t_hd) hᵤ' h_wf' hte' htep'
