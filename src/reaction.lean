@@ -64,7 +64,7 @@ namespace reaction
       simp,
       intro hᵢ,
       change ¬ none = some v,
-      simp
+      simp,
     end
 
   lemma output_ports_sub_dₒ (rcn : reaction υ) :

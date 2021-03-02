@@ -32,7 +32,7 @@ namespace network
     @[reducible]
     instance edge_mem : has_mem edge (graph υ) := {mem := λ e η, e ∈ η.edges}
 
-    -- The reactor contained in a network graph, that is associated with a given reaction ID.
+    -- The reactor contained in a network graph, that is associated with a given reactor ID.
     noncomputable def rtr (η : network.graph υ) (i : reactor.id) : reactor υ :=
       η.data i
 
@@ -86,6 +86,9 @@ namespace network
 
     noncomputable def clear_ports_excluding (η : graph υ) (i : finset port.id) (o : finset port.id) : graph υ :=
       η.ids.val.to_list.foldl (λ η' r, η'.clear_reactor_excluding r (i.filter (λ x, x.rtr = r)) (o.filter (λ x, x.rtr = r))) η
+
+    def rcn_dep_on_prt (η : network.graph υ) (r : reaction.id) (p : port.id) : Prop :=
+      p.rtr = r.rtr ∧ p.prt ∈ (η.rcn r).dᵢ
 
     lemma edges_out_of_mem (η : graph υ) (p : port.id) :
       ∀ e ∈ η.edges_out_of p, e ∈ η :=
@@ -199,6 +202,36 @@ namespace network
     lemma update_input_comm {i i' : port.id} (h : i ≠ i') (v v' : option υ) (η : graph υ) :
       (η.update_input i v).update_input i' v' = (η.update_input i' v').update_input i v :=
       sorry
+
+    lemma update_reactor_eq (η : network.graph υ) (i : reactor.id) (rtr : reactor υ) :
+      (η.update_reactor i rtr).rtr i = rtr :=
+      by simp [graph.rtr, update_reactor, digraph.update_data]
+
+    lemma update_reactor_neq (η : network.graph υ) {i i' : reactor.id} (rtr : reactor υ) (h : i' ≠ i):
+      (η.update_reactor i rtr).rtr i' = η.rtr i' :=
+      begin
+        simp only [graph.rtr, update_reactor, digraph.update_data],
+        apply function.update_noteq,
+        exact h
+      end
+
+    lemma update_input_eq_rel (η : network.graph υ) (p : port.id) (v : option υ) (i : reaction.id) :
+      ¬(rcn_dep_on_prt η i p) → (η.rtr i.rtr).eq_rel_to ((η.update_input p v).rtr i.rtr) i.rcn :=
+      begin
+        intro h,
+        unfold update_input,
+        unfold rcn_dep_on_prt at h,
+        by_cases h_c : p.rtr = i.rtr,
+          {
+            rw [h_c, update_reactor_eq],
+            simp at h,
+            exact reactor.update_input_eq_rel _ (h h_c)
+          },
+          {
+            rw (update_reactor_neq _ _ (ne.symm h_c)),
+            apply eq_rel_to_refl
+          }
+      end
 
   end graph
 

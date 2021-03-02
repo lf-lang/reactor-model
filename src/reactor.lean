@@ -5,17 +5,6 @@ import reaction
 open reactor
 open reaction
 
--- It would be nice to declare reactors in a similar fashion to reactions.
--- I.e. reactions in themselves declare what they connect to (dᵢ and dₒ).
--- The difference is that reactions themselves are just a single "connection point",
--- so the mapping is a many-to-one (dependencies to reaction).
--- For reactors the mapping would have to be a many to many mapping (other reactors'
--- ports to own ports). This would on the one hand require the number of other reactors
--- to become part of a reactor's type, which seems inelegant. And further the mapping
--- would have to be implemented as a relation between another reactor's ports and the
--- self-reactor's ports. This would in turn also require nᵢ and nₒ to move into a 
--- reactor's type.
-
 structure reactor (υ : Type*) [decidable_eq υ] :=
   (input : ports υ)
   (output : ports υ)
@@ -46,6 +35,10 @@ namespace reactor
   def eq_rel_to (rtr rtr' : reactor υ) (rcn_id : ℕ) : Prop :=
     rtr ≈ rtr' ∧ rtr.output = rtr'.output ∧ rtr.state = rtr'.state ∧ 
     ports.correspond_at (rtr.reactions rcn_id).dᵢ rtr.input rtr'.input
+
+  lemma eq_rel_to_refl (rtr : reactor υ) (rcn_id : ℕ) :
+    rtr.eq_rel_to rtr rcn_id :=
+    by simp [eq_rel_to , (≈), ports.correspond_at]
 
   def rcns_with_dₒ (rtr : reactor υ) (p : ℕ) : finset ℕ :=
     rtr.priorities.filter (λ p, p ∈ (rtr.reactions p).dₒ)
@@ -80,25 +73,16 @@ namespace reactor
     begin
       unfold run,
       by_cases h_c : ((rtr.reactions rcn_id).fires_on rtr.input),
-        {
-          rw (if_pos h_c),
-          simp [run_aux],
-          apply reaction.output_ports_sub_dₒ
-        },
-        {
-          rw (if_neg h_c),
-          simp
-        }
+        simp [if_pos h_c, run_aux, reaction.output_ports_sub_dₒ],
+        simp [if_neg h_c]
     end
 
   theorem eq_rel_to_rcn_run (rtr rtr' : reactor υ) (rcn_id : ℕ) : 
     rtr.eq_rel_to rtr' rcn_id → (rtr.run rcn_id).1.eq_rel_to (rtr'.run rcn_id).1 rcn_id ∧ (rtr.run rcn_id).2 = (rtr'.run rcn_id).2 :=
     begin
       intro h,
-      unfold eq_rel_to at h,
-      simp [(≈)] at h,
-      unfold run,
-      simp,
+      simp [eq_rel_to, (≈)] at h,
+      unfold run run_aux,
       have h_f : (rtr.reactions rcn_id).fires_on rtr.input ↔ (rtr.reactions rcn_id).fires_on rtr'.input,
       from reaction.eq_fires_on_corr_input _ _ _ h.2.2.2,
       have h_w : (rtr.reactions rcn_id) rtr.input rtr'.state = (rtr.reactions rcn_id) rtr'.input rtr'.state,
@@ -132,6 +116,19 @@ namespace reactor
     begin
       unfold update_input,
       simp [(≈)]
+    end
+
+  lemma reactor.update_input_eq_rel {rtr : reactor υ} {p : ℕ} (v : option υ) {rcn : ℕ} :
+    p ∉ (rtr.reactions rcn).dᵢ → rtr.eq_rel_to (rtr.update_input p v) rcn :=
+    begin
+      intro h,
+      unfold reactor.update_input eq_rel_to,
+      repeat { split },
+      unfold ports.correspond_at,
+      intros x h,
+      simp,
+      have h' : p ≠ x, by finish,
+      exact symm (list.nth_update_nth_ne v rtr.input h')
     end
 
   def update_output (rtr : reactor υ) (i : ℕ) (v : option υ) : reactor υ :=

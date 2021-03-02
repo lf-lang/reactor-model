@@ -25,6 +25,12 @@ lemma propagate_output_comm (η : network.graph υ) (i i' : reactor.id) (p p' : 
   propagate_output (propagate_output η i p) i' p' = propagate_output (propagate_output η i' p') i p :=
   propagate_ports_comm' _ _ _ hᵤ
 
+lemma propagate_output_eq_rel (η : network.graph υ) (i i' : reaction.id) (p : list ℕ) (hₚ : p.to_finset ⊆ (η.rcn i).dₒ) :
+  (η.rtr i'.rtr).eq_rel_to ((propagate_output η i.rtr p).rtr i'.rtr) i'.rcn := -- This is missing the fact that i and i' are indep
+  begin
+    
+  end
+
 -- lemma propagate_output_run_indep {η : network.graph} {i : reactor.id} {ps : list ℕ} {i' : reaction.id} :
   -- ¬ precedence.externally_dependent i i' η → progpagate_output :=
 

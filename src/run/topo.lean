@@ -76,7 +76,7 @@ lemma run_topo_swap
   end
 
 theorem run_topo_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (ρ : precedence.graph υ) (h_a : ρ.is_acyclic) (h_wf : ρ.is_well_formed_over η) :
-  ∀ (t t' : list _) (h_t : t.is_topological_order h_a) (h_t' : t'.is_topological_order h_a) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
+  ∀ (t t' : list reaction.id) (h_t : t.is_topological_order h_a) (h_t' : t'.is_topological_order h_a) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
   begin
     intros t t' h_t h_t' hₚ,
     induction t generalizing t' η,

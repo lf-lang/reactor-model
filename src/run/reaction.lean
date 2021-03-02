@@ -55,7 +55,7 @@ lemma run_reaction_comm {η : network.graph υ} (hᵤ : η.has_unique_port_ins) 
   ¬(i~ρ~>i') → ¬(i'~ρ~>i) → run_reaction (run_reaction η i) i' = run_reaction (run_reaction η i') i :=
   begin 
     intros hₚ hₚ',
-    by_cases hᵢ : i = i',
+    by_cases hᵢ : i = i',  
       rw hᵢ,
       {
         have h_ir, from precedence.graph.indep_rcns_neq_rtrs h_wf hᵢ hₚ hₚ',

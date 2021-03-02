@@ -65,7 +65,7 @@ namespace digraph
 
   -- The proposition that a given digraph is acyclic.
   def is_acyclic (g : digraph ι δ ε) : Prop := 
-    ∀ i, ¬ i~g~>i
+    ∀ i, ¬i~g~>i
 
   lemma update_data_comm {i i' : ι} (h : i ≠ i') (d d' : δ) (g : digraph ι δ ε) :
     (g.update_data i d).update_data i' d' = (g.update_data i' d').update_data i d :=

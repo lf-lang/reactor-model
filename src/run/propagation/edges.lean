@@ -84,3 +84,24 @@ lemma propagate_edges_comm (η : network.graph υ) (hᵤ : η.has_unique_port_in
 lemma propagate_edges_append (η : network.graph υ) (e e' : list graph.edge) :
   propagate_edges (propagate_edges η e) e' = propagate_edges η (e ++ e') :=
   by simp [propagate_edges, list.foldl_append]
+
+lemma propagate_edges_eq_rel (η : network.graph υ) (l : list graph.edge) (i : reaction.id) :
+  (∀ e : graph.edge, e ∈ l → ¬(η.rcn_dep_on_prt i e.dst)) → (η.rtr i.rtr).eq_rel_to ((propagate_edges η l).rtr i.rtr) i.rcn :=
+  begin
+    intro h,
+    induction l,
+      case list.nil {
+        unfold propagate_edges,
+        apply reactor.eq_rel_to_refl,
+      },
+      case list.cons {
+        unfold propagate_edges,
+        rw list.foldl_cons,
+        -- HERE, generalize η?
+        have hₑ : (η.rtr i.rtr).eq_rel_to ((propagate_edge η l_hd).rtr i.rtr) i.rcn,
+        from propagate_edge_eq_rel _ _ _ (h l_hd (list.mem_cons_self _ _)),
+        -- have H, from l_ih (propagate_edge η l_hd)
+        have hₘ : ∀ (e : graph.edge), e ∈ l_tl → ¬(propagate_edge η l_hd).rcn_dep_on_prt i e.dst, from sorry,
+        exact l_ih (propagate_edge η l_hd) hₘ,
+      }
+  end

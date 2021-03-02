@@ -44,3 +44,12 @@ lemma propagate_edge_comm (η : network.graph υ) (e e' : graph.edge) (hᵤ : η
         rw graph.update_input_comm h_d _ _ η
       }
   end
+
+lemma propagate_edge_eq_rel (η : network.graph υ) (e : graph.edge) (i : reaction.id) :
+  ¬(η.rcn_dep_on_prt i e.dst) → (η.rtr i.rtr).eq_rel_to ((propagate_edge η e).rtr i.rtr) i.rcn :=
+  begin
+    intro h,
+    unfold propagate_edge,
+    apply graph.update_input_eq_rel,
+    exact h,
+  end

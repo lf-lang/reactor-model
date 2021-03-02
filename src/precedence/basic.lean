@@ -18,9 +18,10 @@ def precedence.graph (υ : Type*) [decidable_eq υ] : Type* :=
 
 variables {υ : Type*} [decidable_eq υ]
 
-instance : has_mem (reaction υ) (precedence.graph υ) := {mem := λ r g, ∃ i, g.data i = r}
-
 namespace precedence.graph
+
+  @[reducible]
+  instance rcn_mem : has_mem (reaction υ) (precedence.graph υ) := {mem := λ r g, ∃ i, g.data i = r}
 
   -- The reaction contained in a precedence graph, that is associated with a given reaction ID.
   noncomputable def rcn (ρ : precedence.graph υ) (i : reaction.id) : reaction υ :=
