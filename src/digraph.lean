@@ -74,8 +74,7 @@ namespace digraph
   notation i~g~>j := g.has_path_from_to i j
 
   -- The proposition that a given digraph is acyclic.
-  def is_acyclic (g : digraph ι δ ε) : Prop := 
-    ∀ i, ¬i~g~>i
+  def is_acyclic (g : digraph ι δ ε) : Prop := ∀ i, ¬i~g~>i
 
   -- If two graphs contain the same edges, then any path in one graph must also exist in the other.
   lemma eq_edges_eq_paths {g g' : digraph ι δ ε} {i i' : ι} (hₚ : g.edges = g'.edges) (hₑ : i~g~>i') :

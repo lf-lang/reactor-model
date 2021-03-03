@@ -76,16 +76,10 @@ namespace network
       η.update_data i r
 
     noncomputable def update_input (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
-      η.update_reactor p.rtr ((η.data p.rtr).update_input p.prt v)
+      η.update_reactor p.rtr ((η.data p.rtr).update ports.role.input p.prt v)
 
     noncomputable def update_output (η : graph υ) (p : port.id) (v : option υ) : graph υ :=
-      η.update_reactor p.rtr ((η.data p.rtr).update_output p.prt v)
-
-    noncomputable def clear_reactor_excluding (η : graph υ) (r : reactor.id) (i : finset port.id) (o : finset port.id) : graph υ :=
-      η.update_reactor r ((η.rtr r).clear_ports_excluding (i.image (λ x, x.prt)) (o.image (λ x, x.prt)))
-
-    noncomputable def clear_ports_excluding (η : graph υ) (i : finset port.id) (o : finset port.id) : graph υ :=
-      η.ids.val.to_list.foldl (λ η' r, η'.clear_reactor_excluding r (i.filter (λ x, x.rtr = r)) (o.filter (λ x, x.rtr = r))) η
+      η.update_reactor p.rtr ((η.data p.rtr).update ports.role.output p.prt v)
 
     def rcn_dep_on_prt (η : network.graph υ) (r : reaction.id) (p : port.id) : Prop :=
       p.rtr = r.rtr ∧ p.prt ∈ (η.rcn r).dᵢ
@@ -152,7 +146,7 @@ namespace network
       (η.update_input p v) ≈ η :=
       begin
         unfold update_input,
-        have h : (η.data p.rtr).update_input p.prt v ≈ (η.data p.rtr), from reactor.update_input_equiv _ p.prt v,
+        have h : (η.data p.rtr).update ports.role.input p.prt v ≈ (η.data p.rtr), from reactor.update_equiv _ _ _ _,
         simp [(≈)],
         exact update_reactor_equiv _ _ _ h
       end
@@ -161,7 +155,7 @@ namespace network
       (η.update_output p v) ≈ η :=
       begin
         unfold update_output,
-        have h : (η.data p.rtr).update_output p.prt v ≈ (η.data p.rtr), from reactor.update_output_equiv _ p.prt v,
+        have h : (η.data p.rtr).update ports.role.output p.prt v ≈ (η.data p.rtr), from reactor.update_equiv _ _ _ _,
         simp [(≈)],
         exact update_reactor_equiv _ _ _ h
       end
@@ -188,7 +182,7 @@ namespace network
       begin
         unfold update_input,
         apply update_reactor_out_inv,
-        apply reactor.update_input_out_inv
+        refl,
       end
 
     lemma update_reactor_comm {i i' : reactor.id} (h : i ≠ i') (r r' : reactor υ) (η : graph υ) :

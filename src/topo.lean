@@ -12,7 +12,7 @@ def list.is_topo_over (l : list ι) (g : digraph ι δ ε) : Prop :=
 namespace topo
 
   -- Removing an element from a topological ordering does not break the property of it being a topological ordering.
-  lemma topo_erase (i : ι) {t : list ι} {g : digraph ι δ ε} (h : t.is_topo_over g) :
+  lemma erase_is_topo (i : ι) {t : list ι} {g : digraph ι δ ε} (h : t.is_topo_over g) :
     (t.erase i).is_topo_over g :=
     begin
       unfold list.is_topo_over at h ⊢,
@@ -26,11 +26,11 @@ namespace topo
     end
 
   -- If a list is a topological ordering for some graph, then so is its tail.
-  lemma topo_cons {hd : ι} {tl : list ι} {g : digraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
+  lemma cons_is_topo {hd : ι} {tl : list ι} {g : digraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
     tl.is_topo_over g :=
     begin
       rw ←list.erase_cons_head hd tl,
-      exact topo_erase hd h
+      exact erase_is_topo hd h
     end
 
 end topo
@@ -60,8 +60,7 @@ namespace topo
 
   -- An item `i` in a topological ordering is independent if the corresponding graph contains no path
   -- that starts with an element in the ordering and ends in `i`.
-  def indep (i : ι) (t : list ι) (g : digraph ι δ ε) : Prop :=
-    ∀ i' ∈ t, ¬(i'~g~>i)
+  def indep (i : ι) (t : list ι) (g : digraph ι δ ε) : Prop := ∀ i' ∈ t, ¬(i'~g~>i)
 
   -- The head of a topological ordering is always independent.
   lemma indep_head (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h : (hd :: tl).is_topo_over g) :

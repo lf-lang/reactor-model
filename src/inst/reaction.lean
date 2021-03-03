@@ -1,82 +1,71 @@
 import data.finset
 import inst.primitives
-
 open reactor
 
+-- Cf. inst/primitives.lean
+variables (υ : Type*) [decidable_eq υ]
+
 -- Reactions consist of a set of input dependencies `dᵢ`, output dependencies `dₒ`, `triggers` and
--- a function `body` that transforms a given input map and reactor state to an output map and a new
--- reactor state.
--- Since *actions* are not defined in this simplified model of reactors, the set of `triggers` is
--- simply a subset of the input dependencies `dᵢ`. The proof `nonempty_triggers` assures that a
--- reaction has at *least* some trigger.
-structure reaction (υ : Type*) [decidable_eq υ] :=
+-- a function `body` that transforms a given input port assignment and reactor state to an output
+-- port assignment and a new reactor state.
+-- To assure correct behavior of the `body`, we add the constraints `in_con` and `out_con`.
+structure reaction :=
   (dᵢ : finset ℕ) 
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
   (body : ports υ → state_vars υ → ports υ × state_vars υ)
-  (well_behaved : ∀ i i' s, ports.correspond_at dᵢ i i' → body i s = body i' s)
-  (output_constrained : ∀ i s o, o ∉ dₒ → ((body i s).1.nth o).join = none) 
+  (in_con : ∀ i i' s, (i =dᵢ= i') → body i s = body i' s)
+  (out_con : ∀ i s o, o ∉ dₒ → (body i s).1.nth o = none) 
 
 namespace reaction
 
-  variables {υ : Type*} [decidable_eq υ]
+  variable {υ}
 
-  instance coe_to_fun : has_coe_to_fun (reaction υ) :=
-    ⟨_, (λ r, r.body)⟩
+  -- Calling a reaction as function, means calling its body.
+  instance coe_to_fun : has_coe_to_fun (reaction υ) := ⟨_, (λ r, r.body)⟩
 
-  noncomputable instance dec_eq : decidable_eq (reaction υ) := 
-    classical.dec_eq _
+  -- Reactions' equality is non-constructively decidable.
+  noncomputable instance dec_eq : decidable_eq (reaction υ) := classical.dec_eq _
 
-  -- The proposition, that a given reaction fires on a given port map. This is only defined when
-  -- the dimensions of the given port map match the reaction's input dimensions (`r.nᵢ`).
-  def fires_on (r : reaction υ) (p : ports υ) : Prop :=
-    ∃ (t : {x // x ∈ r.dᵢ}) (_ : t ∈ r.triggers) (v : υ), p.nth t = some v
+  -- Any port assignment returned by a reaction can only assign values to ports which are part of its output-dependencies.
+  -- Hence the inhabited indices of that port assignment must be a subset of the reaction's `dₒ`.
+  lemma outputs_sub_dₒ (rcn : reaction υ) (i : ports υ) (s : state_vars υ) :
+    (rcn i s).1.inhabited_indices.to_finset ⊆ rcn.dₒ :=
+    begin
+      simp only [(⊆)],
+      intro o,
+      rw ←not_imp_not,
+      intro h,
+      have hₙ, from rcn.out_con i s _ h,
+      have hₘ, from ports.inhabited_indices_none hₙ,
+      finish
+    end
 
-  noncomputable instance dec_fires_on (r : reaction υ) (p : ports υ) : decidable (r.fires_on p) := 
+  -- The proposition, that a given reaction fires on a given port assignment,
+  -- i.e. that it should execute if its reaction has the given ports as input ports.
+  def fires_on (rcn : reaction υ) (p : ports υ) : Prop :=
+    ∃ (t : {x // x ∈ rcn.dᵢ}) (_ : t ∈ rcn.triggers) (v : υ), p.nth t = some v
+
+  noncomputable instance dec_fires_on (rcn : reaction υ) (p : ports υ) : decidable (rcn.fires_on p) := 
     classical.prop_decidable _
 
-  lemma eq_fires_on_corr_input (r : reaction υ) (p p' : ports υ) (h : ports.correspond_at r.dᵢ p p') :
-    r.fires_on p ↔ r.fires_on p' :=
+  -- If two port assignments are equal relative to a reactions input-dependencies, 
+  -- then the reaction fires on one exactly when it fires on the other.
+  lemma eq_input_eq_fires {rcn : reaction υ} {p p' : ports υ} (h : p =rcn.dᵢ= p') :
+    rcn.fires_on p ↔ rcn.fires_on p' :=
     begin
-      unfold fires_on,
-      unfold ports.correspond_at at h,
-      split
-        ; {
-          intro e,
-          obtain ⟨t, r, v, h'⟩ := e,
+      simp [fires_on, ports.eq_at] at h ⊢,
+      split,
+        all_goals { 
+          intro hₑ,
+          obtain ⟨t, r, v, h'⟩ := hₑ,
           existsi t,
           existsi r,
           existsi v,
-          finish,
-        }
-    end
-
-  -- A reaction will never fire on empty ports.
-  lemma no_in_no_fire (r : reaction υ) : 
-    ∀ n : ℕ, ¬ r.fires_on (ports.empty υ n) := 
-    begin 
-      intro n,
-      unfold reaction.fires_on,
-      simp,
-      intros i hₘ hₜ v,
-      unfold ports.empty,
-      rw list.nth_eq_some,
-      simp,
-      intro hᵢ,
-      change ¬ none = some v,
-      simp,
-    end
-
-  lemma output_ports_sub_dₒ (rcn : reaction υ) :
-    ∀ i s, (rcn i s).1.inhabited_indices.to_finset ⊆ rcn.dₒ :=
-    begin
-      intros i s,
-      simp [(⊆)],
-      intro o,
-      suffices h : o ∉ rcn.dₒ → o ∉ (rcn i s).fst.inhabited_indices, from not_imp_not.mp h,
-      intro h,
-      apply ports.inhabited_indices_excl,
-      exact rcn.output_constrained i s _ h
+          obtain ⟨hₜ, _⟩ := r
+        },
+        simp [←(h t hₜ), h'],
+        simp [h t hₜ, h']
     end
 
 end reaction

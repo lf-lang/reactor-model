@@ -2,6 +2,11 @@ import data.nat.basic
 import data.list.indexes
 import data.list.nodup
 import data.list.range
+import tactic
+
+lemma list.update_nth_same {α : Type*} (l : list (option α)) (n : ℕ) : 
+    l.update_nth n (l.nth n).join = l :=
+    sorry
 
 lemma list.find_indexes_nth_nmem {α : Type*} {l : list α} {n : ℕ} {p : α → Prop} [decidable_pred p] :
   ∀ {x}, l.nth n = some x → ¬(p x) → n ∉ (l.find_indexes p) :=
@@ -11,74 +16,78 @@ lemma list.find_indexes_nth_none {α : Type*} {l : list α} {n : ℕ} {p : α �
   l.nth n = none → n ∉ (l.find_indexes p) :=
   sorry
 
--- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/ne.20of.20mem.20and.20not.20mem/near/228463288
-lemma list.mem_nmem_ne {α : Type*} {l : list α} {x x' : α} (h : x ∈ l) (h' : x' ∉ l) : 
-  x ≠ x' :=
-  begin 
-    rintro rfl,
-    exact h' h
-  end
+noncomputable def list.ne_indexes {α : Type*} (l l' : list α) : finset ℕ :=
+  @finset.filter _ (λ i, l.nth ≠ l'.nth) (classical.dec_pred _) (finset.range (max l.length l'.length))
 
-lemma list.index_of_cons_lt {α : Type*} [decidable_eq α] {hd : α} {tl : list α} {x x' : α} (h : (hd :: tl).index_of x < (hd :: tl).index_of x') (hₘ : x ∈ tl) (hₘ' : x' ∈ tl) (hₙ : (hd :: tl).nodup) :
-  tl.index_of x < tl.index_of x' :=
-  begin
-    have hₕ, from list.not_mem_of_nodup_cons hₙ,
-    have hₓ, from list.mem_nmem_ne hₘ hₕ,
-    have hₓ', from list.mem_nmem_ne hₘ' hₕ,
-    have hₛ, from list.index_of_cons_ne tl hₓ,
-    have hₛ', from list.index_of_cons_ne tl hₓ',
-    rw [hₛ, hₛ'] at h,
-    exact nat.succ_lt_succ_iff.mp h
-  end
+-- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/index_of_erase_lt/near/228527125
 
-lemma list.index_of_erase_lt {α : Type*} [decidable_eq α] {l : list α} {e x x' : α} (h : l.index_of x < l.index_of x') (hₘ : x ∈ l.erase e) (hₘ' : x' ∈ l.erase e) (hₙ : l.nodup) :
-  (l.erase e).index_of x < (l.erase e).index_of x' :=
+@[simp] 
+lemma list.sublist_nil {α : Type*} {l : list α} : l <+ [] ↔ l = [] :=
   begin
-    have hₕ : e ∉ l.erase e, from list.mem_erase_of_nodup hₙ,
-    have hₓ, from list.mem_nmem_ne hₘ hₕ,
-    have hₓ', from list.mem_nmem_ne hₘ' hₕ,
-    cases l,
-      case list.nil { 
-        exfalso,
-        exact hₘ
+    split,
+      { 
+        rintro ⟨⟩,
+        refl 
       },
-      case list.cons {
-        by_cases hc : l_hd = e,
-          {
-            rw [hc, list.erase_cons_head e l_tl] at hₘ hₘ' ⊢,
-            exact list.index_of_cons_lt h hₘ hₘ' hₙ
-          },
-          {
-            rw list.erase_cons_tail l_tl hc at hₘ hₘ' ⊢,
-            have hₑ : x ≠ x', from sorry,
-            by_cases hcₓ : x = l_hd,
-              {
-                rw [hcₓ, list.index_of_cons_self, list.index_of_cons],
-                have hₑ', from ne.symm (ne_of_eq_of_ne (symm hcₓ) hₑ),
-                simp [if_neg hₑ']
-              },
-              {
-                rw list.index_of_cons_ne (l_tl.erase e) hcₓ,
-                sorry
-              }
-          }
+      { 
+        rintro rfl,
+        refl 
       }
   end
 
--- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/list.2Enth.20is.20either.20none/near/226562824
-lemma option.join_eq_none {α : Type*} (o : option (option α)) : o.join = none ↔ o = none ∨ o = some none :=
-  by rcases o with _|_|_; simp
+lemma list.mem_of_mem_sublist {α : Type*} {l l' : list α} {x : α} (h : x ∈ l) (hl : l <+ l') :
+  x ∈ l' :=
+  begin
+    induction hl with _ tl hd hl IH tl tl' hd hl IH,
+      simpa using h,
+      exact list.mem_cons_of_mem _ (IH h),
+      { 
+        rw [list.mem_cons_iff] at h ⊢,
+        rcases h with h | h,
+          exact or.inl h,
+          exact or.inr (IH h) 
+      }
+  end
 
--- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/list.2Eupdate_nth_comm/near/223010209
-@[simp]
-lemma list.update_nth_nil {α : Type*} (n : ℕ) (a : α) : [].update_nth n a = [] := rfl
-lemma list.update_nth_comm {α : Type*} (a b : α) : ∀ {n m : ℕ} (h : n ≠ m) (l : list α),
-  (l.update_nth n a).update_nth m b = (l.update_nth m b).update_nth n a
-  | _ _ _ [] := by simp
-  | 0 0 h (x :: t) := absurd rfl h
-  | (n + 1) 0 h (x :: t) := by simp [list.update_nth]
-  | 0 (m + 1) h (x :: t) := by simp [list.update_nth]
-  | (n + 1) (m + 1) h (x :: t) := by { simp [list.update_nth], exact list.update_nth_comm (λ h', h $ nat.succ_inj'.mpr h') t}
+lemma list.index_of_lt_of_sublist {α : Type*} [decidable_eq α] {l l' : list α} {x x' : α}
+  (h : l.index_of x < l.index_of x') (hl : l' <+ l)
+  (hₘ : x ∈ l') (hₘ' : x' ∈ l') (hₙ : l.nodup) :
+  l'.index_of x < l'.index_of x' :=
+  begin
+    induction hl with _ tl hd hl IH tl tl' hd hl IH,
+    { simpa using hₘ },
+    { refine IH _ hₘ hₘ' _,
+      { have hne : ∀ z ∈ hl_l₁, z ≠ hd,
+          { rintro z hz rfl,
+            have : z ∈ tl := list.mem_of_mem_sublist hz hl,
+            simpa [this] using hₙ },
+        rwa [list.index_of_cons_ne _ (hne _ hₘ), list.index_of_cons_ne _ (hne _ hₘ'),
+            nat.succ_lt_succ_iff] at h },
+      { rw list.nodup_cons at hₙ,
+        exact hₙ.right } },
+    { rw list.mem_cons_iff at hₘ hₘ',
+      rw list.nodup_cons at hₙ,
+      rcases hₘ with rfl|hₘ;
+      rcases hₘ' with rfl|hₘ',
+      { simpa using h },
+      { have hx' : x' ∈ tl' := list.mem_of_mem_sublist hₘ' hl,
+        replace hx' : x' ≠ x := ne_of_mem_of_not_mem hx' hₙ.left,
+        simp [hx'] },
+      { have hx : x ∈ tl' := list.mem_of_mem_sublist hₘ hl,
+        replace hx : x ≠ x' := ne_of_mem_of_not_mem hx hₙ.left,
+        simpa [hx] using h },
+      { have hx : x ∈ tl' := list.mem_of_mem_sublist hₘ hl,
+        replace hx : x ≠ hd := ne_of_mem_of_not_mem hx hₙ.left,
+        have hx' : x' ∈ tl' := list.mem_of_mem_sublist hₘ' hl,
+        replace hx' : x' ≠ hd := ne_of_mem_of_not_mem hx' hₙ.left,
+        rw [list.index_of_cons_ne _ hx, list.index_of_cons_ne _ hx', nat.succ_lt_succ_iff] at h ⊢,
+        exact IH h hₘ hₘ' hₙ.right } }
+  end
+
+lemma list.index_of_erase_lt {α : Type*} [decidable_eq α] {l : list α} {e x x' : α}
+  (h : l.index_of x < l.index_of x') (hₘ : x ∈ l.erase e) (hₘ' : x' ∈ l.erase e) (hₙ : l.nodup) :
+  (l.erase e).index_of x < (l.erase e).index_of x' :=
+    list.index_of_lt_of_sublist h (l.erase_sublist e) hₘ hₘ' hₙ
 
 -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Nodup.20Indices/near/224749989
 

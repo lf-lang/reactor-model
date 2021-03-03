@@ -53,7 +53,7 @@ lemma run_topo_swap
       {
         unfold run_topo,
         repeat { rw list.foldl_cons },
-        have h_tc, from (topo.topo_cons hₜ),
+        have h_tc, from (topo.cons_is_topo hₜ),
         by_cases h_c : i = t_hd,
           simp [h_c],
           {
@@ -84,8 +84,8 @@ theorem run_topo_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (�
       {
         have h_e, from run_reaction_equiv η t_hd,
         have h_pe, from list.cons_perm_iff_perm_erase.mp hₚ, 
-        have h_tc, from (topo.topo_cons h_t),
-        have hte' : (t'.erase t_hd).is_topo_over ρ, from topo.topo_erase t_hd t' h_t',
+        have h_tc, from (topo.cons_is_topo h_t),
+        have hte' : (t'.erase t_hd).is_topo_over ρ, from topo.erase_is_topo _ h_t',
         have htep' : t_tl ~ (t'.erase t_hd), from h_pe.right,
         have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, from network.graph.edges_inv_unique_port_ins_inv (symm h_e).left hᵤ,
         have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), from network.graph.equiv_wf h_e h_wf,

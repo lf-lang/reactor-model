@@ -1,5 +1,28 @@
 import timed.basic
 
+-- !!! This shouldn't exist.
+
+variables {υ : Type*} [decidable_eq υ]
+
+def reactor.ports.clear_excluding {υ} [decidable_eq υ] (p : reactor.ports υ) (e : finset ℕ) : reactor.ports υ :=
+  p.enum.map (λ iv, if (iv.1 ∈ e) then iv.2 else none)
+
+def reactor.clear_ports_excluding (rtr : reactor υ) (i : finset ℕ) (o : finset ℕ) : reactor υ :=
+  {input := rtr.input.clear_excluding i, output := rtr.output.clear_excluding o, ..rtr}
+
+noncomputable def network.graph.clear_reactor_excluding (η : network.graph υ) (r : reactor.id) (i : finset port.id) (o : finset port.id) : network.graph υ :=
+  η.update_reactor r ((η.rtr r).clear_ports_excluding (i.image (λ x, x.prt)) (o.image (λ x, x.prt)))
+
+noncomputable def network.graph.clear_ports_excluding (η : network.graph υ) (i : finset port.id) (o : finset port.id) : network.graph υ :=
+  η.ids.val.to_list.foldl (λ η' r, η'.clear_reactor_excluding r (i.filter (λ x, x.rtr = r)) (o.filter (λ x, x.rtr = r))) η
+
+noncomputable def network.clear_ports_excluding (n : network υ) (i : finset port.id) (o : finset port.id) : network υ :=
+{
+  η := n.η.clear_ports_excluding i o,
+  unique_ins := sorry, -- TIME
+  prec_acyclic := sorry -- TIME
+}
+
 namespace timed_network
   
   def priority_pred (σ : network tpa) (e e' : action_edge) : Prop :=
@@ -25,14 +48,14 @@ namespace timed_network
     (σ.update_input e.iap (merge_tpas (σ.η.input e.iap) (σ.η.output e.oap)))
       .update_output e.oap none
 
-  noncomputable def gather_input_action_port (as : finset action_edge) (σ : network tpa) (p : port.id) : network tpa :=
+  noncomputable def gather_iap (as : finset action_edge) (σ : network tpa) (p : port.id) : network tpa :=
     ((as
       .filter (λ a : action_edge, a.iap = p))
       .sort (priority_pred σ))
       .foldl propagate_tpa σ
 
   noncomputable def propagate_actions (n : timed_network) : network tpa :=
-    n.input_action_ports.val.to_list.foldl (gather_input_action_port n.actions) n.σ
+    n.input_action_ports.val.to_list.foldl (gather_iap n.actions) n.σ
 
   def tpa_at_tag (tpm : option tpa) (t : tag) : option tpa :=
     match tpm with 

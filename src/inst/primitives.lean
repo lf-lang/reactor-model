@@ -3,125 +3,123 @@ import order.lexicographic
 import mathlib
 
 -- The type of opaque values that can be passed between reactors and processed by reactions.
--- Their equality has to be decidable, but beyond that their values are of no interest. Hence they
--- are modeled as `empty`.
+-- Their equality has to be decidable, but beyond that their values are of no interest.
 variables (υ : Type*) [decidable_eq υ]
 
--- Rationale for using *functions* in the following definitions:
--- An intuitive approach for the definition of `input`, `output`, `ports` and `state` might be to
--- use vectors of `option value`. In the end `ports` and `state` are basically just that, because
--- they map *from* `fin n`. The reason functions are used over vectors, is that the definition of
--- `input` and `output` can then be constrained to only map over a very speicific set of ids (what
--- will later be a reaction's dependencies). Using vectors in this case would require an auxiliary
--- map that associates each of the indices of an `in-/output` with the indices of the `ports` from
--- which they were derived.
-
--- A list of values.
--- This represents the state fields of a reactor.
--- Since we don't ever need to work with the state fields within Lean, their definition is fuzzy
--- for the sake of simplicity (we don't need to define a `nₛ` on reactors and reactions).
+-- A list of state variables as used by reactors.
+-- The indices into the list can be viewed as the IDs for individual state variables.
 def reactor.state_vars := list υ
 
--- A mapping from port ids to (possibly empty) values.
--- This represents the ports of a reactor.
+-- A list of ports as used by reactors.
+-- The indices into the list are used as the IDs for individual state variables.
+-- Absent values are represented by `option.none`.
+-- We often call an instance of this type a "port assignment".
 @[derive has_append]
 def reactor.ports := list (option υ)
 
 namespace reactor.ports
+open reactor
 
-  open reactor
+  variable {υ}
 
-  def correspond_at {υ} [decidable_eq υ] (i : finset ℕ) (p p' : ports υ) : Prop :=
-    ∀ x ∈ i, p.nth x = p'.nth x
+  -- Ports can be input- our output-ports.
+  -- Making this distinction explicit is useful for avoiding code duplication for some algorithms.
+  inductive role
+    | input : role
+    | output : role
 
-  instance (i : finset ℕ) : is_equiv (ports υ) (correspond_at i) := 
-    {
-      symm :=  begin unfold correspond_at, finish end,
-      trans := begin unfold correspond_at, finish end,
-      refl :=  begin unfold correspond_at, finish end
-    }
+  -- Accessing in index that contains an absent value, and accessing an index 
+  -- that isn't part of the list should both return `none`.
+  -- This helps avoid nested optional values.
+  def nth (p : ports υ) (n : ℕ) : option υ := (p.nth n).join
 
-  -- A port assignment where all values are empty.
-  @[reducible]
+  -- The proposition that two port assignments have the same values at given indices.
+  def eq_at (i : finset ℕ) (p p' : ports υ) : Prop := ∀ x ∈ i, p.nth x = p'.nth x
+
+  notation p =i= q := (eq_at i p q)
+
+  -- For fixed indices, `reactor.ports.eq_at` is reflexive.
+  @[refl]
+  lemma eq_at_refl (i : finset ℕ) (p : ports υ) : p =i= p := by tauto
+
+  -- For fixed indices, `reactor.ports.eq_at` is symmetric.
+  @[symm]
+  lemma eq_at_symm (i : finset ℕ) (p p' : ports υ) (h : p =i= p') : p' =i= p := by tauto
+
+  -- For fixed indices, `reactor.ports.eq_at` is transitive.
+  @[trans]
+  lemma eq_at_trans (i : finset ℕ) (p₁ p₂ p₃ : ports υ) (h₁₂ : p₁ =i= p₂) (h₂₃ : p₂ =i= p₃) : 
+    p₁ =i= p₃ :=
+    assume x hₓ, eq.trans (h₁₂ x hₓ) (h₂₃ x hₓ)
+
+  variable υ
+
+  -- A port assignment that only contains absent values.
   def empty (n : ℕ) : ports υ := list.repeat none n
 
-  lemma empty_cons (n : ℕ) :
-    empty υ (n + 1) = none :: empty υ n :=
-    by refl
+  -- Empty ports can be constructed from absent values.
+  @[simp]
+  lemma empty_cons (n : ℕ) : empty υ (n + 1) = none :: empty υ n := by refl
+
+  variable {υ}
 
   -- The proposition, that a given port assignment is empty.
-  def is_empty (p : ports υ) : Prop :=
-    p = empty υ p.length
+  def is_empty (p : ports υ) : Prop := p = empty υ p.length
 
-  -- The indices in the given port map that have a corresponding (non-`none`) value.
-  def inhabited_indices {υ} [decidable_eq υ] (p : ports υ) : list ℕ :=
+  -- The indices in the given port assignment that have a non-absent value.
+  def inhabited_indices (p : ports υ) : list ℕ :=
     p.find_indexes (λ e, e ≠ none)
 
+  -- The inhabited indices for a given port assignment are nodup.
   lemma inhabited_indices_nodup (p : ports υ) : p.inhabited_indices.nodup :=
     by simp [inhabited_indices, nodup_find_indexes]
 
-  lemma inhabited_indices_excl {υ} [decidable_eq υ] {p : ports υ} :
-    ∀ o, (p.nth o).join = none → o ∉ p.inhabited_indices :=
+  -- Indicies with an absent value are not part of a port assignments inhabited indices.
+  lemma inhabited_indices_none {p : ports υ} {o : ℕ} (h : p.nth o = none) :
+    o ∉ p.inhabited_indices :=
     begin
-      intro o,
-      assume h,
-      have h', from (option.join_eq_none (p.nth o)).mp h,
-      cases h',
-        exact list.find_indexes_nth_none h',
-        {
-          unfold inhabited_indices,
-          apply list.find_indexes_nth_nmem h',
-          simp,
-        }
+      cases option.join_eq_none.mp h with hc hc',
+        exact list.find_indexes_nth_none hc,
+        simp [inhabited_indices, list.find_indexes_nth_nmem hc']
     end
 
-  -- Merges a given port map onto another port map.
+  -- Merges a given port assignment *onto* another one.
   -- The `last` ports override the `first` ports, but the length remains that of `first`.
-  def merge {υ} [decidable_eq υ] (first last : ports υ) : ports υ :=
+  def merge (first last : ports υ) : ports υ :=
     (last.zip_with (<|>) first) ++ 
     if first.length ≤ last.length then [] else empty υ (first.length - last.length)
 
+  -- The length of merged ports is that of the first instance.
+  @[simp]
   lemma merge_length (p p' : ports υ) : 
     (p.merge p').length = p.length :=
     begin
-      unfold merge,
-      simp,
+      simp [merge],
       by_cases h : p.length ≤ p'.length, 
         finish,
         {
-          rw if_neg h, 
-          unfold empty,
-          rw list.length_repeat,
-          simp at h,
-          rw min_eq_left (le_of_lt h),
-          rw [← nat.add_sub_assoc (le_of_lt h), nat.add_sub_cancel_left],
+          simp [if_neg h, empty, list.length_repeat] at h ⊢, 
+          rw [min_eq_left (le_of_lt h), ←nat.add_sub_assoc (le_of_lt h), nat.add_sub_cancel_left]
         }
     end
 
-  lemma merge_empty_is_neutral (p : ports υ) :
+  -- Merging empty ports does not change anything.
+  lemma merge_empty_neutral (p : ports υ) :
     p.merge (empty υ p.length) = p := 
     begin
       unfold merge,
-      have h : list.length p ≤ list.length (empty υ (list.length p)), {
-        unfold empty,
-        finish
-      },
+      have h : list.length p ≤ list.length (empty υ (list.length p)), by simp [empty],
       rw if_pos h,
       induction p,
         case list.nil { refl },
         case list.cons {
-          rw list.length_cons,
-          rw empty_cons, 
-          rw list.zip_with_cons_cons, 
+          rw [list.length_cons, empty_cons, list.zip_with_cons_cons], 
           have h' : (empty υ p_tl.length).length = p_tl.length, by apply list.length_repeat,
           have h'', from p_ih (le_of_eq (symm h')),  
           simp [(<|>)],
           rw list.append_nil at h'',
-          exact h''
+          exact congr_arg (list.cons p_hd) h'',
         }
     end
-
-  def clear_excluding {υ} [decidable_eq υ] (p : ports υ) (e : finset ℕ) : ports υ :=
-    p.enum.map (λ iv, if (iv.1 ∈ e) then iv.2 else none)
 
 end reactor.ports

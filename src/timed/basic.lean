@@ -62,7 +62,8 @@ namespace timed_network
     n.actions.image (λ e, e.oap)
 
   noncomputable def priority_of (e : action_edge) (n : network tpa) : option ℕ :=
-    let rcns := (n.η.rtr e.oap.rtr).rcns_with_dₒ e.oap.prt in
+    let rtr := (n.η.rtr e.oap.rtr) in
+    let rcns := rtr.priorities.filter (λ p, p ∈ (rtr.reactions e.oap.prt).dₒ) in
     if h : rcns.card = 1 then (finset.card_eq_one.mp h).some else none
 
 end timed_network

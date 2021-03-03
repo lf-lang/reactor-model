@@ -35,10 +35,10 @@ lemma propagate_output_eq_rel (η : network.graph υ) (i i' : reaction.id) (p : 
   -- ¬ precedence.externally_dependent i i' η → progpagate_output :=
 
 /-lemma propagate_output_input_inv (η : network.graph) {ρ : precedence.graph} {i i' : reaction.id} {p : list ℕ} (hₛ : p.to_finset ⊆ (η.rcn i).dₒ) :
-  ¬(i~ρ~>i') → i.rtr ≠ i'.rtr → reactor.ports.correspond_at (η.rcn i').dᵢ ((propagate_output η i.rtr p).rtr i'.rtr).input (η.rtr i'.rtr).input :=
+  ¬(i~ρ~>i') → i.rtr ≠ i'.rtr → reactor.ports.eq_at (η.rcn i').dᵢ ((propagate_output η i.rtr p).rtr i'.rtr).input (η.rtr i'.rtr).input :=
   begin
     intros hₚ hₙ,
-    unfold reactor.ports.correspond_at,
+    unfold reactor.ports.eq_at,
     intros x hₓ,
     unfold propagate_output propagate_ports,
     simp,
