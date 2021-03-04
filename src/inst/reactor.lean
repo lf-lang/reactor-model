@@ -1,5 +1,3 @@
-import mathlib
-import inst.primitives
 import inst.reaction
 open reactor
 open reaction
@@ -283,7 +281,20 @@ namespace reactor
   -- Merging the same data into relatively equal reactors, produces relatively equal reactors.
   lemma merge_eq_rel_to {rtr rtr' : reactor υ} {rcn : ℕ} {os : ports υ × state_vars υ} (h : rtr =rcn= rtr') :
     (rtr.merge os) =rcn= (rtr'.merge os) :=
-    sorry
+    begin
+      unfold merge,
+      rw [←eq_rel_to_eq_output h, ←(eq_rel_to_equiv h).left, ←(eq_rel_to_equiv h).right],
+      induction h,
+        case eq_rel_to.single {
+          have hᵢ : h_rtr'.input = h_rtr.input.update_nth h_p h_v, by finish,
+          rw hᵢ,
+          exact eq_rel_to.single (refl _) h_ᾰ_1        
+        },
+        case eq_rel_to.multiple {
+          rw [←eq_rel_to_eq_output h_ᾰ, ←(eq_rel_to_equiv h_ᾰ).left, ←(eq_rel_to_equiv h_ᾰ).right] at h_ih_ᾰ_1,
+          exact eq_rel_to.multiple h_ih_ᾰ h_ih_ᾰ_1           
+        }
+    end
 
   -- Merging data into a reactor produces an equivalent reactor.
   @[simp]
