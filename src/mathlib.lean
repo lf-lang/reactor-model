@@ -4,22 +4,21 @@ import data.list.nodup
 import data.list.range
 import tactic
 
-lemma list.update_same {α : Type*} (l : list α) (n : ℕ) (a a' : α) :
-  (l.update_nth n a).update_nth n a' = l.update_nth n a' :=
-  sorry
-
 lemma list.update_nth_same {α : Type*} (l : list (option α)) (n : ℕ) : 
   l.update_nth n (l.nth n).join = l :=
   sorry
 
-lemma list.find_indexes_nth_nmem {α : Type*} {l : list α} {n : ℕ} {p : α → Prop} [decidable_pred p] :
-  ∀ {x}, l.nth n = some x → ¬(p x) → n ∉ (l.find_indexes p) :=
-  sorry
-
-lemma list.find_indexes_nth_none {α : Type*} {l : list α} {n : ℕ} {p : α → Prop} [decidable_pred p] :
-  l.nth n = none → n ∉ (l.find_indexes p) :=
-  sorry
-
+-- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/list.2Eupdate_same/near/228774282
+lemma list.update_same {α : Type*} (l : list α) (n : ℕ) (a a' : α) :
+  (l.update_nth n a).update_nth n a' = l.update_nth n a' :=
+  begin
+    induction l with hd tl hl generalizing n,
+    { simp [list.update_nth] },
+    { cases n,
+      { simp [list.update_nth] },
+      { simp [list.update_nth, hl] } }
+  end
+  
 -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/index_of_erase_lt/near/228527125
 
 @[simp] 

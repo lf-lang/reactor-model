@@ -207,7 +207,8 @@ namespace reactor
         case eq_rel_to.single {
           have h', from update_ports_eq h_rtr ports.role.input h_p h_v,
           rw [ports.role.opposite, ←h_ᾰ, port, port] at h',
-          exact ports.ext (symm h')
+          have hₗ : h_rtr.output.length = h_rtr'.output.length, by simp only [update, h_ᾰ],
+          exact ports.ext (symm h') hₗ
         },
         case eq_rel_to.multiple {
           transitivity,
@@ -241,9 +242,28 @@ namespace reactor
         }
     end
 
+  -- For relatively equal reactors, either both or neither fire the relevant reaction.
   lemma eq_rel_to_fire_iff {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
     (rtr.reactions rcn).fires_on rtr.input ↔ (rtr'.reactions rcn).fires_on rtr'.input :=
-    sorry
+    begin
+      unfold reaction.fires_on,
+      have hₑ, from eq_rel_to_equiv h,
+      have hd, from eq_rel_to_eq_at_dᵢ h,
+      repeat { rw hₑ.right at hd ⊢ },
+      split, 
+      all_goals {
+        intro h',
+        obtain ⟨t, hₜ, v, hᵥ⟩ := h',
+        existsi t,
+        existsi hₜ,
+        existsi v,
+        unfold ports.eq_at at hd,
+        have hd', from hd t t.property,
+        rw hᵥ at hd'
+      },
+      exact symm hd',
+      exact hd',
+    end
    
   -- Returns the result of merging given state and output ports into a reactor.
   def merge (rtr : reactor υ) (os : ports υ × state_vars υ) : reactor υ :=
@@ -253,7 +273,12 @@ namespace reactor
   -- then merging that output into a reactor can only produce output-port differences at ports from `dₒ`.
   lemma merge_inhabited_eq_diff (rtr : reactor υ) {os : ports υ × state_vars υ} {dₒ : finset ℕ} (h : os.1.inhabited_indices ⊆ dₒ) : 
     (rtr.output.index_diff (rtr.merge os).output) ⊆ dₒ :=
-    sorry
+    begin
+      unfold merge,
+      transitivity,
+        exact ports.merge_index_diff_sub_inhabited rtr.output os.1,
+        exact h
+    end
 
   -- Merging the same data into relatively equal reactors, produces relatively equal reactors.
   lemma merge_eq_rel_to {rtr rtr' : reactor υ} {rcn : ℕ} {os : ports υ × state_vars υ} (h : rtr =rcn= rtr') :
