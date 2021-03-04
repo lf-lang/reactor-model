@@ -4,9 +4,13 @@ import data.list.nodup
 import data.list.range
 import tactic
 
+lemma list.update_same {α : Type*} (l : list α) (n : ℕ) (a a' : α) :
+  (l.update_nth n a).update_nth n a' = l.update_nth n a' :=
+  sorry
+
 lemma list.update_nth_same {α : Type*} (l : list (option α)) (n : ℕ) : 
-    l.update_nth n (l.nth n).join = l :=
-    sorry
+  l.update_nth n (l.nth n).join = l :=
+  sorry
 
 lemma list.find_indexes_nth_nmem {α : Type*} {l : list α} {n : ℕ} {p : α → Prop} [decidable_pred p] :
   ∀ {x}, l.nth n = some x → ¬(p x) → n ∉ (l.find_indexes p) :=
@@ -15,9 +19,6 @@ lemma list.find_indexes_nth_nmem {α : Type*} {l : list α} {n : ℕ} {p : α �
 lemma list.find_indexes_nth_none {α : Type*} {l : list α} {n : ℕ} {p : α → Prop} [decidable_pred p] :
   l.nth n = none → n ∉ (l.find_indexes p) :=
   sorry
-
-noncomputable def list.ne_indexes {α : Type*} (l l' : list α) : finset ℕ :=
-  @finset.filter _ (λ i, l.nth ≠ l'.nth) (classical.dec_pred _) (finset.range (max l.length l'.length))
 
 -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/index_of_erase_lt/near/228527125
 

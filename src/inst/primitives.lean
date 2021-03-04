@@ -28,10 +28,22 @@ open reactor
     | input : role
     | output : role
 
+  -- Returns the opposite of the given role.
+  @[reducible]
+  def role.opposite : role → role 
+    | role.input := role.output
+    | role.output := role.input
+
   -- Accessing in index that contains an absent value, and accessing an index 
   -- that isn't part of the list should both return `none`.
   -- This helps avoid nested optional values.
   def nth (p : ports υ) (n : ℕ) : option υ := (p.nth n).join
+
+  @[ext]
+  lemma ext {p p' : ports υ} (h : p.nth = p'.nth) : p = p' :=
+    begin
+      sorry
+    end
 
   -- The proposition that two port assignments have the same values at given indices.
   def eq_at (i : finset ℕ) (p p' : ports υ) : Prop := ∀ x ∈ i, p.nth x = p'.nth x
@@ -44,11 +56,11 @@ open reactor
 
   -- For fixed indices, `reactor.ports.eq_at` is symmetric.
   @[symm]
-  lemma eq_at_symm (i : finset ℕ) (p p' : ports υ) (h : p =i= p') : p' =i= p := by tauto
+  lemma eq_at_symm {i : finset ℕ} {p p' : ports υ} (h : p =i= p') : p' =i= p := by tauto
 
   -- For fixed indices, `reactor.ports.eq_at` is transitive.
   @[trans]
-  lemma eq_at_trans (i : finset ℕ) (p₁ p₂ p₃ : ports υ) (h₁₂ : p₁ =i= p₂) (h₂₃ : p₂ =i= p₃) : 
+  lemma eq_at_trans {i : finset ℕ} {p₁ p₂ p₃ : ports υ} (h₁₂ : p₁ =i= p₂) (h₂₃ : p₂ =i= p₃) : 
     p₁ =i= p₃ :=
     assume x hₓ, eq.trans (h₁₂ x hₓ) (h₂₃ x hₓ)
 
@@ -66,28 +78,40 @@ open reactor
   -- The proposition, that a given port assignment is empty.
   def is_empty (p : ports υ) : Prop := p = empty υ p.length
 
-  -- The indices in the given port assignment that have a non-absent value.
-  def inhabited_indices (p : ports υ) : list ℕ :=
-    p.find_indexes (λ e, e ≠ none)
+  -- The set of indices for which the given port assignments have different values.
+  noncomputable def index_diff (before after : ports υ) : finset ℕ :=
+    @finset.filter _ 
+      (λ i, before.nth i ≠ after.nth i) 
+      (classical.dec_pred _) 
+      (finset.range (max before.length after.length))
 
-  -- The inhabited indices for a given port assignment are nodup.
-  lemma inhabited_indices_nodup (p : ports υ) : p.inhabited_indices.nodup :=
-    by simp [inhabited_indices, nodup_find_indexes]
+  -- The index diff of equal port assignments is empty.
+  @[simp]
+  lemma index_diff_eq_ports_empty {p p' : ports υ} (h : p = p') : p.index_diff p' = ∅ :=
+    by simp [index_diff, h]
+
+  -- The indices in the given port assignment that have a non-absent value.
+  def inhabited_indices (p : ports υ) : finset ℕ :=
+    (p.find_indexes (λ e, e ≠ none)).to_finset
 
   -- Indicies with an absent value are not part of a port assignments inhabited indices.
   lemma inhabited_indices_none {p : ports υ} {o : ℕ} (h : p.nth o = none) :
     o ∉ p.inhabited_indices :=
     begin
       cases option.join_eq_none.mp h with hc hc',
-        exact list.find_indexes_nth_none hc,
+        {
+          unfold inhabited_indices,
+          rw not_congr list.mem_to_finset,
+          exact list.find_indexes_nth_none hc
+        },
         simp [inhabited_indices, list.find_indexes_nth_nmem hc']
     end
-
+    
   -- Merges a given port assignment *onto* another one.
-  -- The `last` ports override the `first` ports, but the length remains that of `first`.
-  def merge (first last : ports υ) : ports υ :=
-    (last.zip_with (<|>) first) ++ 
-    if first.length ≤ last.length then [] else empty υ (first.length - last.length)
+  -- The `src` ports override the `dst` ports, but the length remains that of `dst`.
+  def merge (dst src : ports υ) : ports υ :=
+    (src.zip_with (<|>) dst) ++ 
+    if dst.length ≤ src.length then [] else empty υ (dst.length - src.length)
 
   -- The length of merged ports is that of the first instance.
   @[simp]

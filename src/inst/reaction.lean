@@ -14,8 +14,8 @@ structure reaction :=
   (dₒ : finset ℕ)
   (triggers : finset {i // i ∈ dᵢ})
   (body : ports υ → state_vars υ → ports υ × state_vars υ)
-  (in_con : ∀ i i' s, (i =dᵢ= i') → body i s = body i' s)
-  (out_con : ∀ i s o, o ∉ dₒ → (body i s).1.nth o = none) 
+  (in_con : ∀ {i i'} s, (i =dᵢ= i') → body i s = body i' s)
+  (out_con : ∀ i s {o}, o ∉ dₒ → (body i s).1.nth o = none) 
 
 namespace reaction
 
@@ -30,15 +30,14 @@ namespace reaction
   -- Any port assignment returned by a reaction can only assign values to ports which are part of its output-dependencies.
   -- Hence the inhabited indices of that port assignment must be a subset of the reaction's `dₒ`.
   lemma outputs_sub_dₒ (rcn : reaction υ) (i : ports υ) (s : state_vars υ) :
-    (rcn i s).1.inhabited_indices.to_finset ⊆ rcn.dₒ :=
+    (rcn i s).1.inhabited_indices ⊆ rcn.dₒ :=
     begin
       simp only [(⊆)],
       intro o,
       rw ←not_imp_not,
       intro h,
-      have hₙ, from rcn.out_con i s _ h,
-      have hₘ, from ports.inhabited_indices_none hₙ,
-      finish
+      have hₙ, from rcn.out_con i s h,
+      exact ports.inhabited_indices_none hₙ
     end
 
   -- The proposition, that a given reaction fires on a given port assignment,

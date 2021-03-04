@@ -52,8 +52,8 @@ namespace reactor
 
   -- Returns the value of a given port.
   def port (rtr : reactor υ) : ports.role → ℕ → option υ
-    | ports.role.input p := rtr.input.nth p
-    | ports.role.output p := rtr.output.nth p
+    | ports.role.input := rtr.input.nth
+    | ports.role.output := rtr.output.nth
 
   -- Updates a given port in the reactor, to hold a given value.
   def update (rtr : reactor υ) : ports.role → ℕ → option υ → reactor υ
@@ -79,6 +79,7 @@ namespace reactor
     by cases r ; simp only [update, port, ports.nth, list.nth_update_nth_ne _ _ h]
 
   -- Updating a reactor's port produces an equivalent reactor.
+  @[simp]
   lemma update_equiv (rtr : reactor υ) (r : ports.role) (p : ℕ) (v : option υ) :
     rtr.update r p v ≈ rtr :=
     by induction r ; simp [(≈), update]
@@ -94,11 +95,52 @@ namespace reactor
       }
     end
 
+  -- Updating a reactor's port does not change the reactions.
+  @[simp]
+  lemma update_reactions_eq (rtr : reactor υ) (r : ports.role) (p : ℕ) (v : option υ) :
+    (rtr.update r p v).reactions = rtr.reactions :=
+    (update_equiv rtr r p v).right
+
+  -- Updating a reactor's port does not change the priorities.
+  @[simp]
+  lemma update_priorities_eq (rtr : reactor υ) (r : ports.role) (p : ℕ) (v : option υ) :
+    (rtr.update r p v).priorities = rtr.priorities :=
+    (update_equiv rtr r p v).left
+
+  -- Updating a reactor's port does not change the state.
+  @[simp]
+  lemma update_state_eq (rtr : reactor υ) (r : ports.role) (p : ℕ) (v : option υ) :
+    (rtr.update r p v).state = rtr.state :=
+    by cases r ; simp [update]
+
+  -- Updating a reactor's input/output ports does not change its output/input ports.
+  @[simp]
+  lemma update_ports_eq (rtr : reactor υ) (r : ports.role) (p : ℕ) (v : option υ) :
+    (rtr.update r p v).port r.opposite = rtr.port r.opposite :=
+    begin
+      cases r ; {
+        simp [update, ports.role.opposite],
+        ext,
+        split ; simp [port]
+      }
+    end
+
+  -- Updating the same port twice makes the first update irrelevant.
+  @[simp]
+  lemma update_same (rtr : reactor υ) (r : ports.role) (p : ℕ) (v v' : option υ) :
+    (rtr.update r p v).update r p v' = rtr.update r p v' :=
+    by cases r ; simp [update, list.update_same]
+
+  -- If changing on port gets us from one reactor to another, then we can also do this in reverse.
+  lemma update_symm {rtr rtr' : reactor υ} {r : ports.role} {p : ℕ} {v : option υ} (h : rtr = rtr'.update r p v) :
+    rtr' = rtr.update r p (rtr'.port r p) :=
+    by cases r ; simp [h, update_same, update_self_eq]
+
   -- Two reactors are equal relative to a reaction, if they only differ by the values 
   -- of input ports which are not an input-dependency of the reaction.
   inductive eq_rel_to (rcn : ℕ) : reactor υ → reactor υ → Prop
     | single {p : ℕ} {v : option υ} {rtr rtr' : reactor υ}: (rtr' = rtr.update ports.role.input p v) → (p ∉ (rtr.reactions rcn).dᵢ) → eq_rel_to rtr rtr'
-    | multiple {p : ℕ} {v : option υ} {rtr rtrₘ rtr' : reactor υ} : (eq_rel_to rtrₘ rtr) → (rtr' = rtrₘ.update ports.role.input p v) → (p ∉ (rtr.reactions rcn).dᵢ) → eq_rel_to rtr rtr'
+    | multiple {rtr rtrₘ rtr' : reactor υ} : (eq_rel_to rtr rtrₘ) → (eq_rel_to rtrₘ rtr') → eq_rel_to rtr rtr'
 
   notation r =i= s := (eq_rel_to i r s)
 
@@ -113,12 +155,9 @@ namespace reactor
           exact hₑ
         },
         case eq_rel_to.multiple {
-          have hₑ, from update_equiv h_rtrₘ ports.role.input h_p h_v,
-          rw ←h_ᾰ_1 at hₑ,
-          symmetry,
           transitivity,
-            exact hₑ,
-            exact h_ih
+            exact h_ih_ᾰ,
+            exact h_ih_ᾰ_1
         }
     end
 
@@ -131,18 +170,55 @@ namespace reactor
     end
 
   -- Relative reactor equality is symmetric. 
-  lemma eq_rel_to_symm (rtr rtr' : reactor υ) (rcn : ℕ) (h : rtr =rcn= rtr') :
+  lemma eq_rel_to_symm {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
     rtr' =rcn= rtr := 
-    sorry
+    begin
+      induction h,
+        case eq_rel_to.single {
+          have h, from eq_rel_to.single h_ᾰ h_ᾰ_1,
+          rw (eq_rel_to_equiv h).right at h_ᾰ_1,
+          exact eq_rel_to.single (update_symm h_ᾰ) h_ᾰ_1
+        },
+        case eq_rel_to.multiple {
+          exact eq_rel_to.multiple h_ih_ᾰ_1 h_ih_ᾰ
+        }
+    end
 
-  -- Relative reactor equality is transitive. 
-  lemma eq_rel_to_trans (rtr₁ rtr₂ rtr₃ : reactor υ) (rcn : ℕ) (h₁₂ : rtr₁ =rcn= rtr₂) (h₂₃ : rtr₂ =rcn= rtr₃) :
-    rtr₁ =rcn= rtr₃ := 
-    sorry
+  -- Relatively equal reactors have the same state.
+  lemma eq_rel_to_eq_state {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
+    rtr.state = rtr'.state :=
+    begin
+      induction h,
+        case eq_rel_to.single {
+          rw [←(update_state_eq h_rtr ports.role.input h_p h_v), h_ᾰ],
+        },
+        case eq_rel_to.multiple {
+          transitivity,
+            exact h_ih_ᾰ,
+            exact h_ih_ᾰ_1
+        }
+    end
+
+  -- Relatively equal reactors have the same output.
+  lemma eq_rel_to_eq_output {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
+    rtr.output = rtr'.output :=
+    begin
+      induction h,
+        case eq_rel_to.single {
+          have h', from update_ports_eq h_rtr ports.role.input h_p h_v,
+          rw [ports.role.opposite, ←h_ᾰ, port, port] at h',
+          exact ports.ext (symm h')
+        },
+        case eq_rel_to.multiple {
+          transitivity,
+            exact h_ih_ᾰ,
+            exact h_ih_ᾰ_1
+        }
+    end
 
   -- Relatively equal reactors must correspond on all ports that are part of the 
   -- associated reaction's input-dependencies.
-  lemma eq_rel_to_eq_dᵢ {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
+  lemma eq_rel_to_eq_at_dᵢ {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
     rtr.input =(rtr.reactions rcn).dᵢ= rtr'.input :=
     begin 
       unfold ports.eq_at,
@@ -156,24 +232,36 @@ namespace reactor
           exact symm hₑ
         },
         case eq_rel_to.multiple {
-          have hₙ, from ne_of_mem_of_not_mem hₓ h_ᾰ_2,
-          rw ←(eq_rel_to_equiv h_ᾰ).right at hₓ,
-          have hᵢ, from h_ih hₓ,
-          have hₑ, from update_ne h_rtrₘ ports.role.input h_v (ne.symm hₙ),
-          repeat { rw port at hₑ },
-          rw ←h_ᾰ_1 at hₑ,
-          symmetry,
+          have h, from h_ih_ᾰ hₓ,
+          rw (eq_rel_to_equiv h_ᾰ).right at hₓ,
+          have h', from h_ih_ᾰ_1 hₓ,
           transitivity,
-            exact hₑ,
-            exact hᵢ
+            exact h,
+            exact h'
         }
     end
+
+  lemma eq_rel_to_fire_iff {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
+    (rtr.reactions rcn).fires_on rtr.input ↔ (rtr'.reactions rcn).fires_on rtr'.input :=
+    sorry
    
   -- Returns the result of merging given state and output ports into a reactor.
   def merge (rtr : reactor υ) (os : ports υ × state_vars υ) : reactor υ :=
     {output := rtr.output.merge os.1, state := os.2, ..rtr}
 
+  -- If the inhabited indices of a given reaction output assignment are a subset of some set `dₒ`,
+  -- then merging that output into a reactor can only produce output-port differences at ports from `dₒ`.
+  lemma merge_inhabited_eq_diff (rtr : reactor υ) {os : ports υ × state_vars υ} {dₒ : finset ℕ} (h : os.1.inhabited_indices ⊆ dₒ) : 
+    (rtr.output.index_diff (rtr.merge os).output) ⊆ dₒ :=
+    sorry
+
+  -- Merging the same data into relatively equal reactors, produces relatively equal reactors.
+  lemma merge_eq_rel_to {rtr rtr' : reactor υ} {rcn : ℕ} {os : ports υ × state_vars υ} (h : rtr =rcn= rtr') :
+    (rtr.merge os) =rcn= (rtr'.merge os) :=
+    sorry
+
   -- Merging data into a reactor produces an equivalent reactor.
+  @[simp]
   lemma merge_equiv (rtr : reactor υ) (os : ports υ × state_vars υ) : rtr.merge os ≈ rtr :=
     by simp [(≈), merge]
 
@@ -184,6 +272,7 @@ namespace reactor
     else rtr
 
   -- Running a reactor does not change its input.
+  @[simp]
   lemma run_eq_input (rtr : reactor υ) (rcn : ℕ) : (rtr.run rcn).input = rtr.input :=
     begin
       unfold run merge,
@@ -192,61 +281,60 @@ namespace reactor
         simp [if_neg h]
     end
 
+  -- Running the reaction relative to which two reactors are equal, produces the same output.
+  lemma run_rcn_eq_rel_to {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
+    (rtr.reactions rcn) rtr.input rtr.state = (rtr'.reactions rcn) rtr'.input rtr'.state :=
+    begin
+      rw eq_rel_to_eq_state h,
+      have h', from (eq_rel_to_eq_at_dᵢ h),
+      rw (eq_rel_to_equiv h).right at h' ⊢, 
+      exact (rtr'.reactions rcn).in_con _ h'
+    end
+
   -- Running relatively equal reactors produces relatively equal reactors.
-  lemma run_eq_rel_to (rtr rtr' : reactor υ) (rcn : ℕ) (h : rtr =rcn= rtr') :
+  theorem run_eq_rel_to {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
     (rtr.run rcn) =rcn= (rtr'.run rcn) :=
     begin
-      have hᵣ : (rtr.reactions rcn) rtr.input = (rtr'.reactions rcn) rtr'.input,
-      by {
-
-      }
-    end
-
-  lemma run_equiv (rtr : reactor υ) (rcn : ℕ) : 
-    rtr ≈ rtr.run rcn :=
-    begin
       unfold run,
-      by_cases h : (rtr.reactions rcn_id).fires_on rtr.input
-        ; simp [merge, h, (≈)]
-    end
-
-  lemma run_affected_ports_sub_dₒ (rtr : reactor υ) (rcn_id : ℕ) :
-    (rtr.run rcn_id).2.to_finset ⊆ (rtr.reactions rcn_id).dₒ :=
-    begin
-      unfold run,
-      by_cases h_c : ((rtr.reactions rcn_id).fires_on rtr.input),
-        simp [if_pos h_c, run_aux, reaction.outputs_sub_dₒ],
-        simp [if_neg h_c]
-    end
-
-  theorem eq_rel_to_rcn_run (rtr rtr' : reactor υ) (rcn_id : ℕ) : 
-    rtr.eq_rel_to rtr' rcn_id → (rtr.run rcn_id).1.eq_rel_to (rtr'.run rcn_id).1 rcn_id ∧ (rtr.run rcn_id).2 = (rtr'.run rcn_id).2 :=
-    begin
-      intro h,
-      simp [eq_rel_to, (≈)] at h,
-      unfold run run_aux,
-      have h_f, from reaction.eq_input_eq_fires h.2.2.2,
-      have h_w : (rtr.reactions rcn_id) rtr.input rtr'.state = (rtr.reactions rcn_id) rtr'.input rtr'.state,
-      from (rtr.reactions rcn_id).in_con _ _ _ h.2.2.2,
-      rw [h.2.2.1, ←h.1.1, h_w, h.1.2, h.2.1],
-      by_cases hᵢ : (rtr'.reactions rcn_id).fires_on rtr.input,
+      by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
         {
-          rw if_pos hᵢ,
-          rw ←h.1.2 at hᵢ ⊢,
-          rw if_pos (h_f.mp hᵢ),
-          simp,
-          unfold eq_rel_to,
-            repeat { split },
-            exact h.2.2.2
+          rw if_pos hf,
+          rw eq_rel_to_fire_iff h at hf,
+          rw [if_pos hf, run_rcn_eq_rel_to h],
+          exact merge_eq_rel_to h
         },
         {
-          rw if_neg hᵢ,
-          rw h.1.2 at h_f,
-          rw if_neg ((not_iff_not_of_iff h_f).mp hᵢ),
-          simp,
-          unfold eq_rel_to,
+          rw if_neg hf,
+          rw eq_rel_to_fire_iff h at hf,
+          rw if_neg hf,
           exact h
         }
+    end
+
+  -- Running a reactor produces an equivalent reactor.
+  @[simp]
+  lemma run_equiv (rtr : reactor υ) (rcn : ℕ) : rtr.run rcn ≈ rtr :=
+    begin
+      unfold run,
+      by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
+        simp [if_pos hf],
+        simp [if_neg hf]
+    end
+
+  -- Any ports that change from running a reaction in a reactor, have to be part
+  -- of the reaction's output-dependencies. I.e. the set index-diff of the output
+  -- has to be a subset of the reaction's `dₒ`. 
+  lemma run_out_diff_sub_dₒ (rtr : reactor υ) (rcn : ℕ) : 
+    rtr.output.index_diff (rtr.run rcn).output ⊆ (rtr.reactions rcn).dₒ :=
+    begin 
+      unfold run,
+      by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
+        {
+          rw if_pos hf,
+          have hₛ, from reaction.outputs_sub_dₒ (rtr.reactions rcn) rtr.input rtr.state,
+          exact merge_inhabited_eq_diff rtr hₛ,
+        },
+        simp [if_neg hf, ports.index_diff_eq_ports_empty (refl rtr.output)]
     end
 
 end reactor
