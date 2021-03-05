@@ -4,21 +4,22 @@ open reactor
 open reactor.ports
 
 -- An edge in a reactor network graph connects reactors' ports.
-structure network.graph.edge :=
+structure inst.network.graph.edge :=
   (src : port.id)
   (dst : port.id)
 
 -- Reactor network edges are directed.
-instance graph.digraph_edge : digraph.edge network.graph.edge reactor.id := 
+instance inst.graph.digraph_edge : digraph.edge inst.network.graph.edge reactor.id := 
   { src := (λ e, e.src.rtr), dst := (λ e, e.dst.rtr) }
 
 -- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
 
--- A reactor network graph is a digraph of reactors, identified by reactor-IDs and connected
--- by the edges define above.
-def network.graph : Type* := digraph reactor.id (reactor υ) network.graph.edge
+-- An instantaneous reactor network graph is a digraph of reactors, identified by reactor-IDs
+-- and connected by the edges define above.
+def inst.network.graph : Type* := digraph reactor.id (reactor υ) inst.network.graph.edge
 
+namespace inst
 namespace network
 namespace graph
 
@@ -57,7 +58,7 @@ namespace graph
     ∀ i, (η.rtr i) ≈ (η'.rtr i)
   ⟩
 
-   -- Network graph equivalence is reflexive.
+  -- Network graph equivalence is reflexive.
   @[refl] 
   lemma equiv_refl (η : graph υ) : η ≈ η := by simp [(≈)]
 
@@ -129,10 +130,11 @@ namespace graph
 
   -- Updating a port in a network graph produces an equivalent network graph.
   lemma update_port_equiv (η : graph υ) (r : ports.role) (p : port.id) (v : option υ) :
-    (η.update_port r p v) ≈ η :=
+    η ≈ (η.update_port r p v) :=
     begin
       unfold update_port,
       have h, from reactor.update_equiv (η.rtr p.rtr) r p.prt v,
+      symmetry,
       exact update_reactor_equiv (reactor.equiv_symm h)
     end
 
@@ -187,3 +189,4 @@ namespace graph
 
 end graph
 end network
+end inst

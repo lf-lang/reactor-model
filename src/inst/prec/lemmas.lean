@@ -4,11 +4,11 @@ variables {υ : Type*} [decidable_eq υ]
 
 namespace «precedence» 
 
-  theorem any_acyc_net_graph_has_wf_prec_graph (η : network.graph υ) (h : η.is_prec_acyclic) :
+  theorem any_acyc_net_graph_has_wf_prec_graph (η : inst.network.graph υ) (h : η.is_prec_acyclic) :
     ∃ ρ : precedence.graph υ, ρ.is_well_formed_over η :=
     sorry
 
-  lemma wf_prec_graphs_eq_ids (η : network.graph υ) (ρ ρ' : precedence.graph υ) :
+  lemma wf_prec_graphs_eq_ids (η : inst.network.graph υ) (ρ ρ' : precedence.graph υ) :
     ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ.ids = ρ'.ids :=
     begin 
       intros h_wf h_wf',
@@ -20,7 +20,7 @@ namespace «precedence»
       exact iff.trans (h_i i) (iff.symm (h_i' i))
     end
 
-  lemma wf_prec_graphs_eq_data (η : network.graph υ) (ρ ρ' : precedence.graph υ) :
+  lemma wf_prec_graphs_eq_data (η : inst.network.graph υ) (ρ ρ' : precedence.graph υ) :
     ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ.data = ρ'.data :=
     begin
       intros h_wf h_wf',
@@ -32,7 +32,7 @@ namespace «precedence»
       exact eq.trans (h_d i) (eq.symm (h_d' i))
     end
 
-  lemma wf_prec_graphs_eq_edges (η : network.graph υ) (ρ ρ' : precedence.graph υ) :
+  lemma wf_prec_graphs_eq_edges (η : inst.network.graph υ) (ρ ρ' : precedence.graph υ) :
     ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ.edges = ρ'.edges :=
     begin
       intros h_wf h_wf',
@@ -44,7 +44,7 @@ namespace «precedence»
       exact iff.trans (h_e e) (iff.symm (h_e' e)),
     end
 
-  theorem all_wf_prec_graphs_are_eq (η : network.graph υ) (ρ ρ' : precedence.graph υ) :
+  theorem all_wf_prec_graphs_are_eq (η : inst.network.graph υ) (ρ ρ' : precedence.graph υ) :
     ρ.is_well_formed_over η → ρ'.is_well_formed_over η → ρ = ρ' :=
     begin
       intros h_wf h_wf',
@@ -57,7 +57,7 @@ namespace «precedence»
         apply finset.ext_iff.mp h_e
     end
 
-  theorem any_acyc_net_graph_has_exactly_one_wf_prec_graph (η : network.graph υ) (h : η.is_prec_acyclic) :
+  theorem any_acyc_net_graph_has_exactly_one_wf_prec_graph (η : inst.network.graph υ) (h : η.is_prec_acyclic) :
     ∃! ρ : precedence.graph υ, ρ.is_well_formed_over η :=
     begin
       rw exists_unique,
@@ -78,7 +78,7 @@ end «precedence»
 
 open precedence.graph
 
-lemma network.graph.equiv_eq_wf_prec_edges {η η' : network.graph υ} {ρ ρ' : precedence.graph υ} :
+lemma network.graph.equiv_eq_wf_prec_edges {η η' : inst.network.graph υ} {ρ ρ' : precedence.graph υ} :
   η ≈ η' → ρ.is_well_formed_over η → ρ'.is_well_formed_over η' → ρ.edges = ρ'.edges :=
   begin
     intros hₑ_η h_wf h_wf',
@@ -105,7 +105,7 @@ lemma network.graph.equiv_eq_wf_prec_edges {η η' : network.graph υ} {ρ ρ' :
       unfold port_depends_on_reaction,
       intro o,
       have h_d : (η.rcn e.src).dₒ = (η'.rcn e.src).dₒ, {
-        unfold network.graph.rcn,
+        unfold inst.network.graph.rcn inst.network.graph.rtr,
         rw hᵣ_eq e.src.rtr
       },
       rw h_d
@@ -114,7 +114,7 @@ lemma network.graph.equiv_eq_wf_prec_edges {η η' : network.graph υ} {ρ ρ' :
       unfold reaction_depends_on_port,
       intro i,
       have h_d : (η.rcn e.dst).dᵢ = (η'.rcn e.dst).dᵢ, {
-        unfold network.graph.rcn,
+        unfold inst.network.graph.rcn inst.network.graph.rtr,
         rw hᵣ_eq e.dst.rtr
       },
       rw h_d
@@ -122,7 +122,7 @@ lemma network.graph.equiv_eq_wf_prec_edges {η η' : network.graph υ} {ρ ρ' :
     finish
   end
 
-theorem network.graph.equiv_wf {η η' : network.graph υ} {ρ : precedence.graph υ} :
+theorem network.graph.equiv_wf {η η' : inst.network.graph υ} {ρ : precedence.graph υ} :
   η' ≈ η → ρ.is_well_formed_over η → ρ.is_well_formed_over η' :=
   begin
     intros h h_wf,
@@ -150,11 +150,11 @@ theorem network.graph.equiv_wf {η η' : network.graph υ} {ρ : precedence.grap
       } 
   end
 
-theorem network.graph.equiv_prec_acyc_inv {η η' : network.graph υ} :
+theorem network.graph.equiv_prec_acyc_inv {η η' : inst.network.graph υ} :
   η ≈ η' → η.is_prec_acyclic → η'.is_prec_acyclic :=
   begin
     intros hₑ hₚ,
-    unfold network.graph.is_prec_acyclic at hₚ ⊢,
+    unfold inst.network.graph.is_prec_acyclic at hₚ ⊢,
     let ρ := classical.subtype_of_exists (precedence.any_acyc_net_graph_has_wf_prec_graph η hₚ),
     intros ρ' h_wf',
     have hₐ, from hₚ ρ ρ.property,
