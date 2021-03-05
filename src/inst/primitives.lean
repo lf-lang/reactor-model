@@ -17,8 +17,8 @@ def reactor.state_vars := list υ
 @[derive has_append]
 def reactor.ports := list (option υ)
 
-namespace reactor.ports
-open reactor
+namespace reactor
+namespace ports
 
   variable {υ}
 
@@ -187,9 +187,11 @@ open reactor
     end
 
   -- If we merge "too few" ports, then the diff above is always empty. 
-  lemma merge_index_diff_range {dst src : ports υ} (hₗ : src.length ≤ dst.length) : 
+  lemma merge_index_diff_range_sub_src {dst src : ports υ} (hₗ : src.length ≤ dst.length) : 
     dst.index_diff (dst.merge src) ⊆ finset.range src.length :=
-    sorry -- use merge_after_src_eq_dst?
+    sorry 
+    -- use merge_after_src_eq_dst?
+    -- this might be very similar to the proof below
 
   -- The indices that change from a merge have to be less than the length of the destination ports.
   lemma merge_index_diff_range_sub_dst (dst src : ports υ) :
@@ -217,11 +219,11 @@ open reactor
     end
 
   -- The indices that change from a merge have to be less than the length of the source ports.
-  lemma merge_index_diff_range_sub_src (dst src : ports υ) : 
+  lemma merge_index_diff_range_sub_src' (dst src : ports υ) : 
     dst.index_diff (dst.merge src) ⊆ finset.range src.length :=
     begin
       by_cases h : src.length ≤ dst.length,
-        exact merge_index_diff_range h,
+        exact merge_index_diff_range_sub_src h,
         {
           have h', from index_diff_range dst (dst.merge src),
           simp only [(⊆)] at h' ⊢,
@@ -251,7 +253,7 @@ open reactor
       rw not_congr finset.mem_filter at hᵢ,
       cases not_and_distrib.mp hᵢ,
         {
-          have h', from merge_index_diff_range_sub_src dst src,
+          have h', from merge_index_diff_range_sub_src' dst src,
           simp only [(⊆)] at h',
           have hc, from h' hd,
           contradiction
@@ -266,4 +268,6 @@ open reactor
         }
     end
 
-end reactor.ports
+end ports
+end reactor
+

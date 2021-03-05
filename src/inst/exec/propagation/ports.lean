@@ -1,6 +1,7 @@
 import inst.network.graph
 import inst.exec.propagation.port
 
+open reactor.ports
 open network
 
 variables {υ : Type*} [decidable_eq υ]
@@ -10,7 +11,7 @@ noncomputable def propagate_ports : network.graph υ → list port.id → networ
   list.foldl propagate_port
 
 lemma propagate_ports_out_inv (η : network.graph υ) {p : list port.id}  :
-  ∀ o, (propagate_ports η p).output o = η.output o :=
+  ∀ o, (propagate_ports η p).port role.output o = η.port role.output o :=
   begin
     intro o,
     unfold propagate_ports,
@@ -61,7 +62,7 @@ lemma propagate_ports_equiv (η η' : network.graph υ) (p : list port.id) (h : 
       case list.cons {
         unfold propagate_ports,
         have hₑ, from propagate_port_equiv η pₕ,
-        have hₑ', from trans_of (≈) hₑ h,
+        have hₑ', from graph.equiv_trans hₑ h,
         have hᵢ', from hᵢ (propagate_port η pₕ),
         exact hᵢ' hₑ'
       }

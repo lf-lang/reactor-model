@@ -14,7 +14,7 @@ lemma run_reaction_equiv (η : network.graph υ) (i : reaction.id) :
   begin
     unfold run_reaction,
     apply apply_reactor_equiv,
-    apply reactor.run_equiv
+    exact reactor.equiv_symm (reactor.run_equiv (η.rtr i.rtr) i.rcn)
   end
 
 lemma run_reaction_output_inv (η : network.graph υ) {i : reaction.id} :

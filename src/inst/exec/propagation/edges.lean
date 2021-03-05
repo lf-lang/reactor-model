@@ -1,6 +1,7 @@
 import inst.network.graph
 import inst.exec.propagation.edge
 
+open reactor.ports
 open network
 
 variables {υ : Type*} [decidable_eq υ]
@@ -20,12 +21,12 @@ lemma propagate_edges_equiv (η : network.graph υ) (e : list network.graph.edge
         unfold propagate_edges,
         have h, from propagate_edge_equiv η eₕ,
         have h', from hᵢ (propagate_edge η eₕ),
-        exact trans_of (≈) h' h
+        exact graph.equiv_trans h' h
       } 
   end
 
 lemma propagate_edges_out_inv (η : network.graph υ) {e : list graph.edge}  :
-  ∀ o, (propagate_edges η e).output o = η.output o :=
+  ∀ o, (propagate_edges η e).port role.output o = η.port role.output o :=
   begin
     intro o,
     unfold propagate_edges,
@@ -38,13 +39,22 @@ lemma propagate_edges_unique_ins_inv (η : network.graph υ) (e : list graph.edg
   (propagate_edges η e).has_unique_port_ins :=
   begin
     have h, from propagate_edges_equiv η e,
-    exact network.graph.edges_inv_unique_port_ins_inv (symm h).left hᵤ
+    exact network.graph.eq_edges_unique_port_ins (graph.equiv_symm h).left hᵤ
   end
 
-lemma propagate_edges_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (e e' : list graph.edge) (hₘ : ∀ x ∈ e, x ∈ η) (hₚ : e ~ e') :
+lemma equiv_edges_mem_trans (η η' : graph υ) (e : graph.edge) (h : η ≈ η') :
+  e ∈ η.edges → e ∈ η'.edges := 
+  begin
+    intro hₘ,
+    simp [(∈)],
+    rw ←h.left,
+    exact hₘ
+  end
+
+lemma propagate_edges_comm (η : network.graph υ) (hᵤ : η.has_unique_port_ins) (e e' : list graph.edge) (hₘ : ∀ x ∈ e, x ∈ η.edges) (hₚ : e ~ e') :
   propagate_edges η e = propagate_edges η e' :=
   begin
-    have hₘ' : ∀ x ∈ e', x ∈ η, {
+    have hₘ' : ∀ x ∈ e', x ∈ η.edges, {
       intros x h,
       exact hₘ _ ((list.perm.mem_iff hₚ).mpr h),
     },
@@ -60,12 +70,12 @@ lemma propagate_edges_comm (η : network.graph υ) (hᵤ : η.has_unique_port_in
           by { 
             cases list.forall_mem_cons.mp hₘ with _ hₘ_l₁,
             intros x hₓ, 
-            exact graph.mem_equiv_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₁ _ hₓ)
+            exact equiv_edges_mem_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₁ _ hₓ)
           },
           by { 
             cases list.forall_mem_cons.mp hₘ' with _ hₘ_l₂,
             intros x hₓ, 
-            exact graph.mem_equiv_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₂ _ hₓ) 
+            exact equiv_edges_mem_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₂ _ hₓ) 
           },
       },
       case list.perm.swap {

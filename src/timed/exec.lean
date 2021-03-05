@@ -1,5 +1,7 @@
 import timed.basic
 
+open reactor.ports
+
 -- !!! This shouldn't exist.
 
 variables {υ : Type*} [decidable_eq υ]
@@ -45,8 +47,8 @@ namespace timed_network
 
   -- In this context "propagating" means consuming the source value, i.e. setting it to `none` once used.
   noncomputable def propagate_tpa (σ : network tpa) (e : action_edge) : network tpa :=
-    (σ.update_input e.iap (merge_tpas (σ.η.input e.iap) (σ.η.output e.oap)))
-      .update_output e.oap none
+    (σ.update_port role.input e.iap (merge_tpas (σ.η.port reactor.ports.role.input e.iap) (σ.η.port reactor.ports.role.output e.oap)))
+      .update_port role.output e.oap none
 
   noncomputable def gather_iap (as : finset action_edge) (σ : network tpa) (p : port.id) : network tpa :=
     ((as
@@ -66,7 +68,7 @@ namespace timed_network
     end
 
   noncomputable def reduce_input_to_tag (t : tag) (σ : network tpa) (i : port.id) : network tpa :=
-    σ.update_input i (tpa_at_tag (σ.η.input i) t)
+    σ.update_port role.input i (tpa_at_tag (σ.η.port reactor.ports.role.input i) t)
 
   noncomputable def at_tag (σ : network tpa) (iaps : finset port.id) (t : tag) : network tpa :=  
     iaps.val.to_list.foldl (reduce_input_to_tag t) σ 
@@ -79,10 +81,10 @@ namespace timed_network
     let ⟨i, o⟩ := ports_for_actions actions in (σ.run fₚ tₚ).clear_ports_excluding i o
 
   noncomputable def inherit_iaps_from (σ σ' : network tpa) (iaps : finset port.id) : network tpa :=
-    iaps.val.to_list.foldl (λ s i, s.update_input i (σ'.η.input i)) σ
+    iaps.val.to_list.foldl (λ s i, s.update_port role.input i (σ'.η.port reactor.ports.role.input i)) σ
 
   noncomputable def events_for (σ : network tpa) (aops : finset port.id) : finset tag :=
-    aops.bind (λ p, let o := σ.η.output p in o.elim ∅ (finset.image prod.fst))
+    aops.bind (λ p, let o := σ.η.port reactor.ports.role.output p in o.elim ∅ (finset.image prod.fst))
 
   noncomputable def run_single (n : timed_network) (fₚ : prec_func tpa) (tₚ : topo_func tpa) : timed_network :=
     match n.event_queue with 

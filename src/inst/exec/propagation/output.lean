@@ -1,6 +1,7 @@
 import inst.network.graph
 import inst.exec.propagation.ports
 
+open reactor.ports
 open network
 
 variables {υ : Type*} [decidable_eq υ]
@@ -18,7 +19,7 @@ lemma propagate_output_equiv (η η' : network.graph υ) (i : reactor.id) (p : l
   end
 
 lemma propagate_output_out_inv (η : network.graph υ) {i : reactor.id} {p : list ℕ} :
-  ∀ o, (propagate_output η i p).output o = η.output o :=
+  ∀ o, (propagate_output η i p).port role.output o = η.port role.output o :=
   by apply propagate_ports_out_inv
 
 lemma propagate_output_comm (η : network.graph υ) (i i' : reactor.id) (p p' : list ℕ) (hᵤ : η.has_unique_port_ins) :

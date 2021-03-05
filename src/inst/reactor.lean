@@ -1,6 +1,7 @@
 import inst.reaction
+import tactic
 open reactor
-open reaction
+open reactor.ports
 
 -- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
@@ -50,13 +51,13 @@ namespace reactor
 
   -- Returns the value of a given port.
   def port (rtr : reactor υ) : ports.role → ℕ → option υ
-    | ports.role.input := rtr.input.nth
-    | ports.role.output := rtr.output.nth
+    | role.input := rtr.input.nth
+    | role.output := rtr.output.nth
 
   -- Updates a given port in the reactor, to hold a given value.
   def update (rtr : reactor υ) : ports.role → ℕ → option υ → reactor υ
-    | ports.role.input  p v := {input  := rtr.input.update_nth p v,  ..rtr}
-    | ports.role.output p v := {output := rtr.output.update_nth p v, ..rtr}
+    | role.input  p v := {input  := rtr.input.update_nth p v,  ..rtr}
+    | role.output p v := {output := rtr.output.update_nth p v, ..rtr}
 
   -- Updating a reactor's port with the value it alread has, produces the same reactor.
   @[simp]
@@ -137,7 +138,7 @@ namespace reactor
   -- Two reactors are equal relative to a reaction, if they only differ by the values 
   -- of input ports which are not an input-dependency of the reaction.
   inductive eq_rel_to (rcn : ℕ) : reactor υ → reactor υ → Prop
-    | single {p : ℕ} {v : option υ} {rtr rtr' : reactor υ}: (rtr' = rtr.update ports.role.input p v) → (p ∉ (rtr.reactions rcn).dᵢ) → eq_rel_to rtr rtr'
+    | single {p : ℕ} {v : option υ} {rtr rtr' : reactor υ}: (rtr' = rtr.update role.input p v) → (p ∉ (rtr.reactions rcn).dᵢ) → eq_rel_to rtr rtr'
     | multiple {rtr rtrₘ rtr' : reactor υ} : (eq_rel_to rtr rtrₘ) → (eq_rel_to rtrₘ rtr') → eq_rel_to rtr rtr'
 
   notation r =i= s := (eq_rel_to i r s)
@@ -147,7 +148,7 @@ namespace reactor
     begin
       induction h,
         case eq_rel_to.single {
-          have hₑ, from update_equiv h_rtr ports.role.input h_p h_v,
+          have hₑ, from update_equiv h_rtr role.input h_p h_v,
           rw ←h_ᾰ at hₑ,
           symmetry,
           exact hₑ
@@ -163,7 +164,7 @@ namespace reactor
   lemma eq_rel_to_refl (rtr : reactor υ) (rcn : ℕ) : rtr =rcn= rtr := 
     begin
       obtain ⟨p, hₚ⟩ := infinite.exists_not_mem_finset (rtr.reactions rcn).dᵢ, 
-      have h, from symm (update_self_eq rtr ports.role.input p),
+      have h, from symm (update_self_eq rtr role.input p),
       exact eq_rel_to.single h hₚ
     end
 
@@ -188,7 +189,7 @@ namespace reactor
     begin
       induction h,
         case eq_rel_to.single {
-          rw [←(update_state_eq h_rtr ports.role.input h_p h_v), h_ᾰ],
+          rw [←(update_state_eq h_rtr role.input h_p h_v), h_ᾰ],
         },
         case eq_rel_to.multiple {
           transitivity,
@@ -203,7 +204,7 @@ namespace reactor
     begin
       induction h,
         case eq_rel_to.single {
-          have h', from update_ports_eq h_rtr ports.role.input h_p h_v,
+          have h', from update_ports_eq h_rtr role.input h_p h_v,
           rw [ports.role.opposite, ←h_ᾰ, port, port] at h',
           have hₗ : h_rtr.output.length = h_rtr'.output.length, by simp only [update, h_ᾰ],
           exact ports.ext (symm h') hₗ
@@ -225,7 +226,7 @@ namespace reactor
       induction h,
         case eq_rel_to.single {
           have hₙ, from ne_of_mem_of_not_mem hₓ h_ᾰ_1,
-          have hₑ, from update_ne h_rtr ports.role.input h_v (ne.symm hₙ),
+          have hₑ, from update_ne h_rtr role.input h_v (ne.symm hₙ),
           repeat { rw port at hₑ },
           rw ←h_ᾰ at hₑ,
           exact symm hₑ
@@ -360,14 +361,13 @@ namespace reactor
   -- Updating an input port that is independent of a reaction can be done before or after running that reaction,
   -- without changing the resulting reactor.
   lemma run_update_input_comm {rtr : reactor υ} {rcn : ℕ} {i : ℕ} (v : option υ) (h : i ∉ (rtr.reactions rcn).dᵢ) :
-    (rtr.run rcn).update ports.role.input i v = (rtr.update ports.role.input i v).run rcn :=
+    (rtr.run rcn).update role.input i v = (rtr.update role.input i v).run rcn :=
     begin
-      have hᵣ, from eq_rel_to.single (refl (rtr.update ports.role.input i v)) h,
+      have hᵣ, from eq_rel_to.single (refl (rtr.update role.input i v)) h,
       replace hᵣ := run_eq_rel_to hᵣ,
-      have hₑ, from equiv_trans (update_equiv (rtr.run rcn) ports.role.input i v) (run_equiv rtr rcn),
+      have hₑ, from equiv_trans (update_equiv (rtr.run rcn) role.input i v) (run_equiv rtr rcn),
       rw ←hₑ.right at h,
-      have hₗ : (rtr.run rcn) =rcn= (rtr.run rcn).update ports.role.input i v, 
-      from eq_rel_to.single (refl ((rtr.run rcn).update ports.role.input i v)) h,
+      have hₗ, from eq_rel_to.single (refl ((rtr.run rcn).update role.input i v)) h,
       replace hₗ := eq_rel_to_symm hₗ,
       have h', from eq_rel_to.multiple hₗ hᵣ,
       ext1,
@@ -376,6 +376,24 @@ namespace reactor
         exact eq_rel_to_eq_state h',
         exact (eq_rel_to_equiv h').left,
         exact (eq_rel_to_equiv h').right
+    end
+
+  -- Updating multiple input ports that are independent of a reaction can be done before or after running that reaction,
+  -- without changing the resulting reactor.
+  lemma run_update_inputs_comm {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
+    {reactor . input := rtr'.input, ..(rtr.run rcn)} = rtr'.run rcn :=
+    begin
+      induction h,
+        case eq_rel_to.single {
+          rw [h_ᾰ, ←(run_eq_input _ rcn), ←(run_update_input_comm h_v h_ᾰ_1)],
+          refl
+        },
+        case eq_rel_to.multiple {
+          cases h_rtrₘ.run rcn,
+          injection h_ih_ᾰ,
+          rw [←h_2, ←h_3, ←h_4, ←h_5] at h_ih_ᾰ_1,
+          exact h_ih_ᾰ_1
+        }
     end
 
   -- Any ports that change from running a reaction in a reactor, have to be part
