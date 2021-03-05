@@ -357,6 +357,27 @@ namespace reactor
         simp [if_neg hf]
     end
 
+  -- Updating an input port that is independent of a reaction can be done before or after running that reaction,
+  -- without changing the resulting reactor.
+  lemma run_update_input_comm {rtr : reactor υ} {rcn : ℕ} {i : ℕ} (v : option υ) (h : i ∉ (rtr.reactions rcn).dᵢ) :
+    (rtr.run rcn).update ports.role.input i v = (rtr.update ports.role.input i v).run rcn :=
+    begin
+      have hᵣ, from eq_rel_to.single (refl (rtr.update ports.role.input i v)) h,
+      replace hᵣ := run_eq_rel_to hᵣ,
+      have hₑ, from equiv_trans (update_equiv (rtr.run rcn) ports.role.input i v) (run_equiv rtr rcn),
+      rw ←hₑ.right at h,
+      have hₗ : (rtr.run rcn) =rcn= (rtr.run rcn).update ports.role.input i v, 
+      from eq_rel_to.single (refl ((rtr.run rcn).update ports.role.input i v)) h,
+      replace hₗ := eq_rel_to_symm hₗ,
+      have h', from eq_rel_to.multiple hₗ hᵣ,
+      ext1,
+        simp [update],
+        exact eq_rel_to_eq_output h',
+        exact eq_rel_to_eq_state h',
+        exact (eq_rel_to_equiv h').left,
+        exact (eq_rel_to_equiv h').right
+    end
+
   -- Any ports that change from running a reaction in a reactor, have to be part
   -- of the reaction's output-dependencies. I.e. the set index-diff of the output
   -- has to be a subset of the reaction's `dₒ`. 
