@@ -12,13 +12,13 @@ def reactor.ports.clear_excluding {υ} [decidable_eq υ] (p : reactor.ports υ) 
 def reactor.clear_ports_excluding (rtr : reactor υ) (i : finset ℕ) (o : finset ℕ) : reactor υ :=
   {input := rtr.input.clear_excluding i, output := rtr.output.clear_excluding o, ..rtr}
 
-noncomputable def network.graph.clear_reactor_excluding (η : network.graph υ) (r : reactor.id) (i : finset port.id) (o : finset port.id) : network.graph υ :=
+noncomputable def inst.network.graph.clear_reactor_excluding (η : inst.network.graph υ) (r : reactor.id) (i : finset port.id) (o : finset port.id) : inst.network.graph υ :=
   η.update_reactor r ((η.rtr r).clear_ports_excluding (i.image (λ x, x.prt)) (o.image (λ x, x.prt)))
 
-noncomputable def network.graph.clear_ports_excluding (η : network.graph υ) (i : finset port.id) (o : finset port.id) : network.graph υ :=
+noncomputable def inst.network.graph.clear_ports_excluding (η : inst.network.graph υ) (i : finset port.id) (o : finset port.id) : inst.network.graph υ :=
   η.ids.val.to_list.foldl (λ η' r, η'.clear_reactor_excluding r (i.filter (λ x, x.rtr = r)) (o.filter (λ x, x.rtr = r))) η
 
-noncomputable def network.clear_ports_excluding (n : network υ) (i : finset port.id) (o : finset port.id) : network υ :=
+noncomputable def inst.network.clear_ports_excluding (n : inst.network υ) (i : finset port.id) (o : finset port.id) : inst.network υ :=
 {
   η := n.η.clear_ports_excluding i o,
   unique_ins := sorry, -- TIME
@@ -27,17 +27,17 @@ noncomputable def network.clear_ports_excluding (n : network υ) (i : finset por
 
 namespace timed_network
   
-  def priority_pred (σ : network tpa) (e e' : action_edge) : Prop :=
+  def priority_pred (σ : inst.network tpa) (e e' : action_edge) : Prop :=
     match priority_of e σ, priority_of e' σ with
     | _,      none    := true
     | none,   _       := true
     | some p, some p' := p ≥ p'
     end
 
-  instance {n : network tpa} : is_total action_edge (priority_pred n) := sorry
-  instance {n : network tpa} : is_antisymm action_edge (priority_pred n) := sorry
-  instance {n : network tpa} : is_trans action_edge (priority_pred n) := sorry
-  instance {n : network tpa} : decidable_rel (priority_pred n) := sorry
+  instance {n : inst.network tpa} : is_total action_edge (priority_pred n) := sorry
+  instance {n : inst.network tpa} : is_antisymm action_edge (priority_pred n) := sorry
+  instance {n : inst.network tpa} : is_trans action_edge (priority_pred n) := sorry
+  instance {n : inst.network tpa} : decidable_rel (priority_pred n) := sorry
 
   def merge_tpas : option tpa → option tpa → tpa
     |  none     none     := ∅
@@ -46,17 +46,17 @@ namespace timed_network
     | (some t) (some t') := t ∪ (t'.filter (λ tv', ∀ tv : (tag × option empty), tv ∈ t → tv.1 ≠ tv'.1))
 
   -- In this context "propagating" means consuming the source value, i.e. setting it to `none` once used.
-  noncomputable def propagate_tpa (σ : network tpa) (e : action_edge) : network tpa :=
+  noncomputable def propagate_tpa (σ : inst.network tpa) (e : action_edge) : inst.network tpa :=
     (σ.update_port role.input e.iap (merge_tpas (σ.η.port reactor.ports.role.input e.iap) (σ.η.port reactor.ports.role.output e.oap)))
       .update_port role.output e.oap none
 
-  noncomputable def gather_iap (as : finset action_edge) (σ : network tpa) (p : port.id) : network tpa :=
+  noncomputable def gather_iap (as : finset action_edge) (σ : inst.network tpa) (p : port.id) : inst.network tpa :=
     ((as
       .filter (λ a : action_edge, a.iap = p))
       .sort (priority_pred σ))
       .foldl propagate_tpa σ
 
-  noncomputable def propagate_actions (n : timed_network) : network tpa :=
+  noncomputable def propagate_actions (n : timed_network) : inst.network tpa :=
     n.input_action_ports.val.to_list.foldl (gather_iap n.actions) n.σ
 
   def tpa_at_tag (tpm : option tpa) (t : tag) : option tpa :=
@@ -67,23 +67,23 @@ namespace timed_network
         if tpm' = ∅ then none else some tpm'
     end
 
-  noncomputable def reduce_input_to_tag (t : tag) (σ : network tpa) (i : port.id) : network tpa :=
+  noncomputable def reduce_input_to_tag (t : tag) (σ : inst.network tpa) (i : port.id) : inst.network tpa :=
     σ.update_port role.input i (tpa_at_tag (σ.η.port reactor.ports.role.input i) t)
 
-  noncomputable def at_tag (σ : network tpa) (iaps : finset port.id) (t : tag) : network tpa :=  
+  noncomputable def at_tag (σ : inst.network tpa) (iaps : finset port.id) (t : tag) : inst.network tpa :=  
     iaps.val.to_list.foldl (reduce_input_to_tag t) σ 
 
   noncomputable def ports_for_actions (actions : finset action_edge) : finset port.id × finset port.id :=
     let ps := actions.image (λ e : action_edge, (e.iap, e.oap)) in
     (ps.image prod.fst, ps.image prod.snd)
 
-  noncomputable def run_inst (σ : network tpa) (fₚ : prec_func tpa) (tₚ : topo_func tpa) (actions : finset action_edge) : network tpa :=
+  noncomputable def run_inst (σ : inst.network tpa) (fₚ : prec_func tpa) (tₚ : topo_func tpa) (actions : finset action_edge) : inst.network tpa :=
     let ⟨i, o⟩ := ports_for_actions actions in (σ.run fₚ tₚ).clear_ports_excluding i o
 
-  noncomputable def inherit_iaps_from (σ σ' : network tpa) (iaps : finset port.id) : network tpa :=
+  noncomputable def inherit_iaps_from (σ σ' : inst.network tpa) (iaps : finset port.id) : inst.network tpa :=
     iaps.val.to_list.foldl (λ s i, s.update_port role.input i (σ'.η.port reactor.ports.role.input i)) σ
 
-  noncomputable def events_for (σ : network tpa) (aops : finset port.id) : finset tag :=
+  noncomputable def events_for (σ : inst.network tpa) (aops : finset port.id) : finset tag :=
     aops.bind (λ p, let o := σ.η.port reactor.ports.role.output p in o.elim ∅ (finset.image prod.fst))
 
   noncomputable def run_single (n : timed_network) (fₚ : prec_func tpa) (tₚ : topo_func tpa) : timed_network :=

@@ -36,9 +36,30 @@ namespace graph
   noncomputable def port (η : graph υ) (r : ports.role) (i : port.id) : option υ :=
     (η.rtr i.rtr).port r i.prt
 
-  -- The output dependencies of a given reaction, as proper `port.id`s.
-  noncomputable def dₒ (η : graph υ) (i : reaction.id) : finset port.id :=
-    (η.rcn i).dₒ.image (λ p, {port.id . rtr := i.rtr, prt := p})
+  -- The dependencies of a given reaction for a given role, as proper `port.id`s.
+  noncomputable def deps (η : graph υ) (i : reaction.id) (r : ports.role) : finset port.id :=
+    ((η.rcn i).deps r).image (port.id.mk i.rtr)
+
+  -- A port is part of a reaction's dependencies iff this holds at the reaction level.
+  lemma mem_deps_iff_mem_rcn_deps {η : graph υ} {i : reaction.id} {r : ports.role} {p : port.id} :
+    p ∈ (η.deps i r) ↔ i.rtr = p.rtr ∧ p.prt ∈ (η.rcn i).deps r :=
+    begin
+      unfold deps,
+      rw finset.mem_image,
+      split,  
+        {
+          intro h,
+          obtain ⟨x, hₓ, hₚ⟩ := h,
+          simp [←hₚ, hₓ],
+        },
+        {
+          intro h,
+          rw h.left,
+          existsi p.prt,
+          existsi h.right,
+          ext ; refl
+        }
+    end
 
   -- The edges in a network graph, that are connected to a given output port.
   noncomputable def eₒ (η : graph υ) (p : port.id) : finset graph.edge :=
@@ -109,6 +130,12 @@ namespace graph
   lemma update_reactor_eq_rtr (η : graph υ) (i : reactor.id) (rtr' : reactor υ) :
     (η.update_reactor i rtr').rtr i = rtr' :=
     by simp [update_reactor, rtr]
+
+  -- Accessing the value of a non-updated reactor returns the same value as before.
+  @[simp]
+  lemma update_reactor_ne_rtr (η : graph υ) {i i' : reactor.id} (rtr' : reactor υ) (h : i ≠ i') :
+    (η.update_reactor i rtr').rtr i' = η.rtr i' :=
+    by simp [update_reactor, rtr, digraph.update_data_noteq η rtr' (ne.symm h)]
 
   -- Updating the same reactor twice retains only the last update.
   @[simp]

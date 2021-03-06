@@ -13,6 +13,7 @@ protected structure reaction.id :=
 noncomputable instance : decidable_eq reaction.id := classical.dec_eq _
 
 -- The type of unique identifiers for ports in a network.
+@[ext]
 protected structure port.id := 
   (rtr : reactor.id)
   (prt : ℕ)

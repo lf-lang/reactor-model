@@ -1,6 +1,7 @@
 import data.finset
 import inst.primitives
 open reactor
+open reactor.ports
 
 -- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
@@ -26,6 +27,11 @@ namespace reaction
 
   -- Reactions' equality is non-constructively decidable.
   noncomputable instance dec_eq : decidable_eq (reaction υ) := classical.dec_eq _
+
+  -- The (anti-)dependencies of a given reaction for a given role.
+  def deps (rcn : reaction υ) : ports.role → finset ℕ 
+    | role.input  := rcn.dᵢ
+    | role.output := rcn.dₒ
 
   -- Any port assignment returned by a reaction can only assign values to ports which are part of its output-dependencies.
   -- Hence the inhabited indices of that port assignment must be a subset of the reaction's `dₒ`.

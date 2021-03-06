@@ -1,10 +1,8 @@
-import inst.network.graph
-import inst.prec.basic
-import inst.prec.lemmas
-
+import inst.prec
 open reactor
 open network
 
+-- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
 
 -- An instantaneous reactor network is an instantaneous reactor network graph with the constraints

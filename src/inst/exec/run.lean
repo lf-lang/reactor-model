@@ -6,15 +6,15 @@ import inst.exec.topo
 
 variables {υ : Type*} [decidable_eq υ]
 
-namespace network
+namespace inst.network
 
- private noncomputable def run_aux (n : network υ) (t : list reaction.id) : network υ :=
+ private noncomputable def run_aux (n : inst.network υ) (t : list reaction.id) : inst.network υ :=
     {η := run_topo n.η t, unique_ins := run_topo_unique_ports_inv n t, prec_acyclic := run_topo_prec_acyc_inv n t}
 
-  noncomputable def run (n : network υ) (fₚ : prec_func υ) (fₜ : topo_func υ) : network υ :=
+  noncomputable def run (n : inst.network υ) (fₚ : prec_func υ) (fₜ : topo_func υ) : inst.network υ :=
     run_aux n (fₜ (fₚ n))
 
-  theorem run_equiv (n : network υ) (fₚ : prec_func υ) (fₜ : topo_func υ) :
+  theorem run_equiv (n : inst.network υ) (fₚ : prec_func υ) (fₜ : topo_func υ) :
     (n.run fₚ fₜ).η ≈ n.η :=
     begin
       unfold run run_aux,
@@ -22,7 +22,7 @@ namespace network
       apply run_topo_equiv
     end
 
-  theorem determinism (n : network υ) (p p' : prec_func υ) (t t' : topo_func υ) :
+  theorem determinism (n : inst.network υ) (p p' : prec_func υ) (t t' : topo_func υ) :
     n.run p t = n.run p' t' := 
     begin
       rw all_prec_funcs_are_eq _ p p',
@@ -39,4 +39,4 @@ namespace network
       exact run_topo_comm n.η n.unique_ins _ h_pnw _ _ h_t.left h_t'.left h_p
     end
 
-end network
+end inst.network

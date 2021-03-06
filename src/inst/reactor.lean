@@ -138,7 +138,7 @@ namespace reactor
   -- Two reactors are equal relative to a reaction, if they only differ by the values 
   -- of input ports which are not an input-dependency of the reaction.
   inductive eq_rel_to (rcn : ℕ) : reactor υ → reactor υ → Prop
-    | single {p : ℕ} {v : option υ} {rtr rtr' : reactor υ}: (rtr' = rtr.update role.input p v) → (p ∉ (rtr.reactions rcn).dᵢ) → eq_rel_to rtr rtr'
+    | single {p : ℕ} {v : option υ} {rtr rtr' : reactor υ}: (rtr' = rtr.update role.input p v) → (p ∉ (rtr.reactions rcn).deps role.input) → eq_rel_to rtr rtr'
     | multiple {rtr rtrₘ rtr' : reactor υ} : (eq_rel_to rtr rtrₘ) → (eq_rel_to rtrₘ rtr') → eq_rel_to rtr rtr'
 
   notation r =i= s := (eq_rel_to i r s)

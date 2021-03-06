@@ -1,7 +1,8 @@
 import inst.network.basic
-import inst.exec.basic
+import inst.exec.run
 import data.rel
 import data.finset.basic
+open reactor.ports
 
 @[derive has_le]
 def tag := lex ℕ ℕ  
@@ -23,19 +24,19 @@ def finset.are_local (es : finset action_edge) : Prop :=
   ∀ e : action_edge, e ∈ es →
     e.oap.rtr = e.iap.rtr
 
-def finset.have_unique_source_in (es : finset action_edge) (σ : network tpa) : Prop :=
+def finset.have_unique_source_in (es : finset action_edge) (σ : inst.network tpa) : Prop :=
   ∀ (e : action_edge) (r r' : reaction.id), e ∈ es → 
-    (e.oap ∈ σ.η.dₒ r) → (e.oap ∈ σ.η.dₒ r') → r = r
+    (e.oap ∈ σ.η.deps r role.output) → (e.oap ∈ σ.η.deps r' role.output) → r = r
 
-def finset.are_functionally_unique_in (es : finset action_edge) (σ : network tpa) : Prop :=
-  ∀ (e e' : action_edge) (r : reaction.id), e ∈ es → e' ∈ es → (e.oap ∈ σ.η.dₒ r) → (e'.oap ∈ σ.η.dₒ r) → 
+def finset.are_functionally_unique_in (es : finset action_edge) (σ : inst.network tpa) : Prop :=
+  ∀ (e e' : action_edge) (r : reaction.id), e ∈ es → e' ∈ es → (e.oap ∈ σ.η.deps r role.output) → (e'.oap ∈ σ.η.deps r role.output) → 
     e.iap = e'.iap → e.oap = e'.oap
 
-def finset.are_separate_from (es : finset action_edge) (σ : network tpa) : Prop :=
-  ∀ (ae : action_edge) (ne : network.graph.edge), ae ∈ es → ne ∈ σ.η → 
+def finset.are_separate_from (es : finset action_edge) (σ : inst.network tpa) : Prop :=
+  ∀ (ae : action_edge) (ne : inst.network.graph.edge), ae ∈ es → ne ∈ σ.η.edges → 
     ae.iap ≠ ne.dst ∧ ae.oap ≠ ne.src
 
-def finset.are_well_formed_for (es : finset action_edge) (σ : network tpa) : Prop :=
+def finset.are_well_formed_for (es : finset action_edge) (σ : inst.network tpa) : Prop :=
   es.are_many_to_one ∧ 
   es.are_local ∧
   es.have_unique_source_in σ ∧ 
@@ -43,7 +44,7 @@ def finset.are_well_formed_for (es : finset action_edge) (σ : network tpa) : Pr
   es.are_separate_from σ
 
 structure timed_network :=
-  (σ : network tpa)
+  (σ : inst.network tpa)
   (time : tag)
   (event_queue : list tag)
   (actions : finset action_edge)
@@ -51,7 +52,7 @@ structure timed_network :=
 
 namespace timed_network
 
-  lemma equiv_inst_net_wf_actions (n : timed_network) (σ' : network tpa) : 
+  lemma equiv_inst_net_wf_actions (n : timed_network) (σ' : inst.network tpa) : 
     σ' ≈ n.σ → n.actions.are_well_formed_for σ' :=
     sorry
 
@@ -61,7 +62,7 @@ namespace timed_network
   noncomputable def output_action_ports (n : timed_network) : finset port.id :=
     n.actions.image (λ e, e.oap)
 
-  noncomputable def priority_of (e : action_edge) (n : network tpa) : option ℕ :=
+  noncomputable def priority_of (e : action_edge) (n : inst.network tpa) : option ℕ :=
     let rtr := (n.η.rtr e.oap.rtr) in
     let rcns := rtr.priorities.filter (λ p, p ∈ (rtr.reactions e.oap.prt).dₒ) in
     if h : rcns.card = 1 then (finset.card_eq_one.mp h).some else none
