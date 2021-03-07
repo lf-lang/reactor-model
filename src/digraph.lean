@@ -46,7 +46,7 @@ namespace digraph
     by simp [update_data, function.update_same]
 
   @[simp] 
-  lemma update_data_noteq (g : digraph ι δ ε) {i i' : ι} (d : δ) (h : i' ≠ i) :
+  lemma update_data_ne (g : digraph ι δ ε) {i i' : ι} (d : δ) (h : i' ≠ i) :
     (g.update_data i d).data i' = g.data i' :=
     by simp [update_data, function.update_noteq h]
 

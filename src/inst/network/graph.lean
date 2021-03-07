@@ -63,7 +63,11 @@ namespace graph
 
   -- The edges in a network graph, that are connected to a given output port.
   noncomputable def eₒ (η : graph υ) (p : port.id) : finset graph.edge :=
-    η.edges.filter (λ e, (e : graph.edge).src = p)
+    η.edges.filter (λ e : graph.edge, e.src = p)
+
+  -- An edge is in `eₒ p` if its source is `p`. 
+  lemma mem_eₒ {η : graph υ} (p : port.id) {e : edge} (h : e ∈ η.edges) : e ∈ η.eₒ p ↔ e.src = p :=
+    by simp [eₒ, h]
 
   -- Reactor network graphs' equality is non-constructively decidable.
   noncomputable instance dec_eq : decidable_eq graph.edge := classical.dec_eq _
@@ -135,13 +139,18 @@ namespace graph
   @[simp]
   lemma update_reactor_ne_rtr (η : graph υ) {i i' : reactor.id} (rtr' : reactor υ) (h : i ≠ i') :
     (η.update_reactor i rtr').rtr i' = η.rtr i' :=
-    by simp [update_reactor, rtr, digraph.update_data_noteq η rtr' (ne.symm h)]
+    by simp [update_reactor, rtr, digraph.update_data_ne η rtr' (ne.symm h)]
 
   -- Updating the same reactor twice retains only the last update.
   @[simp]
   lemma update_reactor_same (η : graph υ) (i : reactor.id) (rtr rtr' : reactor υ) :
     (η.update_reactor i rtr).update_reactor i rtr' = η.update_reactor i rtr' :=
     by simp [update_reactor, digraph.update_data]
+
+  -- Updating different reactors is commutative.
+  lemma update_reactor_comm (η : graph υ) {i i' : reactor.id} (rtr rtr' : reactor υ) (h : i ≠ i') :
+    (η.update_reactor i rtr).update_reactor i' rtr' = (η.update_reactor i' rtr').update_reactor i rtr :=
+    by simp [update_reactor, digraph.update_data_comm _ _ _ h]
 
   -- Relative reactor equality is retained when updating with a relatively equal reactor.
   lemma update_reactor_eq_rel_to {η : graph υ} {i : reaction.id} {rtr' : reactor υ} (h : η.rtr i.rtr =i.rcn= rtr') :
@@ -178,6 +187,12 @@ namespace graph
   noncomputable def run_local (η : graph υ) (i : reaction.id) : graph υ :=
     η.update_reactor i.rtr ((η.rtr i.rtr).run i.rcn)
 
+  -- Running a reaction locally does not change any other reactors in the network graph.
+  @[simp]
+  lemma run_local_is_local (η : graph υ) {iₙ : reaction.id} {iᵣ : reactor.id} (h : iₙ.rtr ≠ iᵣ) :
+    (η.run_local iₙ).rtr iᵣ = η.rtr iᵣ :=
+    by simp [run_local, update_reactor_ne_rtr, h]
+
   -- Running a reaction locally produces an equivalent network graph.
   lemma run_local_equiv (η : graph υ) (i : reaction.id) : η.run_local i ≈ η :=
     begin
@@ -186,33 +201,25 @@ namespace graph
       exact update_reactor_equiv (reactor.equiv_symm h)
     end
 
-  -- It makes no difference whether we first run a reaction, and then update its reactor's input 
-  -- (only ports which the reaction doesn't depend on), or if we do it the other way around.
-  lemma run_local_update_inputs_comm {η : graph υ} {i : reaction.id} {rtr' : reactor υ} (h : η.rtr i.rtr =i.rcn= rtr') :
-    (η.run_local i).update_reactor i.rtr {reactor . input := rtr'.input, .. (η.run_local i).rtr i.rtr} = 
-    (η.update_reactor i.rtr rtr').run_local i :=
-    begin
-      have hq₁, from run_local_equiv η i,
-      have hq₂, from update_reactor_equiv (reactor.eq_rel_to_equiv h),
-      have hq, from graph.equiv_trans hq₁ (graph.equiv_symm hq₂),
-      simp only [(≈)] at hq,
-      obtain ⟨hₑ, hᵢ, hᵣ⟩ := hq,
-      ext1,
-        {
-          cases ((η.update_reactor i.rtr rtr').run_local i).ids,
-          exact hᵢ,
-        },
-        {
-          unfold run_local,
-          have h', from reactor.eq_rel_to_symm (update_reactor_eq_rel_to h),
-          rw ←(reactor.run_update_inputs_comm h'),
-          simp,
-        },
-        {
-          cases ((η.update_reactor i.rtr rtr').run_local i).edges,
-          exact hₑ,
-        }
-    end
+  -- Running a reaction locally produces retains relative equality for all other reactors.
+  lemma run_local_eq_rel_to (η : graph υ) {i i' : reaction.id} (h : i.rtr ≠ i'.rtr) :
+    (η.run_local i).rtr i'.rtr =i'.rcn= η.rtr i'.rtr :=
+    by { rw run_local_is_local η h, apply eq_rel_to_refl }
+
+  -- Running two reactions that live in different reactors locally is commutative.
+  lemma run_local_comm (η : graph υ) {i i' : reaction.id} (h : i.rtr ≠ i'.rtr) :
+    (η.run_local i).run_local i' = (η.run_local i').run_local i :=
+    by simp [run_local, update_reactor_ne_rtr _ _ h, update_reactor_ne_rtr _ _ (ne.symm h), update_reactor_comm _ _ _ h]
+
+  -- Returns the index-diff of the ports (of a given role) of the same reactor in two different network graphs.
+  noncomputable def index_diff (η η' : graph υ) (i : reactor.id) (r : ports.role) : finset port.id :=
+    (((η.rtr i).prts r).index_diff ((η'.rtr i).prts r)).image (port.id.mk i)
+
+  -- Running a reaction in two network graphs that have relatively equal reactors for that reaction, produces the
+  -- same output index-diff for those reactors.
+  lemma run_local_index_diff_eq_rel_to {η η' : graph υ} {i : reaction.id} (h : η.rtr i.rtr =i.rcn= η'.rtr i.rtr) :
+    (η.run_local i).index_diff η i.rtr role.output = (η'.run_local i).index_diff η' i.rtr role.output :=
+    by simp [index_diff, prts, run_local, eq_rel_to_eq_output h, eq_rel_to_eq_output (run_eq_rel_to h)]
 
 end graph
 end network

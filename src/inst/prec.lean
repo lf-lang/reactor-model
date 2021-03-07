@@ -284,7 +284,7 @@ theorem network.graph.equiv_wf {η η' : inst.network.graph υ} {ρ : prec.graph
       } 
   end
 
-theorem network.graph.equiv_prec_acyc_inv {η η' : inst.network.graph υ} :
+theorem inst.network.graph.equiv_prec_acyc_inv {η η' : inst.network.graph υ} :
   η ≈ η' → η.is_prec_acyclic → η'.is_prec_acyclic :=
   begin
     intros hₑ hₚ,

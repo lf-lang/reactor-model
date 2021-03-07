@@ -49,6 +49,11 @@ namespace reactor
         exact eq.trans h₁₂.right h₂₃.right
     end
 
+  -- Returns the port-list of a given role.
+  def prts (rtr : reactor υ) : ports.role → ports υ
+    | role.input := rtr.input
+    | role.output := rtr.output
+
   -- Returns the value of a given port.
   def port (rtr : reactor υ) : ports.role → ℕ → option υ
     | role.input := rtr.input.nth
