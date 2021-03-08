@@ -182,8 +182,27 @@ namespace graph
   -- Updating different ports is commutative.
   lemma update_port_comm (η : graph υ) (r : ports.role) {p p' : port.id} (v v' : option υ) (h : p ≠ p') :
     (η.update_port r p v).update_port r p' v' = (η.update_port r p' v').update_port r p v :=
-    sorry
-    
+    begin
+      unfold update_port,
+      by_cases hc : p.rtr = p'.rtr,
+        {
+          rw hc,
+          repeat { rw update_reactor_same },
+          unfold update_reactor rtr,
+          apply congr,
+          refl,
+          repeat { rw digraph.update_data_same },
+          rw reactor.update_comm,
+          cases p,
+          cases p',
+          intro h',
+          apply_assumption,
+          ext,
+          assumption',
+        },
+        rw [update_reactor_comm _ _ _ hc, update_reactor_ne_rtr _ _ hc, update_reactor_ne_rtr _ _ (ne.symm hc)],
+    end
+
   -- Updating a port in a network graph produces an equivalent network graph.
   lemma update_port_equiv (η : graph υ) (r : ports.role) (p : port.id) (v : option υ) :
     η ≈ (η.update_port r p v) :=
@@ -231,10 +250,26 @@ namespace graph
     (η.run_local i).run_local i' = (η.run_local i').run_local i :=
     by simp [run_local, update_reactor_ne_rtr _ _ h, update_reactor_ne_rtr _ _ (ne.symm h), update_reactor_comm _ _ _ h]
 
+  -- Output ports which are not in the output dependencies of a reaction, are not affected by running that reaction.
   @[simp]
   lemma run_local_output_eq {η : graph υ} {i : reaction.id} {p : port.id} (h : p ∉ η.deps i role.output) :
     (η.run_local i).port role.output p = η.port role.output p :=
-    sorry
+    begin
+      unfold run_local,
+      unfold port,
+      unfold update_reactor rtr,
+      by_cases hc : i.rtr = p.rtr,
+        {
+          rw [hc, digraph.update_data_same],
+          simp only [deps, finset.mem_image, not_exists] at h,
+          replace h := imp_not_comm.mp (h p.prt),
+          rw hc at h,
+          replace h := h ({port.id . rtr := p.rtr, prt := p.prt}.ext p rfl rfl),
+          rw [rcn, rtr, hc] at h,
+          exact reactor.run_out_not_dₒ_eq h
+        },
+        rw digraph.update_data_ne _ _ (ne.symm hc)
+    end
 
   lemma run_local_update_input_comm {η : graph υ} {i : reaction.id} {p : port.id} (v : option υ) (h : p ∉ η.deps i role.input) :
     (η.run_local i).update_port role.input p v = (η.update_port role.input p v).run_local i :=

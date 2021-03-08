@@ -417,4 +417,19 @@ namespace reactor
         simp [if_neg hf, ports.index_diff_eq_ports_empty (refl rtr.output)]
     end
 
+    -- Output ports which are not in the output dependencies of a reaction, are not affected by running that reaction
+    @[simp]
+    lemma run_out_not_dₒ_eq {rtr : reactor υ} {rcn : ℕ} {p : ℕ} (h : p ∉ (rtr.reactions rcn).deps role.output) :
+      (rtr.run rcn).port role.output p = rtr.port role.output p :=
+      begin
+        unfold run,
+        by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
+          {
+            rw if_pos hf,
+            unfold merge port,
+            exact merge_none_eq _ ((rtr.reactions rcn).out_con rtr.input rtr.state h),
+          },
+          rw if_neg hf
+      end
+
 end reactor

@@ -35,8 +35,8 @@ namespace graph
         {
           have hₙ, from prec.graph.indep_rcns_neq_rtrs hw hc hᵢ hᵢ',
           unfold run_reaction,
-          have hd, from inst.network.graph.run_local_index_diff_eₒ hᵤ hw hᵢ hc,
-          have hd', from inst.network.graph.run_local_index_diff_eₒ hᵤ hw hᵢ' (ne.symm hc),
+          have hd, from inst.network.graph.run_local_index_diff_eₒ hᵤ hw hᵢ hₙ,
+          have hd', from inst.network.graph.run_local_index_diff_eₒ hᵤ hw hᵢ' (ne.symm hₙ),
           have hₑ,  from eq_rel_to.multiple (propagate_ports_eq_rel_to (by { intros p hₚ e hₑ, exact (hd  p hₚ e hₑ).left })) (run_local_eq_rel_to η hₙ),
           have hₑ', from eq_rel_to.multiple (propagate_ports_eq_rel_to (by { intros p hₚ e hₑ, exact (hd' p hₚ e hₑ).left })) (run_local_eq_rel_to η (ne.symm hₙ)),
           rw [run_local_index_diff_eq_rel_to hₑ, run_local_index_diff_eq_rel_to hₑ'],

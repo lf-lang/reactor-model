@@ -297,11 +297,104 @@ theorem inst.network.graph.equiv_prec_acyc_inv {η η' : inst.network.graph υ} 
     exact network.graph.equiv_eq_wf_prec_edges hₑ ρ.property h_wf',
   end
 
-lemma inst.network.graph.run_local_index_diff_eₒ {η : inst.network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ.is_well_formed_over η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i ≠ i') :
-  ∀ (p ∈ ((η.run_local i).index_diff η i.rtr role.output).val.to_list) (e : inst.network.graph.edge), (e ∈ (η.run_local i ).eₒ p) → e.dst ∉ ((η.run_local i).deps i' role.input) ∧ (e.src ∉ (η.run_local i).deps i' role.output) :=
-  begin
-    intros p hₚ e hₑ,
-    have hd, from prec.graph.indep_rcns_not_ext_dep hw hₙ,
-  end
-  -- have hd, from prec.graph.indep_rcns_not_ext_dep hw hc hᵢ,
-  -- have hd', from prec.graph.indep_rcns_not_ext_dep hw (ne.symm hc) hᵢ',
+namespace inst
+namespace network
+namespace graph
+
+  lemma index_diff_sub_dₒ (η : graph υ) (i : reaction.id) : 
+    (((η.run_local i).rtr i.rtr).prts role.output).index_diff ((η.rtr i.rtr).prts role.output) ⊆ (η.rcn i).deps role.output :=
+    sorry
+    -- run_out_diff_sub_dₒ
+
+  lemma run_local_index_diff_eₒ {η : inst.network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ.is_well_formed_over η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) :
+    ∀ (p ∈ ((η.run_local i).index_diff η i.rtr role.output).val.to_list) (e : inst.network.graph.edge), (e ∈ (η.run_local i).eₒ p) → e.dst ∉ ((η.run_local i).deps i' role.input) ∧ (e.src ∉ (η.run_local i).deps i' role.output) :=
+    begin
+      -- (1) p is in the difflist of (run i)   [by hₚ]
+      -- (2) -> p is an output dependency of i [by run_out_diff_sub_dₒ]
+      -- 
+      -- (3) e.src = p                         [by hₑ]
+      -- (4) -> e.src is an output dep of i    [by 2 & 3]
+      --
+      -- (5) i' does not depend on i           [by extension of hᵢ] (∃ (o) (j), (i-η->o) ∧ {inst.network.graph.edge . src := o, dst := j} ∈ η.edges ∧ (j-η->i'))
+      -- (6) -> for all o and j, not all of the following are true:
+      --      (i) o depends on i
+      --      (ii) there's an edge from o to j 
+      --      (iii) i' depends on j
+      --
+      -- (7) (i) is true by virtue of (4)
+      -- (8) -> (ii) or (iii) must be false
+      --
+      -- by cases:
+      --   * if (ii) is true, then (iii) isnt
+      --      -> for all edges from o to j, the edge's destination j isnt a dependecy of i'
+      --      -> this holds for e as well
+      --   * if (iii) is true, then (ii) isnt,
+      --      -> there does not exist an edge that ends in a j such that j is a dependency of i',
+      --      -> e does not end in a dependency of i'
+
+      intros p hₚ e hₑ,
+      rw [multiset.mem_to_list, ←finset.mem_def, index_diff, finset.mem_image] at hₚ,
+      obtain ⟨p_prt, h_p_prt, H⟩ := hₚ,
+      have HH, from index_diff_sub_dₒ η i,
+      simp only [(⊆)] at HH,
+      replace h_p_prt := HH h_p_prt, -- (2)
+      simp only [eₒ, finset.mem_filter] at hₑ, -- (3)
+      have HHH : port_depends_on_reaction e.dst i η, {
+        unfold port_depends_on_reaction, -- ???
+        sorry -- p.rtr = i.rtr ∧ p.prt ∈ (η.rcn i).dₒ 
+      },
+      have 
+
+      -- have hq, from inst.network.graph.run_local_equiv η i,
+      -- unfold inst.network.graph.deps inst.network.graph.rcn,
+      -- rw [(hq.right.right _).right, ←inst.network.graph.rcn],
+      -- repeat { rw ←inst.network.graph.deps },
+      
+      split,
+        {
+          have H : i ≠ i', {
+            by_contradiction,
+            simp at h,
+            cases i,
+            cases i',
+            rw h at hₙ,
+            simp only [rtr] at hₙ,
+            contradiction,
+          },
+          have hd, from prec.graph.indep_rcns_not_ext_dep hw H hᵢ,
+          rw externally_dependent at hd,
+          simp at hd,
+          by_contradiction,
+          unfold deps reaction.deps at h,
+          rw finset.mem_image at h,
+          unfold port_depends_on_reaction reaction_depends_on_port at hd,
+          sorry
+        },
+        {
+          rw [multiset.mem_to_list, ←finset.mem_def, index_diff] at hₚ,
+          unfold deps,
+          rw finset.mem_image at hₚ ⊢,
+          obtain ⟨_, _, H⟩ := hₚ,
+          cases p,
+          injection H, -- hₑ & h_1
+          rw ←h_1 at hₑ,
+          by_contradiction,
+          obtain ⟨_, _, H'⟩ := h,
+          have HH, from hₑ.right,
+          rw HH at H',
+          injection H',
+          have HHH, from ne.symm hₙ,
+          contradiction,
+        }
+      -- have hd, from prec.graph.indep_rcns_not_ext_dep hw hₙ hᵢ,
+      -- rw externally_dependent at hd,
+      -- simp [port_depends_on_reaction, reaction_depends_on_port] at hd,
+      -- by_contradiction,
+      -- simp at h,
+      
+
+    end
+
+end graph
+end network
+end inst
