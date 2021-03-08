@@ -40,17 +40,22 @@ namespace graph
   lemma propagate_edge_run_local_comm {η : graph υ} {e : graph.edge} {i : reaction.id} 
     (hᵢ : e.dst ∉ η.deps i role.input) (hₒ : e.src ∉ η.deps i role.output) :
     (η.propagate_edge e).run_local i = (η.run_local i).propagate_edge e :=
-    begin
-      unfold run_local,
-      have hₑ, from propagate_edge_eq_rel_to hᵢ,
-      have H, from reactor.run_eq_rel_to hₑ,
-      simp at hₑ H,
-      sorry
-    end
-
-  lemma propagate_edge_comm {η : graph υ} {e e' : graph.edge} (hₛ : e.dst ≠ e'.src) (hₛ' : e'.dst ≠ e.src) (hd : e.dst ≠ e'.dst) : 
-    (η.propagate_edge e).propagate_edge e' = (η.propagate_edge e').propagate_edge e :=
     sorry
+
+  -- Under the right conditions, the order in which edges are propagated can be swapped.
+  lemma propagate_edge_comm {η : network.graph υ} {e e' : graph.edge} (hᵤ : η.has_unique_port_ins) (hₘ : e ∈ η.edges) (hₘ' : e' ∈ η.edges) : 
+    propagate_edge (propagate_edge η e) e' = propagate_edge (propagate_edge η e') e :=
+    begin
+      by_cases h : e = e',
+        rw h,
+        {
+          unfold propagate_edge,
+          repeat { rw update_port_opposite_eq },
+          rw update_port_comm,
+          rw graph.has_unique_port_ins at hᵤ,
+          exact (hᵤ _ _ hₘ hₘ' h)
+        }
+    end
 
   -- Propagates the source values to the desination ports for a given set of edges.
   noncomputable def propagate_edges (η : graph υ) (es : list graph.edge) : graph υ := 
@@ -112,63 +117,44 @@ namespace graph
         }
     end
 
-  lemma propagate_edges_comm {η : graph υ} {es es' : list graph.edge} 
-    (h : ∀ e e' : edge, e ∈ es → e' ∈ es' → e.dst ≠ e'.src ∧ e'.dst ≠ e.src ∧ e.dst ≠ e'.dst) : 
-    (η.propagate_edges es).propagate_edges es' = (η.propagate_edges es').propagate_edges es :=
-    sorry
-
-  /-lemma equiv_edges_mem_trans (η η' : graph υ) (e : graph.edge) (h : η ≈ η') :
-    e ∈ η.edges → e ∈ η'.edges := 
+  -- Under the right conditions, the order in which edges are propagated can be swapped.
+  lemma propagate_edges_comm' {η : graph υ} {es : list graph.edge} {e : graph.edge} (hᵤ : η.has_unique_port_ins) (hₘ : e ∈ η.edges) (hₘ' : ∀ e' ∈ es, e' ∈ η.edges) : 
+    (η.propagate_edges es).propagate_edge e = (η.propagate_edge e).propagate_edges es :=
     begin
-      intro hₘ,
-      simp [(∈)],
-      rw ←h.left,
-      exact hₘ
-    end
-
-  lemma propagate_edges_comm (η : graph υ) (hᵤ : η.has_unique_port_ins) (e e' : finset graph.edge) (hₘ : ∀ x ∈ e, x ∈ η.edges) (hₚ : e ~ e') :
-    propagate_edges η e = propagate_edges η e' :=
-    begin
-      have hₘ' : ∀ x ∈ e', x ∈ η.edges, {
-        intros x h,
-        exact hₘ _ ((list.perm.mem_iff hₚ).mpr h),
-      },
-      unfold propagate_edges,
-      induction hₚ generalizing η,
-        case list.perm.nil {
-          refl,
-        },
-        case list.perm.cons : _ _ _ _ hᵢ {
-          unfold list.foldl,
-          apply hᵢ (propagate_edge η hₚ_x), 
-            exact (propagate_edge_unique_ins_inv _ _ hᵤ),
-            by { 
-              cases list.forall_mem_cons.mp hₘ with _ hₘ_l₁,
-              intros x hₓ, 
-              exact equiv_edges_mem_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₁ _ hₓ)
-            },
-            by { 
-              cases list.forall_mem_cons.mp hₘ' with _ hₘ_l₂,
-              intros x hₓ, 
-              exact equiv_edges_mem_trans _ _ _ (propagate_edge_equiv _ x) (hₘ_l₂ _ hₓ) 
-            },
-        },
-        case list.perm.swap {
-          unfold list.foldl,
-          rw [list.forall_mem_cons, list.forall_mem_cons] at hₘ,
-          rcases hₘ with ⟨h1, h2, _⟩,
-          rw propagate_edge_comm η _ _ hᵤ h1 h2
-        },
-        case list.perm.trans : l₁ l₂ l₃ p₁ p₂ hᵢ₁ hᵢ₂ {
-          have m := λ x h, hₘ x (p₁.mem_iff.mpr h),
-          have m' := λ x h, hₘ' x (p₂.mem_iff.mp h),
-          exact (hᵢ₁ _ hᵤ hₘ m).trans (hᵢ₂ _ hᵤ m' hₘ')
+      induction es generalizing η,
+        case list.nil { simp [propagate_edges] },
+        case list.cons {
+          simp only [propagate_edges, list.foldl_cons] at es_ih ⊢,
+          have h', from hₘ' es_hd (list.mem_cons_self _ _),
+          rw propagate_edge_comm hᵤ hₘ h',
+          have hᵤ' : (η.propagate_edge es_hd).has_unique_port_ins, 
+          from eq_edges_unique_port_ins (propagate_edge_equiv η es_hd).left hᵤ,
+          suffices hg : ∀ (e' : edge), e' ∈ es_tl → e' ∈ η.edges, 
+          from es_ih hᵤ' hₘ hg,
+          intros e' hₑ,
+          exact hₘ' e' (list.mem_cons_of_mem _ hₑ)
         }
     end
 
-  lemma propagate_edges_append (η : graph υ) (es es' : finset graph.edge) :
-    propagate_edges (propagate_edges η e) e' = propagate_edges η (e ++ e') :=
-    by simp [propagate_edges, list.foldl_append]-/
+  -- Under the right conditions, the order in which edges are propagated can be swapped.
+  lemma propagate_edges_comm {η : graph υ} {es es' : list graph.edge} (hᵤ : η.has_unique_port_ins) (hₘ : ∀ e ∈ es, e ∈ η.edges) (hₘ' : ∀ e' ∈ es', e' ∈ η.edges) :
+    (η.propagate_edges es).propagate_edges es' = (η.propagate_edges es').propagate_edges es :=
+    begin
+      induction es generalizing η,
+        case list.nil { simp [propagate_edges] },
+        case list.cons {
+          simp only [propagate_edges, list.foldl_cons] at es_ih ⊢,
+          have hc, from propagate_edges_comm' hᵤ (hₘ es_hd (list.mem_cons_self _ _)) hₘ',
+          rw propagate_edges at hc,
+          simp only [hc, propagate_edges],
+          have hᵤ' : (η.propagate_edge es_hd).has_unique_port_ins, 
+          from eq_edges_unique_port_ins (propagate_edge_equiv η es_hd).left hᵤ,
+          suffices hg : ∀ (e : edge), e ∈ es_tl → e ∈ η.edges, 
+          from es_ih hᵤ' hg hₘ',
+          intros e hₑ,
+          exact hₘ e (list.mem_cons_of_mem _ hₑ)
+        }
+    end
 
   -- For all edges `e` with `e.src = p`, set `e.dst` to `v`.  
   noncomputable def propagate_port (η : graph υ) (p : port.id) : graph υ := 
@@ -208,10 +194,25 @@ namespace graph
       exact h e hₑ
     end
 
-  lemma propagate_port_comm {η : graph υ} {p p' : port.id} 
-    (h : ∀ e e' : edge, (e ∈ η.eₒ p) → (e' ∈ η.eₒ p') → e.dst ≠ e'.src ∧ e'.dst ≠ e.src ∧ e.dst ≠ e'.dst) : 
-    (η.propagate_port p).propagate_port p' = (η.propagate_port p').propagate_port p :=
-    sorry
+  -- Under the right conditions, the order in which ports are propagated can be swapped.
+  lemma propagate_port_comm {η : graph υ} (p p' : port.id) (hᵤ : η.has_unique_port_ins) : 
+    propagate_port (propagate_port η p) p' = propagate_port (propagate_port η p') p :=
+    begin
+      unfold propagate_port,
+      have h : ∀ x x', (propagate_edges η (η.eₒ x).val.to_list).eₒ x' = η.eₒ x', {
+        intros x x',
+        unfold graph.eₒ,
+        rw (propagate_edges_equiv η _).left
+      },
+      repeat { rw h },
+      have h' : ∀ x e, e ∈ (η.eₒ x).val.to_list → e ∈ η.edges, {
+        intros x e hₑ,
+        rw multiset.mem_to_list at hₑ,
+        unfold eₒ at hₑ,
+        exact (finset.mem_filter.mp hₑ).left
+      },
+      exact propagate_edges_comm hᵤ (h' p) (h' p')
+    end
 
   -- For all edges `e` with `e.src ∈ ps`, set `e.dst` to `rtr.output.nth e.src`.  
   noncomputable def propagate_ports (η : graph υ) (ps : list port.id) : graph υ :=
@@ -279,70 +280,33 @@ namespace graph
         }
     end
 
-  lemma propagate_ports_comm {η : graph υ} {ps ps' : list port.id} 
-    (h : ∀ (p ∈ ps) (p' ∈ ps') (e e' : edge), (e ∈ η.eₒ p) → (e' ∈ η.eₒ p') → e.dst ≠ e'.src ∧ e'.dst ≠ e.src ∧ e.dst ≠ e'.dst) : 
+  -- Under the right conditions, the order in which ports are propagated can be swapped.
+  lemma propagate_ports_comm' {η : graph υ} (p : port.id) (ps : list port.id) (hᵤ : η.has_unique_port_ins) : 
+    (η.propagate_ports ps).propagate_port p = (η.propagate_port p).propagate_ports ps :=
+    begin
+      induction ps generalizing η,
+        case list.nil { simp [propagate_ports] },
+        case list.cons {
+          simp only [propagate_ports, list.foldl_cons] at ps_ih ⊢,
+          rw propagate_port_comm _ _ hᵤ,
+          exact ps_ih (eq_edges_unique_port_ins (symm (propagate_port_equiv η ps_hd).left) hᵤ)
+        }
+    end
+
+  -- Under the right conditions, the order in which ports are propagated can be swapped.
+  lemma propagate_ports_comm {η : graph υ} (ps ps' : list port.id) (hᵤ : η.has_unique_port_ins) : 
     (η.propagate_ports ps).propagate_ports ps' = (η.propagate_ports ps').propagate_ports ps :=
-    sorry
-
-  /-lemma propagate_port_unique_ins_inv (η : graph υ) (p : port.id) (hᵤ : η.has_unique_port_ins) :
-    (propagate_port η p).has_unique_port_ins :=
     begin
-      have h, from propagate_port_equiv η p,
-      exact graph.eq_edges_unique_port_ins (graph.equiv_symm h).left hᵤ
-    end
-
-  lemma propagate_port_comm (η : graph υ) (p p' : port.id) (hᵤ : η.has_unique_port_ins) : 
-    propagate_port (propagate_port η p) p' = propagate_port (propagate_port η p') p :=
-    begin
-      unfold propagate_port,
-      have h : ∀ x x', (propagate_edges η (η.eₒ x).val.to_list).eₒ x' = η.eₒ x', {
-        intros x x',
-        unfold graph.eₒ,
-        rw (propagate_edges_equiv η _).left,
-      },
-      conv_lhs { rw [h, propagate_edges_append] },
-      conv_rhs { rw [h, propagate_edges_append] },
-      suffices hₘ_l : ∀ x ∈ ((η.eₒ p).val.to_list ++ (η.eₒ p').val.to_list), x ∈ η.edges,
-      from propagate_edges_comm _ hᵤ _ _ hₘ_l list.perm_append_comm,
-      rw list.forall_mem_append,
-      split
-        ; {
-          intros x hₓ,
-          rw [multiset.mem_to_list, graph.eₒ] at hₓ,
-          exact (finset.mem_filter.mp hₓ).left
+      induction ps generalizing η,
+        case list.nil { simp [propagate_ports] },
+        case list.cons {
+          simp only [propagate_ports, list.foldl_cons] at ps_ih ⊢,
+          have hc, from propagate_ports_comm' ps_hd ps' hᵤ,
+          rw propagate_ports at hc,
+          simp only [hc, propagate_ports],
+          from ps_ih (eq_edges_unique_port_ins (symm (propagate_port_equiv η ps_hd).left) hᵤ)
         }
     end
-
-  lemma propagate_ports_comm (η : graph υ) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) (hₚ : p' ~ p) :
-    propagate_ports η p = propagate_ports η p' :=
-    begin
-      unfold propagate_ports,
-      induction hₚ generalizing η,
-        case list.perm.nil {
-          refl,
-        },
-        case list.perm.cons : _ _ _ _ hᵢ {
-          unfold list.foldl,
-          apply hᵢ (propagate_port η hₚ_x), 
-          exact propagate_port_unique_ins_inv _ _ hᵤ
-        },
-        case list.perm.swap {
-          unfold list.foldl,
-          rw propagate_port_comm η _ _ hᵤ
-        },
-        case list.perm.trans : l₁ l₂ l₃ p₁ p₂ hᵢ₁ hᵢ₂ {
-          exact (hᵢ₂ _ hᵤ).trans (hᵢ₁ _ hᵤ)
-        }
-    end
-
-  lemma propagate_ports_comm' (η : graph υ) (p p' : list port.id) (hᵤ : η.has_unique_port_ins) :
-    propagate_ports (propagate_ports η p) p' = propagate_ports (propagate_ports η p') p :=
-    begin
-      unfold propagate_ports,
-      conv_lhs { rw ←list.foldl_append },
-      conv_rhs { rw ←list.foldl_append },
-      apply propagate_ports_comm _ _ _ hᵤ list.perm_append_comm
-    end -/
 
 end graph
 end network

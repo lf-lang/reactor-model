@@ -58,14 +58,21 @@ namespace graph
           rw run_reaction at hₑ hₑ',
           rw [run_local_index_diff_eq_rel_to hₑ, run_local_index_diff_eq_rel_to hₑ'],
 
-          -- (run i) (run i') (prop i) (prop i')
+
+
           rw @propagate_ports_run_local_comm _ _ (η.run_local i) ((η.run_local i).index_diff η i.rtr role.output).val.to_list i' sorry,
+          -- (run i) (run i') (prop i) (prop i')
+          
+          rw run_local_comm η hₙ,
           -- (run i') (run i) (prop i) (prop i')
-          rw run_local_comm η sorry,
+          have hq, from equiv_trans (run_local_equiv (η.run_local i') i) (run_local_equiv η i'),
+          unfold has_unique_port_ins at hᵤ,
+          rw ←hq.left at hᵤ,
+          rw propagate_ports_comm _ _ hᵤ,
           -- (run i') (run i) (prop i') (prop i)
-          rw @propagate_ports_comm _ _ ((η.run_local i').run_local i) _ _ sorry,
-          -- (run i') (prop i') (run i) (prop i)
+
           rw ←(@propagate_ports_run_local_comm _ _ (η.run_local i') ((η.run_local i').index_diff η i'.rtr role.output).val.to_list) i sorry,
+          -- (run i') (prop i') (run i) (prop i)
         }
     end
 
@@ -93,14 +100,6 @@ lemma run_topo_equiv (η : graph υ) (t : list reaction.id) :
         exact graph.equiv_trans hᵢ' hₑ
       }
   end
-
-lemma run_topo_unique_ports_inv {η : graph υ} (t : list reaction.id) (h : η.has_unique_port_ins) : 
-  (run_topo η t).has_unique_port_ins :=
-  eq_edges_unique_port_ins (graph.equiv_symm (run_topo_equiv η t)).left h
-  
-lemma run_topo_prec_acyc_inv {η : graph υ} (t : list reaction.id) (h : η.is_prec_acyclic) : 
-  (run_topo η t).is_prec_acyclic :=
-  equiv_prec_acyc_inv (graph.equiv_symm (run_topo_equiv η t)) h
 
 -- pulling a completely independent element out of the list to the front does not change the behaviour of run_topo.
 lemma run_topo_swap 
@@ -170,64 +169,3 @@ theorem run_topo_comm (η : graph υ) (hᵤ : η.has_unique_port_ins) (ρ : prec
 end graph
 end network
 end inst
-
-
-/-
--- Cf. inst/primitives.lean
-variables {υ : Type*} [decidable_eq υ]
-
-namespace inst
-namespace network
-namespace graph
-
-  -- Updates a given reactor ID with a new reactor and propagates all outputs that have changed.
-  noncomputable def apply_reactor (η : graph υ) (i : reactor.id) (rtr : reactor υ) : graph υ :=
-    (η.update_reactor i rtr).propagate_ports 
-    ((η.update_reactor i rtr).index_diff η i role.output).val.to_list
-    
-  -- Applying an equivalent reactor to a network graph, produces an equivalent network graph.
-  lemma apply_reactor_equiv {η : graph υ} {i : reactor.id} {rtr : reactor υ} (h : η.rtr i ≈ rtr) :
-    apply_reactor η i rtr ≈ η :=
-    begin
-      unfold apply_reactor,
-      transitivity,
-        exact propagate_ports_equiv _ _,
-        exact graph.update_reactor_equiv h,
-    end
-
-  lemma propagate_ports_update_eq_rel_to (η : graph υ) {iᵣ : reactor.id} {iₙ : reaction.id} (rtr : reactor υ) (ps : list port.id) (h : iᵣ ≠ iₙ.rtr) (h' : true) :
-    ((η.update_reactor iᵣ rtr).propagate_ports ps).rtr iₙ.rtr =iₙ.rcn= (η.propagate_ports ps).rtr iₙ.rtr :=
-    sorry
-
-  -- Applying a reactor, where the only output ports that are different to the ones before are not connected to 
-  -- the input dependencies of a given reaction, produces an equal reactor relative to that reaction.
-  lemma apply_reactor_eq_rel_to {η : graph υ} {iᵣ : reactor.id} {iₙ : reaction.id} {rtr : reactor υ} (hᵢ : iᵣ ≠ iₙ.rtr)
-    (h : ∀ p ∈ ((η.update_reactor iᵣ rtr).index_diff η iᵣ role.output), ∀ e : edge, e ∈ η.eₒ p → e.dst ∉ η.deps iₙ role.input) :
-    (η.apply_reactor iᵣ rtr).rtr iₙ.rtr =iₙ.rcn= η.rtr iₙ.rtr :=
-    begin
-      unfold apply_reactor,
-      suffices H, from reactor.eq_rel_to.multiple H (propagate_ports_eq_rel_to h), 
-      have HH, from propagate_ports_update_eq_rel_to η rtr ((η.update_reactor iᵣ rtr).index_diff η iᵣ role.output).val.to_list hᵢ _,
-      sorry
-    end
-
-end graph
-end network
-end inst
-  -- For all ports `e` with `e.src ∈ ps`, set `e.dst` to `rtr.output.nth e.src`.  
-  noncomputable def propagate_output (η : graph υ) (i : reactor.id) (ps : list ℕ) : graph υ :=
-    η.propagate_ports (ps.map (port.id.mk i))
-    
-  lemma propagate_output_equiv (η η' : graph υ) (i : reactor.id) (ps : list ℕ) (h : η ≈ η') :
-    η.propagate_output i ps ≈ η' :=
-    begin
-      unfold propagate_output,
-      induction (ps.map (λ x, {port.id . rtr := i, prt := x}))
-        ; apply propagate_ports_equiv
-        ; exact h
-    end
-  
-  lemma propagate_output_comm (η : graph υ) (i i' : reactor.id) (p p' : finset ℕ) (hᵤ : η.has_unique_port_ins) :
-    propagate_output (propagate_output η i p) i' p' = propagate_output (propagate_output η i' p') i p :=
-    propagate_ports_comm' _ _ _ hᵤ
-    -/

@@ -161,9 +161,29 @@ namespace graph
     end
 
   -- Updates the port associated with the given role and port ID.
-  noncomputable def update_port (η : graph υ) (r : reactor.ports.role) (p : port.id) (v : option υ) : graph υ :=
+  noncomputable def update_port (η : graph υ) (r : ports.role) (p : port.id) (v : option υ) : graph υ :=
     η.update_reactor p.rtr ((η.rtr p.rtr).update r p.prt v)
 
+  -- Updating a port on one side of a reactor does not change the ports on the other side.
+  @[simp]
+  lemma update_port_opposite_eq (η : graph υ) (r : ports.role) (p : port.id) (v : option υ) :
+    (η.update_port r p v).port r.opposite = η.port r.opposite :=
+    begin
+      unfold update_port,
+      ext1,
+      cases r ; {
+        by_cases hc : x.rtr = p.rtr,
+          all_goals { simp only [ports.role.opposite, update, port, reactor.port] },
+          simp only [hc, update_reactor_eq_rtr],
+          rw update_reactor_ne_rtr η _ (ne.symm hc),
+      }
+    end
+
+  -- Updating different ports is commutative.
+  lemma update_port_comm (η : graph υ) (r : ports.role) {p p' : port.id} (v v' : option υ) (h : p ≠ p') :
+    (η.update_port r p v).update_port r p' v' = (η.update_port r p' v').update_port r p v :=
+    sorry
+    
   -- Updating a port in a network graph produces an equivalent network graph.
   lemma update_port_equiv (η : graph υ) (r : ports.role) (p : port.id) (v : option υ) :
     η ≈ (η.update_port r p v) :=
@@ -174,7 +194,7 @@ namespace graph
       exact update_reactor_equiv (reactor.equiv_symm h)
     end
 
-  -- Updating a port that is not a dependency of a given reaction produces an equal reactor relative to that reaction.
+  -- Updating an input port that is not a dependency of a given reaction produces an equal reactor relative to that reaction.
   lemma update_input_eq_rel_to {η : graph υ} {i : reaction.id} {p : ℕ} (v : option υ) (h : p ∉ (η.rcn i).dᵢ) :
     (η.update_port role.input ⟨i.rtr, p⟩ v).rtr i.rtr =i.rcn= η.rtr i.rtr :=
     begin
