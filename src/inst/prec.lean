@@ -1,5 +1,6 @@
 import digraph
 import inst.network.graph
+open reactor.ports
 
 namespace prec.graph
 
@@ -295,3 +296,12 @@ theorem inst.network.graph.equiv_prec_acyc_inv {η η' : inst.network.graph υ} 
     suffices h : (ρ : prec.graph υ).edges = ρ'.edges, from digraph.eq_edges_acyclic h hₐ,
     exact network.graph.equiv_eq_wf_prec_edges hₑ ρ.property h_wf',
   end
+
+lemma inst.network.graph.run_local_index_diff_eₒ {η : inst.network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ.is_well_formed_over η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i ≠ i') :
+  ∀ (p ∈ ((η.run_local i).index_diff η i.rtr role.output).val.to_list) (e : inst.network.graph.edge), (e ∈ (η.run_local i ).eₒ p) → e.dst ∉ ((η.run_local i).deps i' role.input) ∧ (e.src ∉ (η.run_local i).deps i' role.output) :=
+  begin
+    intros p hₚ e hₑ,
+    have hd, from prec.graph.indep_rcns_not_ext_dep hw hₙ,
+  end
+  -- have hd, from prec.graph.indep_rcns_not_ext_dep hw hc hᵢ,
+  -- have hd', from prec.graph.indep_rcns_not_ext_dep hw (ne.symm hc) hᵢ',

@@ -231,6 +231,15 @@ namespace graph
     (η.run_local i).run_local i' = (η.run_local i').run_local i :=
     by simp [run_local, update_reactor_ne_rtr _ _ h, update_reactor_ne_rtr _ _ (ne.symm h), update_reactor_comm _ _ _ h]
 
+  @[simp]
+  lemma run_local_output_eq {η : graph υ} {i : reaction.id} {p : port.id} (h : p ∉ η.deps i role.output) :
+    (η.run_local i).port role.output p = η.port role.output p :=
+    sorry
+
+  lemma run_local_update_input_comm {η : graph υ} {i : reaction.id} {p : port.id} (v : option υ) (h : p ∉ η.deps i role.input) :
+    (η.run_local i).update_port role.input p v = (η.update_port role.input p v).run_local i :=
+    sorry
+
   -- Returns the index-diff of the ports (of a given role) of the same reactor in two different network graphs.
   noncomputable def index_diff (η η' : graph υ) (i : reactor.id) (r : ports.role) : finset port.id :=
     (((η.rtr i).prts r).index_diff ((η'.rtr i).prts r)).image (port.id.mk i)

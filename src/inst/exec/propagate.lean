@@ -37,10 +37,18 @@ namespace graph
         }
     end
 
-  lemma propagate_edge_run_local_comm {η : graph υ} {e : graph.edge} {i : reaction.id} 
-    (hᵢ : e.dst ∉ η.deps i role.input) (hₒ : e.src ∉ η.deps i role.output) :
+  -- Under the right conditions, running a reaction and propagating and edge can be swapped in their order.
+  lemma propagate_edge_run_local_comm {η : graph υ} {e : graph.edge} {i : reaction.id} (hᵢ : e.dst ∉ η.deps i role.input) (hₒ : e.src ∉ η.deps i role.output) :
     (η.propagate_edge e).run_local i = (η.run_local i).propagate_edge e :=
-    sorry
+    begin
+      have hqₗ, from equiv_trans (run_local_equiv (η.propagate_edge e) i) (propagate_edge_equiv η e),
+      have hqᵣ, from equiv_trans (propagate_edge_equiv (η.run_local i) e) (run_local_equiv η i),
+      have hq, from equiv_trans hqₗ (equiv_symm hqᵣ),
+      ext1,
+        exact hq.right.left,
+        simp only [propagate_edge, run_local_output_eq hₒ, symm (run_local_update_input_comm _ hᵢ)],
+        exact hq.left
+    end
 
   -- Under the right conditions, the order in which edges are propagated can be swapped.
   lemma propagate_edge_comm {η : network.graph υ} {e e' : graph.edge} (hᵤ : η.has_unique_port_ins) (hₘ : e ∈ η.edges) (hₘ' : e' ∈ η.edges) : 
@@ -95,7 +103,7 @@ namespace graph
         }
     end
 
-  -- Under the right conditions, running a reactor and propagating edges can be swapped in their order.
+  -- Under the right conditions, running a reaction and propagating edges can be swapped in their order.
   lemma propagate_edges_run_local_comm {η : graph υ} {es : list graph.edge} {i : reaction.id} 
     (h : ∀ e : edge, e ∈ es → (e.dst ∉ η.deps i role.input) ∧ (e.src ∉ η.deps i role.output)) :
     (η.propagate_edges es).run_local i = (η.run_local i).propagate_edges es :=
@@ -181,7 +189,7 @@ namespace graph
       exact h e hₑ
     end
 
-  -- Under the right conditions, running a reactor and propagating a port can be swapped in their order.
+  -- Under the right conditions, running a reaction and propagating a port can be swapped in their order.
   lemma propagate_port_run_local_comm {η : graph υ} {p : port.id} {i : reaction.id} 
     (h : ∀ e : edge, (e ∈ η.eₒ p) → (e.dst ∉ η.deps i role.input) ∧ (e.src ∉ η.deps i role.output)) :
     (η.propagate_port p).run_local i = (η.run_local i).propagate_port p :=
@@ -255,7 +263,7 @@ namespace graph
         }
     end
 
-  -- Under the right conditions, running a reactor and propagating ports can be swapped in their order.
+  -- Under the right conditions, running a reaction and propagating ports can be swapped in their order.
   lemma propagate_ports_run_local_comm {η : graph υ} {ps : list port.id} {i : reaction.id} 
     (h : ∀ (p ∈ ps) (e : edge), (e ∈ η.eₒ p) → e.dst ∉ (η.deps i role.input) ∧ (e.src ∉ η.deps i role.output)) :
     (η.propagate_ports ps).run_local i = (η.run_local i).propagate_ports ps :=
