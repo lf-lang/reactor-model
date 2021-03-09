@@ -159,7 +159,7 @@ namespace ports
 
   -- Any index beyond the source ports will remain unchanged by a merge.
   @[simp] 
-  lemma merge_after_src_eq_dst {dst src : ports υ} {p : ℕ} (h : src.length ≤ p) : 
+  lemma merge_after_src_eq_dst (dst : ports υ) {src : ports υ} {p : ℕ} (h : src.length ≤ p) : 
     (dst.merge src).nth p = dst.nth p :=
     begin
       have hₙ, from list.nth_len_le h,
@@ -189,9 +189,19 @@ namespace ports
   -- If we merge "too few" ports, then the diff above is always empty. 
   lemma merge_index_diff_range_sub_src {dst src : ports υ} (hₗ : src.length ≤ dst.length) : 
     dst.index_diff (dst.merge src) ⊆ finset.range src.length :=
-    sorry 
-    -- use merge_after_src_eq_dst?
-    -- this might be very similar to the proof below
+    begin
+      simp only [(⊆)],
+      intros x hₓ,
+      simp [index_diff] at hₓ,
+      by_cases hc : x ≥ src.length,
+        {
+          exfalso,
+          have, from merge_after_src_eq_dst dst hc,
+          replace hₓ := ne.symm hₓ.right,
+          contradiction,
+        },
+        exact finset.mem_range.mpr (not_le.mp hc)
+    end 
 
   -- The indices that change from a merge have to be less than the length of the destination ports.
   lemma merge_index_diff_range_sub_dst (dst src : ports υ) :

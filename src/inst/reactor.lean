@@ -365,7 +365,7 @@ namespace reactor
 
   -- Updating an input port that is independent of a reaction can be done before or after running that reaction,
   -- without changing the resulting reactor.
-  lemma run_update_input_comm {rtr : reactor υ} {rcn : ℕ} {i : ℕ} (v : option υ) (h : i ∉ (rtr.reactions rcn).dᵢ) :
+  lemma run_update_input_comm {rtr : reactor υ} {rcn : ℕ} {i : ℕ} (v : option υ) (h : i ∉ (rtr.reactions rcn).deps role.input) :
     (rtr.run rcn).update role.input i v = (rtr.update role.input i v).run rcn :=
     begin
       have hᵣ, from eq_rel_to.single (refl (rtr.update role.input i v)) h,

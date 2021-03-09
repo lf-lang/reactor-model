@@ -261,19 +261,33 @@ namespace graph
       by_cases hc : i.rtr = p.rtr,
         {
           rw [hc, digraph.update_data_same],
-          simp only [deps, finset.mem_image, not_exists] at h,
-          replace h := imp_not_comm.mp (h p.prt),
-          rw hc at h,
-          replace h := h ({port.id . rtr := p.rtr, prt := p.prt}.ext p rfl rfl),
-          rw [rcn, rtr, hc] at h,
-          exact reactor.run_out_not_dₒ_eq h
+          rw [mem_deps_iff_mem_rcn_deps, not_and, rcn, rtr, hc] at h,
+          exact reactor.run_out_not_dₒ_eq (h (refl _))
         },
         rw digraph.update_data_ne _ _ (ne.symm hc)
     end
 
+  -- Running a reaction locally, and updating an input port is commutative, if the input port is not part of the
+  -- reaction's input dependencies.
   lemma run_local_update_input_comm {η : graph υ} {i : reaction.id} {p : port.id} (v : option υ) (h : p ∉ η.deps i role.input) :
     (η.run_local i).update_port role.input p v = (η.update_port role.input p v).run_local i :=
-    sorry
+    begin
+      by_cases hc : p.rtr = i.rtr,
+        {
+          unfold update_port run_local,
+          rw hc,
+          repeat { rw [update_reactor_same, update_reactor_eq_rtr] },
+          rw run_update_input_comm,
+          rw [mem_deps_iff_mem_rcn_deps, not_and] at h,
+          exact h (eq.symm hc)
+        },
+        {
+          unfold update_port run_local,
+          rw update_reactor_ne_rtr _ _ hc,
+          rw update_reactor_ne_rtr _ _ (ne.symm hc),
+          exact update_reactor_comm _ _ _ (ne.symm hc)
+        }
+    end
 
   -- Returns the index-diff of the ports (of a given role) of the same reactor in two different network graphs.
   noncomputable def index_diff (η η' : graph υ) (i : reactor.id) (r : ports.role) : finset port.id :=
