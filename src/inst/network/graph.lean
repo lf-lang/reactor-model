@@ -8,7 +8,7 @@ structure inst.network.graph.edge :=
   (src : port.id)
   (dst : port.id)
 
--- Reactor network edges are directed.
+-- Reactor network graph edges are directed.
 instance inst.graph.digraph_edge : digraph.edge inst.network.graph.edge reactor.id := 
   { src := (λ e, e.src.rtr), dst := (λ e, e.dst.rtr) }
 
@@ -73,7 +73,7 @@ namespace graph
   noncomputable instance dec_eq : decidable_eq graph.edge := classical.dec_eq _
 
   -- A reactor is a member of a network graph if the graph contains an ID that maps to it.
-  instance rtr_mem : has_mem (reactor υ) (graph υ) := {mem := λ d g, ∃ i, g.data i = d}
+  instance rtr_mem : has_mem (reactor υ) (graph υ) := {mem := λ rtr η, ∃ i, η.data i = rtr}
 
   -- Reactor network graphs are equivalent if they are structurally the same and only contain equivalent reactors.
   instance equiv : has_equiv (graph υ) := 
@@ -298,6 +298,62 @@ namespace graph
   lemma run_local_index_diff_eq_rel_to {η η' : graph υ} {i : reaction.id} (h : η.rtr i.rtr =i.rcn= η'.rtr i.rtr) :
     (η.run_local i).index_diff η i.rtr role.output = (η'.run_local i).index_diff η' i.rtr role.output :=
     by simp [index_diff, prts, run_local, eq_rel_to_eq_output h, eq_rel_to_eq_output (run_eq_rel_to h)]
+
+  -- Returns a network graph, where the given reactor's ports are all set to `none`.
+  noncomputable def clear_reactor (η : graph υ) (i : reactor.id) : graph υ :=
+    η.update_reactor i {reactor . 
+      input  := (ports.empty υ (η.rtr i).input.length), 
+      output := (ports.empty υ (η.rtr i).output.length), 
+      .. (η.rtr i)
+    }
+
+  -- Clearing a reactor's ports, produces an equivalent reactor.
+  lemma clear_reactor_equiv (η : graph υ) (i : reactor.id) : η.clear_reactor i ≈ η :=
+    begin
+      simp only [clear_reactor, (≈)],
+      repeat { split },
+      intro x,
+      by_cases hc : i = x,
+        simp [hc],
+        simp [update_reactor_ne_rtr _ _ hc],
+    end
+
+  -- Returns a network graph, where all ports are set to `none`.
+  noncomputable def clear_all_ports (η : graph υ) : graph υ :=
+    η.ids.val.to_list.foldl clear_reactor η
+
+  -- Clearing all of a network graph's ports, produces an equivalent reactor.
+  lemma clear_all_ports_equiv (η : graph υ) : η.clear_all_ports ≈ η :=
+    begin
+      unfold clear_all_ports,
+      induction η.ids.val.to_list generalizing η,
+        case list.nil { simp },
+        case list.cons {
+          simp only [list.foldl_cons],
+          transitivity,
+            exact ih _,
+            exact clear_reactor_equiv _ _
+        }
+    end
+
+  -- Returns the network graph that you get by copying the ports of a given network graph (and role) 
+  -- to a target graph. The first graph is the target.
+  noncomputable def copy_ports (η η' : graph υ) (ps : finset port.id) (r : ports.role) : graph υ :=
+    ps.val.to_list.foldl (λ ηₗ p, ηₗ.update_port r p (η'.port r p)) η
+
+  -- Copying ports, produces an equivalent reactor.
+  lemma copy_ports_equiv (η η' : graph υ) (ps : finset port.id) (r : ports.role) : η.copy_ports η' ps r ≈ η :=
+    begin
+      unfold copy_ports,
+      induction ps.val.to_list generalizing η,
+        case list.nil { simp },
+        case list.cons {
+          simp only [list.foldl_cons],
+          transitivity,
+            exact ih _,
+            exact equiv_symm (update_port_equiv _ _ _ _)
+        }
+    end
 
 end graph
 end network

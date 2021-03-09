@@ -1,6 +1,5 @@
-import inst.prec
+import inst.network.prec
 open reactor
-open network
 
 -- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
@@ -44,6 +43,22 @@ namespace network
       η := σ.η.update_port r p v,
       unique_ins := graph.eq_edges_unique_port_ins (refl _) σ.unique_ins,
       prec_acyclic := graph.equiv_prec_acyc_inv (graph.update_port_equiv _ _ _ _) σ.prec_acyclic
+    }
+
+  -- Forwards the `clear_all_ports` function from the network graph to the network.
+  noncomputable def clear_all_ports (σ : inst.network υ) : inst.network υ :=
+    {
+      η := σ.η.clear_all_ports,
+      unique_ins := graph.eq_edges_unique_port_ins (symm (graph.clear_all_ports_equiv _).left) σ.unique_ins,
+      prec_acyclic := graph.equiv_prec_acyc_inv (graph.equiv_symm (graph.clear_all_ports_equiv _)) σ.prec_acyclic
+    }
+
+  -- Forwards the `copy_ports` function from the network graph to the network.
+  noncomputable def copy_ports (σ σ' : inst.network υ) (ps : finset port.id) (r : ports.role) : inst.network υ :=
+    {
+      η := σ.η.copy_ports σ'.η ps r,
+      unique_ins := graph.eq_edges_unique_port_ins (symm (graph.copy_ports_equiv _ _ _ _).left) σ.unique_ins,
+      prec_acyclic := graph.equiv_prec_acyc_inv (graph.equiv_symm (graph.copy_ports_equiv _ _ _ _)) σ.prec_acyclic
     }
 
 end network
