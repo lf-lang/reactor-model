@@ -145,46 +145,76 @@ namespace ports
   -- Merges a given port assignment *onto* another one.
   -- The `src` ports override the `dst` ports, but the length remains that of `dst`.
   def merge (dst src : ports υ) : ports υ :=
-    (src.zip_with (<|>) dst) ++ 
-    if dst.length ≤ src.length then [] else ports.empty υ (dst.length - src.length)
+    (src.zip_with (<|>) dst) ++ (dst.drop src.length)
 
   -- The length of merged ports is that of the first instance.
   @[simp]
-  lemma merge_length (p p' : ports υ) : (p.merge p').length = p.length :=
+  lemma merge_length (dst src : ports υ) : (dst.merge src).length = dst.length :=
     begin
       unfold merge,
-      by_cases h : p.length ≤ p'.length, 
-        finish,
+      by_cases h : dst.length ≤ src.length, 
+        simp [h],
         {
-          simp [if_neg h, empty, list.length_repeat] at h ⊢, 
-          rw [min_eq_left (le_of_lt h), ←nat.add_sub_assoc (le_of_lt h), nat.add_sub_cancel_left]
+          rw not_le at h,
+          rw [list.length_append, list.length_zip_with, list.length_drop],
+          rw [min_eq_left_of_lt h, ←nat.add_sub_assoc (le_of_lt h), nat.add_sub_cancel_left]
         }
     end
 
   -- If the source of a merge contains an absent value for some port, that port stays unaffected.
+  -- The proof is a bit long, as there are many cases to be covered.
   @[simp]
   lemma merge_none_eq (dst : ports υ) {src : ports υ} {p : ℕ} (h : src.nth p = none) :
     (dst.merge src).nth p = dst.nth p :=
     begin
       replace h := option.join_eq_none.mp h,
       unfold merge,
+      simp only [ports.nth, list.nth_zip_with],
       by_cases hcₗ : dst.length ≤ src.length,
         {
-          simp only [if_pos hcₗ, list.append_nil, ports.nth, list.nth_zip_with] at h ⊢,
-          simp [list.map_eq_map, option.bind_eq_bind, (<*>)],
+          simp only [list.drop_eq_nil_iff_le.mpr hcₗ, list.append_nil, list.nth_zip_with, option.map_eq_map, option.bind_eq_bind, (<*>)],
           cases h,
+            all_goals { simp [h] },
             {
-              simp [h],
-              sorry
+              rw list.nth_eq_none_iff at h,
+              simp [list.nth_eq_none_iff.mpr (has_le.le.trans hcₗ h)]
             },
             {
-              simp [h],
-              congr,
-              sorry
+              rw list.nth_eq_some at h,
+              by_cases hc : list.nth dst p = none,
+                simp [hc],
+                { simp at hc, simp [list.nth_le_nth hc] }
             }
         },
-        sorry
+        {
+          rw not_le at hcₗ,
+          by_cases hc : p < (list.zip_with has_orelse.orelse src dst).length,
+            {
+              simp only [list.nth_append hc, list.nth_zip_with, list.map_eq_map, option.bind_eq_bind, (<*>)],
+              congr,
+              rw [list.length_zip_with, min_eq_left_of_lt hcₗ] at hc,
+              cases h,
+                {
+                  exfalso,
+                  have, from not_lt_of_le (list.nth_eq_none_iff.mp h),
+                  contradiction
+                },
+                simp [h, list.nth_le_nth (has_lt.lt.trans hc hcₗ)]
+            },
+            {
+              replace hc := le_of_not_lt hc,
+              rw list.nth_append_right hc,
+              rw [list.length_zip_with, min_eq_left_of_lt hcₗ] at hc ⊢,
+              rw list.nth_drop,
+              rw ←nat.add_sub_assoc hc,
+              simp
+            }
+        }
     end
+
+  example {n m x : ℕ} (h : n - x < m - x) : n < m := begin
+    exact nat.lt_of_sub_lt_sub_right h,
+  end
 
   -- Any index beyond the source ports will remain unchanged by a merge.
   @[simp] 
@@ -194,25 +224,6 @@ namespace ports
       have hₙ, from list.nth_len_le h,
       have hj, from option.join_eq_none.mpr (or.inl hₙ),
       exact merge_none_eq _ hj
-    end
-
-  -- Merging empty ports does not change anything.
-  @[simp]
-  lemma merge_empty_neutral (p : ports υ) : p.merge (empty υ p.length) = p := 
-    begin
-      unfold merge,
-      have h : list.length p ≤ list.length (empty υ (list.length p)), by simp [empty],
-      rw if_pos h,
-      induction p,
-        case list.nil { refl },
-        case list.cons {
-          rw [list.length_cons, empty_cons, list.zip_with_cons_cons], 
-          have h' : (empty υ p_tl.length).length = p_tl.length, by apply list.length_repeat,
-          have h'', from p_ih (le_of_eq (symm h')),  
-          simp [(<|>)],
-          rw list.append_nil at h'',
-          exact congr_arg (list.cons p_hd) h'',
-        }
     end
 
   -- If we merge "too few" ports, then the diff above is always empty. 
@@ -245,13 +256,12 @@ namespace ports
         {
           by_cases h : list.length dst ≤ list.length src,
             {
-              rw [if_pos h, min_comm, min_eq_left h, list.length] at hₓ,
+              rw [min_comm, min_eq_left h, nat.sub_eq_zero_of_le h] at hₓ,
               exact list.mem_range.mpr hₓ
             },
             {
-              have hᵣ, from nat.sub_add_min (list.length dst) (list.length src),
-              rw [nat.add_comm, min_comm] at hᵣ,
-              rw [if_neg h, empty, list.length_repeat, hᵣ] at hₓ,
+              rw not_le at h,
+              rw [min_eq_left_of_lt h, ←nat.add_sub_assoc (le_of_lt h), nat.add_sub_cancel_left] at hₓ,
               exact list.mem_range.mpr hₓ
             }
         }

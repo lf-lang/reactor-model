@@ -122,12 +122,7 @@ namespace network
           contradiction
         },
         replace h := (not_iff_not_of_iff h).mp hₑ',
-        have hd, from @decidable.not_or_iff_and_not 
-          (internally_dependent e.src e.dst) 
-          (externally_dependent e.src e.dst η) 
-          (classical.prop_decidable _) 
-          (classical.prop_decidable _),
-        exact hd.mp h
+        exact not_or_distrib.mp h
       end
 
     -- If there is no path from a reaction `i` to a reaction `i'`, then none of the edges coming out of `i`'s output dependencies have 

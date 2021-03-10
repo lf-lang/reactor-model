@@ -44,8 +44,7 @@ namespace topo
   -- For any acyclic digraph there exists a complete topological ordering of that graph.
   -- https://ocw.tudelft.nl/wp-content/uploads/Algoritmiek_DAGs_and_Topological_Ordering.pdf
   -- Lemma 3.20
-  theorem any_dag_has_complete_topo : 
-    ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, l.is_complete_topo_over g := 
+  theorem any_dag_has_complete_topo : ∀ (g : digraph ι δ ε) (h : g.is_acyclic), ∃ l : list ι, l.is_complete_topo_over g := 
     sorry
 
   -- Complete topological orderings are permutations of each other.

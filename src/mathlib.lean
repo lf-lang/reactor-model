@@ -1,10 +1,18 @@
 import tactic
 
+-- The following lemmas have all been proven by Yakov Pechersky.
+
+-- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/list.2Eupdate_nth_same/near/229661061
+
 lemma list.update_nth_same {α : Type*} (l : list (option α)) (n : ℕ) : 
   l.update_nth n (l.nth n).join = l :=
-  sorry
-
--- The following lemmas have all been proven by Yakov Pechersky.
+  begin
+    ext k,
+    by_cases hk : k = n,
+    { cases h : l.nth n;
+      simp [list.nth_update_nth_eq, hk, h] },
+    { rw list.nth_update_nth_ne _ l (ne.symm hk) }
+  end
 
 -- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/list.2Eupdate_same/near/228774282
 
