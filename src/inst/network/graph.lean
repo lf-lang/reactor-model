@@ -66,8 +66,8 @@ namespace graph
     η.edges.filter (λ e : graph.edge, e.src = p)
 
   -- An edge is in `eₒ p` if its source is `p`. 
-  lemma mem_eₒ {η : graph υ} (p : port.id) {e : edge} (h : e ∈ η.edges) : e ∈ η.eₒ p ↔ e.src = p :=
-    by simp [eₒ, h]
+  lemma mem_eₒ {η : graph υ} (p : port.id) {e : edge} : e ∈ η.eₒ p ↔ e ∈ η.edges ∧ e.src = p :=
+    by simp [eₒ, finset.mem_filter]
 
   -- Reactor network graphs' equality is non-constructively decidable.
   noncomputable instance dec_eq : decidable_eq graph.edge := classical.dec_eq _
@@ -292,6 +292,35 @@ namespace graph
   -- Returns the index-diff of the ports (of a given role) of the same reactor in two different network graphs.
   noncomputable def index_diff (η η' : graph υ) (i : reactor.id) (r : ports.role) : finset port.id :=
     (((η.rtr i).prts r).index_diff ((η'.rtr i).prts r)).image (port.id.mk i)
+
+  -- The diff of running a reaction can only contain ports which are in the output dependencies of the reaction.
+  lemma index_diff_sub_dₒ (η : graph υ) (i : reaction.id) : 
+    (η.run_local i).index_diff η i.rtr role.output ⊆ η.deps i role.output :=
+    begin 
+      simp only [index_diff, deps, (⊆)],
+      intro x,
+      repeat { rw finset.mem_image },
+      intro h,
+      obtain ⟨a, hₐ, hₓ⟩ := h,
+      by_cases hc : i.rtr = x.rtr,
+        {
+          rw [run_local, hc, update_reactor_eq_rtr, prts, prts] at hₐ,
+          have hd, from run_out_diff_sub_dₒ (η.rtr x.rtr) i.rcn,
+          rw index_diff_comm at hd,
+          simp only [(⊆)] at hd,
+          replace hd := hd hₐ,
+          existsi a,
+          rw [rcn, hc],
+          existsi hd,
+          rw ←hc,
+          exact hₓ
+        },
+        { 
+          exfalso,
+          simp only [←hₓ] at hc,
+          exact false_of_ne hc
+        }
+    end
 
   -- Running a reaction in two network graphs that have relatively equal reactors for that reaction, produces the
   -- same output index-diff for those reactors.

@@ -105,6 +105,16 @@ namespace ports
       (classical.dec_pred _) 
       (finset.range (max before.length after.length))
 
+  -- Index-diffing is commutative.
+  lemma index_diff_comm (before after : ports υ) : before.index_diff after = after.index_diff before :=
+    begin
+      unfold index_diff,
+      rw max_comm,
+      congr,
+      ext,
+      tauto
+    end
+
   -- The index-diff of equal port assignments is empty.
   @[simp]
   lemma index_diff_eq_ports_empty {p p' : ports υ} (h : p = p') : p.index_diff p' = ∅ :=
@@ -136,7 +146,7 @@ namespace ports
   -- The `src` ports override the `dst` ports, but the length remains that of `dst`.
   def merge (dst src : ports υ) : ports υ :=
     (src.zip_with (<|>) dst) ++ 
-    if dst.length ≤ src.length then [] else empty υ (dst.length - src.length)
+    if dst.length ≤ src.length then [] else ports.empty υ (dst.length - src.length)
 
   -- The length of merged ports is that of the first instance.
   @[simp]
@@ -155,7 +165,26 @@ namespace ports
   @[simp]
   lemma merge_none_eq (dst : ports υ) {src : ports υ} {p : ℕ} (h : src.nth p = none) :
     (dst.merge src).nth p = dst.nth p :=
-    sorry
+    begin
+      replace h := option.join_eq_none.mp h,
+      unfold merge,
+      by_cases hcₗ : dst.length ≤ src.length,
+        {
+          simp only [if_pos hcₗ, list.append_nil, ports.nth, list.nth_zip_with] at h ⊢,
+          simp [list.map_eq_map, option.bind_eq_bind, (<*>)],
+          cases h,
+            {
+              simp [h],
+              sorry
+            },
+            {
+              simp [h],
+              congr,
+              sorry
+            }
+        },
+        sorry
+    end
 
   -- Any index beyond the source ports will remain unchanged by a merge.
   @[simp] 

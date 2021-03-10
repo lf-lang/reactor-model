@@ -24,6 +24,25 @@ namespace graph
         exact run_local_equiv _ _,
     end
 
+  -- A specialized version of `no_dep_no_eₒ_dep` for `run_reaction`.
+  -- This is needed in the proof of `run_reaction_comm`.
+  lemma run_reaction_no_path_no_eₒ_dep {η : graph υ} {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) :
+    ∀ (p ∈ ((η.run_local i).index_diff η i.rtr role.output).val.to_list) (e : edge), (e ∈ (η.run_local i).eₒ p) → e.dst ∉ ((η.run_local i).deps i' role.input) ∧ (e.src ∉ (η.run_local i).deps i' role.output) :=
+    begin
+      intros p hₚ e hₑ,
+      have hₛ, from index_diff_sub_dₒ η i,
+      have h, from prec.graph.no_path_no_eₒ_dep hw hᵢ hₙ hₛ p,      
+      rw multiset.mem_to_list at hₚ,
+      replace h := h hₚ e,
+      have hq, from run_local_equiv η i,
+      simp only [(≈)] at hq,
+      unfold eₒ at hₑ,
+      rw hq.left at hₑ,
+      replace h := h hₑ,
+      simp only [deps, rcn, (hq.right.right i'.rtr).right],
+      exact h
+    end
+
   -- If two reactions are independent, then their order of execution doesn't matter.
   -- The main part of the proof is the last line, which equates to:
   -- (run i)(run i')(prop i)(prop i') -> (run i')(run i)(prop i)(prop i') -> (run i')(run i)(prop i')(prop i) -> (run i')(prop i')(run i)(prop i)
@@ -35,8 +54,8 @@ namespace graph
         {
           have hₙ, from prec.graph.indep_rcns_neq_rtrs hw hc hᵢ,
           unfold run_reaction,
-          have hd, from inst.network.graph.run_local_index_diff_eₒ hᵤ hw hᵢ.left hₙ,
-          have hd', from inst.network.graph.run_local_index_diff_eₒ hᵤ hw hᵢ.right (ne.symm hₙ),
+          have hd, from run_reaction_no_path_no_eₒ_dep hw hᵢ.left hₙ,
+          have hd', from run_reaction_no_path_no_eₒ_dep hw hᵢ.right (ne.symm hₙ),
           have hₑ,  from eq_rel_to.multiple (propagate_ports_eq_rel_to (by { intros p hₚ e hₑ, exact (hd  p hₚ e hₑ).left })) (run_local_eq_rel_to η hₙ),
           have hₑ', from eq_rel_to.multiple (propagate_ports_eq_rel_to (by { intros p hₚ e hₑ, exact (hd' p hₚ e hₑ).left })) (run_local_eq_rel_to η (ne.symm hₙ)),
           rw [run_local_index_diff_eq_rel_to hₑ, run_local_index_diff_eq_rel_to hₑ'],
@@ -82,8 +101,7 @@ namespace graph
               have h_fi', from topo.indep_cons hᵢ,
               have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, 
               from graph.eq_edges_unique_port_ins (graph.equiv_symm h_e).left hᵤ,
-              have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), 
-              from equiv_wf_prec_inv h_e h_w,
+              have h_wf' : (ρ ⋈ run_reaction η t_hd), from equiv_wf_prec_inv h_e h_w,
               have hᵢ', from @t_ih h_tc i (run_reaction η t_hd) hᵤ' h_wf' h_ti' h_fi',
               have h_rr : run_topo (run_reaction η t_hd) t_tl = list.foldl run_reaction (run_reaction η t_hd) t_tl, from refl _,
               rw [←h_rr, hᵢ'],
@@ -112,8 +130,7 @@ namespace graph
           have htep' : t_tl ~ (t'.erase t_hd), from h_pe.right,
           have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, 
           from graph.eq_edges_unique_port_ins (graph.equiv_symm h_e).left hᵤ,
-          have h_wf' : ρ.is_well_formed_over (run_reaction η t_hd), 
-          from equiv_wf_prec_inv h_e h_wf,
+          have h_wf' : (ρ ⋈ run_reaction η t_hd), from equiv_wf_prec_inv h_e h_wf,
           have h_fi : topo.indep t_hd t' ρ, {
             have h_fi₁ : topo.indep t_hd (t_hd :: t_tl) ρ, from topo.indep_head _ _ h_t,
             exact topo.indep_perm hₚ h_fi₁,

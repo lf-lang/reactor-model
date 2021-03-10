@@ -11,12 +11,12 @@ namespace network
   @[ext]
   structure prec_func :=
     (func : inst.network υ → prec.graph υ)
-    (well_formed : ∀ n, (func n).is_well_formed_over n.η)
+    (well_formed : ∀ n, (func n) ⋈ n.η)
 
   -- A function that can generate a complete topological ordering for a given precedence graph.
   structure topo_func :=
     (func : prec.graph υ → list reaction.id)
-    (is_topo : ∀ (n : inst.network υ) (ρ : prec.graph υ) (h : ρ.is_well_formed_over n.η), (func ρ).is_complete_topo_over ρ)
+    (is_topo : ∀ (n : inst.network υ) (ρ : prec.graph υ) (h : ρ ⋈ n.η), (func ρ).is_complete_topo_over ρ)
 
   variable {υ}
 

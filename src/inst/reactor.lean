@@ -36,7 +36,12 @@ namespace reactor
   -- Reactor equivalence is symmetric.
   @[symm]
   lemma equiv_symm {rtr rtr' : reactor υ} (h : rtr ≈ rtr') : rtr' ≈ rtr :=
-    by { simp [(≈)] at ⊢ h, tauto }
+    begin
+      simp [(≈)] at ⊢ h, 
+        split, 
+          exact symm h.left, 
+          exact symm h.right
+    end
 
   -- Reactor equivalence is transitive.
   @[trans]
@@ -405,7 +410,7 @@ namespace reactor
   -- of the reaction's output-dependencies. I.e. the set index-diff of the output
   -- has to be a subset of the reaction's `dₒ`. 
   lemma run_out_diff_sub_dₒ (rtr : reactor υ) (rcn : ℕ) : 
-    rtr.output.index_diff (rtr.run rcn).output ⊆ (rtr.reactions rcn).dₒ :=
+    rtr.output.index_diff (rtr.run rcn).output ⊆ (rtr.reactions rcn).deps role.output :=
     begin 
       unfold run,
       by_cases hf : (rtr.reactions rcn).fires_on rtr.input,

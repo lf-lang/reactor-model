@@ -109,6 +109,58 @@ namespace network
           }
       end
 
+    -- If a reaction `i'` does not depend on another reaction `i`, then it is neither internally nor externally dependent on `i`.
+    lemma no_path_no_dep {η : inst.network.graph υ} {ρ : prec.graph υ} (h : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) :
+      ¬(internally_dependent i i') ∧ ¬(externally_dependent i i' η) :=
+      begin 
+        let e := {edge . src := i, dst := i'},
+        unfold is_well_formed_over edges_are_well_formed_over at h,
+        replace h := h.right.right e,
+        have hₑ' : e ∉ ρ.edges, {
+          by_contradiction,
+          have, from digraph.has_path_from_to.direct ⟨e, h, refl _⟩,
+          contradiction
+        },
+        replace h := (not_iff_not_of_iff h).mp hₑ',
+        have hd, from @decidable.not_or_iff_and_not 
+          (internally_dependent e.src e.dst) 
+          (externally_dependent e.src e.dst η) 
+          (classical.prop_decidable _) 
+          (classical.prop_decidable _),
+        exact hd.mp h
+      end
+
+    -- If there is no path from a reaction `i` to a reaction `i'`, then none of the edges coming out of `i`'s output dependencies have 
+    -- a dependency relationship with `i'`.
+    -- This lemma is somewhat specific, as it is required for `inst.network.graph.run_reaction_comm`.
+    lemma no_path_no_eₒ_dep {η : inst.network.graph υ} {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) {ps : finset port.id} (hₛ : ps ⊆ η.deps i role.output) :
+      ∀ (p ∈ ps) (e : inst.network.graph.edge), (e ∈ η.eₒ p) → e.dst ∉ (η.deps i' role.input) ∧ (e.src ∉ η.deps i' role.output) :=
+      begin
+        intros p hₚ e hₑ,
+        rw graph.mem_eₒ at hₑ,
+        simp only [(⊆)] at hₛ,
+        split,
+          {
+            have hd, from (no_path_no_dep hw hᵢ).right,
+            rw [externally_dependent, not_exists] at hd,
+            replace hd := hd e,
+            repeat { rw not_and_distrib at hd },
+            replace hd := hd.resolve_left (not_not_intro hₑ.left),
+            rw ←hₑ.right at hₚ,
+            exact hd.resolve_left (not_not_intro (hₛ hₚ))
+          },
+          {
+            simp only [graph.deps, finset.mem_image, not_exists] at hₛ ⊢,
+            obtain ⟨x, hₓ, hₚ⟩ := hₛ hₚ,
+            intros y hy,
+            rw [hₑ.right, ←hₚ],
+            by_contradiction,
+            injection h,
+            replace h := eq.symm h_1,
+            contradiction
+          }
+      end
+
   end graph
   end prec
 
@@ -163,7 +215,7 @@ namespace network
   open prec.graph
 
     -- Equivalent network graphs have the same well-formed precedence graphs.
-    theorem equiv_wf_prec_inv {η η' : inst.network.graph υ} {ρ : prec.graph υ} (h : η' ≈ η) (hw : ρ ⋈ η) : ρ ⋈ η' :=
+    theorem equiv_wf_prec_inv {η η' : graph υ} {ρ : prec.graph υ} (h : η' ≈ η) (hw : ρ ⋈ η) : ρ ⋈ η' :=
       begin
         unfold is_well_formed_over at hw ⊢,
         simp only [(≈)] at h,
@@ -187,100 +239,17 @@ namespace network
       end
 
     -- Equivalent network graphs have the same precedence-acyclicity.
-    theorem equiv_prec_acyc_inv {η η' : inst.network.graph υ} (hₑ : η ≈ η') (hₚ : η.is_prec_acyclic) :
+    theorem equiv_prec_acyc_inv {η η' : graph υ} (hₑ : η ≈ η') (hₚ : η.is_prec_acyclic) :
       η'.is_prec_acyclic :=
       begin
-        unfold inst.network.graph.is_prec_acyclic at hₚ ⊢,
+        unfold is_prec_acyclic at hₚ ⊢,
         let ρ := classical.subtype_of_exists (prec.prec_acyc_net_graph_has_wf_prec_graph η hₚ),
         intros ρ' hw',
         have hₐ, from hₚ ρ ρ.property,
         suffices h : (ρ : prec.graph υ).edges = ρ'.edges, from digraph.eq_edges_acyclic h hₐ,
         have hw'', from equiv_wf_prec_inv (equiv_symm hₑ) ρ.property,
         simp [prec.wf_prec_graphs_are_eq hw' hw'']
-      end
-
-    -- Use run_out_diff_sub_dₒ?
-    lemma index_diff_sub_dₒ (η : graph υ) (i : reaction.id) : 
-      (((η.run_local i).rtr i.rtr).prts role.output).index_diff ((η.rtr i.rtr).prts role.output) ⊆ (η.rcn i).deps role.output :=
-      sorry 
-
-    -- (1) p is in the difflist of (run i)   [by hₚ]
-    -- (2) -> p is an output dependency of i [by run_out_diff_sub_dₒ]
-    -- 
-    -- (3) e.src = p                         [by hₑ]
-    -- (4) -> e.src is an output dep of i    [by 2 & 3]
-    --
-    -- (5) i' does not depend on i           [by extension of hᵢ] (∃ (o) (j), (i-η->o) ∧ {inst.network.graph.edge . src := o, dst := j} ∈ η.edges ∧ (j-η->i'))
-    -- (6) -> for all o and j, not all of the following are true:
-    --      (i) o depends on i
-    --      (ii) there's an edge from o to j 
-    --      (iii) i' depends on j
-    --
-    -- (7) (i) is true by virtue of (4)
-    -- (8) -> (ii) or (iii) must be false
-    --
-    -- by cases:
-    --   * if (ii) is true, then (iii) isnt
-    --      -> for all edges from o to j, the edge's destination j isnt a dependecy of i'
-    --      -> this holds for e as well
-    --   * if (iii) is true, then (ii) isnt,
-    --      -> there does not exist an edge that ends in a j such that j is a dependency of i',
-    --      -> e does not end in a dependency of i'
-    lemma run_local_index_diff_eₒ {η : inst.network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ.is_well_formed_over η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) :
-      ∀ (p ∈ ((η.run_local i).index_diff η i.rtr role.output).val.to_list) (e : inst.network.graph.edge), (e ∈ (η.run_local i).eₒ p) → e.dst ∉ ((η.run_local i).deps i' role.input) ∧ (e.src ∉ (η.run_local i).deps i' role.output) :=
-      begin
-         -- have hq, from inst.network.graph.run_local_equiv η i,
-        -- unfold inst.network.graph.deps inst.network.graph.rcn,
-        -- rw [(hq.right.right _).right, ←inst.network.graph.rcn],
-        -- repeat { rw ←inst.network.graph.deps },
-        --
-        -- have hd, from prec.graph.indep_rcns_not_ext_dep hw hₙ hᵢ,
-        -- rw externally_dependent at hd,
-        -- simp [port_depends_on_reaction, reaction_depends_on_port] at hd,
-        -- by_contradiction,
-        -- simp at h,
-
-        intros p hₚ e hₑ,
-        rw [multiset.mem_to_list, ←finset.mem_def, index_diff, finset.mem_image] at hₚ,
-        obtain ⟨p_prt, h_p_prt, H⟩ := hₚ,
-        /-have HH, from index_diff_sub_dₒ η i,
-        simp only [(⊆)] at HH,
-        replace h_p_prt := HH h_p_prt, -- (2)
-        simp only [eₒ, finset.mem_filter] at hₑ, -- (3)
-        -/
-
-        /-
-        have H : i ≠ i', {
-              by_contradiction,
-              simp at h,
-              cases i,
-              cases i',
-              rw h at hₙ,
-              simp only [rtr] at hₙ,
-              contradiction,
-            },
-        -/
-
-        split,
-          {
-            sorry
-          },
-          {
-            unfold deps,
-            rw finset.mem_image at ⊢,
-            cases p,
-            injection H, -- hₑ & h_1
-            rw ←h_1 at hₑ,
-            by_contradiction,
-            obtain ⟨_, _, H'⟩ := h,
-            simp only [eₒ, finset.mem_filter] at hₑ,
-            have HH, from hₑ.right,
-            rw HH at H',
-            injection H',
-            have HHH, from ne.symm hₙ,
-            contradiction,
-          }
-      end
+      end    
 
   end graph
 
