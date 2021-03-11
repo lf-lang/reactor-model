@@ -168,9 +168,7 @@ namespace network
     -- Any precedence-acyclic network graph has a wellformed precedence graph.
     -- We can prove this theorem by presenting an algorithm that generates a well-formed precedence graph.
     -- An algorithm for this is presented in [cyph20].
-    theorem prec_acyc_net_graph_has_wf_prec_graph (η : inst.network.graph υ) (h : η.is_prec_acyclic) :
-      ∃ ρ : prec.graph υ, ρ ⋈ η :=
-      sorry
+    theorem prec_acyc_net_graph_has_wf_prec_graph {η : inst.network.graph υ} (h : η.is_prec_acyclic) : ∃ ρ : prec.graph υ, ρ ⋈ η := sorry
 
     -- All precedence graphs that are wellformed over a fixed network graph are equal.
     theorem wf_prec_graphs_are_eq {η : inst.network.graph υ} {ρ ρ' : prec.graph υ} (hw : ρ ⋈ η) (hw' : ρ' ⋈ η) :
@@ -194,7 +192,7 @@ namespace network
       ∃! ρ : prec.graph υ, ρ ⋈ η :=
       begin
         rw exists_unique,
-        obtain ⟨ρ, hₚ⟩ := classical.subtype_of_exists (prec_acyc_net_graph_has_wf_prec_graph η h),
+        obtain ⟨ρ, hₚ⟩ := classical.subtype_of_exists (prec_acyc_net_graph_has_wf_prec_graph h),
         existsi ρ,
         split,
           exact hₚ,
@@ -238,7 +236,7 @@ namespace network
       η'.is_prec_acyclic :=
       begin
         unfold is_prec_acyclic at hₚ ⊢,
-        let ρ := classical.subtype_of_exists (prec.prec_acyc_net_graph_has_wf_prec_graph η hₚ),
+        let ρ := classical.subtype_of_exists (prec.prec_acyc_net_graph_has_wf_prec_graph hₚ),
         intros ρ' hw',
         have hₐ, from hₚ ρ ρ.property,
         suffices h : (ρ : prec.graph υ).edges = ρ'.edges, from digraph.eq_edges_acyclic h hₐ,

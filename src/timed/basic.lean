@@ -24,6 +24,7 @@ def tpa.at_tag : option tpa → tag → option tpa
   | (some t) g := let t' := t.filter (λ tv, tv.1 = g) in if t' = ∅ then none else some t'
 
 -- An action edge connects an output action port (OAP) to an input action port (IAP).
+@[ext]
 structure timed.network.action_edge := 
   (oap : port.id)
   (iap : port.id)
@@ -67,6 +68,34 @@ def finset.are_well_formed_for (es : finset action_edge) (σ : inst.network tpa)
   es.are_functionally_unique_in σ ∧
   es.are_separate_from σ
 
+-- Wellformedness of action edges is retained under equivalence of instantaneous reactor networks.
+lemma timed.network.equiv_inst_network_wf (es : finset action_edge) {σ σ' : inst.network tpa} (hq : σ' ≈ σ) (hw : es.are_well_formed_for σ) : 
+  es.are_well_formed_for σ' :=
+  begin
+    unfold finset.are_well_formed_for at hw ⊢,
+    simp only [(≈)] at hq,
+    repeat { split },
+      simp [hw],
+      simp [hw],
+      {
+        unfold finset.have_unique_source_in inst.network.graph.deps inst.network.graph.rcn,
+        intros e i i',
+        rw [(hq.right.right i.rtr).right, (hq.right.right i'.rtr).right],
+        exact hw.right.right.left e i i'
+      },
+      {
+        unfold finset.are_functionally_unique_in inst.network.graph.deps inst.network.graph.rcn,
+        intros e e' i,
+        rw (hq.right.right i.rtr).right,
+        exact hw.right.right.right.left e e' i
+      },
+      {
+        unfold finset.are_separate_from,
+        rw hq.left,
+        exact hw.right.right.right.right
+      }
+  end
+
 -- A timed reactor network wraps an instantaneous reactor network and equips it with actions 
 -- (via action-ports and -edges), as well as timed execution.
 structure timed.network :=
@@ -94,19 +123,24 @@ namespace network
     if h : rcns.card = 1 then (finset.card_eq_one.mp h).some else none
 
   -- The order of action edges is determined by their priorities (`action_edge.priority_in`).
-  -- Comparing these values across different reactors doesn't really make sense.
   -- If there is no priority for an edge, it is considered smaller than all other edges.
+  -- Comparing these values across different reactors doesn't really make sense.
+  -- If neither of the compared action edges has a priority, we order them by their port-IDs.
+  -- This necessary in order to make this a total order.
   def action_edge_ge (σ : inst.network tpa) : action_edge → action_edge → Prop := 
     λ e e',
       match e.priority_in σ, e'.priority_in σ with
-      | none,   none    := true
+      | none,   none    := e'.oap ≤ e.oap ∨ (e'.oap = e.oap ∧ e'.iap ≤ e.iap)
       | _,      none    := true
       | none,   _       := false
-      | some p, some p' := p ≥ p' 
+      | some p, some p' := p' ≤ p 
       end
 
+    -- The `action_edge_ge` relation is non-constructively decidable.
+  noncomputable instance {σ : inst.network tpa} : decidable_rel (action_edge_ge σ) := classical.dec_rel _
+
+  -- For a fixed instantaneous network, `action_edge_ge` is a total order (aka linear order).
   instance {σ : inst.network tpa} : is_linear_order action_edge (action_edge_ge σ) := sorry
-  instance {σ : inst.network tpa} : decidable_rel (action_edge_ge σ) := sorry
 
 end network
 end timed
