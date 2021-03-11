@@ -11,12 +11,12 @@ namespace network
   @[ext]
   structure prec_func :=
     (func : inst.network υ → prec.graph υ)
-    (well_formed : ∀ n, (func n) ⋈ n.η)
+    (well_formed : ∀ σ, func σ ⋈ σ.η)
 
   -- A function that can generate a complete topological ordering for a given precedence graph.
   structure topo_func :=
     (func : prec.graph υ → list reaction.id)
-    (is_topo : ∀ (n : inst.network υ) (ρ : prec.graph υ) (h : ρ ⋈ n.η), (func ρ).is_complete_topo_over ρ)
+    (is_topo : ∀ {σ : inst.network υ} {ρ : prec.graph υ} (h : ρ ⋈ σ.η), (func ρ).is_complete_topo_over ρ)
 
   variable {υ}
 
@@ -30,9 +30,8 @@ namespace network
   theorem prec_func.all_eq (p p' : prec_func υ) : p = p' :=
     begin
       rw prec_func.ext p p',
-      funext n,
-      have h, from prec.prec_acyc_net_graph_has_exactly_one_wf_prec_graph n.prec_acyclic,
-      exact exists_unique.unique h (p.well_formed n) (p'.well_formed n)
+      funext σ,
+      exact prec.wf_prec_graphs_are_eq (p.well_formed σ) (p'.well_formed σ)
     end
 
 end network

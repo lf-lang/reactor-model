@@ -25,8 +25,8 @@ namespace network
   -- Propagates the TPAs from all of the OAPs connected to a given IAP into the IAP.
   -- The signature of this function is a little strange, as to allow it to work for the fold in `propagate_actions`.
   noncomputable def gather_iap (as : finset action_edge) (σ : inst.network tpa) (iap : port.id) : inst.network tpa :=
-    ((as.filter (λ a : action_edge, a.iap = iap))
-        .sort (action_edge_ge σ))
+    ((as.filter (λ a : action_edge, a.iap = iap)).val.to_list
+        .merge_sort (action_priority_ge σ))
         .foldl propagate_tpa σ
 
   -- Gathering a IAP produces an equivalent instantanteous network.
@@ -34,7 +34,7 @@ namespace network
     gather_iap as σ iap ≈ σ :=
     begin
       unfold gather_iap,
-      induction (as.filter (λ a : action_edge, a.iap = iap)).sort (action_edge_ge σ) generalizing σ,
+      induction (as.filter (λ a : action_edge, a.iap = iap)).val.to_list.merge_sort (action_priority_ge σ) generalizing σ,
         case list.nil { simp },
         case list.cons {
           rw list.foldl_cons,

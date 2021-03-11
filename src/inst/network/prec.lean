@@ -163,46 +163,22 @@ namespace network
   def graph.is_prec_acyclic (η : inst.network.graph υ) : Prop :=
     ∀ ρ : prec.graph υ, (ρ ⋈ η) → ρ.is_acyclic
  
-  namespace prec
-
-    -- Any precedence-acyclic network graph has a wellformed precedence graph.
-    -- We can prove this theorem by presenting an algorithm that generates a well-formed precedence graph.
-    -- An algorithm for this is presented in [cyph20].
-    theorem prec_acyc_net_graph_has_wf_prec_graph {η : inst.network.graph υ} (h : η.is_prec_acyclic) : ∃ ρ : prec.graph υ, ρ ⋈ η := sorry
-
-    -- All precedence graphs that are wellformed over a fixed network graph are equal.
-    theorem wf_prec_graphs_are_eq {η : inst.network.graph υ} {ρ ρ' : prec.graph υ} (hw : ρ ⋈ η) (hw' : ρ' ⋈ η) :
-      ρ = ρ' :=
-      begin
-        ext x,
-          exact iff.trans (hw.left x) (iff.symm (hw'.left x)),
-          { 
-            funext, 
-            exact eq.trans (hw.right.left x) (eq.symm (hw'.right.left x)) 
-          },
-          {
-            rw finset.ext_iff,
-            intro x,
-            exact iff.trans (hw.right.right x) (iff.symm (hw'.right.right x))
-          }
-      end
-
-    -- Any precedence-acyclic network graph has exactly one wellformed precedence graph.
-    theorem prec_acyc_net_graph_has_exactly_one_wf_prec_graph {η : inst.network.graph υ} (h : η.is_prec_acyclic) :
-      ∃! ρ : prec.graph υ, ρ ⋈ η :=
-      begin
-        rw exists_unique,
-        obtain ⟨ρ, hₚ⟩ := classical.subtype_of_exists (prec_acyc_net_graph_has_wf_prec_graph h),
-        existsi ρ,
-        split,
-          exact hₚ,
-          {
-            intros m hₘ,
-            apply wf_prec_graphs_are_eq hₘ hₚ
-          }
-      end
-
-  end prec
+  -- All precedence graphs that are wellformed over a fixed network graph are equal.
+  theorem prec.wf_prec_graphs_are_eq {η : inst.network.graph υ} {ρ ρ' : prec.graph υ} (hw : ρ ⋈ η) (hw' : ρ' ⋈ η) :
+    ρ = ρ' :=
+    begin
+      ext x,
+        exact iff.trans (hw.left x) (iff.symm (hw'.left x)),
+        { 
+          funext, 
+          exact eq.trans (hw.right.left x) (eq.symm (hw'.right.left x)) 
+        },
+        {
+          rw finset.ext_iff,
+          intro x,
+          exact iff.trans (hw.right.right x) (iff.symm (hw'.right.right x))
+        }
+    end
 
   namespace graph
   open prec.graph
@@ -232,16 +208,12 @@ namespace network
       end
 
     -- Equivalent network graphs have the same precedence-acyclicity.
-    theorem equiv_prec_acyc_inv {η η' : graph υ} (hₑ : η ≈ η') (hₚ : η.is_prec_acyclic) :
+    theorem equiv_prec_acyc_inv {η η' : graph υ} (hq : η ≈ η') (hₚ : η.is_prec_acyclic) :
       η'.is_prec_acyclic :=
       begin
         unfold is_prec_acyclic at hₚ ⊢,
-        let ρ := classical.subtype_of_exists (prec.prec_acyc_net_graph_has_wf_prec_graph hₚ),
-        intros ρ' hw',
-        have hₐ, from hₚ ρ ρ.property,
-        suffices h : (ρ : prec.graph υ).edges = ρ'.edges, from digraph.eq_edges_acyclic h hₐ,
-        have hw'', from equiv_wf_prec_inv (equiv_symm hₑ) ρ.property,
-        simp [prec.wf_prec_graphs_are_eq hw' hw'']
+        intros ρ hw,
+        exact hₚ ρ (equiv_wf_prec_inv hq hw)
       end    
 
   end graph

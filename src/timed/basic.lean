@@ -125,22 +125,16 @@ namespace network
   -- The order of action edges is determined by their priorities (`action_edge.priority_in`).
   -- If there is no priority for an edge, it is considered smaller than all other edges.
   -- Comparing these values across different reactors doesn't really make sense.
-  -- If neither of the compared action edges has a priority, we order them by their port-IDs.
-  -- This necessary in order to make this a total order.
-  def action_edge_ge (σ : inst.network tpa) : action_edge → action_edge → Prop := 
+  def action_priority_ge (σ : inst.network tpa) : action_edge → action_edge → Prop := 
     λ e e',
       match e.priority_in σ, e'.priority_in σ with
-      | none,   none    := e'.oap ≤ e.oap ∨ (e'.oap = e.oap ∧ e'.iap ≤ e.iap)
+      | some p, some p' := p ≥ p'
       | _,      none    := true
       | none,   _       := false
-      | some p, some p' := p' ≤ p 
       end
 
-    -- The `action_edge_ge` relation is non-constructively decidable.
-  noncomputable instance {σ : inst.network tpa} : decidable_rel (action_edge_ge σ) := classical.dec_rel _
-
-  -- For a fixed instantaneous network, `action_edge_ge` is a total order (aka linear order).
-  instance {σ : inst.network tpa} : is_linear_order action_edge (action_edge_ge σ) := sorry
+  -- The `action_priority_ge` relation is non-constructively decidable.
+  noncomputable instance {σ : inst.network tpa} : decidable_rel (action_priority_ge σ) := classical.dec_rel _
 
 end network
 end timed
