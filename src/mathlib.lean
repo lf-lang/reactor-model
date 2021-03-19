@@ -1,5 +1,6 @@
 import tactic
 
+-- This file contains lemmas about objects in Mathlib, which have not yet landed in Mathlib.
 -- The following lemmas have all been proven by Yakov Pechersky.
 
 -- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/list.2Eupdate_nth_same/near/229661061

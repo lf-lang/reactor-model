@@ -96,7 +96,7 @@ namespace ports
   variable {υ}
 
   -- The proposition, that a given port assignment is empty.
-  def is_empty (p : ports υ) : Prop := p = empty υ p.length
+  def is_empty (p : ports υ) : Prop := (p = empty υ p.length)
 
   -- The set of indices for which the given port assignments have different values.
   noncomputable def index_diff (before after : ports υ) : finset ℕ :=

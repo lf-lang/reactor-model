@@ -95,20 +95,20 @@ namespace network
     ps.bUnion (λ p, (σ.η.port r p).elim ∅ (finset.image prod.fst))
 
   -- Returns the timed network that you get by running its next event (if there is one).
-  noncomputable def run_event (τ : timed.network) (fₚ : prec_func tpa) (tₚ : topo_func tpa) : timed.network :=
+  noncomputable def run_next (τ : timed.network) (fₚ : prec_func tpa) (tₚ : topo_func tpa) : timed.network :=
     match τ.event_queue with 
     | [] := τ
     | hd :: tl := 
       let σ := propagate_actions τ.σ τ.iaps τ.actions in  
       let σᵣ := (at_tag σ τ.iaps hd).run fₚ tₚ in
-      let σ' := (σᵣ.clear_all_ports.copy_ports σ τ.iaps role.input).copy_ports σᵣ τ.oaps role.output in
+      let σ' := (σᵣ.clear_all_ports.copy_ports σᵣ τ.oaps role.output).copy_ports σ τ.iaps role.input in
       { timed.network .
         σ := σ',
         time := hd,
         event_queue := (tl ++ (tags_in σ' τ.oaps role.output).val.to_list).merge_sort (≤),
         actions := τ.actions,
         well_formed := begin
-          suffices h : (σᵣ.clear_all_ports.copy_ports σ τ.iaps role.input).copy_ports σᵣ τ.oaps role.output ≈ τ.σ, 
+          suffices h : (σᵣ.clear_all_ports.copy_ports σᵣ τ.oaps role.output).copy_ports σ τ.iaps role.input ≈ τ.σ, 
           from equiv_inst_network_wf τ.actions h τ.well_formed,
           iterate 6 { transitivity },
           iterate 2 { apply copy_ports_equiv },

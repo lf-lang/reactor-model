@@ -321,12 +321,7 @@ namespace reactor
   -- Running a reactor does not change its input.
   @[simp]
   lemma run_eq_input (rtr : reactor υ) (rcn : ℕ) : (rtr.run rcn).input = rtr.input :=
-    begin
-      unfold run merge,
-      by_cases h : (rtr.reactions rcn).fires_on rtr.input,
-        simp [if_pos h],
-        simp [if_neg h]
-    end
+    by { unfold run, split_ifs ; simp [merge] }
 
   -- Running the reaction relative to which two reactors are equal, produces the same output.
   lemma run_rcn_eq_rel_to {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :

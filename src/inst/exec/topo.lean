@@ -46,7 +46,7 @@ namespace graph
   -- If two reactions are independent, then their order of execution doesn't matter.
   -- The main part of the proof is the last line, which equates to:
   -- (run i)(run i')(prop i)(prop i') -> (run i')(run i)(prop i)(prop i') -> (run i')(run i)(prop i')(prop i) -> (run i')(prop i')(run i)(prop i)
-  lemma run_reaction_comm {η : network.graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ρ.indep i i') :
+  lemma run_reaction_comm {η : graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ρ.indep i i') :
     (η.run_reaction i).run_reaction i' = (η.run_reaction i').run_reaction i :=
     begin
       by_cases hc : i = i',  
@@ -137,7 +137,7 @@ namespace graph
           }, 
           have hₘ : t_hd ∈ t', from h_pe.left,
           rw (run_topo_swap hᵤ h_wf h_t' hₘ h_fi),
-          unfold run_topo,
+          unfold run_topo, 
           repeat { rw list.foldl_cons },
           exact t_ih h_tc hᵤ' h_wf' hte' htep'
         }

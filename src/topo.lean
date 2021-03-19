@@ -1,18 +1,18 @@
-import digraph
+import lgraph
 import mathlib
 
 variables {ι δ ε : Type*}
-variables [decidable_eq ι] [decidable_eq δ] [digraph.edge ε ι]
+variables [decidable_eq ι] [decidable_eq δ] [lgraph.edge ε ι]
 
 -- The definition of what it means for a given list to be a topological ordering for a given graph.
 -- Note that this is not the same as a "complete" topological ordering (`list.is_complete_topo_over`).
-def list.is_topo_over (l : list ι) (g : digraph ι δ ε) : Prop :=
+def list.is_topo_over (l : list ι) (g : lgraph ι δ ε) : Prop :=
   l.nodup ∧ ∀ i i' ∈ l, (i~g~>i') → (l.index_of i < l.index_of i')
 
 namespace topo
 
   -- Removing an element from a topological ordering does not break the property of it being a topological ordering.
-  lemma erase_is_topo (i : ι) {t : list ι} {g : digraph ι δ ε} (h : t.is_topo_over g) :
+  lemma erase_is_topo (i : ι) {t : list ι} {g : lgraph ι δ ε} (h : t.is_topo_over g) :
     (t.erase i).is_topo_over g :=
     begin
       unfold list.is_topo_over at h ⊢,
@@ -26,7 +26,7 @@ namespace topo
     end
 
   -- If a list is a topological ordering for some graph, then so is its tail.
-  lemma cons_is_topo {hd : ι} {tl : list ι} {g : digraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
+  lemma cons_is_topo {hd : ι} {tl : list ι} {g : lgraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
     tl.is_topo_over g :=
     begin
       rw ←list.erase_cons_head hd tl,
@@ -36,13 +36,13 @@ namespace topo
 end topo
 
 -- A topological ordering is "complete" if it contains all of its graph's vertices.
-def list.is_complete_topo_over (l : list ι) (g : digraph ι δ ε) : Prop :=
+def list.is_complete_topo_over (l : list ι) (g : lgraph ι δ ε) : Prop :=
   l.is_topo_over g ∧ ∀ i : ι, i ∈ l ↔ i ∈ g  
 
 namespace topo
 
   -- Complete topological orderings are permutations of each other.
-  lemma complete_perm {g : digraph ι δ ε} {l l' : list ι} (h : l.is_complete_topo_over g) (h' : l'.is_complete_topo_over g) :
+  lemma complete_perm {g : lgraph ι δ ε} {l l' : list ι} (h : l.is_complete_topo_over g) (h' : l'.is_complete_topo_over g) :
     l ~ l' :=
     begin
       rw list.perm_ext h.left.left h'.left.left,
@@ -53,10 +53,10 @@ namespace topo
 
   -- An item `i` in a topological ordering is independent if the corresponding graph contains no path
   -- that starts with an element in the ordering and ends in `i`.
-  def indep (i : ι) (t : list ι) (g : digraph ι δ ε) : Prop := ∀ i' ∈ t, ¬(i'~g~>i)
+  def indep (i : ι) (t : list ι) (g : lgraph ι δ ε) : Prop := ∀ i' ∈ t, ¬(i'~g~>i)
 
   -- The head of a topological ordering is always independent.
-  lemma indep_head (hd : ι) (tl : list ι) {g : digraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
+  lemma indep_head (hd : ι) (tl : list ι) {g : lgraph ι δ ε} (h : (hd :: tl).is_topo_over g) :
     indep hd (hd :: tl) g :=
     begin
       unfold indep,
@@ -69,7 +69,7 @@ namespace topo
     end
 
   -- If an element is independent in a list, then it is also independent in its tail.
-  lemma indep_cons {i hd : ι} {tl : list ι} {g : digraph ι δ ε} (h : indep i (hd :: tl) g) :
+  lemma indep_cons {i hd : ι} {tl : list ι} {g : lgraph ι δ ε} (h : indep i (hd :: tl) g) :
     indep i tl g :=
     begin
       unfold indep at h ⊢,
@@ -78,7 +78,7 @@ namespace topo
     end
 
   -- If an element is independent in a list, then if is also independent in a permutation of that list.
-  lemma indep_perm {i : ι} {t t' : list ι} {g : digraph ι δ ε} (hₚ : t ~ t') (hᵢ : indep i t g) :
+  lemma indep_perm {i : ι} {t t' : list ι} {g : lgraph ι δ ε} (hₚ : t ~ t') (hᵢ : indep i t g) :
     indep i t' g :=
     begin 
       unfold indep at hᵢ ⊢,

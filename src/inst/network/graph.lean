@@ -1,4 +1,4 @@
-import digraph
+import lgraph
 import inst.network.ids
 open reactor
 open reactor.ports
@@ -9,15 +9,15 @@ structure inst.network.graph.edge :=
   (dst : port.id)
 
 -- Reactor network graph edges are directed.
-instance inst.graph.digraph_edge : digraph.edge inst.network.graph.edge reactor.id := 
+instance inst.graph.lgraph_edge : lgraph.edge inst.network.graph.edge reactor.id := 
   { src := (λ e, e.src.rtr), dst := (λ e, e.dst.rtr) }
 
 -- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
 
--- An instantaneous reactor network graph is a digraph of reactors, identified by reactor-IDs
+-- An instantaneous reactor network graph is an L-graph of reactors, identified by reactor-IDs
 -- and connected by the edges define above.
-def inst.network.graph : Type* := digraph reactor.id (reactor υ) inst.network.graph.edge
+def inst.network.graph : Type* := lgraph reactor.id (reactor υ) inst.network.graph.edge
 
 namespace inst
 namespace network
@@ -102,7 +102,7 @@ namespace graph
     ∀ e e' : edge, (e ∈ η.edges) → (e' ∈ η.edges) → e ≠ e' → e.dst ≠ e'.dst
 
   -- The property of having unique port ins only depends on a network graph's edges.
-  lemma eq_edges_unique_port_ins {η η' : graph υ} (hₑ : η.edges = η'.edges) (hᵤ : η.has_unique_port_ins) :
+  theorem eq_edges_unique_port_ins {η η' : graph υ} (hₑ : η.edges = η'.edges) (hᵤ : η.has_unique_port_ins) :
     η'.has_unique_port_ins :=
     begin
       unfold has_unique_port_ins,
@@ -121,7 +121,7 @@ namespace graph
   lemma update_reactor_equiv {η : graph υ} {i : reactor.id} {rtr : reactor υ} (h : η.rtr i ≈ rtr) :
     (η.update_reactor i rtr) ≈ η :=
     begin
-      simp only [update_reactor, digraph.update_data, (≈), graph.rtr] at h ⊢,
+      simp only [update_reactor, lgraph.update_data, (≈), graph.rtr] at h ⊢,
       repeat { split },
       intro x,
       by_cases hc : x = i,
@@ -139,18 +139,18 @@ namespace graph
   @[simp]
   lemma update_reactor_ne_rtr (η : graph υ) {i i' : reactor.id} (rtr' : reactor υ) (h : i ≠ i') :
     (η.update_reactor i rtr').rtr i' = η.rtr i' :=
-    by simp [update_reactor, rtr, digraph.update_data_ne η rtr' (ne.symm h)]
+    by simp [update_reactor, rtr, lgraph.update_data_ne η rtr' (ne.symm h)]
 
   -- Updating the same reactor twice retains only the last update.
   @[simp]
   lemma update_reactor_same (η : graph υ) (i : reactor.id) (rtr rtr' : reactor υ) :
     (η.update_reactor i rtr).update_reactor i rtr' = η.update_reactor i rtr' :=
-    by simp [update_reactor, digraph.update_data]
+    by simp [update_reactor, lgraph.update_data]
 
   -- Updating different reactors is commutative.
   lemma update_reactor_comm (η : graph υ) {i i' : reactor.id} (rtr rtr' : reactor υ) (h : i ≠ i') :
     (η.update_reactor i rtr).update_reactor i' rtr' = (η.update_reactor i' rtr').update_reactor i rtr :=
-    by simp [update_reactor, digraph.update_data_comm _ _ _ h]
+    by simp [update_reactor, lgraph.update_data_comm _ _ _ h]
 
   -- Relative reactor equality is retained when updating with a relatively equal reactor.
   lemma update_reactor_eq_rel_to {η : graph υ} {i : reaction.id} {rtr' : reactor υ} (h : η.rtr i.rtr =i.rcn= rtr') :
@@ -191,7 +191,7 @@ namespace graph
           unfold update_reactor rtr,
           apply congr,
           refl,
-          repeat { rw digraph.update_data_same },
+          repeat { rw lgraph.update_data_same },
           rw reactor.update_comm,
           cases p,
           cases p',
@@ -217,7 +217,7 @@ namespace graph
   lemma update_input_eq_rel_to {η : graph υ} {i : reaction.id} {p : ℕ} (v : option υ) (h : p ∉ (η.rcn i).dᵢ) :
     (η.update_port role.input ⟨i.rtr, p⟩ v).rtr i.rtr =i.rcn= η.rtr i.rtr :=
     begin
-      simp only [update_port, update_reactor, rtr, digraph.update_data_same, rcn] at h ⊢,
+      simp only [update_port, update_reactor, rtr, lgraph.update_data_same, rcn] at h ⊢,
       exact reactor.eq_rel_to_symm (reactor.eq_rel_to.single (refl _) h)
     end 
 
@@ -260,11 +260,11 @@ namespace graph
       unfold update_reactor rtr,
       by_cases hc : i.rtr = p.rtr,
         {
-          rw [hc, digraph.update_data_same],
+          rw [hc, lgraph.update_data_same],
           rw [mem_deps_iff_mem_rcn_deps, not_and, rcn, rtr, hc] at h,
           exact reactor.run_out_not_dₒ_eq (h (refl _))
         },
-        rw digraph.update_data_ne _ _ (ne.symm hc)
+        rw lgraph.update_data_ne _ _ (ne.symm hc)
     end
 
   -- Running a reaction locally, and updating an input port is commutative, if the input port is not part of the

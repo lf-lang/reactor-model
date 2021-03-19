@@ -1,4 +1,3 @@
-import digraph
 import topo
 import inst.network.basic
 import inst.exec.algorithms
@@ -15,7 +14,7 @@ namespace network
     {
       η := σ.η.run_topo t, 
       unique_ins := graph.eq_edges_unique_port_ins (symm (graph.run_topo_equiv σ.η t).left) σ.unique_ins, 
-      prec_acyclic := graph.equiv_prec_acyc_inv (graph.equiv_symm (graph.run_topo_equiv σ.η t)) σ.prec_acyclic,
+      prec_acyclic := graph.equiv_prec_acyc_inv (graph.equiv_symm (graph.run_topo_equiv σ.η t)) σ.prec_acyclic
     }
 
   -- Runs a given instantaneous reactor network until its reaction queue is exhausted.

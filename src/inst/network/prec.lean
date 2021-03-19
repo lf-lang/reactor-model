@@ -1,4 +1,4 @@
-import digraph
+import lgraph
 import inst.network.graph
 open reactor.ports
 
@@ -11,15 +11,15 @@ namespace network
     (dst : reaction.id)
 
   -- Precedence graph edges are directed.
-  instance prec.graph.digraph_edge : digraph.edge prec.graph.edge reaction.id := 
+  instance prec.graph.lgraph_edge : lgraph.edge prec.graph.edge reaction.id := 
     { src := (λ e, e.src), dst := (λ e, e.dst) }
 
   -- Cf. inst/primitives.lean
   variables (υ : Type*) [decidable_eq υ]
 
-  -- A precedence graph is a digraph of reactions, identified by reaction-IDs
+  -- A precedence graph is an L-graph of reactions, identified by reaction-IDs
   -- and connected by the edges define above.
-  def prec.graph : Type* := digraph reaction.id (reaction υ) prec.graph.edge
+  def prec.graph : Type* := lgraph reaction.id (reaction υ) prec.graph.edge
 
   variable {υ}
 
@@ -90,7 +90,7 @@ namespace network
             let e := {edge . src := i, dst := i'},
             have hd : internally_dependent i i', from ⟨hc, hg⟩,
             have hₑ, from (hw.right.right e).mpr (or.inl hd),
-            have h_c', from digraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
+            have h_c', from lgraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
             have hᵢ', from hᵢ.left,
             contradiction
           },
@@ -102,7 +102,7 @@ namespace network
                 let e := {edge . src := i', dst := i},
                 have h_d : internally_dependent i' i, from ⟨symm hc, nat.lt_of_le_and_ne hg hg'⟩,
                 have hₑ, from (hw.right.right e).mpr (or.inl h_d),
-                have h_c', from digraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
+                have h_c', from lgraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
                 have hᵢ', from hᵢ.right,
                 contradiction
               }
@@ -118,7 +118,7 @@ namespace network
         replace h := h.right.right e,
         have hₑ' : e ∉ ρ.edges, {
           by_contradiction,
-          have, from digraph.has_path_from_to.direct ⟨e, h, refl _⟩,
+          have, from lgraph.has_path_from_to.direct ⟨e, h, refl _⟩,
           contradiction
         },
         replace h := (not_iff_not_of_iff h).mp hₑ',
