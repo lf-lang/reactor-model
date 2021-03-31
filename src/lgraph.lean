@@ -74,7 +74,7 @@ namespace lgraph
 
   notation i~g~>j := g.has_path_from_to i j
 
-  -- The proposition that a given digraph is acyclic.
+  -- The proposition that a given L-graph is acyclic.
   def is_acyclic (g : lgraph ι δ ε) : Prop := ∀ i, ¬i~g~>i
 
   -- If two graphs contain the same edges, then any path in one graph must also exist in the other.

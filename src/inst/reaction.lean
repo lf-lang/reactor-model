@@ -46,20 +46,20 @@ namespace reaction
       exact ports.inhabited_indices_none hₙ
     end
 
-  -- The proposition, that a given reaction fires on a given port assignment,
+  -- The proposition, that a given reaction triggers on a given port assignment,
   -- i.e. that it should execute if its reaction has the given ports as input ports.
-  def fires_on (rcn : reaction υ) (p : ports υ) : Prop :=
+  def triggers_on (rcn : reaction υ) (p : ports υ) : Prop :=
     ∃ (t : {x // x ∈ rcn.dᵢ}) (_ : t ∈ rcn.triggers) (v : υ), p.nth t = some v
 
-  noncomputable instance dec_fires_on (rcn : reaction υ) (p : ports υ) : decidable (rcn.fires_on p) := 
+  noncomputable instance dec_triggers_on (rcn : reaction υ) (p : ports υ) : decidable (rcn.triggers_on p) := 
     classical.prop_decidable _
 
   -- If two port assignments are equal relative to a reactions input-dependencies, 
-  -- then the reaction fires on one exactly when it fires on the other.
-  lemma eq_input_eq_fires {rcn : reaction υ} {p p' : ports υ} (h : p =rcn.dᵢ= p') :
-    rcn.fires_on p ↔ rcn.fires_on p' :=
+  -- then the reaction triggers on one exactly when it triggers on the other.
+  lemma eq_input_eq_triggers {rcn : reaction υ} {p p' : ports υ} (h : p =rcn.dᵢ= p') :
+    rcn.triggers_on p ↔ rcn.triggers_on p' :=
     begin
-      simp [fires_on, ports.eq_at] at h ⊢,
+      simp [triggers_on, ports.eq_at] at h ⊢,
       split,
         all_goals { 
           intro hₑ,

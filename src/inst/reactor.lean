@@ -251,11 +251,11 @@ namespace reactor
         }
     end
 
-  -- For relatively equal reactors, either both or neither fire the relevant reaction.
-  lemma eq_rel_to_fire_iff {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
-    (rtr.reactions rcn).fires_on rtr.input ↔ (rtr'.reactions rcn).fires_on rtr'.input :=
+  -- For relatively equal reactors, either both or neither triggers the relevant reaction.
+  lemma eq_rel_to_triggers_iff {rtr rtr' : reactor υ} {rcn : ℕ} (h : rtr =rcn= rtr') :
+    (rtr.reactions rcn).triggers_on rtr.input ↔ (rtr'.reactions rcn).triggers_on rtr'.input :=
     begin
-      unfold reaction.fires_on,
+      unfold reaction.triggers_on,
       have hₑ, from eq_rel_to_equiv h,
       have hd, from eq_rel_to_eq_at_dᵢ h,
       repeat { rw hₑ.right at hd ⊢ },
@@ -314,7 +314,7 @@ namespace reactor
 
   -- Returns the reactor that we get by running a given reaction and merging its outputs into the reactor.
   noncomputable def run (rtr : reactor υ) (rcn : ℕ) : reactor υ :=
-    if (rtr.reactions rcn).fires_on rtr.input 
+    if (rtr.reactions rcn).triggers_on rtr.input 
     then rtr.merge ((rtr.reactions rcn) rtr.input rtr.state)
     else rtr
 
@@ -338,16 +338,16 @@ namespace reactor
     (rtr.run rcn) =rcn= (rtr'.run rcn) :=
     begin
       unfold run,
-      by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
+      by_cases hf : (rtr.reactions rcn).triggers_on rtr.input,
         {
           rw if_pos hf,
-          rw eq_rel_to_fire_iff h at hf,
+          rw eq_rel_to_triggers_iff h at hf,
           rw [if_pos hf, run_rcn_eq_rel_to h],
           exact merge_eq_rel_to h
         },
         {
           rw if_neg hf,
-          rw eq_rel_to_fire_iff h at hf,
+          rw eq_rel_to_triggers_iff h at hf,
           rw if_neg hf,
           exact h
         }
@@ -358,7 +358,7 @@ namespace reactor
   lemma run_equiv (rtr : reactor υ) (rcn : ℕ) : rtr.run rcn ≈ rtr :=
     begin
       unfold run,
-      by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
+      by_cases hf : (rtr.reactions rcn).triggers_on rtr.input,
         simp [if_pos hf],
         simp [if_neg hf]
     end
@@ -408,7 +408,7 @@ namespace reactor
     rtr.output.index_diff (rtr.run rcn).output ⊆ (rtr.reactions rcn).deps role.output :=
     begin 
       unfold run,
-      by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
+      by_cases hf : (rtr.reactions rcn).triggers_on rtr.input,
         {
           rw if_pos hf,
           have hₛ, from reaction.outputs_sub_dₒ (rtr.reactions rcn) rtr.input rtr.state,
@@ -423,7 +423,7 @@ namespace reactor
       (rtr.run rcn).port role.output p = rtr.port role.output p :=
       begin
         unfold run,
-        by_cases hf : (rtr.reactions rcn).fires_on rtr.input,
+        by_cases hf : (rtr.reactions rcn).triggers_on rtr.input,
           {
             rw if_pos hf,
             unfold merge port,

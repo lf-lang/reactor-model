@@ -26,8 +26,8 @@ namespace network
   -- Calling an instance of `topo_func` as a function, means calling its `func`.
   instance topo_func_coe : has_coe_to_fun (topo_func υ) := ⟨_, (λ f, f.func)⟩
 
-  -- All precedence functions are equal.
-  theorem prec_func.all_eq (p p' : prec_func υ) : p = p' :=
+  -- The precedence function is unique.
+  theorem prec_func.unique (p p' : prec_func υ) : p = p' :=
     begin
       rw prec_func.ext p p',
       funext σ,

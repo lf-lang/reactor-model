@@ -30,7 +30,7 @@ namespace network
   -- Running a network produces the same result, no matter which precedence- and topo-function are given.
   theorem determinism (σ : inst.network υ) (p p' : prec_func υ) (t t' : topo_func υ) : σ.run p t = σ.run p' t' := 
     begin
-      rw prec_func.all_eq p p',
+      rw prec_func.unique p p',
       unfold run run_aux,
       suffices h : σ.η.run_topo (t (p' σ)) = σ.η.run_topo (t' (p' σ)), by simp only [h],
       have hw, from p'.well_formed σ,
