@@ -7,7 +7,7 @@ This repository contains a [Lean](https://github.com/leanprover-community/lean)-
 * [Bachelor Thesis: *Provable Determinism in Reactors*](https://github.com/marcusrossel/bachelor-thesis-text/blob/main/Main/Main.pdf)
 * [Talk about Lean](https://github.com/marcusrossel/lean-talk/blob/main/talk.pdf)
 
-# Project Structure
+## Project Structure
 
 The root folder contains formalizations, which are not specific to reactors:
 
