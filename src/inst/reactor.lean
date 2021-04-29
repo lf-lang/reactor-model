@@ -148,7 +148,7 @@ namespace reactor
   -- Two reactors are equal relative to a reaction, if they only differ by the values 
   -- of input ports which are not an input-dependency of the reaction.
   inductive eq_rel_to (rcn : ℕ) : reactor υ → reactor υ → Prop
-    | single {p : ℕ} {v : option υ} {rtr rtr' : reactor υ}: (rtr' = rtr.update role.input p v) → (p ∉ (rtr.reactions rcn).deps role.input) → eq_rel_to rtr rtr'
+    | single {p : ℕ} {v : option υ} {rtr rtr' : reactor υ}: (rtr' = rtr.update role.input p v) → (p ∉ (rtr.reactions rcn).dᵢ) → eq_rel_to rtr rtr'
     | multiple {rtr rtrₘ rtr' : reactor υ} : (eq_rel_to rtr rtrₘ) → (eq_rel_to rtrₘ rtr') → eq_rel_to rtr rtr'
 
   notation r =i= s := (eq_rel_to i r s)
@@ -271,7 +271,7 @@ namespace reactor
         rw hᵥ at hd'
       },
       exact symm hd',
-      exact hd'
+      exact hd',
     end
    
   -- Returns the result of merging given state and output ports into a reactor.
@@ -365,7 +365,7 @@ namespace reactor
 
   -- Updating an input port that is independent of a reaction can be done before or after running that reaction,
   -- without changing the resulting reactor.
-  lemma run_update_input_comm {rtr : reactor υ} {rcn : ℕ} {i : ℕ} (v : option υ) (h : i ∉ (rtr.reactions rcn).deps role.input) :
+  lemma run_update_input_comm {rtr : reactor υ} {rcn : ℕ} {i : ℕ} (v : option υ) (h : i ∉ (rtr.reactions rcn).dᵢ) :
     (rtr.run rcn).update role.input i v = (rtr.update role.input i v).run rcn :=
     begin
       have hᵣ, from eq_rel_to.single (refl (rtr.update role.input i v)) h,
@@ -405,7 +405,7 @@ namespace reactor
   -- of the reaction's output-dependencies. I.e. the set index-diff of the output
   -- has to be a subset of the reaction's `dₒ`. 
   lemma run_out_diff_sub_dₒ (rtr : reactor υ) (rcn : ℕ) : 
-    rtr.output.index_diff (rtr.run rcn).output ⊆ (rtr.reactions rcn).deps role.output :=
+    rtr.output.index_diff (rtr.run rcn).output ⊆ (rtr.reactions rcn).dₒ :=
     begin 
       unfold run,
       by_cases hf : (rtr.reactions rcn).triggers_on rtr.input,
@@ -419,7 +419,7 @@ namespace reactor
 
     -- Output ports which are not in the output dependencies of a reaction, are not affected by running that reaction
     @[simp]
-    lemma run_out_not_dₒ_eq {rtr : reactor υ} {rcn : ℕ} {p : ℕ} (h : p ∉ (rtr.reactions rcn).deps role.output) :
+    lemma run_out_not_dₒ_eq {rtr : reactor υ} {rcn : ℕ} {p : ℕ} (h : p ∉ (rtr.reactions rcn).dₒ) :
       (rtr.run rcn).port role.output p = rtr.port role.output p :=
       begin
         unfold run,

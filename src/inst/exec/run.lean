@@ -21,7 +21,7 @@ namespace network
   -- The execution requires a function that generates a precedence graph for the network and 
   -- a function that can generate topological orderings over a directed acyclic graph.
   noncomputable def run (σ : inst.network υ) (fₚ : prec_func υ) (fₜ : topo_func υ) : inst.network υ :=
-    run_aux σ (fₜ (fₚ σ))
+    run_aux σ ((fₜ ∘ fₚ) σ)
 
   -- Running a network produces an equivalent network - i.e. its structure doesn't change.
   theorem run_equiv (σ : inst.network υ) (fₚ : prec_func υ) (fₜ : topo_func υ) : (σ.run fₚ fₜ).η ≈ σ.η :=

@@ -129,7 +129,7 @@ namespace network
   -- If there is none, `none` is returned. 
   noncomputable def action_edge.priority_in (ae : action_edge) (σ : inst.network (tpa υ)) : option ℕ :=
     let rtr := (σ.η.rtr ae.oap.rtr) in
-    let rcns := rtr.priorities.filter (λ p, p ∈ (rtr.reactions ae.oap.prt).deps role.output) in
+    let rcns := rtr.priorities.filter (λ p, p ∈ (rtr.reactions ae.oap.prt).dₒ) in
     if h : rcns.card = 1 then (finset.card_eq_one.mp h).some else none
 
   -- The order of action edges is determined by their priorities (`action_edge.priority_in`).
