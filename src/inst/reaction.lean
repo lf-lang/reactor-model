@@ -13,10 +13,11 @@ variables (υ : Type*) [decidable_eq υ]
 structure reaction :=
   (dᵢ : finset ℕ) 
   (dₒ : finset ℕ)
-  (triggers : finset {i // i ∈ dᵢ})
+  (triggers : finset ℕ)
   (body : ports υ → state_vars υ → ports υ × state_vars υ)
   (in_con : ∀ {i i'} s, (i =dᵢ= i') → body i s = body i' s)
   (out_con : ∀ i s {o}, o ∉ dₒ → (body i s).1.nth o = none) 
+  (t_sub_dᵢ : triggers ⊆ dᵢ)
 
 namespace reaction
 
@@ -49,7 +50,7 @@ namespace reaction
   -- The proposition, that a given reaction triggers on a given port assignment,
   -- i.e. that it should execute if its reaction has the given ports as input ports.
   def triggers_on (rcn : reaction υ) (p : ports υ) : Prop :=
-    ∃ (t : {x // x ∈ rcn.dᵢ}) (_ : t ∈ rcn.triggers) (v : υ), p.nth t = some v
+    ∃ (t : ℕ) (_ : t ∈ rcn.triggers) (v : υ), p.nth t = some v
 
   noncomputable instance dec_triggers_on (rcn : reaction υ) (p : ports υ) : decidable (rcn.triggers_on p) := 
     classical.prop_decidable _
@@ -67,7 +68,7 @@ namespace reaction
           existsi t,
           existsi r,
           existsi v,
-          obtain ⟨hₜ, _⟩ := r
+          have hₜ, from finset.mem_of_subset rcn.t_sub_dᵢ r
         },
         simp [←(h t hₜ), h'],
         simp [h t hₜ, h']

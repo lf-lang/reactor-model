@@ -267,11 +267,11 @@ namespace reactor
         existsi hₜ,
         existsi v,
         unfold ports.eq_at at hd,
-        have hd', from hd t t.property,
+        have hd', from hd t (finset.mem_of_subset (rtr'.reactions rcn).t_sub_dᵢ hₜ),
         rw hᵥ at hd'
       },
       exact symm hd',
-      exact hd',
+      exact hd'
     end
    
   -- Returns the result of merging given state and output ports into a reactor.
