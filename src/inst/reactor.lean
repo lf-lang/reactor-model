@@ -64,6 +64,10 @@ namespace reactor
     | role.input := rtr.input.nth
     | role.output := rtr.output.nth
 
+  -- The set of reactions in the given reactor, which connect to the given port as anti-/dependency.
+  def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=
+    { x ∈ rtr.priorities | p ∈ (rtr.reactions x).deps r }
+
   -- Updates a given port in the reactor, to hold a given value.
   def update (rtr : reactor υ) : ports.role → ℕ → option υ → reactor υ
     | role.input  p v := {input  := rtr.input.update_nth p v,  ..rtr}

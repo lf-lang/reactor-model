@@ -8,6 +8,9 @@ protected def reactor.id := ℕ
 protected structure reaction.id := 
   (rtr : reactor.id) 
   (rcn : ℕ)
+
+-- Since reactions in a reactor are identified by their priorities, the `rcn` member of a `reaction.id` is the priority.
+def reaction.id.priority (r : reaction.id) := r.rcn
  
 -- Reaction-IDs' equality is non-constructively decidable.
 noncomputable instance : decidable_eq reaction.id := classical.dec_eq _

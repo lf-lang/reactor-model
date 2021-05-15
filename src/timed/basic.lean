@@ -1,5 +1,8 @@
 import inst.network.basic
+open reactor
 open reactor.ports
+
+open_locale classical
 
 -- The type of opaque values that underlie TPAs.
 -- Their equality has to be decidable, but beyond that their values are of no interest.
@@ -7,12 +10,12 @@ variables (υ : Type*) [decidable_eq υ]
 
 -- A tag is a logical timestamp: the first component is the time value, the second component is
 -- the microstep index. Their ordering is lexicographical.
-@[derive has_le]
+@[derive has_le, derive has_lt]
 def tag := lex ℕ ℕ  
 
 -- A tpa is a set of tag-value pairs. They are the primitive values used in timed reactor networks.
-@[derive has_union, derive has_emptyc, derive has_sep (tag × option υ), derive has_mem (tag × option υ)]
-def tpa := finset (tag × option υ)
+@[derive has_union, derive has_emptyc, derive has_sep (tag × υ), derive has_mem (tag × υ)]
+def tpa := finset (tag × υ)
 
 variable {υ}
 
@@ -109,7 +112,7 @@ variable (υ)
 structure timed.network :=
   (σ : inst.network (tpa υ))
   (time : tag)
-  (event_queue : list tag)
+  (events : port.id → tag → option (tpa υ))
   (actions : finset action_edge)
   (well_formed : actions.are_well_formed_for σ)
 
@@ -124,13 +127,45 @@ namespace network
   -- The output action ports for a given timed network.
   noncomputable def oaps (τ : timed.network υ) : finset port.id := τ.actions.image (λ e, e.oap)
 
-  -- The priority of a given action edge is the priority of the reaction its OAP is connected to.
-  -- By the property `are_functionally_unique_in`, there is at most one of those reactions.
-  -- If there is none, `none` is returned. 
-  noncomputable def action_edge.priority_in (ae : action_edge) (σ : inst.network (tpa υ)) : option ℕ :=
-    let rtr := (σ.η.rtr ae.oap.rtr) in
-    let rcns := rtr.priorities.filter (λ p, p ∈ (rtr.reactions ae.oap.prt).dₒ) in
-    if h : rcns.card = 1 then (finset.card_eq_one.mp h).some else none
+  -- The set of OAPs connected to a given IAP.
+  def oaps_for_iap (τ : timed.network υ) (iap : port.id) : set port.id :=
+    { oap | ∃ ae ∈ τ.actions, ae = { oap := oap, iap := iap } }
+
+  -- A lifted version of `reactor.rcns_dep_to`.
+  def rcns_dep_to (τ : timed.network υ) (r : ports.role) (p : port.id) : set reaction.id :=
+    ((τ.σ.η.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
+
+  -- This is a different way of expressing of `finset.have_unique_source_in`, which is more suitable for use in `src_for_oap`.
+  lemma oaps_have_unique_sources (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : 
+    (τ.rcns_dep_to role.output oap = ∅) ∨ (∃! r, τ.rcns_dep_to role.output oap = {r}) :=
+    begin
+      sorry
+    end
+
+  -- The unique reaction connected to a given OAP, or `none` if it is not connected.
+  def src_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : option reaction.id :=
+    sorry -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Escaping.20Prop/near/238912059
+
+  -- The priority of a given OAP is the priority of the reaction it is connected to.
+  -- If the given port-ID is not and OAP or if the OAP is not connected to any reaction, `none` is returned. 
+  noncomputable def priority_for_oap (τ : timed.network υ) (oap : port.id) : option ℕ :=
+    if h : oap ∈ τ.oaps
+    then (τ.src_for_oap oap h) >>= (λ r, r.priority)
+    else none
+
+  -- The tags for which the given timed network has events scheduled.
+  -- Note that this set also contains all tags from past events.
+  def event_tags (τ : timed.network υ) : set tag :=
+    { t | ∃ (m : tag → option (tpa υ)) (h : m ∈ τ.oaps.image τ.events), m t ≠ none }
+
+  -- The least tag that after the current `time`, for which there exists a port that has a non-`none` value at that tag.
+  -- I.e. the next tag at which an event occurs.
+  noncomputable def next_tag (τ : timed.network υ) : option tag :=
+    if h : ∃ t ∈ τ.event_tags, (t > τ.time) ∧ (∀ t' ∈ τ.event_tags, t' > τ.time → t' ≥ t)
+    then h.some 
+    else none
+
+  --! Prove that the `next_tag` is unique (since tags form a total order).
 
   -- The order of action edges is determined by their priorities (`action_edge.priority_in`).
   -- If there is no priority for an edge, it is considered smaller than all other edges.
@@ -139,8 +174,8 @@ namespace network
     λ e e',
       match e.priority_in σ, e'.priority_in σ with
       | some p, some p' := p ≥ p'
-      | _,      none    := true
-      | none,   _       := false
+      | _,      none    := ⊤
+      | none,   _       := ⊥ 
       end
 
   -- The `action_priority_ge` relation is non-constructively decidable.

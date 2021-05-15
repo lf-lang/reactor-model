@@ -1,5 +1,6 @@
 import timed.basic
 import inst.exec.run
+import data.seq.seq
 open reactor
 open reactor.ports
 open inst.network
@@ -97,29 +98,45 @@ namespace network
   noncomputable def tags_in (σ : inst.network (tpa υ)) (ps : finset port.id) (r : ports.role) : finset tag :=
     ps.bUnion (λ p, (σ.η.port r p).elim ∅ (finset.image prod.fst))
 
-  -- Returns the timed network that you get by running its next event (if there is one).
-  noncomputable def run_next (τ : timed.network υ) (fₚ : prec_func (tpa υ)) (tₚ : topo_func (tpa υ)) : timed.network υ :=
-    match τ.event_queue with 
-    | [] := τ
-    | hd :: tl := 
-      let σ := propagate_actions τ.σ τ.iaps τ.actions in  
-      let σᵣ := (at_tag σ τ.iaps hd).run fₚ tₚ in
-      let σ' := (σᵣ.clear_all_ports.copy_ports σᵣ τ.oaps role.output).copy_ports σ τ.iaps role.input in
-      { timed.network .
-        σ := σ',
-        time := hd,
-        event_queue := (tl ++ (tags_in σ' τ.oaps role.output).val.to_list).merge_sort (≤),
-        actions := τ.actions,
-        well_formed := begin
-          suffices h : (σᵣ.clear_all_ports.copy_ports σᵣ τ.oaps role.output).copy_ports σ τ.iaps role.input ≈ τ.σ, 
-          from equiv_inst_network_wf τ.actions h τ.well_formed,
-          iterate 6 { transitivity },
-          iterate 2 { apply copy_ports_equiv },
-          apply clear_all_ports_equiv, apply inst.network.run_equiv, apply at_tag_equiv, apply propagate_actions_equiv,
-          refl
-        end
-      }
+  def new_events (τ : timed.network υ) : port.id → tag → option (tpa υ) := 
+    λ p t,
+      (τ.oaps_for_iap p)
+
+  -- A pair of timed networks is a *time step*, if ...
+  def is_time_step (τ τ' : timed.network υ) : Prop :=
+    match τ.next_tag with
+      | none            := ⊥
+      | (some next_tag) := 
+        τ'.σ = sorry ∧
+        τ'.time = next_tag ∧
+        τ'.actions = τ.actions ∧
+        τ'.events = (λ p t, τ.new_events p t <|> τ.events p t)
     end
+
+  notation t `→ₜ` t' := is_time_step t t'
+
+  -- A pair of timed networks is an *execution step*, if ...
+  def is_execution_step : option (timed.network υ) → option (timed.network υ) → Prop 
+    | (some τ) none      := τ.next_tag = none
+    | none     none      := ⊤
+    | none     (some _)  := ⊥
+    | (some τ) (some τ') := ∃ τₜ, (τ →ₜ τₜ) ∧ -- τₜ is a time-progressed version of τ
+      (τ'.σ = τₜ.σ.run sorry sorry) ∧ -- Cf. IDEAS: use the (to be) new definition of `run`.
+      (τ'.time = τₜ.time) ∧                  -- τ' must be at the time of the "next action" (given by τₜ)
+      (τ'.events = τₜ.events) ∧              -- τ' must inherit all future events (given by τₜ) [in this case, past events are also inherited]
+      (τ'.actions = τₜ.actions)              -- τ' must still have the same actions as τ 
+
+  notation t `→ₑ` t' := is_execution_step t t'
+
+  structure execution (τ : timed.network υ) :=
+    (steps : seq (timed.network υ))
+    (head : steps.head = τ)
+    (succ : ∀ i, steps.nth i →ₑ steps.nth (i + 1))
+
+  -- We're explicitly not proving that there exists an algorithm, that produces an execution.
+
+  theorem determinism (τ : timed.network υ) (e e' : execution τ) : e = e' :=
+    sorry
 
 end network
 end timed
