@@ -34,5 +34,8 @@ namespace network
       exact prec.wf_prec_graphs_are_eq (p.well_formed σ) (p'.well_formed σ)
     end
 
+  theorem prec_func.nonempty : nonempty (prec_func υ) := sorry
+  theorem topo_func.nonempty : nonempty (topo_func υ) := sorry
+
 end network
 end inst

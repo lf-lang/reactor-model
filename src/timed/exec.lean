@@ -45,10 +45,10 @@ namespace network
     | none     none      := ⊤
     | none     (some _)  := ⊥
     | (some τ) (some τ') := ∃ τₜ, (τ →ₜ τₜ) ∧ -- τₜ is a time-progressed version of τ
-      (τ'.σ = τₜ.σ.run sorry sorry) ∧ -- Cf. IDEAS: use the (to be) new definition of `run`.
+      (τ'.σ = τₜ.σ.run') ∧                   -- τ' must be an executed version of τₜ
       (τ'.time = τₜ.time) ∧                  -- τ' must be at the time of the "next action" (given by τₜ)
       (τ'.events = τₜ.events) ∧              -- τ' must inherit all future events (given by τₜ) [in this case, past events are also inherited]
-      (τ'.actions = τₜ.actions)              -- τ' must still have the same actions as τ 
+      (τ'.actions = τₜ.actions)              -- τ' must still have the same actions (action ports and edges) as τ 
 
   notation t `→ₑ` t' := is_execution_step t t'
 
