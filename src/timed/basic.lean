@@ -13,24 +13,16 @@ variables (υ : Type*) [decidable_eq υ]
 @[derive has_le, derive has_lt]
 def tag := lex ℕ ℕ  
 
--- A tpa is a set of tag-value pairs. They are the primitive values used in timed reactor networks.
-@[derive has_union, derive has_emptyc, derive has_sep (tag × υ), derive has_mem (tag × υ)]
-def tpa := finset (tag × υ)
+-- A TPA is a finite set of tag-value pairs where each tag is unique. 
+-- They are the primitive values used in timed reactor networks.
+structure tpa := 
+  (pairs : finset (tag × υ))
+  (unique: ∀ t : tag, { p ∈ pairs | prod.fst p = t }.card ≤ 1 )
 
 variable {υ}
 
--- Merges a given TPA *onto* another TPA.
--- Any tags that are assigned in both TPAs are made unique by choosing the assignment from the first TPA.
-def tpa.merge : option (tpa υ) → option (tpa υ) → option (tpa υ)
-  | none     none      := none
-  | (some t) none      := some t
-  | none     (some t') := some t'
-  | (some t) (some t') := some (t ∪ (t'.filter (λ tv, tv.1 ∉ t.image (prod.fst))))
-
--- Returns a TPA that only contains at most the tag-value pair for a given tag (if there is one).
-def tpa.at_tag : option (tpa υ) → tag → option (tpa υ)
-  | none     _ := none
-  | (some t) g := let t' := t.filter (λ tv, tv.1 = g) in if t' = ∅ then none else some t'
+def tpa.map (tp : tpa υ) : tag → (option υ) := 
+  λ ta, sorry -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Escaping.20Prop
 
 -- An action edge connects an output action port (OAP) to an input action port (IAP).
 @[ext]
@@ -51,10 +43,11 @@ def finset.are_many_to_one (es : finset action_edge) : Prop :=
 def finset.are_local (es : finset action_edge) : Prop :=
   ∀ e : action_edge, e ∈ es → e.oap.rtr = e.iap.rtr
 
--- The proposition that an OAP has at most one incoming connection.
-def finset.have_unique_source_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
-  ∀ (e : action_edge) (r r' : reaction.id), e ∈ es → 
-    (e.oap ∈ σ.η.deps r role.output) → (e.oap ∈ σ.η.deps r' role.output) → r = r
+-- The proposition that an OAP has exactly one incoming connection.
+def finset.have_one_src_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
+  ∀ e : action_edge, e ∈ es → 
+  ∃! r : reaction.id, 
+    (e.oap ∈ σ.η.deps r role.output)
 
 -- The proposition that a reaction can not connect to the same IAP through multiple OAPs.
 def finset.are_functionally_unique_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
@@ -73,7 +66,7 @@ def finset.are_separate_from (es : finset action_edge) (σ : inst.network (tpa �
 def finset.are_well_formed_for (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
   es.are_many_to_one ∧ 
   es.are_local ∧
-  es.have_unique_source_in σ ∧ 
+  es.have_one_src_in σ ∧ 
   es.are_functionally_unique_in σ ∧
   es.are_separate_from σ
 
@@ -112,7 +105,7 @@ variable (υ)
 structure timed.network :=
   (σ : inst.network (tpa υ))
   (time : tag)
-  (events : port.id → tag → option (tpa υ))
+  (events : port.id → tag → option υ)
   (actions : finset action_edge)
   (well_formed : actions.are_well_formed_for σ)
 
@@ -127,59 +120,67 @@ namespace network
   -- The output action ports for a given timed network.
   noncomputable def oaps (τ : timed.network υ) : finset port.id := τ.actions.image (λ e, e.oap)
 
+  def iap_has_oap (τ : timed.network υ) (iap : port.id) (oap : port.id) : Prop :=
+    ∃ ae ∈ τ.actions, ae = { oap := oap, iap := iap }
+
+  lemma iap_has_finite_oaps (τ : timed.network υ) (iap : port.id) : { oap | τ.iap_has_oap iap oap }.finite :=
+    sorry
+
   -- The set of OAPs connected to a given IAP.
-  def oaps_for_iap (τ : timed.network υ) (iap : port.id) : set port.id :=
-    { oap | ∃ ae ∈ τ.actions, ae = { oap := oap, iap := iap } }
+  noncomputable def oaps_for_iap (τ : timed.network υ) (iap : port.id) : finset port.id :=
+    (iap_has_finite_oaps τ iap).to_finset
+
+  lemma oaps_for_iap_mem {τ : timed.network υ} {iap oap : port.id} (h : oap ∈ τ.oaps_for_iap iap) : oap ∈ τ.oaps :=  
+    sorry
+
+  -- The set of OAPs connected to a given IAP.
+  noncomputable def oaps_for_iap' (τ : timed.network υ) (iap : port.id) : finset { oap // oap ∈ τ.oaps } :=
+    (τ.oaps_for_iap iap).attach.image (λ oap, subtype.mk ↑oap (oaps_for_iap_mem oap.property))
 
   -- A lifted version of `reactor.rcns_dep_to`.
   def rcns_dep_to (τ : timed.network υ) (r : ports.role) (p : port.id) : set reaction.id :=
     ((τ.σ.η.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
 
-  -- This is a different way of expressing of `finset.have_unique_source_in`, which is more suitable for use in `src_for_oap`.
-  lemma oaps_have_unique_sources (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : 
-    (τ.rcns_dep_to role.output oap = ∅) ∨ (∃! r, τ.rcns_dep_to role.output oap = {r}) :=
-    begin
-      sorry
-    end
+  -- This is a different way of expressing of `finset.have_one_src_in`, which is more suitable for use in `src_for_oap`.
+  lemma rcns_dep_to_oap_singleton (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : 
+    ∃ r, (τ.rcns_dep_to role.output oap) = {r} :=
+    sorry
 
-  -- The unique reaction connected to a given OAP, or `none` if it is not connected.
-  def src_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : option reaction.id :=
-    sorry -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Escaping.20Prop/near/238912059
+  -- The unique reaction connected to a given OAP.
+  noncomputable def src_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : reaction.id :=
+    (rcns_dep_to_oap_singleton τ oap h).some
 
   -- The priority of a given OAP is the priority of the reaction it is connected to.
-  -- If the given port-ID is not and OAP or if the OAP is not connected to any reaction, `none` is returned. 
-  noncomputable def priority_for_oap (τ : timed.network υ) (oap : port.id) : option ℕ :=
-    if h : oap ∈ τ.oaps
-    then (τ.src_for_oap oap h) >>= (λ r, r.priority)
-    else none
+  noncomputable def priority_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : ℕ :=
+    (τ.src_for_oap oap h).priority
+
+  def oap_lt {τ : timed.network υ} (oap oap' : { o // o ∈ τ.oaps }) : Prop :=
+    τ.priority_for_oap ↑oap oap.property < τ.priority_for_oap ↑oap' oap'.property
+
+  instance {τ : timed.network υ} : is_trans _ (@oap_lt _ _ τ) := sorry
+  instance {τ : timed.network υ} : is_antisymm _ (@oap_lt _ _ τ) := sorry
+  instance {τ : timed.network υ} : is_total _ (@oap_lt _ _ τ) := sorry
 
   -- The tags for which the given timed network has events scheduled.
   -- Note that this set also contains all tags from past events.
   def event_tags (τ : timed.network υ) : set tag :=
-    { t | ∃ (m : tag → option (tpa υ)) (h : m ∈ τ.oaps.image τ.events), m t ≠ none }
+    { t | ∃ (m : tag → option υ) (h : m ∈ τ.oaps.image τ.events), m t ≠ none }
+
+  -- The proposition that a given tag is the next tag for which a given network has a scheduled event.
+  def tag_is_next (τ : timed.network υ) (t : tag) : Prop :=
+    t ∈ τ.event_tags ∧ (t > τ.time) ∧ (∀ t' ∈ τ.event_tags, t' > τ.time → t' ≥ t)
+
+  -- There can only ever be at most one next tag.
+  lemma next_tags_subsingleton (τ : timed.network υ) :
+    { t | τ.tag_is_next t }.subsingleton :=
+    sorry
 
   -- The least tag that after the current `time`, for which there exists a port that has a non-`none` value at that tag.
   -- I.e. the next tag at which an event occurs.
   noncomputable def next_tag (τ : timed.network υ) : option tag :=
-    if h : ∃ t ∈ τ.event_tags, (t > τ.time) ∧ (∀ t' ∈ τ.event_tags, t' > τ.time → t' ≥ t)
-    then h.some 
-    else none
-
-  --! Prove that the `next_tag` is unique (since tags form a total order).
-
-  -- The order of action edges is determined by their priorities (`action_edge.priority_in`).
-  -- If there is no priority for an edge, it is considered smaller than all other edges.
-  -- Comparing these values across different reactors doesn't really make sense.
-  def action_priority_ge (σ : inst.network (tpa υ)) : action_edge → action_edge → Prop := 
-    λ e e',
-      match e.priority_in σ, e'.priority_in σ with
-      | some p, some p' := p ≥ p'
-      | _,      none    := ⊤
-      | none,   _       := ⊥ 
-      end
-
-  -- The `action_priority_ge` relation is non-constructively decidable.
-  noncomputable instance {σ : inst.network (tpa υ)} : decidable_rel (action_priority_ge σ) := classical.dec_rel _
+    (next_tags_subsingleton τ)
+      .eq_empty_or_singleton
+      .by_cases (λ _, none) (λ s, s.some)
 
 end network
 end timed
