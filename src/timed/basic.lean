@@ -15,14 +15,25 @@ def tag := lex ℕ ℕ
 
 -- A TPA is a finite set of tag-value pairs where each tag is unique. 
 -- They are the primitive values used in timed reactor networks.
+-- Since instantaneous networks wrap their primitive values in `option`, 
+-- we require TPAs to be non-empty in order to avoid two versions of the absent value.
 structure tpa := 
   (pairs : finset (tag × υ))
-  (unique: ∀ t : tag, { p ∈ pairs | prod.fst p = t }.card ≤ 1 )
+  (unique: ∀ (p p' : tag × υ), p ∈ pairs → p' ∈ pairs → p.fst ≠ p'.fst)
+  (nonempty : pairs.nonempty)
 
 variable {υ}
 
-def tpa.map (tp : tpa υ) : tag → (option υ) := 
-  λ ta, sorry -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Escaping.20Prop
+def tpa.map (tp : tpa υ) : tag → set υ := 
+  λ t, { v | (t, v) ∈ tp.pairs }
+
+lemma tpa.map_subsingleton (tp : tpa υ) (t : tag) : (tp.map t).subsingleton :=
+  sorry
+
+noncomputable def tpa.map' (tp : tpa υ) : tag → option υ := λ t, 
+  (tp.map_subsingleton t)
+    .eq_empty_or_singleton
+    .by_cases (λ _, none) (λ s, s.some)
 
 -- An action edge connects an output action port (OAP) to an input action port (IAP).
 @[ext]
