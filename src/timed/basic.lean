@@ -19,7 +19,7 @@ def tag := lex ℕ ℕ
 -- we require TPAs to be non-empty in order to avoid two versions of the absent value.
 structure tpa := 
   (pairs : finset (tag × υ))
-  (unique: ∀ (p p' : tag × υ), p ∈ pairs → p' ∈ pairs → p.fst ≠ p'.fst)
+  (unique: ∀ p p' ∈ pairs, prod.fst p = prod.fst p' → p = p')
   (nonempty : pairs.nonempty)
 
 variable {υ}
@@ -28,7 +28,14 @@ def tpa.map (tp : tpa υ) : tag → set υ :=
   λ t, { v | (t, v) ∈ tp.pairs }
 
 lemma tpa.map_subsingleton (tp : tpa υ) (t : tag) : (tp.map t).subsingleton :=
-  sorry
+  begin
+    unfold set.subsingleton tpa.map,
+    intros x hₓ x' hₓ',
+    rw set.mem_set_of_eq at hₓ hₓ',
+    have h, from tp.unique _ _ hₓ hₓ',
+    replace h := h (refl _),
+    injection h
+  end
 
 noncomputable def tpa.map' (tp : tpa υ) : tag → option υ := λ t, 
   (tp.map_subsingleton t)
@@ -91,10 +98,21 @@ lemma timed.network.equiv_inst_network_wf (es : finset action_edge) {σ σ' : in
       simp [hw],
       simp [hw],
       {
-        unfold finset.have_unique_source_in inst.network.graph.deps inst.network.graph.rcn,
-        intros e i i',
-        rw [(hq.right.right i.rtr).right, (hq.right.right i'.rtr).right],
-        exact hw.right.right.left e i i'
+        unfold finset.have_one_src_in inst.network.graph.deps inst.network.graph.rcn at ⊢ hw,
+        intros e hₑ,
+        obtain ⟨i, hᵢ⟩ := hw.right.right.left e hₑ,
+        rw exists_unique,
+        existsi i,
+        split,
+          { 
+            rw (hq.right.right i.rtr).right,
+            exact hᵢ.left
+          },
+          { 
+            intro x,
+            rw (hq.right.right x.rtr).right,
+            exact hᵢ.right x
+          }
       },
       {
         unfold finset.are_functionally_unique_in inst.network.graph.deps inst.network.graph.rcn,

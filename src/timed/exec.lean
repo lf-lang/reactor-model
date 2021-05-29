@@ -23,7 +23,7 @@ namespace network
   -- a tag-value-pair for any given tag. Hence the (tag → value) map associated with a given IAP
   -- has to return the value of the OAP with the highest priority (where the value for the tag is not `none`).
   noncomputable def new_events (τ : timed.network υ) : port.id → tag → option υ := 
-    λ iap t, ((τ.oaps_for_iap' iap).sort oap_lt).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map t))
+    λ iap t, ((τ.oaps_for_iap' iap).sort oap_lt).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map' t))
 
   -- A pair of timed networks is a *time step*, if ...
   def is_time_step (τ τ' : timed.network υ) : Prop :=
