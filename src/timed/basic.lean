@@ -196,7 +196,13 @@ namespace network
     (iap_has_finite_oaps τ iap).to_finset
 
   lemma oaps_for_iap_mem {τ : timed.network υ} {iap oap : port.id} (h : oap ∈ τ.oaps_for_iap iap) : oap ∈ τ.oaps :=  
-    sorry
+    begin
+      rw oaps_mem,
+      simp only [oaps_for_iap, set.finite.mem_to_finset, iap_has_oap] at h,
+      existsi iap,
+      simp only [set.mem_def, set.set_of_app_iff] at h,
+      exact h
+    end
 
   -- The set of OAPs connected to a given IAP.
   noncomputable def oaps_for_iap' (τ : timed.network υ) (iap : port.id) : finset { oap // oap ∈ τ.oaps } :=
