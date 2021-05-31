@@ -149,11 +149,47 @@ namespace network
   -- The output action ports for a given timed network.
   noncomputable def oaps (τ : timed.network υ) : finset port.id := τ.actions.image (λ e, e.oap)
 
-  def iap_has_oap (τ : timed.network υ) (iap : port.id) (oap : port.id) : Prop :=
-    ∃ ae ∈ τ.actions, ae = { oap := oap, iap := iap }
+  lemma oaps_mem {τ : timed.network υ} {oap : port.id} : 
+    oap ∈ τ.oaps ↔ (∃ iap, { action_edge . oap := oap, iap := iap } ∈ τ.actions) :=
+    begin
+      unfold oaps,
+      rw finset.mem_image,
+      split,
+        {
+          intro h,
+          obtain ⟨e, hₑ, hₒ⟩ := h,
+          existsi e.iap,
+          rw ←hₒ,
+          have h' : e = action_edge.mk e.oap e.iap, by { ext1, simp },
+          rw ←h',
+          exact hₑ
+        },
+        {
+          intro h,
+          obtain ⟨iap, hₘ⟩ := h,
+          exact ⟨action_edge.mk oap iap, hₘ, by simp⟩
+        }
+    end
 
+  def iap_has_oap (τ : timed.network υ) (iap : port.id) (oap : port.id) : Prop :=
+    { action_edge . oap := oap, iap := iap } ∈ τ.actions
+
+  -- A reactor network can only contain finitely many actions edges. Hence this lemma must hold.
+  -- The problem is that eventhough `iap_has_oap` quantifies over `τ.actions` (which is finite),
+  -- this fact does not entail that there can only be finitely many ports that fulfill the proposition.
+  -- 
+  -- The fact that the internal proposition in `iap_has_oap` is a simple equality though, should help.
+  -- If there only exist finitely many `ae ∈ τ.actions` there can only exist finitely many instances 
+  -- `{ oap := oap, iap := iap }` which are equal to some `ae` and hence there can only exist finitely many
+  -- `oap` for which this proposition holds.
+  -- Perhaps you can split the `∃ ae ∈ τ.actions` into `∃ (aeₒ aeᵢ) (h : ⟨aeₒ, aeᵢ⟩ ∈ τ.actions)` and then
+  -- only consider `aeₒ`.
   lemma iap_has_finite_oaps (τ : timed.network υ) (iap : port.id) : { oap | τ.iap_has_oap iap oap }.finite :=
-    sorry
+    begin
+      unfold set.finite,
+      suffices f : fintype ↥{oap : port.id | τ.iap_has_oap iap oap}, from ⟨f⟩,
+      sorry
+    end 
 
   -- The set of OAPs connected to a given IAP.
   noncomputable def oaps_for_iap (τ : timed.network υ) (iap : port.id) : finset port.id :=
