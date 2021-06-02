@@ -145,6 +145,7 @@ variable (υ)
 
 -- A timed reactor network wraps an instantaneous reactor network and equips it with actions 
 -- (via action-ports and -edges), as well as timed execution.
+@[ext]
 structure timed.network :=
   (σ : inst.network (tpa υ))
   (time : tag)
