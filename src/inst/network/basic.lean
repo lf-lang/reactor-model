@@ -17,8 +17,22 @@ variables {υ}
 namespace inst
 namespace network
 
-  -- Forwards the `edges` property from the network graph to the network.
+  -- A lifted version of `inst.network.graph.ids`.
+  noncomputable def ids (σ : network υ) := σ.η.ids
+
+  -- A lifted version of `inst.network.graph.edges`.
   noncomputable def edges (σ : network υ) := σ.η.edges
+
+  -- A lifted version of `inst.network.graph.port`.
+  noncomputable def port (σ : network υ) : ports.role → port.id → option υ := σ.η.port
+
+  -- A lifted version of `inst.network.graph.rtr`.
+  noncomputable def rtr (σ : network υ) : reactor.id → reactor υ := σ.η.rtr
+
+  -- The set of occupied port-IDs in the network.
+  def port_ids (σ : network υ) (r : ports.role) : set port.id :=
+    -- `p.prt < ...` means that `p.prt` is valid index in the port list.
+    { p : port.id | (p.rtr ∈ σ.η.ids) ∧ (p.prt < ((σ.η.rtr p.rtr).prts r).length) }
 
   -- Forwards equivalence from the network graph to the network.
   instance equiv : has_equiv (network υ) := ⟨λ σ σ', σ.η ≈ σ'.η⟩

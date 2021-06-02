@@ -13,8 +13,15 @@ variables {υ : Type*} [decidable_eq υ]
 namespace timed
 namespace network
 
+  -- A pair of timed networks is an *action progression*, if the IAPs of the latter network hold the values 
+  -- determined by a given set of events and (current) tag, the OAPs are all cleared, and the remaining parts
+  -- of the networks are all equal.
   def is_action_progression (σ σ' : inst.network (tpa υ)) (events: port.id → tag → option υ) (t : tag) : Prop :=
-    sorry
+    σ'.ids = σ.ids ∧ 
+    σ'.edges = σ.edges ∧
+    (∀ r, σ.rtr r ≈ₛ σ'.rtr r) ∧
+    (∀ p, σ'.port role.output p = none) ∧
+    (∀ p, σ'.port role.input  p = tpa.input t (events p t))
     
   -- The events contained in the OAPs of the given network, represented as an event-function. 
   -- That is, a mapping of IAPs to a function (tag → value).

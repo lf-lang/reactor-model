@@ -54,6 +54,12 @@ namespace reactor
         exact eq.trans h₁₂.right h₂₃.right
     end
 
+  -- Two reactors are "state equivalent" if they are equivalent and have the same `state`.
+  def state_equiv (rtr rtr' : reactor υ) : Prop :=
+    rtr ≈ rtr' ∧ rtr.state = rtr'.state
+
+  notation r `≈ₛ` r' := r.state_equiv r'
+
   -- Returns the port-list of a given role.
   def prts (rtr : reactor υ) : ports.role → ports υ
     | role.input := rtr.input

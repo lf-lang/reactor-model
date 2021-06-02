@@ -24,6 +24,20 @@ structure tpa :=
 
 variable {υ}
 
+-- An input-TPA is one, that contains exactly one tag-value pair (for the "current" tag).
+def tpa.input : tag → option υ → option (tpa υ)
+  | _ none := none
+  | t (some v) := some { tpa .
+    pairs := {(t, v)},
+    unique := begin
+      intros p p',
+      simp,
+      intros h h' _,
+      rw [h, h']
+    end,
+    nonempty := by simp
+  } 
+
 def tpa.map (tp : tpa υ) : tag → set υ := 
   λ t, { v | (t, v) ∈ tp.pairs }
 
@@ -215,7 +229,42 @@ namespace network
   -- This is a different way of expressing of `finset.have_one_src_in`, which is more suitable for use in `src_for_oap`.
   lemma rcns_dep_to_oap_singleton (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : 
     ∃ r, (τ.rcns_dep_to role.output oap) = {r} :=
-    sorry
+    begin
+      simp only [oaps, finset.mem_image] at h,
+      obtain ⟨e, hₑ, hₒ⟩ := h,
+      replace h := τ.well_formed.right.right.left,
+      unfold finset.have_one_src_in at h,
+      replace h := h e hₑ,
+      rw exists_unique at h,
+      obtain ⟨r, hᵣ, hᵤ⟩ := h,
+      existsi r,
+      rw hₒ at hᵣ hᵤ,
+      rw set.eq_singleton_iff_unique_mem,
+      unfold rcns_dep_to,
+      split,
+        {
+          rw set.mem_image,
+          existsi r.rcn,
+          split,
+            {
+              sorry
+            },
+            { 
+              simp [inst.network.graph.deps] at hᵣ,
+              obtain ⟨_, _, h⟩ := hᵣ,
+              rw ((congr_arg port.id.rtr (eq.symm h)).trans rfl),
+              ext1,
+              simp
+            }
+        },
+        {
+          intro x,
+          rw set.mem_image,
+          intro h,
+          obtain ⟨y, h_y⟩ := h,
+          sorry
+        }
+    end
 
   -- The unique reaction connected to a given OAP.
   noncomputable def src_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : reaction.id :=
