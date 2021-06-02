@@ -86,7 +86,7 @@ namespace network
         { simp [h] }
     end
 
-  theorem unique_execution_step (τ τ₁ τ₂ : option (timed.network υ)) (h₁ : τ →ₑ τ₁) (h₂ : τ →ₑ τ₂) : τ₁ = τ₂ :=
+  theorem unique_execution_step {τ τ₁ τ₂ : option (timed.network υ)} (h₁ : τ →ₑ τ₁) (h₂ : τ →ₑ τ₂) : τ₁ = τ₂ :=
     begin
       cases τ; cases τ₁; cases τ₂,
         { refl },
@@ -121,15 +121,29 @@ namespace network
         }
     end
 
+  @[ext]
   structure execution (τ : timed.network υ) :=
     (steps : seq (timed.network υ))
     (head : steps.head = τ)
     (succ : ∀ i, steps.nth i →ₑ steps.nth (i + 1))
 
   -- We're explicitly not proving that there exists an algorithm, that produces an execution.
-
   theorem determinism (τ : timed.network υ) (e e' : execution τ) : e = e' :=
-    sorry -- every step strictly determines its successor
+    begin
+      ext1,
+      apply seq.ext,
+      intro n,
+      induction n with n' hᵢ,
+        { 
+          change e.steps.head = e'.steps.head,
+          rw [e.head, e'.head]
+        },
+        { 
+          have H, from e.succ n',
+          rw hᵢ at H,
+          exact unique_execution_step H (e'.succ n')
+        }
+    end
 
 end network
 end timed
