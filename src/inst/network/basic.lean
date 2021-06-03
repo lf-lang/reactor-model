@@ -26,6 +26,9 @@ namespace network
   -- A lifted version of `inst.network.graph.port`.
   noncomputable def port (σ : network υ) : ports.role → port.id → option υ := σ.η.port
 
+  -- A lifted version of `inst.network.graph.port'`.
+  noncomputable def port' (σ : network υ) : ports.role → port.id → option (option υ) := σ.η.port'
+
   -- A lifted version of `inst.network.graph.rtr`.
   noncomputable def rtr (σ : network υ) : reactor.id → reactor υ := σ.η.rtr
 

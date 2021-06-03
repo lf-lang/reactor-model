@@ -36,6 +36,10 @@ namespace graph
   noncomputable def port (η : graph υ) (r : ports.role) (i : port.id) : option υ :=
     (η.rtr i.rtr).port r i.prt
 
+  -- A different version of `port` - cf. `reactor.port` vs. `reactor.port'`.
+  noncomputable def port' (η : graph υ) (r : ports.role) (i : port.id) : option (option υ) :=
+    (η.rtr i.rtr).port' r i.prt
+
   -- The dependencies of a given reaction for a given role, as proper `port.id`s.
   noncomputable def deps (η : graph υ) (i : reaction.id) (r : ports.role) : finset port.id :=
     ((η.rcn i).deps r).image (port.id.mk i.rtr)

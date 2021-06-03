@@ -65,10 +65,43 @@ namespace reactor
     | role.input := rtr.input
     | role.output := rtr.output
 
+  -- Reactors' ports (`prts`) are equal, iff their respective inputs and outputs are equal.
+  lemma prts_ext {rtr rtr' : reactor υ} : 
+    (rtr.prts = rtr'.prts) ↔ (rtr.input = rtr'.input ∧ rtr.output = rtr'.output) :=
+    begin
+      split ; intro h,
+        {
+          replace h := congr_fun h,
+          exact ⟨h role.input, h role.output⟩
+        },
+        {
+          obtain ⟨hl, hr⟩ := h,
+          funext r,
+          cases r ; unfold prts ; assumption
+        }
+    end
+
+  -- Reactors that are state equivalent and have equal ports are equal.
+  lemma state_equiv_eq_ports_eq (rtr rtr' : reactor υ) (hₛ : rtr ≈ₛ rtr') (hₚ : rtr.prts = rtr'.prts) : rtr = rtr' :=
+    begin
+      simp only [state_equiv, (≈)] at hₛ,
+      obtain ⟨⟨_, _⟩, _⟩ := hₛ,
+      obtain ⟨_, _⟩ := prts_ext.mp hₚ,
+      ext1 ; assumption
+    end
+
   -- Returns the value of a given port.
   def port (rtr : reactor υ) : ports.role → ℕ → option υ
     | role.input := rtr.input.nth
     | role.output := rtr.output.nth
+
+  -- A version of `port` that uses `list.nth` instead of `ports.nth`,
+  -- making it more useful for definitions of port equality, because it
+  -- retains the information about whether a given port is set absent
+  -- or doesn't even exist.
+  def port' (rtr : reactor υ) : ports.role → ℕ → option (option υ)
+    | role.input := list.nth rtr.input
+    | role.output := list.nth rtr.output
 
   -- The set of reactions in the given reactor, which connect to the given port as anti-/dependency.
   def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=

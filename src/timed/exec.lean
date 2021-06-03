@@ -16,12 +16,15 @@ namespace network
   -- A pair of timed networks is an *action progression*, if the IAPs of the latter network hold the values 
   -- determined by a given set of events and (current) tag, the OAPs are all cleared, and the remaining parts
   -- of the networks are all equal.
+  -- 
+  -- Declaring the values of the ports contains an annoying technicality in that we have to differentiate
+  -- between absent ports and non-existant ports, which ammounts to the difference between `some none` and `none`.
   def is_action_progression (σ σ' : inst.network (tpa υ)) (events: event_map υ) (t : tag) : Prop :=
     σ'.ids = σ.ids ∧ 
     σ'.edges = σ.edges ∧
     (∀ r, σ.rtr r ≈ₛ σ'.rtr r) ∧
-    (∀ p, σ'.port role.output p = none) ∧
-    (∀ p, σ'.port role.input  p = tpa.input t (events p t))
+    (∀ p, σ'.port' role.output p = if (σ.port' role.output p).is_some then some none else none) ∧
+    (∀ p, σ'.port' role.input  p = if (σ.port' role.input  p).is_some then (tpa.input t (events p t)) else none)
 
   -- If `σ₁` and `σ₂` are action progressions of `σ`, then `σ₁ = σ₂`.
   theorem unique_action_progression 
@@ -29,7 +32,35 @@ namespace network
     (h₁ : is_action_progression σ σ₁ events t) (h₂ : is_action_progression σ σ₂ events t) : 
     σ₁ = σ₂ :=
     begin
-      sorry
+      unfold is_action_progression at h₁ h₂,
+      ext1, ext1,
+        { exact (eq.trans h₁.left (symm h₂.left)) },
+        { 
+          obtain ⟨hr₁, ho₁, hi₁⟩ := h₁.right.right,
+          obtain ⟨hr₂, ho₂, hi₂⟩ := h₂.right.right,
+          clear h₁ h₂,
+          ext1 rtr,
+          obtain ⟨⟨hp₁, hn₁⟩, hs₁⟩ := hr₁ rtr, 
+          obtain ⟨⟨hp₂, hn₂⟩, hs₂⟩ := hr₂ rtr,
+          clear hr₁ hr₂, 
+          unfold inst.network.port' inst.network.graph.port' reactor.port' at ho₁ ho₂ hi₁ hi₂,
+          unfold inst.network.rtr inst.network.graph.rtr at hp₁ hp₂ hn₁ hn₂ hs₁ hs₂ hi₁ hi₂ ho₁ ho₂,          
+          ext1,
+            { 
+              apply list.ext,
+              intro prt,
+              exact eq.trans (hi₁ ⟨rtr, prt⟩) (symm (hi₂ ⟨rtr, prt⟩))
+            },
+            { 
+              apply list.ext,
+              intro prt,
+              exact eq.trans (ho₁ ⟨rtr, prt⟩) (symm (ho₂ ⟨rtr, prt⟩))
+            },
+            { exact eq.trans (symm hs₁) hs₂ },
+            { exact eq.trans (symm hp₁) hp₂ },
+            { exact eq.trans (symm hn₁) hn₂ },
+        },
+        { exact (eq.trans h₁.right.left (symm h₂.right.left)) }
     end
     
   -- The events contained in the OAPs of the given network, represented as an event-function. 
