@@ -16,7 +16,7 @@ namespace network
   -- A pair of timed networks is an *action progression*, if the IAPs of the latter network hold the values 
   -- determined by a given set of events and (current) tag, the OAPs are all cleared, and the remaining parts
   -- of the networks are all equal.
-  def is_action_progression (σ σ' : inst.network (tpa υ)) (events: port.id → tag → option υ) (t : tag) : Prop :=
+  def is_action_progression (σ σ' : inst.network (tpa υ)) (events: event_map υ) (t : tag) : Prop :=
     σ'.ids = σ.ids ∧ 
     σ'.edges = σ.edges ∧
     (∀ r, σ.rtr r ≈ₛ σ'.rtr r) ∧
@@ -25,7 +25,7 @@ namespace network
 
   -- If `σ₁` and `σ₂` are action progressions of `σ`, then `σ₁ = σ₂`.
   theorem unique_action_progression 
-    (σ σ₁ σ₂ : inst.network (tpa υ)) (events: port.id → tag → option υ) (t : tag) 
+    {σ σ₁ σ₂ : inst.network (tpa υ)} {events: event_map υ} {t : tag} 
     (h₁ : is_action_progression σ σ₁ events t) (h₂ : is_action_progression σ σ₂ events t) : 
     σ₁ = σ₂ :=
     begin
@@ -38,17 +38,18 @@ namespace network
   -- Obtaining this mapping is non-trivial, because each IAP may have multiple OAPs which contain
   -- a tag-value-pair for any given tag. Hence the (tag → value) map associated with a given IAP
   -- has to return the value of the OAP with the highest priority (where the value for the tag is not `none`).
-  noncomputable def new_events (τ : timed.network υ) : port.id → tag → option υ := 
+  noncomputable def new_events (τ : timed.network υ) : event_map υ := 
     λ iap t, ((τ.oaps_for_iap' iap).sort oap_lt).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map' t))
+
+  def is_time_step_aux' (τ τ' : timed.network υ) (t : tag) (e : event_map υ) : Prop :=
+    (∃ σ', τ'.σ = σ' ∧ (is_action_progression τ.σ σ' e t)) ∧ 
+    τ'.time = t ∧
+    τ'.actions = τ.actions ∧
+    τ'.events = e
 
   def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
     | none            := ⊥ 
-    | (some next_tag) := 
-        let events' := (λ p t, τ.new_events p t <|> τ.events p t) in
-          (∃ σ', τ'.σ = σ' ∧ (is_action_progression τ.σ σ' events' next_tag)) ∧ 
-          τ'.time = next_tag ∧
-          τ'.actions = τ.actions ∧
-          τ'.events = events'
+    | (some next_tag) := is_time_step_aux' τ τ' next_tag (λ p t, τ.new_events p t <|> τ.events p t)
 
   -- A pair of timed networks is a *time step*, if ...
   def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
@@ -57,7 +58,25 @@ namespace network
 
   theorem unique_time_step {τ τ₁ τ₂ : timed.network υ} (h₁ : τ →ₜ τ₁) (h₂ : τ →ₜ τ₂) : τ₁ = τ₂ :=
     begin
-      sorry
+      simp only [(→ₜ)] at h₁ h₂,
+      cases τ.next_tag,
+        {
+          exfalso,
+          unfold is_time_step_aux at h₁,
+          exact h₁
+        },
+        {
+          obtain ⟨⟨σ, hσ, hp⟩, ht, ha, he⟩ := h₁,
+          obtain ⟨⟨σ', hσ', hp'⟩, ht', ha', he'⟩ := h₂,
+          ext1,
+            { 
+              rw unique_action_progression hp hp' at hσ,
+              exact eq.trans hσ (symm hσ')
+            },
+            { exact eq.trans ht (symm ht') },
+            { exact eq.trans he (symm he') },
+            { exact eq.trans ha (symm ha') }
+        }
     end
 
   -- A pair of timed networks is an *execution step*, if ...
@@ -139,9 +158,10 @@ namespace network
           rw [e.head, e'.head]
         },
         { 
-          have H, from e.succ n',
-          rw hᵢ at H,
-          exact unique_execution_step H (e'.succ n')
+          have h, from e.succ n',
+          have h', from e'.succ n',
+          rw hᵢ at h,
+          exact unique_execution_step h h'
         }
     end
 

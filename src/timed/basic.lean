@@ -143,13 +143,17 @@ lemma timed.network.equiv_inst_network_wf (es : finset action_edge) {σ σ' : in
 
 variable (υ)
 
+def timed.network.event_map := port.id → tag → option υ
+
+open timed.network
+
 -- A timed reactor network wraps an instantaneous reactor network and equips it with actions 
 -- (via action-ports and -edges), as well as timed execution.
 @[ext]
 structure timed.network :=
   (σ : inst.network (tpa υ))
   (time : tag)
-  (events : port.id → tag → option υ)
+  (events : event_map υ)
   (actions : finset action_edge)
   (well_formed : actions.are_well_formed_for σ)
 
