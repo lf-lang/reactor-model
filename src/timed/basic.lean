@@ -10,7 +10,7 @@ variables (υ : Type*) [decidable_eq υ]
 
 -- A tag is a logical timestamp: the first component is the time value, the second component is
 -- the microstep index. Their ordering is lexicographical.
-@[derive has_le, derive has_lt]
+@[derive linear_order]
 def tag := lex ℕ ℕ  
 
 -- A TPA is a finite set of tag-value pairs where each tag is unique. 
@@ -232,7 +232,7 @@ namespace network
     ((τ.σ.η.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
 
   -- This is a different way of expressing of `finset.have_one_src_in`, which is more suitable for use in `src_for_oap`.
-  lemma rcns_dep_to_oap_singleton (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : 
+  lemma rcns_dep_to_oap_singleton {τ : timed.network υ} {oap : port.id} (h : oap ∈ τ.oaps) : 
     ∃ r, (τ.rcns_dep_to role.output oap) = {r} :=
     begin
       simp only [oaps, finset.mem_image] at h,
@@ -273,14 +273,20 @@ namespace network
 
   -- The unique reaction connected to a given OAP.
   noncomputable def src_for_oap (τ : timed.network υ) {oap : port.id} (h : oap ∈ τ.oaps) : reaction.id :=
-    (rcns_dep_to_oap_singleton τ oap h).some
+    (rcns_dep_to_oap_singleton h).some
 
   lemma oap_src_eq_rtr {τ : timed.network υ} {oap : port.id} (h : oap ∈ τ.oaps) : 
     (τ.src_for_oap h).rtr = oap.rtr :=
     begin
-      sorry
+      unfold src_for_oap,
+      have h', from set.mem_singleton (rcns_dep_to_oap_singleton h).some,
+      rw ←(Exists.some_spec (rcns_dep_to_oap_singleton h)) at h',
+      simp only [rcns_dep_to, set.mem_image] at h',
+      obtain ⟨_, _, he⟩ := h',
+      unfold Exists.some at ⊢ he,
+      sorry, -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Injection.20failing
     end
-
+  
   lemma eq_src_eq_oap {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} (h : τ.src_for_oap hₘ = τ.src_for_oap hₘ') : 
     oap = oap' :=
     begin
@@ -350,7 +356,17 @@ namespace network
   -- There can only ever be at most one next tag.
   lemma next_tags_subsingleton (τ : timed.network υ) :
     { t | τ.tag_is_next t }.subsingleton :=
-    sorry
+    begin
+      unfold set.subsingleton,
+      intros x hx y hy,
+      rw set.mem_set_of_eq at hx hy,
+      unfold tag_is_next at hx hy,
+      obtain ⟨hmx, hgx, hlx⟩ := hx,
+      obtain ⟨hmy, hgy, hly⟩ := hy,
+      have hgex, from hly x hmx hgx,
+      have hgey, from hlx y hmy hgy,
+      exact le_antisymm hgey hgex
+    end
 
   -- The least tag that after the current `time`, for which there exists a port that has a non-`none` value at that tag.
   -- I.e. the next tag at which an event occurs.
