@@ -68,9 +68,10 @@ namespace network
   -- 
   -- Obtaining this mapping is non-trivial, because each IAP may have multiple OAPs which contain
   -- a tag-value-pair for any given tag. Hence the (tag → value) map associated with a given IAP
-  -- has to return the value of the OAP with the highest priority (where the value for the tag is not `none`).
+  -- has to return the value of the OAP with the lowest priority (the OAP that was written to *last*),
+  -- where the value for the tag is not `none`.
   noncomputable def new_events (τ : timed.network υ) : event_map υ := 
-    λ iap t, ((τ.oaps_for_iap' iap).sort oap_lt).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map' t))
+    λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map' t))
 
   def is_time_step_aux' (τ τ' : timed.network υ) (t : tag) (e : event_map υ) : Prop :=
     (∃ σ', τ'.σ = σ' ∧ (is_action_progression τ.σ σ' e t)) ∧ 

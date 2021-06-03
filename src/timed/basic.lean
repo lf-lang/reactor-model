@@ -272,19 +272,71 @@ namespace network
     end
 
   -- The unique reaction connected to a given OAP.
-  noncomputable def src_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : reaction.id :=
+  noncomputable def src_for_oap (τ : timed.network υ) {oap : port.id} (h : oap ∈ τ.oaps) : reaction.id :=
     (rcns_dep_to_oap_singleton τ oap h).some
 
+  lemma oap_src_eq_rtr {τ : timed.network υ} {oap : port.id} (h : oap ∈ τ.oaps) : 
+    (τ.src_for_oap h).rtr = oap.rtr :=
+    begin
+      sorry
+    end
+
+  lemma eq_src_eq_oap {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} (h : τ.src_for_oap hₘ = τ.src_for_oap hₘ') : 
+    oap = oap' :=
+    begin
+      sorry
+    end
+
   -- The priority of a given OAP is the priority of the reaction it is connected to.
-  noncomputable def priority_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : ℕ :=
-    (τ.src_for_oap oap h).priority
+  -- The OAP's reactor's ID is added on just to make sure that each OAP in a network has a unique priority.
+  -- This makes ordering them a bit easier without any loss of generality.
+  noncomputable def priority_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : lex ℕ ℕ :=
+    (oap.rtr, (τ.src_for_oap h).priority)
 
-  def oap_lt {τ : timed.network υ} (oap oap' : { o // o ∈ τ.oaps }) : Prop :=
-    τ.priority_for_oap ↑oap oap.property < τ.priority_for_oap ↑oap' oap'.property
+  -- No two OAPs have the same priority.
+  -- This fact is really only relevant within reactors, not across reactors.
+  lemma unique_oap_priority 
+    {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} 
+    (h : τ.priority_for_oap oap hₘ = τ.priority_for_oap oap' hₘ') : 
+    oap = oap' :=
+    begin
+      unfold priority_for_oap reaction.id.priority at h,
+      injection h with hr hp,
+      clear h,
+      have hs, from oap_src_eq_rtr hₘ,
+      have hs', from oap_src_eq_rtr hₘ',
+      have h : τ.src_for_oap hₘ = τ.src_for_oap hₘ', {
+        rw hr at hs,
+        have hs_eq, from eq.trans hs (symm hs'),
+        ext ; assumption
+      },
+      exact eq_src_eq_oap h,
+    end
 
-  instance {τ : timed.network υ} : is_trans _ (@oap_lt _ _ τ) := sorry
-  instance {τ : timed.network υ} : is_antisymm _ (@oap_lt _ _ τ) := sorry
-  instance {τ : timed.network υ} : is_total _ (@oap_lt _ _ τ) := sorry
+  def oap_le {τ : timed.network υ} (oap oap' : { o // o ∈ τ.oaps }) : Prop :=
+    τ.priority_for_oap ↑oap oap.property ≤ τ.priority_for_oap ↑oap' oap'.property
+
+  -- `oap_le` is transitive.
+  instance {τ : timed.network υ} : is_trans _ (@oap_le _ _ τ) := ⟨begin
+    intros a b c,
+    unfold oap_le,
+    exact trans
+  end⟩
+
+-- `oap_le` is antisymmetric.
+  instance {τ : timed.network υ} : is_antisymm _ (@oap_le _ _ τ) := ⟨begin
+    intros a b,
+    unfold oap_le,
+    intros h h',
+    exact subtype.ext (unique_oap_priority (le_antisymm h h'))
+  end⟩ 
+
+  -- `oap_le` is total.
+  instance {τ : timed.network υ} : is_total _ (@oap_le _ _ τ) := ⟨begin
+    intros a b,
+    unfold oap_le,
+    apply le_total
+  end⟩
 
   -- The tags for which the given timed network has events scheduled.
   -- Note that this set also contains all tags from past events.
