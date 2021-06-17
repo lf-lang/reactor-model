@@ -237,12 +237,33 @@ namespace network
     begin
       simp only [oaps, finset.mem_image] at h,
       obtain ⟨e, hₑ, hₒ⟩ := h,
-      replace h := τ.well_formed.right.right.left,
+      have h, from τ.well_formed.right.right.left,
       unfold finset.have_one_src_in at h,
       replace h := h e hₑ,
       rw exists_unique at h,
       obtain ⟨r, hᵣ, hᵤ⟩ := h,
       existsi r,
+
+
+      unfold rcns_dep_to,
+      rw set.image,
+      rw set.eq_singleton_iff_unique_mem,
+      split,
+        sorry,
+        {
+          intros x hₓ,
+          obtain ⟨a, ⟨haₘ, haₑ⟩⟩ := hₓ,
+          suffices hg : e.oap ∈ τ.σ.η.deps x role.output, from hᵤ x hg,
+          unfold inst.network.graph.deps,
+          rw finset.mem_image,
+          existsi a,
+          
+        }
+
+
+
+      /-
+      
       rw hₒ at hᵣ hᵤ,
       rw set.eq_singleton_iff_unique_mem,
       unfold rcns_dep_to,
@@ -269,6 +290,7 @@ namespace network
           obtain ⟨y, h_y⟩ := h,
           sorry
         }
+        -/
     end
 
   -- The unique reaction connected to a given OAP.
@@ -290,7 +312,7 @@ namespace network
   lemma eq_src_eq_oap {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} (h : τ.src_for_oap hₘ = τ.src_for_oap hₘ') : 
     oap = oap' :=
     begin
-      sorry
+      sorry -- This should be similar to `oap_src_eq_rtr` above
     end
 
   -- The priority of a given OAP is the priority of the reaction it is connected to.

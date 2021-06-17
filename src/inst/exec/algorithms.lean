@@ -34,6 +34,8 @@ namespace network
       exact prec.wf_prec_graphs_are_eq (p.well_formed σ) (p'.well_formed σ)
     end
 
+  -- There exist instances of (algorithms for) `prec_func` and `topo_func`.
+  -- This is used to define a parameter-free version of `run` (called `run'`).
   theorem prec_func.nonempty : nonempty (prec_func υ) := sorry
   theorem topo_func.nonempty : nonempty (topo_func υ) := sorry
 

@@ -16,23 +16,9 @@ def seq_finite (s : seq α) := ∃ N : ℕ, s.1 N = none
 def seq_prefix {α : Type*} (s t : (seq α)) := ∀ n a, s.val n = some a → t.val n = some a
 instance seq.has_le {α : Type*} : has_le (seq α) := ⟨seq_prefix⟩
 
-theorem seq_prefix_refl {α : Type*} : ∀ (s : seq α), s ≤ s :=
-begin
-intro s,
-intros n a,
-intro h,
-exact h,
-end
-
-theorem seq_prefix_trans {α : Type*} : ∀ (a b c : seq α), a ≤ b → b ≤ c → a ≤ c :=
-begin
-intros a b c,
-intros le1 le2,
-intros n a h,
-have eq1 : b.val n = some a, by exact le1 n a h,
-exact le2 n a eq1,
-end
-
+theorem seq_prefix_refl {α : Type*} : ∀ (s : seq α), s ≤ s := by tauto
+  
+theorem seq_prefix_trans {α : Type*} : ∀ (a b c : seq α), a ≤ b → b ≤ c → a ≤ c := by tauto
 
 instance seq.preorder {α : Type*} : preorder (seq α) :=
 {le := seq_prefix,
