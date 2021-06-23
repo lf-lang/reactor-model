@@ -29,15 +29,20 @@ namespace network
 
   notation τ `→ₐ` τ' := is_action_progression τ τ'
 
-  -- If `τ₁` and `τ₂` are action progressions of `τ`, then `τ₁ = τ₂`.
-  theorem unique_action_progression {τ τ₁ τ₂ : timed.network υ} (h₁ : τ →ₐ τ₁) (h₂ : τ →ₐ τ₂) : τ₁ = τ₂ :=
+  -- If `τ₁` and `τ₂` are action progressions of `τ` for the same tag and event map, then `τ₁ = τ₂`.
+  theorem unique_action_progression {τ τ₁ τ₂ : timed.network υ} 
+    (h₁ : τ →ₐ τ₁) (h₂ : τ →ₐ τ₂) 
+    (hₜ : τ₁.time = τ₂.time) (hₑ : τ₁.events = τ₂.events) :
+    τ₁ = τ₂ :=
     begin
-      unfold is_action_progression at h₁ h₂,
-      ext1, ext1,
-        { exact (eq.trans h₁.left (symm h₂.left)) },
-        { 
-          obtain ⟨hr₁, ho₁, hi₁⟩ := h₁.right.right,
-          obtain ⟨hr₂, ho₂, hi₂⟩ := h₂.right.right,
+      ext1,
+      {
+        unfold is_action_progression at h₁ h₂,
+        ext1, ext1,
+          { exact (eq.trans h₁.right.left (symm h₂.right.left)) },
+          { 
+          obtain ⟨hr₁, ho₁, hi₁⟩ := h₁.right.right.right,
+          obtain ⟨hr₂, ho₂, hi₂⟩ := h₂.right.right.right,
           clear h₁ h₂,
           ext1 rtr,
           obtain ⟨⟨hp₁, hn₁⟩, hs₁⟩ := hr₁ rtr, 
@@ -49,6 +54,7 @@ namespace network
             { 
               apply list.ext,
               intro prt,
+              rw [hₜ, hₑ] at hi₁,
               exact eq.trans (hi₁ ⟨rtr, prt⟩) (symm (hi₂ ⟨rtr, prt⟩))
             },
             { 
@@ -60,7 +66,11 @@ namespace network
             { exact eq.trans (symm hp₁) hp₂ },
             { exact eq.trans (symm hn₁) hn₂ },
         },
-        { exact (eq.trans h₁.right.left (symm h₂.right.left)) }
+        { exact (eq.trans h₁.right.right.left (symm h₂.right.right.left)) }
+      },
+      { exact hₜ },
+      { exact hₑ },
+      { exact eq.trans h₁.left (symm h₂.left) }
     end
     
   -- The events contained in the OAPs of the given network, represented as an event-map. 
@@ -94,8 +104,11 @@ namespace network
           exact h₁
         },
         {
-          simp only [is_time_step_aux] at h₁ h₂,
-          exact unique_action_progression h₁.right.right h₂.right.right
+          obtain ⟨ht₁, he₁, ha₁⟩ := h₁,
+          obtain ⟨ht₂, he₂, ha₂⟩ := h₂,
+          have ht, from eq.trans ht₁ (symm ht₂),
+          have he, from eq.trans he₁ (symm he₂),
+          exact unique_action_progression ha₁ ha₂ ht he
         }
     end
 

@@ -88,20 +88,17 @@ Hence, the definition of `is_execution_step` states that `τ'` must be equal to 
 
 ## Time Steps
 
-The definition of `→ₜ` (`is_time_step`) is broken up into three parts.
-This is a result of Lean's unfortunate property that `let ... in` expressions aren't really usable in proofs.
+The definition of `→ₜ` (`is_time_step`) is broken up into two parts.
+This is a result of Lean's unfortunate property that `match` expressions aren't really usable in proofs.
 The workaround is to define auxiliary definitions:
 
 ```lean
-def is_time_step_aux' (τ τ' : timed.network υ) (t : tag) (e : event_map υ) : Prop :=
-  (∃ σ', τ'.σ = σ' ∧ (is_action_progression τ.σ σ' e t)) ∧ 
-  τ'.time = t ∧
-  τ'.actions = τ.actions ∧
-  τ'.events = e
-
 def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
   | none            := ⊥ 
-  | (some next_tag) := is_time_step_aux' τ τ' next_tag (λ p t, τ.new_events p t <|> τ.events p t)
+  | (some next_tag) := 
+    τ'.time = next_tag ∧ 
+    τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
+    (τ →ₐ τ')  
 
 def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
 ```
