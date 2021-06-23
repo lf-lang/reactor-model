@@ -63,8 +63,7 @@ namespace network
         { exact (eq.trans h₁.right.left (symm h₂.right.left)) }
     end
     
-  -- The events contained in the OAPs of the given network, represented as an event-function. 
-  -- That is, a mapping of IAPs to a function (tag → value).
+  -- The events contained in the OAPs of the given network, represented as an event-map. 
   -- 
   -- Obtaining this mapping is non-trivial, because each IAP may have multiple OAPs which contain
   -- a tag-value-pair for any given tag. Hence the (tag → value) map associated with a given IAP

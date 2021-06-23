@@ -369,11 +369,13 @@ namespace network
   -- The tags for which the given timed network has events scheduled.
   -- Note that this set also contains all tags from past events.
   def event_tags (τ : timed.network υ) : set tag :=
-    { t | ∃ (m : tag → option υ) (h : m ∈ τ.oaps.image τ.events), m t ≠ none }
+    { t | ∃ (m : tag → option υ) (h : m ∈ τ.iaps.image τ.events), m t ≠ none }
 
   -- The proposition that a given tag is the next tag for which a given network has a scheduled event.
+  -- This is the case if the given tag comes after the networks current tag, but is smaller or equal to
+  -- the tags of all other scheduled events.
   def tag_is_next (τ : timed.network υ) (t : tag) : Prop :=
-    t ∈ τ.event_tags ∧ (t > τ.time) ∧ (∀ t' ∈ τ.event_tags, t' > τ.time → t' ≥ t)
+    t ∈ τ.event_tags ∧ (t > τ.time) ∧ (∀ t' ∈ τ.event_tags, t' > τ.time → t ≤ t')
 
   -- There can only ever be at most one next tag.
   lemma next_tags_subsingleton (τ : timed.network υ) :
@@ -390,8 +392,7 @@ namespace network
       exact le_antisymm hgey hgex
     end
 
-  -- The least tag that after the current `time`, for which there exists a port that has a non-`none` value at that tag.
-  -- I.e. the next tag at which an event occurs.
+  -- The next tag at which an event occurs.
   noncomputable def next_tag (τ : timed.network υ) : option tag :=
     (next_tags_subsingleton τ)
       .eq_empty_or_singleton
