@@ -82,7 +82,7 @@ Here we opt for post-instantaneous timed networks, so that every network in the 
 Hence, for `τ'` to be a valid successor of `τ`, `τ'` needs to be the post-instantaneous version of `τ` at the next event's tag.
 We call the time-progressed but **pre**-instantaneous version of `τ`, `τₜ` - the definition of "time-progressed" (`→ₜ`) is covered in the next section.
 
-[Execution Step Visualization](../images/execution-step)
+![Execution Step Visualization](images/execution-step.png)
 
 Hence, the definition of `is_execution_step` states that `τ'` must be equal to `τₜ` is all aspects (`actions`, `events`, etc.) except that `τ'.σ = τₜ.σ.run'`.
 
@@ -176,29 +176,22 @@ There we split our definition depending on whether `next_tag` is `none` or not.
 ```lean
 def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
   | none            := ⊥ 
-  | (some next_tag) := is_time_step_aux' τ τ' next_tag (λ p t, τ.new_events p t <|> τ.events p t)
+  | (some next_tag) := 
+    τ'.time = next_tag ∧ 
+    τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
+    (τ →ₐ τ')  
 ```
 
 If it is `none`, then `τ` does not have a next event (i.e. execution has completed), so `τ'` can't be the time progressed version of `τ`. If, on the other hand, we do have `some next_tag`, then we need to make sure that:
 
 1. `τ'`'s time is `next_tag`
-2. all of `τ'`'s ports have values matching the ones defined by the event map
-3. `τ'`'s event map is up to date
+2. `τ'`'s event map is up to date
+3. all of `τ'`'s ports have values matching the ones defined by the event map
 
-This is defined in `is_time_step_aux'`:
-
-```lean
-def is_time_step_aux' (τ τ' : timed.network υ) (t : tag) (e : event_map υ) : Prop :=
-  (∃ σ', τ'.σ = σ' ∧ (is_action_progression τ.σ σ' e t)) ∧ 
-  τ'.time = t ∧
-  τ'.actions = τ.actions ∧
-  τ'.events = e
-```
-
-Much like `→ₜ` is basically a sub-step of `→ₑ`, the `is_action_progression` predicate defines the next "lower" layer for `→ₜ` (more on that later).
+Much like `→ₜ` is a sub-step of `→ₑ`, the `→ₐ` predicate defines the next "lower" layer for `→ₜ` (more on that later). 
 A crucial step we're going to consider here first though, is how the updated event map is defined.
 Recall that `τ` is post-instantaneous. Hence, its OAPs will contain TPAs that declare events, which are not yet part of the event map.
-If we want to make sure that all of `τ'`'s ports have values matching the ones defined by the event map, we first need to update the event map with the information contained in those TPAs. The updated event map is already defined in `is_time_step_aux`:
+If we want to make sure that all of `τ'`'s ports have values matching the ones defined by the event map, we first need to update the event map with the information contained in those TPAs. This updated event map is defined as:
 
 ```lean
 (λ p t, τ.new_events p t <|> τ.events p t)
@@ -220,3 +213,6 @@ The TPAs in those OAPs will contain tag-value pairs which may or may not have a 
 
 ## Action Progression
 
+> Much like `→ₜ` is a sub-step of `→ₑ`, the `→ₐ` predicate defines the next "lower" layer for `→ₜ`. 
+
+The purpose of `→ₐ` (`is_action_progression`) is to ensure that as a timed network progresses from one tag to another, its underlying instantaneous network's ports reflect the values defined by the event map (i.e. by scheduled actions).

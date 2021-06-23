@@ -19,18 +19,18 @@ namespace network
   -- 
   -- Declaring the values of the ports contains an annoying technicality in that we have to differentiate
   -- between absent ports and non-existant ports, which ammounts to the difference between `some none` and `none`.
-  def is_action_progression (σ σ' : inst.network (tpa υ)) (events: event_map υ) (t : tag) : Prop :=
-    σ'.ids = σ.ids ∧ 
-    σ'.edges = σ.edges ∧
-    (∀ r, σ.rtr r ≈ₛ σ'.rtr r) ∧
-    (∀ p, σ'.port' role.output p = if (σ.port' role.output p).is_some then some none else none) ∧
-    (∀ p, σ'.port' role.input  p = if (σ.port' role.input  p).is_some then (tpa.input t (events p t)) else none)
+  def is_action_progression (τ τ' : timed.network υ) : Prop :=
+    τ'.actions = τ.actions ∧
+    τ'.σ.ids = τ.σ.ids ∧ 
+    τ'.σ.edges = τ.σ.edges ∧
+    (∀ r, τ.σ.rtr r ≈ₛ τ'.σ.rtr r) ∧
+    (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
+    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none)
 
-  -- If `σ₁` and `σ₂` are action progressions of `σ`, then `σ₁ = σ₂`.
-  theorem unique_action_progression 
-    {σ σ₁ σ₂ : inst.network (tpa υ)} {events: event_map υ} {t : tag} 
-    (h₁ : is_action_progression σ σ₁ events t) (h₂ : is_action_progression σ σ₂ events t) : 
-    σ₁ = σ₂ :=
+  notation τ `→ₐ` τ' := is_action_progression τ τ'
+
+  -- If `τ₁` and `τ₂` are action progressions of `τ`, then `τ₁ = τ₂`.
+  theorem unique_action_progression {τ τ₁ τ₂ : timed.network υ} (h₁ : τ →ₐ τ₁) (h₂ : τ →ₐ τ₂) : τ₁ = τ₂ :=
     begin
       unfold is_action_progression at h₁ h₂,
       ext1, ext1,
@@ -72,15 +72,12 @@ namespace network
   noncomputable def new_events (τ : timed.network υ) : event_map υ := 
     λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map' t))
 
-  def is_time_step_aux' (τ τ' : timed.network υ) (t : tag) (e : event_map υ) : Prop :=
-    (∃ σ', τ'.σ = σ' ∧ (is_action_progression τ.σ σ' e t)) ∧ 
-    τ'.time = t ∧
-    τ'.actions = τ.actions ∧
-    τ'.events = e
-
   def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
     | none            := ⊥ 
-    | (some next_tag) := is_time_step_aux' τ τ' next_tag (λ p t, τ.new_events p t <|> τ.events p t)
+    | (some next_tag) := 
+      τ'.time = next_tag ∧ 
+      τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
+      (τ →ₐ τ')  
 
   -- A pair of timed networks is a *time step*, if ...
   def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
@@ -97,16 +94,8 @@ namespace network
           exact h₁
         },
         {
-          obtain ⟨⟨σ, hσ, hp⟩, ht, ha, he⟩ := h₁,
-          obtain ⟨⟨σ', hσ', hp'⟩, ht', ha', he'⟩ := h₂,
-          ext1,
-            { 
-              rw unique_action_progression hp hp' at hσ,
-              exact eq.trans hσ (symm hσ')
-            },
-            { exact eq.trans ht (symm ht') },
-            { exact eq.trans he (symm he') },
-            { exact eq.trans ha (symm ha') }
+          simp only [is_time_step_aux] at h₁ h₂,
+          exact unique_action_progression h₁.right.right h₂.right.right
         }
     end
 
