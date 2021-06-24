@@ -23,7 +23,7 @@ The `timed` folder contains definitions about timed reactor networks.
 
 - `basic.lean` defines tags, TPAs, and timed networks.
 
-- `exec.lean` defines the timed execution model, i.e. `run_next` and all of its steps.
+- `exec.lean` contains definitions for the timed execution model, i.e. `execution`, `is_time_step`, ..., as well as the proof of timed determinism.
 
 The `inst` folder contains definitions about instantaneous reactors.
 
