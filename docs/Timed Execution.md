@@ -98,7 +98,11 @@ def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop
   | (some next_tag) := 
     τ'.time = next_tag ∧ 
     τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
-    (τ →ᵥ τ')  
+    (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
+    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) ∧
+    τ'.actions = τ.actions ∧
+    τ'.σ ≈ τ.σ ∧ 
+    (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state)
 
 def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
 ```
@@ -174,19 +178,30 @@ There we split our definition depending on whether `next_tag` is `none` or not.
 def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
   | none            := ⊥ 
   | (some next_tag) := 
-    τ'.time = next_tag ∧                                     
+    -- 1
+    τ'.time = next_tag ∧                                                    
+    -- 2
     τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
-    (τ →ᵥ τ')                                                
+    -- 3
+    (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
+    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) ∧                                                 
+    -- 4
+    τ'.actions = τ.actions ∧
+    τ'.σ ≈ τ.σ ∧ 
+    (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state)
 ```
 
 If it is `none`, then `τ` does not have a next event (i.e. execution has completed), so `τ'` can't be the time progressed version of `τ`. If, on the other hand, we do have `some next_tag`, then we need to make sure that:
 
-1. `τ'`'s time is `next_tag`
-2. `τ'`'s event map is up to date
-3. all of `τ'`'s ports have values matching the ones defined by the event map
+1. `τ'`'s time is `next_tag`.
+2. `τ'`'s event map is up to date.
+3. All of `τ'`'s ports have values matching the ones defined by the event map.
+4. Nothing else has changed from `τ` to `τ'`. 
 
-Much like `→ₜ` is a sub-step of `→ₑ`, the `→ᵥ` predicate defines the next "lower" layer for `→ₜ` (more on that later). 
-A crucial step we're going to consider here first though, is how the updated event map is defined.
+We've already covered how to find the `next_tag`. So next, let's consider how the updated event map is defined.
+
+### Updated Event Map
+
 Recall that `τ` is post-instantaneous. Hence, its OAPs will contain TPAs that declare events, which are not yet part of the event map.
 If we want to make sure that all of `τ'`'s ports have values matching the ones defined by the event map, we first need to update the event map with the information contained in those TPAs. This updated event map is defined as:
 
@@ -208,33 +223,66 @@ Given some IAP `iap` and tag `t`, as well as a set of OAPs: which value should b
 Since IAPs can only be affected by actions from *connected* OAPs, we can focus on only those OAPs connected to `iap`: `(τ.oaps_for_iap' iap)`.
 The TPAs in those OAPs will contain tag-value pairs which may or may not have a tag of `t`. That is, there may be none or *multiple* OAPs declaring a value for `iap` at tag `t`. We want to choose the one that was scheduled *last*, as this fits the semantics of reactors by having later "writes" (for lack of a better term) override earlier writes. The OAP written to last will be the one with the lowest priority - so we sort the list of OAPs by priority using the `oap_le` predicate. In this list of OAPs, we still don't know which one will actually contain a tag-value pair where the tag is `t`. So we run through them until we find the first one where this is the case, and use its tag-value pair value as the return value. This concept of "iterate until non-`none`" is performed by `list.mfirst`. The input function to `list.mfirst` simply describes what the "value" for each instance should be. So here we provide a map from an OAP to the value of its tag-value pair with tag `t`, if there is one (the details of this map aren't really important).
 
-## Valid Future
+## Adjusted Ports
 
-> Much like `→ₜ` is a sub-step of `→ₑ`, the `→ᵥ` predicate defines the next "lower" layer for `→ₜ`. 
-
-The purpose of `→ᵥ` (`is_valid_future`) is to ensure that as a timed network progresses from one tag to another, its underlying instantaneous network's ports reflect the values defined by the event map (i.e. by scheduled actions):
+The third sections in the definition of `→ₜ` was  described by: "All of `τ'`'s ports have values matching the ones defined by the event map."
+This is achieved by stating two rules which are actually pretty simple, but are again veiled by technicalities.
+For the sake of explanation, we will first look at a version of those rules with those technicalities removed. Note that this wouldn't be valid Lean code:
 
 ```lean
-def is_valid_future (τ τ' : timed.network υ) : Prop :=
-  τ'.actions = τ.actions ∧
-  τ'.σ.ids = τ.σ.ids ∧ 
-  τ'.σ.edges = τ.σ.edges ∧
-  (∀ r, τ.σ.rtr r ≈ₛ τ'.σ.rtr r) ∧
-  (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
-  (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none)
+(∀ p, τ'.σ.port role.output p = none) 
+-- and 
+(∀ p, τ'.σ.port role.input p = tpa.maybe τ'.time (τ'.events p τ'.time)) 
 ```
 
-Networks `τ'` is a valid future of `τ` if:
+The first rule states that for every *output* port `p` in network `τ'`, the value of the port should be `none` (i.e. absent).
+This corresponds to the notion that reactors wipe their (output) ports after every time step. Since this clearing of ports isn't performed by `inst.network.run` (because that would imply that we can never inspect the written TPAs), we perform that step here.
 
-1. It's `actions` (action edges) are still the same - this is really just a technicality.
-2. 
+The second rule states that for every *input* port `p` in network `τ'`, the value of the port should be a TPA that contains *exactly one* tag-value pair (that's what the `tpa.maybe` constructor is for) with the tag being `τ'`'s time and the value being the one that is defined by the event map for that port and tag (`τ'.events p τ'.time`). The reason why the TPA constructor is called `maybe` is, because it can handle the value being `none`. This is required here, because the event map might not have a defined value for the given port and tag. If this is the case, `tpa.maybe` evaluates to `none`.
 
-Strictly speaking, for the name of the predicate to make complete sense, we would also have to check that:
+### Technicalities
 
-* `τ'`'s tag is greater than that of `τ`
-* `τ'`'s event map only extends upon `τ`'s event map (doesn't lose events)
+Before we take a look at the proper version of the rules, let's consider the origin of their technicalities.
+Ports are defined as lists of optional values:
 
-But since these properties are ensured by the specific values demanded by `is_time_step`, we'll ignore these conditions here.
+```lean
+def reactor.ports := list (option υ)
+```
 
+Ports that are populated will contain `some _` and absent ports will contain `none`.
+When accessing any given port (by indexing into the list) there's actually a third possible option though: we might access and index that is past the length of the list. That's why `list.nth` returns an optional value. Hence, when we try to access the value of a specific port, we get a doubly optional value back:
 
-There's really no reason this needs to be broken out into a predicate of its own (instead of being part of `is_time_step_aux`), except for 
+```lean
+constant p : @ports ℤ 
+#check p.nth -- ℕ → option (option ℤ)
+```
+
+A value of `some (some _)` indicates that the given index identifies a port that is populated.
+A value of `some (none)` indicates that the given index identifies a port that is absent.
+A value of `none` indicates that the given index does not identify a port.
+
+Since the distinction between the last two cases is usually unimportant when retrieving a port's value (since all we care about is whether there is a value or not), we almost always ignore it. There's even a specialized definition of `nth` for `reactor.ports`, which collapses the last two cases:
+
+```lean
+-- in the namespace `reactor.ports`
+def nth (p : ports υ) (n : ℕ) : option υ := (p.nth n).join
+```
+
+The technicality in the proper versions of the rules above is now simply that we *do* need to distinguish between `some (none)` and `none`. Let's consider the output-clearing rule:
+
+```lean
+(∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none)
+```
+
+What this rules states is that when `(τ.σ.port' role.output p).is_some`, i.e. when `p` actually identifies an output port, no matter if populated or absent (`some (some _)` or `some (none)`), then it should be wiped (set to `some none`). Otherwise, when `p` didn't even identify a port, it should remain true that `p` doesn't identify a port. 
+If we instead just gave everything a value of `some (none)`, we would be creating an infinite number of absent ports. And if we instead gave everything a value of `none` we would be destroying all ports.
+
+The same logic now applies to the second rule:
+
+```lean
+(∀ p, τ'.σ.port' role.input p = if (τ.σ.port' role.input p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) 
+```
+
+We define that we only want to set an input port `p`'s value to the one given by the event map, if `p` actually identifies a port.
+
+This problem could also be solved by changing `p`'s type to be precisely the set of all indices which actually identify a port. But for now the solution above seems sufficient.

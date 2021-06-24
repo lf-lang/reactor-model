@@ -27,11 +27,11 @@ namespace network
     | (some next_tag) := 
       τ'.time = next_tag ∧ 
       τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
+      (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
+      (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.maybe τ'.time (τ'.events p τ'.time)) else none) ∧
       τ'.actions = τ.actions ∧
       τ'.σ ≈ τ.σ ∧ 
-      (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state) ∧
-      (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
-      (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) 
+      (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state)
 
   -- A pair of timed networks is a *time step*, if ...
   def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
@@ -48,21 +48,16 @@ namespace network
           exact h₁
         },
         {
-          obtain ⟨ht₁, he₁, hv₁⟩ := h₁,
-          obtain ⟨ht₂, he₂, hv₂⟩ := h₂,
+          obtain ⟨ht₁, he₁, ⟨ho₁, hi₁, ha₁, ⟨hg₁, hn₁, hq₁⟩, hs₁⟩⟩ := h₁,
+          obtain ⟨ht₂, he₂, ⟨ho₂, hi₂, ha₂, ⟨hg₂, hn₂, hq₂⟩, hs₂⟩⟩ := h₂,
           have ht, from eq.trans ht₁ (symm ht₂),
           have he, from eq.trans he₁ (symm he₂),
           {
             ext1,
             {
-              obtain ⟨he₁, hi₁, hq₁⟩ := hv₁.2.1,
-              obtain ⟨he₂, hi₂, hq₂⟩ := hv₂.2.1,
               ext1, ext1,
-              { exact (eq.trans hi₁ (symm hi₂)) },
+              { exact (eq.trans hn₁ (symm hn₂)) },
               { 
-                obtain ⟨hs₁, ho₁, hi₁⟩ := hv₁.2.2,
-                obtain ⟨hs₂, ho₂, hi₂⟩ := hv₂.2.2,
-                clear hv₁ hv₂,
                 ext1 rtr,
                 replace hs₁ := hs₁ rtr, 
                 replace hs₂ := hs₂ rtr, 
@@ -86,10 +81,10 @@ namespace network
                   { exact eq.trans hp₁ (symm hp₂) },
                   { exact eq.trans hr₁ (symm hr₂) }
               },
-              { exact (eq.trans he₁ (symm he₂)) },
+              { exact (eq.trans hg₁ (symm hg₂)) },
             },
             repeat { assumption },
-            { exact eq.trans hv₁.left (symm hv₂.left) }
+            { exact eq.trans ha₁ (symm ha₂) }
           }
         }
     end

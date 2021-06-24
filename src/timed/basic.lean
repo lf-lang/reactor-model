@@ -24,8 +24,8 @@ structure tpa :=
 
 variable {υ}
 
--- An input-TPA is one, that contains exactly one tag-value pair (for the "current" tag).
-def tpa.input : tag → option υ → option (tpa υ)
+-- A constructor for a TPA that can handle an optional value.
+def tpa.maybe : tag → option υ → option (tpa υ)
   | _ none := none
   | t (some v) := some { tpa .
     pairs := {(t, v)},
