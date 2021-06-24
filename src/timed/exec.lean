@@ -13,67 +13,6 @@ variables {υ : Type*} [decidable_eq υ]
 namespace timed
 namespace network
 
-  -- A pair of timed networks is an *action progression*, if the IAPs of the latter network hold the values 
-  -- determined by a given set of events and (current) tag, the OAPs are all cleared, and the remaining parts
-  -- of the networks are all equal.
-  -- 
-  -- Declaring the values of the ports contains an annoying technicality in that we have to differentiate
-  -- between absent ports and non-existant ports, which ammounts to the difference between `some none` and `none`.
-  def is_valid_future (τ τ' : timed.network υ) : Prop :=
-    τ'.actions = τ.actions ∧
-    τ'.σ ≈ τ.σ ∧ 
-    (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state) ∧
-    (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
-    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none)
-
-  notation τ `→ᵥ` τ' := is_valid_future τ τ'
-
-  -- If `τ₁` and `τ₂` are valid futures of `τ` with the same tag and event map, then `τ₁ = τ₂`.
-  theorem unique_valid_future {τ τ₁ τ₂ : timed.network υ} 
-    (h₁ : τ →ᵥ τ₁) (h₂ : τ →ᵥ τ₂) 
-    (hₜ : τ₁.time = τ₂.time) (hₑ : τ₁.events = τ₂.events) :
-    τ₁ = τ₂ :=
-    begin
-      ext1,
-      {
-        unfold is_valid_future at h₁ h₂,
-        obtain ⟨he₁, hi₁, hq₁⟩ := h₁.2.1,
-        obtain ⟨he₂, hi₂, hq₂⟩ := h₂.2.1,
-        ext1, ext1,
-        { exact (eq.trans hi₁ (symm hi₂)) },
-        { 
-          obtain ⟨hs₁, ho₁, hi₁⟩ := h₁.2.2,
-          obtain ⟨hs₂, ho₂, hi₂⟩ := h₂.2.2,
-          clear h₁ h₂,
-          ext1 rtr,
-          replace hs₁ := hs₁ rtr, 
-          replace hs₂ := hs₂ rtr, 
-          obtain ⟨hp₁, hr₁⟩ := hq₁ rtr,
-          obtain ⟨hp₂, hr₂⟩ := hq₂ rtr,
-          unfold inst.network.port' inst.network.graph.port' reactor.port' at ho₁ ho₂ hi₁ hi₂,
-          unfold inst.network.rtr inst.network.graph.rtr at hp₁ hp₂ hr₁ hr₂ hs₁ hs₂ hi₁ hi₂ ho₁ ho₂,          
-          ext1,
-            { 
-              apply list.ext,
-              intro prt,
-              rw [hₜ, hₑ] at hi₁,
-              exact eq.trans (hi₁ ⟨rtr, prt⟩) (symm (hi₂ ⟨rtr, prt⟩))
-            },
-            { 
-              apply list.ext,
-              intro prt,
-              exact eq.trans (ho₁ ⟨rtr, prt⟩) (symm (ho₂ ⟨rtr, prt⟩))
-            },
-            { exact eq.trans (symm hs₁) hs₂ },
-            { exact eq.trans hp₁ (symm hp₂) },
-            { exact eq.trans hr₁ (symm hr₂) },
-        },
-        { exact (eq.trans he₁ (symm he₂)) },
-      },
-      repeat { assumption },
-      { exact eq.trans h₁.left (symm h₂.left) }
-    end
-    
   -- The events contained in the OAPs of the given network, represented as an event-map. 
   -- 
   -- Obtaining this mapping is non-trivial, because each IAP may have multiple OAPs which contain
@@ -88,7 +27,11 @@ namespace network
     | (some next_tag) := 
       τ'.time = next_tag ∧ 
       τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
-      (τ →ᵥ τ')  
+      τ'.actions = τ.actions ∧
+      τ'.σ ≈ τ.σ ∧ 
+      (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state) ∧
+      (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
+      (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) 
 
   -- A pair of timed networks is a *time step*, if ...
   def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
@@ -109,7 +52,45 @@ namespace network
           obtain ⟨ht₂, he₂, hv₂⟩ := h₂,
           have ht, from eq.trans ht₁ (symm ht₂),
           have he, from eq.trans he₁ (symm he₂),
-          exact unique_valid_future hv₁ hv₂ ht he
+          {
+            ext1,
+            {
+              obtain ⟨he₁, hi₁, hq₁⟩ := hv₁.2.1,
+              obtain ⟨he₂, hi₂, hq₂⟩ := hv₂.2.1,
+              ext1, ext1,
+              { exact (eq.trans hi₁ (symm hi₂)) },
+              { 
+                obtain ⟨hs₁, ho₁, hi₁⟩ := hv₁.2.2,
+                obtain ⟨hs₂, ho₂, hi₂⟩ := hv₂.2.2,
+                clear hv₁ hv₂,
+                ext1 rtr,
+                replace hs₁ := hs₁ rtr, 
+                replace hs₂ := hs₂ rtr, 
+                obtain ⟨hp₁, hr₁⟩ := hq₁ rtr,
+                obtain ⟨hp₂, hr₂⟩ := hq₂ rtr,
+                unfold inst.network.port' inst.network.graph.port' reactor.port' at ho₁ ho₂ hi₁ hi₂,
+                unfold inst.network.rtr inst.network.graph.rtr at hp₁ hp₂ hr₁ hr₂ hs₁ hs₂ hi₁ hi₂ ho₁ ho₂,          
+                ext1,
+                  { 
+                    apply list.ext,
+                    intro prt,
+                    rw [ht, he] at hi₁,
+                    exact eq.trans (hi₁ ⟨rtr, prt⟩) (symm (hi₂ ⟨rtr, prt⟩))
+                  },
+                  { 
+                    apply list.ext,
+                    intro prt,
+                    exact eq.trans (ho₁ ⟨rtr, prt⟩) (symm (ho₂ ⟨rtr, prt⟩))
+                  },
+                  { exact eq.trans (symm hs₁) hs₂ },
+                  { exact eq.trans hp₁ (symm hp₂) },
+                  { exact eq.trans hr₁ (symm hr₂) }
+              },
+              { exact (eq.trans he₁ (symm he₂)) },
+            },
+            repeat { assumption },
+            { exact eq.trans hv₁.left (symm hv₂.left) }
+          }
         }
     end
 
