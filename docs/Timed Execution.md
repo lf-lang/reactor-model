@@ -98,7 +98,7 @@ def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop
   | (some next_tag) := 
     τ'.time = next_tag ∧ 
     τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
-    (τ →ₐ τ')  
+    (τ →ᵥ τ')  
 
 def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
 ```
@@ -174,9 +174,9 @@ There we split our definition depending on whether `next_tag` is `none` or not.
 def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
   | none            := ⊥ 
   | (some next_tag) := 
-    τ'.time = next_tag ∧ 
+    τ'.time = next_tag ∧                                     
     τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
-    (τ →ₐ τ')  
+    (τ →ᵥ τ')                                                
 ```
 
 If it is `none`, then `τ` does not have a next event (i.e. execution has completed), so `τ'` can't be the time progressed version of `τ`. If, on the other hand, we do have `some next_tag`, then we need to make sure that:
@@ -185,7 +185,7 @@ If it is `none`, then `τ` does not have a next event (i.e. execution has comple
 2. `τ'`'s event map is up to date
 3. all of `τ'`'s ports have values matching the ones defined by the event map
 
-Much like `→ₜ` is a sub-step of `→ₑ`, the `→ₐ` predicate defines the next "lower" layer for `→ₜ` (more on that later). 
+Much like `→ₜ` is a sub-step of `→ₑ`, the `→ᵥ` predicate defines the next "lower" layer for `→ₜ` (more on that later). 
 A crucial step we're going to consider here first though, is how the updated event map is defined.
 Recall that `τ` is post-instantaneous. Hence, its OAPs will contain TPAs that declare events, which are not yet part of the event map.
 If we want to make sure that all of `τ'`'s ports have values matching the ones defined by the event map, we first need to update the event map with the information contained in those TPAs. This updated event map is defined as:
@@ -208,8 +208,33 @@ Given some IAP `iap` and tag `t`, as well as a set of OAPs: which value should b
 Since IAPs can only be affected by actions from *connected* OAPs, we can focus on only those OAPs connected to `iap`: `(τ.oaps_for_iap' iap)`.
 The TPAs in those OAPs will contain tag-value pairs which may or may not have a tag of `t`. That is, there may be none or *multiple* OAPs declaring a value for `iap` at tag `t`. We want to choose the one that was scheduled *last*, as this fits the semantics of reactors by having later "writes" (for lack of a better term) override earlier writes. The OAP written to last will be the one with the lowest priority - so we sort the list of OAPs by priority using the `oap_le` predicate. In this list of OAPs, we still don't know which one will actually contain a tag-value pair where the tag is `t`. So we run through them until we find the first one where this is the case, and use its tag-value pair value as the return value. This concept of "iterate until non-`none`" is performed by `list.mfirst`. The input function to `list.mfirst` simply describes what the "value" for each instance should be. So here we provide a map from an OAP to the value of its tag-value pair with tag `t`, if there is one (the details of this map aren't really important).
 
-## Action Progression
+## Valid Future
 
-> Much like `→ₜ` is a sub-step of `→ₑ`, the `→ₐ` predicate defines the next "lower" layer for `→ₜ`. 
+> Much like `→ₜ` is a sub-step of `→ₑ`, the `→ᵥ` predicate defines the next "lower" layer for `→ₜ`. 
 
-The purpose of `→ₐ` (`is_action_progression`) is to ensure that as a timed network progresses from one tag to another, its underlying instantaneous network's ports reflect the values defined by the event map (i.e. by scheduled actions).
+The purpose of `→ᵥ` (`is_valid_future`) is to ensure that as a timed network progresses from one tag to another, its underlying instantaneous network's ports reflect the values defined by the event map (i.e. by scheduled actions):
+
+```lean
+def is_valid_future (τ τ' : timed.network υ) : Prop :=
+  τ'.actions = τ.actions ∧
+  τ'.σ.ids = τ.σ.ids ∧ 
+  τ'.σ.edges = τ.σ.edges ∧
+  (∀ r, τ.σ.rtr r ≈ₛ τ'.σ.rtr r) ∧
+  (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
+  (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none)
+```
+
+Networks `τ'` is a valid future of `τ` if:
+
+1. It's `actions` (action edges) are still the same - this is really just a technicality.
+2. 
+
+Strictly speaking, for the name of the predicate to make complete sense, we would also have to check that:
+
+* `τ'`'s tag is greater than that of `τ`
+* `τ'`'s event map only extends upon `τ`'s event map (doesn't lose events)
+
+But since these properties are ensured by the specific values demanded by `is_time_step`, we'll ignore these conditions here.
+
+
+There's really no reason this needs to be broken out into a predicate of its own (instead of being part of `is_time_step_aux`), except for 

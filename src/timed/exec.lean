@@ -19,37 +19,39 @@ namespace network
   -- 
   -- Declaring the values of the ports contains an annoying technicality in that we have to differentiate
   -- between absent ports and non-existant ports, which ammounts to the difference between `some none` and `none`.
-  def is_action_progression (τ τ' : timed.network υ) : Prop :=
+  def is_valid_future (τ τ' : timed.network υ) : Prop :=
     τ'.actions = τ.actions ∧
-    τ'.σ.ids = τ.σ.ids ∧ 
-    τ'.σ.edges = τ.σ.edges ∧
-    (∀ r, τ.σ.rtr r ≈ₛ τ'.σ.rtr r) ∧
+    τ'.σ ≈ τ.σ ∧ 
+    (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state) ∧
     (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
     (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none)
 
-  notation τ `→ₐ` τ' := is_action_progression τ τ'
+  notation τ `→ᵥ` τ' := is_valid_future τ τ'
 
-  -- If `τ₁` and `τ₂` are action progressions of `τ` for the same tag and event map, then `τ₁ = τ₂`.
-  theorem unique_action_progression {τ τ₁ τ₂ : timed.network υ} 
-    (h₁ : τ →ₐ τ₁) (h₂ : τ →ₐ τ₂) 
+  -- If `τ₁` and `τ₂` are valid futures of `τ` with the same tag and event map, then `τ₁ = τ₂`.
+  theorem unique_valid_future {τ τ₁ τ₂ : timed.network υ} 
+    (h₁ : τ →ᵥ τ₁) (h₂ : τ →ᵥ τ₂) 
     (hₜ : τ₁.time = τ₂.time) (hₑ : τ₁.events = τ₂.events) :
     τ₁ = τ₂ :=
     begin
       ext1,
       {
-        unfold is_action_progression at h₁ h₂,
+        unfold is_valid_future at h₁ h₂,
+        obtain ⟨he₁, hi₁, hq₁⟩ := h₁.2.1,
+        obtain ⟨he₂, hi₂, hq₂⟩ := h₂.2.1,
         ext1, ext1,
-          { exact (eq.trans h₁.right.left (symm h₂.right.left)) },
-          { 
-          obtain ⟨hr₁, ho₁, hi₁⟩ := h₁.right.right.right,
-          obtain ⟨hr₂, ho₂, hi₂⟩ := h₂.right.right.right,
+        { exact (eq.trans hi₁ (symm hi₂)) },
+        { 
+          obtain ⟨hs₁, ho₁, hi₁⟩ := h₁.2.2,
+          obtain ⟨hs₂, ho₂, hi₂⟩ := h₂.2.2,
           clear h₁ h₂,
           ext1 rtr,
-          obtain ⟨⟨hp₁, hn₁⟩, hs₁⟩ := hr₁ rtr, 
-          obtain ⟨⟨hp₂, hn₂⟩, hs₂⟩ := hr₂ rtr,
-          clear hr₁ hr₂, 
+          replace hs₁ := hs₁ rtr, 
+          replace hs₂ := hs₂ rtr, 
+          obtain ⟨hp₁, hr₁⟩ := hq₁ rtr,
+          obtain ⟨hp₂, hr₂⟩ := hq₂ rtr,
           unfold inst.network.port' inst.network.graph.port' reactor.port' at ho₁ ho₂ hi₁ hi₂,
-          unfold inst.network.rtr inst.network.graph.rtr at hp₁ hp₂ hn₁ hn₂ hs₁ hs₂ hi₁ hi₂ ho₁ ho₂,          
+          unfold inst.network.rtr inst.network.graph.rtr at hp₁ hp₂ hr₁ hr₂ hs₁ hs₂ hi₁ hi₂ ho₁ ho₂,          
           ext1,
             { 
               apply list.ext,
@@ -63,13 +65,12 @@ namespace network
               exact eq.trans (ho₁ ⟨rtr, prt⟩) (symm (ho₂ ⟨rtr, prt⟩))
             },
             { exact eq.trans (symm hs₁) hs₂ },
-            { exact eq.trans (symm hp₁) hp₂ },
-            { exact eq.trans (symm hn₁) hn₂ },
+            { exact eq.trans hp₁ (symm hp₂) },
+            { exact eq.trans hr₁ (symm hr₂) },
         },
-        { exact (eq.trans h₁.right.right.left (symm h₂.right.right.left)) }
+        { exact (eq.trans he₁ (symm he₂)) },
       },
-      { exact hₜ },
-      { exact hₑ },
+      repeat { assumption },
       { exact eq.trans h₁.left (symm h₂.left) }
     end
     
@@ -87,7 +88,7 @@ namespace network
     | (some next_tag) := 
       τ'.time = next_tag ∧ 
       τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
-      (τ →ₐ τ')  
+      (τ →ᵥ τ')  
 
   -- A pair of timed networks is a *time step*, if ...
   def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
@@ -104,11 +105,11 @@ namespace network
           exact h₁
         },
         {
-          obtain ⟨ht₁, he₁, ha₁⟩ := h₁,
-          obtain ⟨ht₂, he₂, ha₂⟩ := h₂,
+          obtain ⟨ht₁, he₁, hv₁⟩ := h₁,
+          obtain ⟨ht₂, he₂, hv₂⟩ := h₂,
           have ht, from eq.trans ht₁ (symm ht₂),
           have he, from eq.trans he₁ (symm he₂),
-          exact unique_action_progression ha₁ ha₂ ht he
+          exact unique_valid_future hv₁ hv₂ ht he
         }
     end
 
