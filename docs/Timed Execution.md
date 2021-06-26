@@ -77,14 +77,14 @@ Say we have a timed network `τ` with `τ.time = t` for some tag `t`.
 Despite having a fixed current time `t`, there's actually two possible states for `τ`:
 Its underlying instantaneous network `τ.σ` could be in the state *before* instantaneous execution, or *after* instantaneous execution for time `t`.
 For our formalization we have to decide whether a timed execution sequence should contain pre-instantaneous or post-instantaneous timed networks.  
-Here we opt for post-instantaneous timed networks, so that every network in the sequence represents a new time step (this isn't actually important though).
+Here we opt for post-instantaneous timed networks for no particular reason.
 
 Hence, for `τ'` to be a valid successor of `τ`, `τ'` needs to be the post-instantaneous version of `τ` at the next event's tag.
 We call the time-progressed but **pre**-instantaneous version of `τ`, `τₜ` - the definition of "time-progressed" (`→ₜ`) is covered in the next section.
 
 ![Execution Step Visualization](images/execution-step.png)
 
-Hence, the definition of `is_execution_step` states that `τ'` must be equal to `τₜ` is all aspects (`actions`, `events`, etc.) except that `τ'.σ = τₜ.σ.run'`.
+Hence, the definition of `is_execution_step` states that `τ'` must be equal to `τₜ` in all aspects (`actions`, `events`, etc.) except that `τ'.σ = τₜ.σ.run'`.
 
 ## Time Steps
 

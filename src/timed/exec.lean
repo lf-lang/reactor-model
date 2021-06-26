@@ -13,28 +13,32 @@ variables {υ : Type*} [decidable_eq υ]
 namespace timed
 namespace network
 
-  -- The events contained in the OAPs of the given network, represented as an event-map. 
+  -- The events contained in the OAPs of the given network, represented as an event-map.
+  -- This property is really only sensible for post-instantaneous networks.  
   -- 
-  -- Obtaining this mapping is non-trivial, because each IAP may have multiple OAPs which contain
-  -- a tag-value-pair for any given tag. Hence the (tag → value) map associated with a given IAP
+  -- Obtaining this map is non-trivial, because each IAP may have multiple OAPs which contain
+  -- a tag-value pair for any given tag. Hence the (tag → value) map associated with a given IAP
   -- has to return the value of the OAP with the lowest priority (the OAP that was written to *last*),
   -- where the value for the tag is not `none`.
   noncomputable def new_events (τ : timed.network υ) : event_map υ := 
-    λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map' t))
+    λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map t))
 
-  def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
+  -- 
+  def is_time_step_aux (τ τ' : timed.network υ) (events' : event_map υ) : option tag → Prop 
     | none            := ⊥ 
     | (some next_tag) := 
       τ'.time = next_tag ∧ 
-      τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
+      τ'.events = events' ∧ 
       (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
       (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.maybe τ'.time (τ'.events p τ'.time)) else none) ∧
       τ'.actions = τ.actions ∧
       τ'.σ ≈ τ.σ ∧ 
       (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state)
 
-  -- A pair of timed networks is a *time step*, if ...
-  def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
+  -- A pair of timed networks is a *time step*, if the latter network is a (pre-instantaneous) version of the former
+  -- with a time matching the next
+  def is_time_step (τ τ' : timed.network υ) : Prop := 
+    is_time_step_aux τ τ' (λ p t, τ.new_events p t <|> τ.events p t) τ.next_tag
 
   notation τ `→ₜ` τ' := is_time_step τ τ'
 

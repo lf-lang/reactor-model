@@ -1,4 +1,6 @@
-import inst.network.basic
+import timed.primitives
+import timed.actions
+import timed.events
 open reactor
 open reactor.ports
 
@@ -8,147 +10,10 @@ open_locale classical
 -- Their equality has to be decidable, but beyond that their values are of no interest.
 variables (υ : Type*) [decidable_eq υ]
 
--- A tag is a logical timestamp: the first component is the time value, the second component is
--- the microstep index. Their ordering is lexicographical.
-@[derive linear_order]
-def tag := lex ℕ ℕ  
-
--- A TPA is a finite set of tag-value pairs where each tag is unique. 
--- They are the primitive values used in timed reactor networks.
--- Since instantaneous networks wrap their primitive values in `option`, 
--- we require TPAs to be non-empty in order to avoid two versions of the absent value.
-structure tpa := 
-  (pairs : finset (tag × υ))
-  (unique: ∀ p p' ∈ pairs, prod.fst p = prod.fst p' → p = p')
-  (nonempty : pairs.nonempty)
-
-variable {υ}
-
--- A constructor for a TPA that can handle an optional value.
-def tpa.maybe : tag → option υ → option (tpa υ)
-  | _ none := none
-  | t (some v) := some { tpa .
-    pairs := {(t, v)},
-    unique := begin
-      intros p p',
-      simp,
-      intros h h' _,
-      rw [h, h']
-    end,
-    nonempty := by simp
-  } 
-
-def tpa.map (tp : tpa υ) : tag → set υ := 
-  λ t, { v | (t, v) ∈ tp.pairs }
-
-lemma tpa.map_subsingleton (tp : tpa υ) (t : tag) : (tp.map t).subsingleton :=
-  begin
-    unfold set.subsingleton tpa.map,
-    intros x hₓ x' hₓ',
-    rw set.mem_set_of_eq at hₓ hₓ',
-    have h, from tp.unique _ _ hₓ hₓ',
-    replace h := h (refl _),
-    injection h
-  end
-
-noncomputable def tpa.map' (tp : tpa υ) : tag → option υ := λ t, 
-  (tp.map_subsingleton t)
-    .eq_empty_or_singleton
-    .by_cases (λ _, none) (λ s, s.some)
-
--- An action edge connects an output action port (OAP) to an input action port (IAP).
-@[ext]
-structure timed.network.action_edge := 
-  (oap : port.id)
-  (iap : port.id)
-
 open timed.network
 
--- Action edges' equality is non-constructively decidable.
-noncomputable instance timed.network.action_edge_dec_eq : decidable_eq action_edge := classical.dec_eq _
-
--- The proposition that there can be at most one action edge per OAP.
-def finset.are_many_to_one (es : finset action_edge) : Prop :=
-  ∀ e e' : action_edge, e ∈ es → e' ∈ es → e.oap = e'.oap → e = e'
-
--- The proposition that action edges don't connect between different reactors.
-def finset.are_local (es : finset action_edge) : Prop :=
-  ∀ e : action_edge, e ∈ es → e.oap.rtr = e.iap.rtr
-
--- The proposition that an OAP has exactly one incoming connection.
-def finset.have_one_src_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
-  ∀ e : action_edge, e ∈ es → 
-  ∃! r : reaction.id, 
-    (e.oap ∈ σ.η.deps r role.output)
-
--- The proposition that a reaction can not connect to the same IAP through multiple OAPs.
-def finset.are_functionally_unique_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
-  ∀ (e e' : action_edge) (r : reaction.id), e ∈ es → e' ∈ es → 
-    (e.oap ∈ σ.η.deps r role.output) → (e'.oap ∈ σ.η.deps r role.output) → 
-    e.iap = e'.iap → e.oap = e'.oap
-
--- The proposition that action ports do not also behave as regular ports (by being connected
--- with network graph edges).
-def finset.are_separate_from (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
-  ∀ (ae : action_edge) (ne : inst.network.graph.edge), ae ∈ es → ne ∈ σ.η.edges → 
-    ae.iap ≠ ne.dst ∧ ae.oap ≠ ne.src
-
--- A given set of action edges (and by extension action ports) is well-formed for a given
--- instantaneous network, if all of the properties above hold.
-def finset.are_well_formed_for (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
-  es.are_many_to_one ∧ 
-  es.are_local ∧
-  es.have_one_src_in σ ∧ 
-  es.are_functionally_unique_in σ ∧
-  es.are_separate_from σ
-
--- Wellformedness of action edges is retained under equivalence of instantaneous reactor networks.
-lemma timed.network.equiv_inst_network_wf (es : finset action_edge) {σ σ' : inst.network (tpa υ)} (hq : σ' ≈ σ) (hw : es.are_well_formed_for σ) : 
-  es.are_well_formed_for σ' :=
-  begin
-    unfold finset.are_well_formed_for at hw ⊢,
-    simp only [(≈)] at hq,
-    repeat { split },
-      simp [hw],
-      simp [hw],
-      {
-        unfold finset.have_one_src_in inst.network.graph.deps inst.network.graph.rcn at ⊢ hw,
-        intros e hₑ,
-        obtain ⟨i, hᵢ⟩ := hw.right.right.left e hₑ,
-        rw exists_unique,
-        existsi i,
-        split,
-          { 
-            rw (hq.right.right i.rtr).right,
-            exact hᵢ.left
-          },
-          { 
-            intro x,
-            rw (hq.right.right x.rtr).right,
-            exact hᵢ.right x
-          }
-      },
-      {
-        unfold finset.are_functionally_unique_in inst.network.graph.deps inst.network.graph.rcn,
-        intros e e' i,
-        rw (hq.right.right i.rtr).right,
-        exact hw.right.right.right.left e e' i
-      },
-      {
-        unfold finset.are_separate_from,
-        rw hq.left,
-        exact hw.right.right.right.right
-      }
-  end
-
-variable (υ)
-
-def timed.network.event_map := port.id → tag → option υ
-
-open timed.network
-
--- A timed reactor network wraps an instantaneous reactor network and equips it with actions 
--- (via action-ports and -edges), as well as timed execution.
+-- A timed reactor network wraps an instantaneous reactor network and equips it with 
+-- a current time (-tag), actions, events and timed execution.
 @[ext]
 structure timed.network :=
   (σ : inst.network (tpa υ))
@@ -163,13 +28,18 @@ namespace network
   variable {υ}
 
   -- The input action ports for a given timed network.
-  noncomputable def iaps (τ : timed.network υ) : finset port.id := τ.actions.image (λ e, e.iap)
+  -- These can simply be extracted from the network's action edges.
+  noncomputable def iaps (τ : timed.network υ) : finset port.id := 
+    τ.actions.image (λ e, e.iap)
 
   -- The output action ports for a given timed network.
-  noncomputable def oaps (τ : timed.network υ) : finset port.id := τ.actions.image (λ e, e.oap)
+  -- These can simply be extracted from the network's action edges.
+  noncomputable def oaps (τ : timed.network υ) : finset port.id := 
+    τ.actions.image (λ e, e.oap)
 
+  -- An equivalence proposition for what it means to be an OAP for a given network.
   lemma oaps_mem {τ : timed.network υ} {oap : port.id} : 
-    oap ∈ τ.oaps ↔ (∃ iap, { action_edge . oap := oap, iap := iap } ∈ τ.actions) :=
+    oap ∈ τ.oaps ↔ (∃ iap, (action_edge.mk oap iap) ∈ τ.actions) :=
     begin
       unfold oaps,
       rw finset.mem_image,
@@ -190,19 +60,15 @@ namespace network
         }
     end
 
+  -- The proposition that a given IAP is connected to a given OAP.
+  -- This property is trivially stated, but is defined separately anyway as it
+  -- is used for further definitions below (notably as the starting point for `oaps_for_iap`).
   def iap_has_oap (τ : timed.network υ) (iap : port.id) (oap : port.id) : Prop :=
     { action_edge . oap := oap, iap := iap } ∈ τ.actions
 
-  -- A reactor network can only contain finitely many actions edges. Hence this lemma must hold.
-  -- The problem is that eventhough `iap_has_oap` quantifies over `τ.actions` (which is finite),
-  -- this fact does not entail that there can only be finitely many ports that fulfill the proposition.
-  -- 
-  -- The fact that the internal proposition in `iap_has_oap` is a simple equality though, should help.
-  -- If there only exist finitely many `ae ∈ τ.actions` there can only exist finitely many instances 
-  -- `{ oap := oap, iap := iap }` which are equal to some `ae` and hence there can only exist finitely many
-  -- `oap` for which this proposition holds.
-  -- Perhaps you can split the `∃ ae ∈ τ.actions` into `∃ (aeₒ aeᵢ) (h : ⟨aeₒ, aeᵢ⟩ ∈ τ.actions)` and then
-  -- only consider `aeₒ`.
+  -- Any given IAP is connected to only finitely many OAPs.
+  -- Since a reactor network can only contain finitely many actions edges (it's a `finset`), 
+  -- this property trivially holds (on intuitive level).
   lemma iap_has_finite_oaps (τ : timed.network υ) (iap : port.id) : { oap | τ.iap_has_oap iap oap }.finite :=
     begin
       unfold set.finite,
@@ -210,10 +76,13 @@ namespace network
       sorry
     end 
 
-  -- The set of OAPs connected to a given IAP.
+  -- The (finite) set of OAPs connected to a given IAP.
   noncomputable def oaps_for_iap (τ : timed.network υ) (iap : port.id) : finset port.id :=
     (iap_has_finite_oaps τ iap).to_finset
 
+  -- If a given port is in the set of OAPs for some IAP (returned as part of `oaps_for_iap`),
+  -- then it is also in the set of OAPs of the corresponding network (`oaps`).
+  -- This property is simply a technicality used to define `oaps_for_iap'`.
   lemma oaps_for_iap_mem {τ : timed.network υ} {iap oap : port.id} (h : oap ∈ τ.oaps_for_iap iap) : oap ∈ τ.oaps :=  
     begin
       rw oaps_mem,
@@ -223,80 +92,31 @@ namespace network
       exact h
     end
 
-  -- The set of OAPs connected to a given IAP.
+  -- The set of OAPs connected to a given IAP with a proof of `oap ∈ τ.oaps` attached for each `oap`.
+  -- This build directly on the definition of `oaps_for_iap`.
   noncomputable def oaps_for_iap' (τ : timed.network υ) (iap : port.id) : finset { oap // oap ∈ τ.oaps } :=
     (τ.oaps_for_iap iap).attach.image (λ oap, subtype.mk ↑oap (oaps_for_iap_mem oap.property))
 
   -- A lifted version of `reactor.rcns_dep_to`.
+  -- This is the starting point for the definition of `src_for_oap`.
   def rcns_dep_to (τ : timed.network υ) (r : ports.role) (p : port.id) : set reaction.id :=
     ((τ.σ.η.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
 
-  -- This is a different way of expressing of `finset.have_one_src_in`, which is more suitable for use in `src_for_oap`.
+  -- This is a different way of expressing `finset.have_one_src_in`, 
+  -- which is more suitable for use in `src_for_oap`.
   lemma rcns_dep_to_oap_singleton {τ : timed.network υ} {oap : port.id} (h : oap ∈ τ.oaps) : 
     ∃ r, (τ.rcns_dep_to role.output oap) = {r} :=
-    begin
-      simp only [oaps, finset.mem_image] at h,
-      obtain ⟨e, hₑ, hₒ⟩ := h,
-      have h, from τ.well_formed.right.right.left,
-      unfold finset.have_one_src_in at h,
-      replace h := h e hₑ,
-      rw exists_unique at h,
-      obtain ⟨r, hᵣ, hᵤ⟩ := h,
-      existsi r,
-
-
-      unfold rcns_dep_to,
-      rw set.image,
-      rw set.eq_singleton_iff_unique_mem,
-      split,
-        sorry,
-        {
-          intros x hₓ,
-          obtain ⟨a, ⟨haₘ, haₑ⟩⟩ := hₓ,
-          suffices hg : e.oap ∈ τ.σ.η.deps x role.output, from hᵤ x hg,
-          unfold inst.network.graph.deps,
-          rw finset.mem_image,
-          existsi a,
-          
-        }
-
-
-
-      /-
-      
-      rw hₒ at hᵣ hᵤ,
-      rw set.eq_singleton_iff_unique_mem,
-      unfold rcns_dep_to,
-      split,
-        {
-          rw set.mem_image,
-          existsi r.rcn,
-          split,
-            {
-              sorry
-            },
-            { 
-              simp [inst.network.graph.deps] at hᵣ,
-              obtain ⟨_, _, h⟩ := hᵣ,
-              rw ((congr_arg port.id.rtr (eq.symm h)).trans rfl),
-              ext1,
-              simp
-            }
-        },
-        {
-          intro x,
-          rw set.mem_image,
-          intro h,
-          obtain ⟨y, h_y⟩ := h,
-          sorry
-        }
-        -/
-    end
+    sorry
 
   -- The unique reaction connected to a given OAP.
+  -- This property is only defined when the given port is proven to be an OAP.
+  -- For all other ports, we wouldn't be able to define this property.
   noncomputable def src_for_oap (τ : timed.network υ) {oap : port.id} (h : oap ∈ τ.oaps) : reaction.id :=
     (rcns_dep_to_oap_singleton h).some
 
+  -- The source of an OAP (the reaction it is connected to) lives in the same reactor
+  -- as the OAP itself.
+  -- This lemma is ultimately used to show that `oap_le` is antisymmetric.
   lemma oap_src_eq_rtr {τ : timed.network υ} {oap : port.id} (h : oap ∈ τ.oaps) : 
     (τ.src_for_oap h).rtr = oap.rtr :=
     begin
@@ -306,23 +126,32 @@ namespace network
       simp only [rcns_dep_to, set.mem_image] at h',
       obtain ⟨_, _, he⟩ := h',
       unfold Exists.some at ⊢ he,
-      sorry, -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Injection.20failing
+      -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Injection.20failing
+      sorry 
     end
   
+  -- If two OAPs have the same source (are connected to the same reaction), 
+  -- then they must be the same OAP. This is a result of `have_one_src_in` property
+  -- of action edges in timed networks.
+  -- This lemma is ultimately used to show that `oap_le` is antisymmetric.
   lemma eq_src_eq_oap {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} (h : τ.src_for_oap hₘ = τ.src_for_oap hₘ') : 
     oap = oap' :=
-    begin
-      sorry -- This should be similar to `oap_src_eq_rtr` above
-    end
+    -- This should be similar to the proof of `oap_src_eq_rtr` above.
+    sorry 
 
-  -- The priority of a given OAP is the priority of the reaction it is connected to.
-  -- The OAP's reactor's ID is added on just to make sure that each OAP in a network has a unique priority.
-  -- This makes ordering them a bit easier without any loss of generality.
+  -- The priority for a given OAP is the priority of the (unique) reaction it is connected to.
+  --
+  -- The OAP's reactor's ID is added as part of the priority (now ℕ × ℕ instead of just ℕ),
+  -- to make sure that each OAP in a *network* has a unique priority.
+  -- This makes ordering them (in `oap_le`) a bit easier, without any loss of generality.
+  --
+  -- This property is only defined when the given port is proven to be an OAP.
+  -- For all other ports, we wouldn't be able to define this property (cf. the documentation 
+  -- for `src_for_oap`).
   noncomputable def priority_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : lex ℕ ℕ :=
     (oap.rtr, (τ.src_for_oap h).priority)
 
-  -- No two OAPs have the same priority.
-  -- This fact is really only relevant within reactors, not across reactors.
+  -- No two (different) OAPs have the same priority.
   lemma unique_oap_priority 
     {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} 
     (h : τ.priority_for_oap oap hₘ = τ.priority_for_oap oap' hₘ') : 
@@ -341,6 +170,10 @@ namespace network
       exact eq_src_eq_oap h,
     end
 
+  -- A predicate for sorting OAPs by their priority.
+  -- We require the OAPs to be given as instances of the subtype `{ o // o ∈ τ.oaps }`,
+  -- because only then can we ensure that we can associate a priority with the port
+  -- (cf. the documentation for `priority_for_oap`).
   def oap_le {τ : timed.network υ} (oap oap' : { o // o ∈ τ.oaps }) : Prop :=
     τ.priority_for_oap ↑oap oap.property ≤ τ.priority_for_oap ↑oap' oap'.property
 
@@ -365,38 +198,6 @@ namespace network
     unfold oap_le,
     apply le_total
   end⟩
-
-  -- The tags for which the given timed network has events scheduled.
-  -- Note that this set also contains all tags from past events.
-  def event_tags (τ : timed.network υ) : set tag :=
-    { t | ∃ (m : tag → option υ) (h : m ∈ τ.iaps.image τ.events), m t ≠ none }
-
-  -- The proposition that a given tag is the next tag for which a given network has a scheduled event.
-  -- This is the case if the given tag comes after the networks current tag, but is smaller or equal to
-  -- the tags of all other scheduled events.
-  def tag_is_next (τ : timed.network υ) (t : tag) : Prop :=
-    t ∈ τ.event_tags ∧ (t > τ.time) ∧ (∀ t' ∈ τ.event_tags, t' > τ.time → t ≤ t')
-
-  -- There can only ever be at most one next tag.
-  lemma next_tags_subsingleton (τ : timed.network υ) :
-    { t | τ.tag_is_next t }.subsingleton :=
-    begin
-      unfold set.subsingleton,
-      intros x hx y hy,
-      rw set.mem_set_of_eq at hx hy,
-      unfold tag_is_next at hx hy,
-      obtain ⟨hmx, hgx, hlx⟩ := hx,
-      obtain ⟨hmy, hgy, hly⟩ := hy,
-      have hgex, from hly x hmx hgx,
-      have hgey, from hlx y hmy hgy,
-      exact le_antisymm hgey hgex
-    end
-
-  -- The next tag at which an event occurs.
-  noncomputable def next_tag (τ : timed.network υ) : option tag :=
-    (next_tags_subsingleton τ)
-      .eq_empty_or_singleton
-      .by_cases (λ _, none) (λ s, s.some)
 
 end network
 end timed
