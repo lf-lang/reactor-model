@@ -37,7 +37,7 @@ namespace network
   noncomputable def oaps (τ : timed.network υ) : finset port.id := 
     τ.actions.image (λ e, e.oap)
 
-  -- An equivalence proposition for what it means to be an OAP for a given network.
+  -- An equivalence for what it means to be an OAP for a given network.
   lemma oaps_mem {τ : timed.network υ} {oap : port.id} : 
     oap ∈ τ.oaps ↔ (∃ iap, (action_edge.mk oap iap) ∈ τ.actions) :=
     begin
@@ -200,7 +200,7 @@ namespace network
   end⟩
 
   -- The events contained in the OAPs of the given network, represented as an event-map.
-  -- This property is really only sensible for post-instantaneous networks.  
+  -- This property is really only meaningful for post-instantaneous networks.  
   -- 
   -- Obtaining this map is non-trivial, because each IAP may have multiple OAPs which contain
   -- a tag-value pair for any given tag. Hence the (tag → value) map associated with a given IAP
@@ -209,11 +209,16 @@ namespace network
   noncomputable def new_events (τ : timed.network υ) : event_map υ := 
     λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map t))
 
+  -- *All* events contained in a given network.
+  -- For pre-instantaneous networks, this property is equal to `timed.network.μ`.
+  -- For post-instantaneous networks, this property adds the `new_events` (events contained
+  -- only in the network's OAPs) to the ones contained in `timed.network.μ`.
   noncomputable def all_events (τ : timed.network υ) : event_map υ := 
     (λ p t, τ.new_events p t <|> τ.μ p t)
 
-  -- The next tag (after its current time), for which the network has
-  -- a scheduled event (if there is any).
+  -- The next tag (after its current time), for which the network has a scheduled event (if there is any).
+  -- Not that this tag is extracted from `all_events` not just `timed.network.μ`, implying that it
+  -- can be used equally well for pre- and post-instantaneous networks.
   noncomputable def next_tag (τ : timed.network υ) : option tag :=
     τ.all_events.next_tag_after τ.time
 

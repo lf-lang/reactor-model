@@ -14,7 +14,7 @@ Timed networks are built upon instantaneous networks:
 structure timed.network :=
   (σ : inst.network (tpa υ))
   (time : tag)
-  (events : event_map υ)
+  (μ : event_map υ)
   (actions : finset action_edge)
   (well_formed : actions.are_well_formed_for σ)
 ```
@@ -25,9 +25,9 @@ This is somewhat unfortunate in that it would be more desirable to have a *descr
 One of the goals in the formalization of timed execution is to make it descriptive.
 
 The connection point between timed and instantaneous execution is *actions*. 
-As described in *PDiR*, they are formalized as special ports (cf. `timed.network.actions` and `timed.network.well_formed`).
-As a result, if we want to use `inst.network.run'` as part of the timed execution model, we need to provide it with precisely those networks as input that represent the network graph at the given time/execution step - that is, with all action ports correctly populated, etc.
-In turn, a large part of this formalization is a result of interfacing between the descriptive and the algorithmic world - that is, having to create precise descriptions of specific networks, to be used by `inst.network.run'`.
+As described in *PDiR*, they are formalized as special ports connected by special edges (cf. `timed.network.actions` and `timed.network.well_formed`).
+As a result, if we want to use `inst.network.run'` as part of the timed execution model, we need to provide it with precisely those networks as input that represent the network graph at the given time/execution step - that is, with all action ports correctly populated.
+In turn, a large part of this formalization is a result of interfacing between the descriptive and the algorithmic world - that is, creating precise descriptions of specific networks, to be used by `inst.network.run'`.
 
 ## Execution Steps
 
@@ -51,40 +51,42 @@ Hence, the formalization of `→ₑ` (`is_execution_step`) is a proposition over
 
 ```lean
 def is_execution_step : option (timed.network υ) → option (timed.network υ) → Prop 
-  | (some τ) none      := τ.next_tag = none
-  | none     none      := ⊤
-  | none     (some _)  := ⊥
-  | (some τ) (some τ') := ∃ τₜ, (τ →ₜ τₜ) ∧ -- τₜ is a time-progressed version of τ
-    (τ'.σ = τₜ.σ.run') ∧                   -- τ' must be an executed version of τₜ
-    (τ'.time = τₜ.time) ∧                  -- τ' must be at the time of the "next action" (given by τₜ)
-    (τ'.events = τₜ.events) ∧              -- τ' must inherit all future events (given by τₜ) [in this case, past events are also inherited]
-    (τ'.actions = τₜ.actions)              -- τ' must still have the same actions (action ports and edges) as τ 
+  | (some τ) none      := τ.next_tag = none -- 1
+  | none     none      := ⊤                 -- 2
+  | none     (some _)  := ⊥                 -- 3
+  | (some τ) (some τ') := ∃ τₜ, (τ →ₜ τₜ) ∧ 
+    (τ'.σ = τₜ.σ.run') ∧                   
+    (τ'.time = τₜ.time) ∧                  
+    (τ'.μ = τₜ.μ) ∧                        
+    (τ'.actions = τₜ.actions)    
 ```
 
 The first three cases are a formality for dealing with the optionality:
 
 1. The way we handle finite execution in this `seq`-based model is by ending the sequence once the network's execution is complete. 
 That is, if there are no more events (actions) to be processed, we require the next element in the sequence to be `none`.
-This is formalized by stating that `none` is a valid successor of `some τ` iff `τ` does not have a `next_tag` (more on `next_tag` later).
+This is formalized by stating that `none` is a valid successor of `some τ`, if `τ` does not have a `next_tag` (more on `next_tag` later).
 2. If both elements are `none`, then we've already reached the part of the sequence where execution has ended. 
 So `none` is considered a valid successor of `none`.
 3. Since `seq`s can never contain `some _` after `none`, this third case can never occur.
  
-The only case in which we *really* describe timed execution is when we have to describe whether two timed networks form a valid execution step.
+The only case in which we *really* describe timed execution, is when we have to describe whether two timed networks form a valid execution step.
 This is also where we have to decide on the following detail of the formalization:
 
+### Pre- and Post-Instantaneous Networks
+
 Say we have a timed network `τ` with `τ.time = t` for some tag `t`.
-Despite having a fixed current time `t`, there's actually two possible states for `τ`:
+Despite having a fixed current time `t`, there are actually two possible states for `τ`:
 Its underlying instantaneous network `τ.σ` could be in the state *before* instantaneous execution, or *after* instantaneous execution for time `t`.
-For our formalization we have to decide whether a timed execution sequence should contain pre-instantaneous or post-instantaneous timed networks.  
+For our formalization we have to decide whether a timed execution sequence should contain "pre-instantaneous" or "post-instantaneous" timed networks.  
 Here we opt for post-instantaneous timed networks for no particular reason.
 
-Hence, for `τ'` to be a valid successor of `τ`, `τ'` needs to be the post-instantaneous version of `τ` at the next event's tag.
-We call the time-progressed but **pre**-instantaneous version of `τ`, `τₜ` - the definition of "time-progressed" (`→ₜ`) is covered in the next section.
+Hence, for `τ'` to be a valid execution step of `τ`, `τ'` needs to be the *post-instantaneous* version of `τ` at the next event's tag.
+We call the time-progressed but **pre**-instantaneous version of `τ`: `τₜ` (the definition of "time-progressed" is covered in the next section).
+
+Hence, the definition of `is_execution_step` states that `τ'` must be equal to `τₜ` in all aspects (`actions`, `events`, etc.) except that it should be post-instantaneous (`τ'.σ = τₜ.σ.run'`).
 
 ![Execution Step Visualization](images/execution-step.png)
-
-Hence, the definition of `is_execution_step` states that `τ'` must be equal to `τₜ` in all aspects (`actions`, `events`, etc.) except that `τ'.σ = τₜ.σ.run'`.
 
 ## Time Steps
 
@@ -97,9 +99,9 @@ def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop
   | none            := ⊥ 
   | (some next_tag) := 
     τ'.time = next_tag ∧ 
-    τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
+    τ'.μ = τ.all_events ∧ 
     (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
-    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) ∧
+    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.maybe τ'.time (τ'.μ p τ'.time)) else none) ∧
     τ'.actions = τ.actions ∧
     τ'.σ ≈ τ.σ ∧ 
     (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state)
@@ -111,58 +113,117 @@ A network `τ'` is a time step of a network `τ`, if `τ'` is a pre-instantaneou
 
 ### Events
 
-In the context of `timed.network` (i.e. a purely *logically* timed network), the only possible events that can occur are the manifestations of logical actions. Logical actions are scheduled by reactions writing corresponding TPAs to OAPs (cf. *PDiR* Section 5).
-To achieve a more descriptive view on the entirety of scheduled actions (than scanning OAPs for that information), we define:
+In the context of `timed.network` (i.e. a purely *logically* timed network), the only possible events that can occur are the manifestations of logical actions. Logical actions are scheduled by reactions writing corresponding TPAs to OAPs (cf. *PDiR* Section 5). To keep track of scheduled events across multiple time tags (and hence multiple instantaneous executions) we define a global structure for storing them.  
+But instead on directly storing the OAPs' TPAs, we use a more descriptive view on scheduled events by defining:
 
 ```lean
 def timed.network.event_map := port.id → tag → option υ
 
 structure timed.network :=
   ...
-  (events : event_map υ)
+  (μ : event_map υ)
   ...
 ```
 
-The `event_map` tells us which port is assigned which value at which tag (note that this map is partial). This map will be populated and updated according to the actions scheduled during execution (more on that later). Hence, this map assigns values only to *IAPs* - no other kind of port. 
+An `event_map` tells us which port is assigned which value at which tag (note that this map is partial). This map will be populated and updated according to the actions scheduled during execution (more on that later). Hence, this map assigns values only to *IAPs* - no other kind of port. 
 From this map we can extract useful information like:
 
 ```lean
--- The tags for which the given timed network has events scheduled.
+-- The tags for which a given event map contains events.
 -- Note that this set also contains all tags from past events.
-def event_tags (τ : timed.network υ) : set tag :=
-  { t | ∃ (m : tag → option υ) (h : m ∈ τ.oaps.image τ.events), m t ≠ none }
+def event_tags (μ : event_map υ) : set tag := { t | ∃ p, μ p t ≠ none }
 ```
 
-From this we can derive what it means to be the "next tag":
+From this we can derive what it means to be the "next tag" (after a given reference point):
 
 ```lean
--- The proposition that a given tag is the next tag for which a given network has a scheduled event.
--- This is the case if the given tag comes after the networks current tag, but is smaller or equal to
--- the tags of all other scheduled events.
-def tag_is_next (τ : timed.network υ) (t : tag) : Prop :=
-  t ∈ τ.event_tags ∧ (t > τ.time) ∧ (∀ t' ∈ τ.event_tags, t' > τ.time → t ≤ t')
+-- The proposition that a given tag is the next tag for which a given event map
+-- has a scheduled event, starting from a given "current" tag.
+-- This is the case if the given tag comes after the current tag, but is smaller 
+-- or equal to the tags of all other scheduled events.
+def tag_is_next_after (μ : event_map υ) (n c : tag) : Prop :=
+  n ∈ μ.event_tags ∧ (n > c) ∧ (∀ t ∈ μ.event_tags, t > c → n ≤ t)
 ```
 
-Since there can only ever be one next tag, we can also directly define a `next_tag` property on a timed network.
+Since there can only ever be one next tag, we can also directly define a `next_tag_after` property.
 The approach used for this definition is employed a couple of times throughout this formalization:
 
-1. Define a proposition (here: `tag_is_next`).
+1. Define a proposition (here: `tag_is_next_after`).
 2. Prove that this proposition is fulfilled by exactly/at most one object (here: `next_tags_subsingleton`).
-3. Define that object by extracting it (using `classical`) from the previous proof (here: `next_tag`).
+3. Define that object by extracting it (using `classical`) from the previous proof (here: `next_tag_after`).
 
 ```lean
--- There can only ever be at most one next tag.
-lemma next_tags_subsingleton (τ : timed.network υ) : { t | τ.tag_is_next t }.subsingleton := ...
+-- There can only ever be at most one next tag after a given "current" time, 
+-- for an event map.
+lemma next_tags_subsingleton (μ : event_map υ) (c : tag) :
+  { t | μ.tag_is_next_after t c}.subsingleton := ...
 
--- The next tag at which an event occurs.
-noncomputable def next_tag (τ : timed.network υ) : option tag :=
-  (next_tags_subsingleton τ)
+-- The next tag for which a given event map has a scheduled event, 
+-- after a given "current" time.
+noncomputable def next_tag_after (μ : event_map υ) (c : tag) : option tag :=
+  (next_tags_subsingleton μ c)
     .eq_empty_or_singleton
     .by_cases (λ _, none) (λ s, s.some)
 ```
 
-The drawback of this approach is that the definition of `next_tag` is pretty opaque, since it only consists of technicalities. 
-But the benefit is that we've managed to define it purely descriptively, as a result of `tag_is_next` and `next_tags_subsingleton`.
+The drawback of this approach is that the definition of `next_tag_after` is pretty opaque, since it only consists of technicalities. 
+But the benefit is that we've managed to define it purely descriptively, as a result of `tag_is_next_after` and `next_tags_subsingleton`.
+
+#### Events in Pre- vs. Post-Instantaneous Networks
+
+Pre- and post-instantaneous differ in their event maps in one important way: 
+In pre-instantaneous networks *all* scheduled events are present in their global event map `μ`.
+In post-instantaneous networks all events scheduled during the last instantaneous execution are
+*only* present in the network's OAPs, while all previously scheduled events are already part of the 
+event map `μ`.
+
+The reason for this is that instantaneous execution does not handle updating of the global event map `μ`.
+Hence, post-instantaneous networks live in a state where this propagation of information from the OAPs
+to `μ` has not yet taken place. 
+
+An important consquence of this is that we have to be careful in how we handle a network's event map `μ`,
+since is a complete representation of scheduled events *only* when dealing with pre-instantaneous networks.
+To aid with this problem, we define the following properties:
+
+```lean
+-- The events contained in the OAPs of the given network, represented as an event-map.
+-- This property is really only meaningful for post-instantaneous networks.  
+-- 
+-- Obtaining this map is non-trivial, because each IAP may have multiple OAPs which contain
+-- a tag-value pair for any given tag. Hence the (tag → value) map associated with a given IAP
+-- has to return the value of the OAP with the lowest priority (the OAP that was written to *last*),
+-- where the value for the tag is not `none`.
+noncomputable def new_events (τ : timed.network υ) : event_map υ := 
+  λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map t))
+
+-- *All* events contained in a given network.
+-- For pre-instantaneous networks, this property is equal to `timed.network.μ`.
+-- For post-instantaneous networks, this property adds the `new_events` (events contained
+-- only in the network's OAPs) to the ones contained in `timed.network.μ`.
+noncomputable def all_events (τ : timed.network υ) : event_map υ := 
+  (λ p t, τ.new_events p t <|> τ.μ p t)
+
+-- The next tag (after its current time), for which the network has a scheduled event (if there is any).
+-- Not that this tag is extracted from `all_events` not just `timed.network.μ`, implying that it
+-- can be used equally well for pre- and post-instantaneous networks.
+noncomputable def next_tag (τ : timed.network υ) : option tag :=
+  τ.all_events.next_tag_after τ.time
+```
+
+We use `new_events` to extract an event map from a given network's OAPs.
+This definition is really opaque, but we can explain it by answering the following question.
+Given some IAP `iap` and tag `t`, as well as a set of OAPs: which value should be assigned to `iap` at tag `t` according to the OAPs?
+Since IAPs can only be affected by actions from *connected* OAPs, we can focus on only those OAPs connected to `iap`: `(τ.oaps_for_iap' iap)`.
+The TPAs in those OAPs will contain tag-value pairs which may or may not have a tag of `t`. That is, there may be none or *multiple* OAPs declaring a value for `iap` at tag `t`. We want to choose the one that was scheduled *last*, as this fits the semantics of reactors by having later "writes" (for lack of a better term) override earlier writes. The OAP written to last will be the one with the lowest priority - so we sort the list of OAPs by priority using the `oap_le` predicate. In this list of OAPs, we still don't know which one will actually contain a tag-value pair where the tag is `t`. So we run through them until we find the first one where this is the case, and use its tag-value pair value as the return value. This concept of "iterate until non-`none`" is performed by `list.mfirst`. The input function to `list.mfirst` simply describes what the "value" for each instance should be. So here we provide a map from an OAP to the value of its tag-value pair with tag `t`, if there is one (the details of this map aren't really important).
+
+We can then get a *complete* representation of scheduled events for *post*-instantaneous networks,
+by combining the `new_events` with the global event map `μ` in a property called `all_events`.
+What this definition states is that new events override previously scheduled events. That is, if `τ.new_events` and `τ.μ` *both* define a (non-`none`) value for port `p` at tag `t`, then `τ.new_events` takes precedence.
+Note that `all_events` is equally useful for pre- as for post-instantanous networks.
+
+Lastly, we define a `next_tag` property, which tells us when the next event is scheduled for a
+given network. Note that this property uses `all_events` instead of just `μ` in order to work
+with post-instantanous networks.
 
 ### Back to `→ₜ`
 
@@ -179,12 +240,12 @@ def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop
   | none            := ⊥ 
   | (some next_tag) := 
     -- 1
-    τ'.time = next_tag ∧                                                    
+    τ'.time = next_tag ∧ 
     -- 2
-    τ'.events = (λ p t, τ.new_events p t <|> τ.events p t) ∧ 
+    τ'.μ = τ.all_events ∧ 
     -- 3
     (∀ p, τ'.σ.port' role.output p = if (τ.σ.port' role.output p).is_some then some none else none) ∧
-    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) ∧                                                 
+    (∀ p, τ'.σ.port' role.input  p = if (τ.σ.port' role.input  p).is_some then (tpa.maybe τ'.time (τ'.μ p τ'.time)) else none) ∧
     -- 4
     τ'.actions = τ.actions ∧
     τ'.σ ≈ τ.σ ∧ 
@@ -194,51 +255,27 @@ def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop
 If it is `none`, then `τ` does not have a next event (i.e. execution has completed), so `τ'` can't be the time progressed version of `τ`. If, on the other hand, we do have `some next_tag`, then we need to make sure that:
 
 1. `τ'`'s time is `next_tag`.
-2. `τ'`'s event map is up to date.
+2. `τ'`'s event map is up to date (i.e. the global event map now inherits the events contained in the OAPs via `all_events`).
 3. All of `τ'`'s ports have values matching the ones defined by the event map.
 4. Nothing else has changed from `τ` to `τ'`. 
 
-We've already covered how to find the `next_tag`. So next, let's consider how the updated event map is defined.
-
-### Updated Event Map
-
-Recall that `τ` is post-instantaneous. Hence, its OAPs will contain TPAs that declare events, which are not yet part of the event map.
-If we want to make sure that all of `τ'`'s ports have values matching the ones defined by the event map, we first need to update the event map with the information contained in those TPAs. This updated event map is defined as:
-
-```lean
-(λ p t, τ.new_events p t <|> τ.events p t)
-```
-
-What this definition states is that new events (more on that in a moment) override previously scheduled events. That is, if `τ.new_events` and `τ.events` *both* define a (non-`none`) value for port `p` at tag `t`, then `τ.new_events` takes precedence.
-
-The `new_events` are also an `event_map` which captures exactly those events contained in the given network's OAPs' TPAs:
-
-```lean
-noncomputable def new_events (τ : timed.network υ) : event_map υ := 
-  λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map' t))
-```
-
-This definition is really opaque, but we can explain it by answering the following question.
-Given some IAP `iap` and tag `t`, as well as a set of OAPs: which value should be assigned to `iap` at tag `t` according to the OAPs?
-Since IAPs can only be affected by actions from *connected* OAPs, we can focus on only those OAPs connected to `iap`: `(τ.oaps_for_iap' iap)`.
-The TPAs in those OAPs will contain tag-value pairs which may or may not have a tag of `t`. That is, there may be none or *multiple* OAPs declaring a value for `iap` at tag `t`. We want to choose the one that was scheduled *last*, as this fits the semantics of reactors by having later "writes" (for lack of a better term) override earlier writes. The OAP written to last will be the one with the lowest priority - so we sort the list of OAPs by priority using the `oap_le` predicate. In this list of OAPs, we still don't know which one will actually contain a tag-value pair where the tag is `t`. So we run through them until we find the first one where this is the case, and use its tag-value pair value as the return value. This concept of "iterate until non-`none`" is performed by `list.mfirst`. The input function to `list.mfirst` simply describes what the "value" for each instance should be. So here we provide a map from an OAP to the value of its tag-value pair with tag `t`, if there is one (the details of this map aren't really important).
+We've already covered how to find the `next_tag`, as well as how to construct the updated event map (`all_events`). So next, let's consider how the ports are ensured to have values matching the ones defined by the event map.
 
 ## Adjusted Ports
 
-The third sections in the definition of `→ₜ` was  described by: "All of `τ'`'s ports have values matching the ones defined by the event map."
-This is achieved by stating two rules which are actually pretty simple, but are again veiled by technicalities.
+This is achieved by stating two rules which are actually pretty simple, but are veiled by technicalities.
 For the sake of explanation, we will first look at a version of those rules with those technicalities removed. Note that this wouldn't be valid Lean code:
 
 ```lean
 (∀ p, τ'.σ.port role.output p = none) 
 -- and 
-(∀ p, τ'.σ.port role.input p = tpa.maybe τ'.time (τ'.events p τ'.time)) 
+(∀ p, τ'.σ.port role.input p = tpa.maybe τ'.time (τ'.μ p τ'.time)) 
 ```
 
 The first rule states that for every *output* port `p` in network `τ'`, the value of the port should be `none` (i.e. absent).
 This corresponds to the notion that reactors wipe their (output) ports after every time step. Since this clearing of ports isn't performed by `inst.network.run` (because that would imply that we can never inspect the written TPAs), we perform that step here.
 
-The second rule states that for every *input* port `p` in network `τ'`, the value of the port should be a TPA that contains *exactly one* tag-value pair (that's what the `tpa.maybe` constructor is for) with the tag being `τ'`'s time and the value being the one that is defined by the event map for that port and tag (`τ'.events p τ'.time`). The reason why the TPA constructor is called `maybe` is, because it can handle the value being `none`. This is required here, because the event map might not have a defined value for the given port and tag. If this is the case, `tpa.maybe` evaluates to `none`.
+The second rule states that for every *input* port `p` in network `τ'`, the value of the port should be a TPA that contains *exactly one* tag-value pair (that's what the `tpa.maybe` constructor is for) with the tag being `τ'`'s time and the value being the one that is defined by the event map for that port and tag (`τ'.μ p τ'.time`). The reason why the TPA constructor is called `maybe` is, because it can handle the value being `none`. This is required here, because the event map might not have a defined value for the given port and tag. If this is the case, `tpa.maybe` evaluates to `none`.
 
 ### Technicalities
 
@@ -280,7 +317,7 @@ If we instead just gave everything a value of `some (none)`, we would be creatin
 The same logic now applies to the second rule:
 
 ```lean
-(∀ p, τ'.σ.port' role.input p = if (τ.σ.port' role.input p).is_some then (tpa.input τ'.time (τ'.events p τ'.time)) else none) 
+(∀ p, τ'.σ.port' role.input p = if (τ.σ.port' role.input p).is_some then (tpa.input τ'.time (τ'.μ p τ'.time)) else none) 
 ```
 
 We define that we only want to set an input port `p`'s value to the one given by the event map, if `p` actually identifies a port.

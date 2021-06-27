@@ -13,7 +13,10 @@ variables {υ : Type*} [decidable_eq υ]
 namespace timed
 namespace network
 
-  -- 
+  -- If a given network (τ) has a next event tag, then its successor (τ') must have that tag as its time, as well as:
+  -- * be pre-instantaneous.
+  -- * have all OAP-local events (those contained in the OAPs) integrated into its event map.
+  -- * have all ports set to the values dictated by that event map.
   def is_time_step_aux (τ τ' : timed.network υ) : option tag → Prop 
     | none            := ⊥ 
     | (some next_tag) := 
@@ -25,13 +28,14 @@ namespace network
       τ'.σ ≈ τ.σ ∧ 
       (∀ r, (τ.σ.rtr r).state = (τ'.σ.rtr r).state)
 
-  -- A pair of timed networks is a *time step*, if the latter network is a (pre-instantaneous) version of the former
-  -- with a time matching the next
-  def is_time_step (τ τ' : timed.network υ) : Prop := 
-    is_time_step_aux τ τ' τ.next_tag
+  -- A pair of timed networks is a *time step*, if the latter network can be derived from the former by advancing its
+  -- time to the tag of the next scheduled event. This implies that the properties defined by `is_time_step_aux` 
+  -- (cf. its documentation).
+  def is_time_step (τ τ' : timed.network υ) : Prop := is_time_step_aux τ τ' τ.next_tag
 
   notation τ `→ₜ` τ' := is_time_step τ τ'
 
+  -- If there exists a time step from a network, then the successor is uniquely defined.
   theorem unique_time_step {τ τ₁ τ₂ : timed.network υ} (h₁ : τ →ₜ τ₁) (h₂ : τ →ₜ τ₂) : τ₁ = τ₂ :=
     begin
       simp only [(→ₜ)] at h₁ h₂,
@@ -83,20 +87,22 @@ namespace network
         }
     end
 
-  -- A pair of timed networks is an *execution step*, if ...
+  -- A pair of timed networks is an *execution step*, if the latter network can be derived from the
+  -- former network by progressing the former to the next pre-instantaneous network, i.e. progressing its
+  -- time (cf. `is_time_step`), and performing instantaneous execution on that network.
   def is_execution_step : option (timed.network υ) → option (timed.network υ) → Prop 
     | (some τ) none      := τ.next_tag = none
     | none     none      := ⊤
     | none     (some _)  := ⊥
-    | (some τ) (some τ') := ∃ τₜ, (τ →ₜ τₜ) ∧ -- τₜ is a time-progressed version of τ
+    | (some τ) (some τ') := ∃ τₜ, (τ →ₜ τₜ) ∧ -- τₜ is a pre-instantaneous, time-progressed version of τ
       (τ'.σ = τₜ.σ.run') ∧                   -- τ' must be an executed version of τₜ
-      (τ'.time = τₜ.time) ∧                  -- τ' must be at the time of the "next action" (given by τₜ)
-      (τ'.μ = τₜ.μ) ∧                        -- τ' must inherit all future events (given by τₜ) [in this case, past events are also inherited]
-      (τ'.actions = τₜ.actions)              -- τ' must still have the same actions (action ports and edges) as τ 
+      (τ'.time = τₜ.time) ∧                  
+      (τ'.μ = τₜ.μ) ∧                        
+      (τ'.actions = τₜ.actions)              
 
   notation τ `→ₑ` τ' := is_execution_step τ τ'
 
-  -- If `τ` and `τ'` form an execution step, and are both non-`none`, then `τ` must have a next tag.
+  -- If some network `τ` can execute to some other network `τ'`, then `τ` must have a next tag.
   lemma some_exection_step_next_tag {τ τ' : timed.network υ} (h : (some τ) →ₑ (some τ')) : τ.next_tag ≠ none :=
     begin
       obtain ⟨t, h', _⟩ := h,
@@ -109,6 +115,7 @@ namespace network
         { simp [h] }
     end
 
+  -- If there exists an execution step from a network, then the successor is uniquely defined.
   theorem unique_execution_step {τ τ₁ τ₂ : option (timed.network υ)} (h₁ : τ →ₑ τ₁) (h₂ : τ →ₑ τ₂) : τ₁ = τ₂ :=
     begin
       cases τ; cases τ₁; cases τ₂,
@@ -144,13 +151,23 @@ namespace network
         }
     end
 
+  -- An execution of a timed network is a sequence of timed networks, where each instance in the
+  -- sequence represents a valid "execution step" (cf. `is_execution_step`) from its predecessor.
+  -- The sequence must start on the given network (`τ`) and can be non-terminating (if execution
+  -- continues indefinitely). If execution does terminate, this is indicated in the sequence by
+  -- indefinite `none`s after the last execution step (i.e. timed network).
+  -- All networks in the sequence are "post-instantaneous" (cf. `docs/Timed Execution`). 
+  -- Hence the initial network is also interpreted as being post-instantaneous.
   @[ext]
   structure execution (τ : timed.network υ) :=
     (steps : seq (timed.network υ))
     (head : steps.head = τ)
     (succ : ∀ i, steps.nth i →ₑ steps.nth (i + 1))
 
-  -- We're explicitly not proving that there exists an algorithm, that produces an execution.
+  -- Execution of a timed network is always unique - i.e. there's only one possible sequence of
+  -- execution steps.
+  -- 
+  -- We're explicitly not proving that there exists an algorithm, that produces such an execution.
   theorem determinism (τ : timed.network υ) (e e' : execution τ) : e = e' :=
     begin
       ext1,
