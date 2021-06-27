@@ -21,9 +21,15 @@ The root folder contains formalizations, which are not specific to reactors:
 
 The `timed` folder contains definitions about timed reactor networks.
 
-- `basic.lean` defines tags, TPAs, and timed networks.
+- `primitives.lean` defines tags and TPAs.
 
-- `exec.lean` contains definitions for the timed execution model, i.e. `execution`, `is_time_step`, ..., as well as the proof of timed determinism.
+- `actions.lean` defines action edges and their well-formedness.
+
+- `events.lean` defines event maps, as well as the definition of a "next" tag.
+
+- `basic.lean` defines timed networks, some auxiliary properties about OAPs and IAPs, as well as extensions on event maps (specifically for timed networks).
+
+- `exec.lean` contains definitions for the timed execution model, i.e. `execution`, `is_time_step`, as well as the proof of timed determinism.
 
 The `inst` folder contains definitions about instantaneous reactors.
 
