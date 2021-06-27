@@ -18,14 +18,14 @@ open timed.network
 structure timed.network :=
   (σ : inst.network (tpa υ))
   (time : tag)
-  (events : event_map υ)
+  (μ : event_map υ)
   (actions : finset action_edge)
   (well_formed : actions.are_well_formed_for σ)
 
 namespace timed
 namespace network
 
-  variable {υ}
+  variable {υ} 
 
   -- The input action ports for a given timed network.
   -- These can simply be extracted from the network's action edges.
@@ -184,7 +184,7 @@ namespace network
     exact trans
   end⟩
 
--- `oap_le` is antisymmetric.
+  -- `oap_le` is antisymmetric.
   instance {τ : timed.network υ} : is_antisymm _ (@oap_le _ _ τ) := ⟨begin
     intros a b,
     unfold oap_le,
@@ -198,6 +198,24 @@ namespace network
     unfold oap_le,
     apply le_total
   end⟩
+
+  -- The events contained in the OAPs of the given network, represented as an event-map.
+  -- This property is really only sensible for post-instantaneous networks.  
+  -- 
+  -- Obtaining this map is non-trivial, because each IAP may have multiple OAPs which contain
+  -- a tag-value pair for any given tag. Hence the (tag → value) map associated with a given IAP
+  -- has to return the value of the OAP with the lowest priority (the OAP that was written to *last*),
+  -- where the value for the tag is not `none`.
+  noncomputable def new_events (τ : timed.network υ) : event_map υ := 
+    λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map t))
+
+  noncomputable def all_events (τ : timed.network υ) : event_map υ := 
+    (λ p t, τ.new_events p t <|> τ.μ p t)
+
+  -- The next tag (after its current time), for which the network has
+  -- a scheduled event (if there is any).
+  noncomputable def next_tag (τ : timed.network υ) : option tag :=
+    τ.all_events.next_tag_after τ.time
 
 end network
 end timed

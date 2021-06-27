@@ -47,7 +47,7 @@ open timed.network
 
   -- The next tag for which a given event map has a scheduled event, 
   -- after a given "current" time.
-  noncomputable def next_tag (μ : event_map υ) (c : tag) : option tag :=
+  noncomputable def next_tag_after (μ : event_map υ) (c : tag) : option tag :=
     (next_tags_subsingleton μ c)
       .eq_empty_or_singleton
       .by_cases (λ _, none) (λ s, s.some)
