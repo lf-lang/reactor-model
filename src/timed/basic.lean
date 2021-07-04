@@ -73,6 +73,7 @@ namespace network
     begin
       unfold set.finite,
       suffices f : fintype ↥{oap : port.id | τ.iap_has_oap iap oap}, from ⟨f⟩,
+      unfold iap_has_oap,
       sorry
     end 
 
@@ -102,7 +103,7 @@ namespace network
   def rcns_dep_to (τ : timed.network υ) (r : ports.role) (p : port.id) : set reaction.id :=
     ((τ.σ.η.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
 
-  -- This is a different way of expressing `finset.have_one_src_in`, 
+  -- This is a different way of expressing `finset.have_one_src_in`,
   -- which is more suitable for use in `src_for_oap`.
   lemma rcns_dep_to_oap_singleton {τ : timed.network υ} {oap : port.id} (h : oap ∈ τ.oaps) : 
     ∃ r, (τ.rcns_dep_to role.output oap) = {r} :=
@@ -126,8 +127,8 @@ namespace network
       simp only [rcns_dep_to, set.mem_image] at h',
       obtain ⟨_, _, he⟩ := h',
       unfold Exists.some at ⊢ he,
-      -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Injection.20failing
-      sorry 
+      generalize_proofs at he,
+      rw ←he
     end
   
   -- If two OAPs have the same source (are connected to the same reaction), 
