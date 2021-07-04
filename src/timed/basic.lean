@@ -71,10 +71,12 @@ namespace network
   -- this property trivially holds (on intuitive level).
   lemma iap_has_finite_oaps (τ : timed.network υ) (iap : port.id) : { oap | τ.iap_has_oap iap oap }.finite :=
     begin
-      unfold set.finite,
-      suffices f : fintype ↥{oap : port.id | τ.iap_has_oap iap oap}, from ⟨f⟩,
       unfold iap_has_oap,
-      sorry
+      suffices h : function.injective (λ (x : port.id), { action_edge . oap := x, iap := iap }), 
+      from τ.actions.finite_to_set.preimage (h.inj_on _),
+      unfold function.injective,
+      intros a1 a2 h,
+      injection h
     end 
 
   -- The (finite) set of OAPs connected to a given IAP.
