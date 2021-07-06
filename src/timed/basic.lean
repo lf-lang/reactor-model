@@ -38,6 +38,9 @@ namespace network
     τ.actions.image (λ e, e.oap)
 
   -- An equivalence for what it means to be an OAP for a given network.
+  -- This can also be used to get the IAP for a given OAP, with a proof of
+  -- them having a corresponding action edge (the proofless version of this
+  -- is `iap_for_oap`).
   lemma oaps_mem {τ : timed.network υ} {oap : port.id} : 
     oap ∈ τ.oaps ↔ (∃ iap, (action_edge.mk oap iap) ∈ τ.actions) :=
     begin
@@ -109,29 +112,72 @@ namespace network
   def rcns_dep_to (τ : timed.network υ) (r : ports.role) (p : port.id) : set reaction.id :=
     ((τ.σ.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
 
-  -- A lifted version of `reactor.rcn_dep_to_prt_dep_of_rcn`.
-  lemma rcn_dep_to_prt_dep_of_rcn {τ : timed.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} (h : rcn ∈ τ.rcns_dep_to r p) : 
-    p ∈ τ.σ.deps rcn r :=
+  -- A lifted version of `reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn`.
+  lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {τ : timed.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} : 
+    (rcn ∈ τ.rcns_dep_to r p) ↔ (p ∈ τ.σ.deps rcn r) :=
     begin
-      unfold rcns_dep_to at h,
-      rw set.mem_image at h,
-      obtain ⟨x, hm, he⟩ := h,
-      unfold inst.network.deps inst.network.graph.deps inst.network.graph.rcn,
-      rw finset.mem_image,
-      replace hm := reactor.rcn_dep_to_prt_dep_of_rcn hm,
-      have hx : rcn.rcn = x, by finish,
-      rw ←hx at hm,
-      have hr : rcn.rtr = p.rtr, by finish,
-      rw hr,
-      have hp : { port.id . rtr := p.rtr, prt := p.prt } = p, { ext ; refl },
-      exact ⟨p.prt, hm, hp⟩
+      unfold rcns_dep_to,
+      rw set.mem_image,
+      split,
+        {
+          intro h,
+          obtain ⟨x, hm, he⟩ := h,
+          unfold inst.network.deps inst.network.graph.deps inst.network.graph.rcn,
+          rw finset.mem_image,
+          replace hm := reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mp hm,
+          have hx : rcn.rcn = x, by finish,
+          rw ←hx at hm,
+          have hr : rcn.rtr = p.rtr, by finish,
+          rw hr,
+          have hp : { port.id . rtr := p.rtr, prt := p.prt } = p, { ext ; refl },
+          exact ⟨p.prt, hm, hp⟩
+        },
+        {
+          intro h,
+          existsi rcn.rcn,
+          unfold inst.network.deps inst.network.graph.deps at h,
+          rw finset.mem_image at h,
+          obtain ⟨x, hx, he⟩ := h,
+          split,
+            {
+              apply reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mpr,
+              unfold inst.network.graph.rcn at hx,
+              have hp : p.prt = x, by finish,
+              have hr : p.rtr = rcn.rtr, by finish,
+              simp only [inst.network.rtr, hp, hr, hx]
+            },
+            {
+              rw ←he,
+              ext ; refl
+            }
+        }
     end
 
   -- This is a different way of expressing `finset.have_one_src_in`,
   -- which is more suitable for use in `src_for_oap`.
   lemma rcns_dep_to_oap_singleton {τ : timed.network υ} {oap : port.id} (h : oap ∈ τ.oaps) : 
     ∃ r, (τ.rcns_dep_to role.output oap) = {r} :=
-    sorry
+    begin
+      have ho, from τ.well_formed.2.2.1,
+      unfold finset.have_one_src_in at ho,
+      obtain ⟨iap, he⟩ := oaps_mem.mp h,
+      replace ho := ho _ he,
+      unfold exists_unique at ho,
+      obtain ⟨r, hm, hu⟩ := ho,
+      existsi r,
+      rw set.eq_singleton_iff_nonempty_unique_mem,
+      split,
+        {
+          unfold set.nonempty,
+          exact ⟨r, rcn_dep_to_prt_iff_prt_dep_of_rcn.mpr hm⟩
+        },
+        {
+          intro x,
+          replace hu := hu x,
+          rw ←rcn_dep_to_prt_iff_prt_dep_of_rcn at hu,
+          exact hu
+        }
+    end
 
   -- The unique reaction connected to a given OAP.
   -- This property is only defined when the given port is proven to be an OAP.
@@ -176,7 +222,7 @@ namespace network
       replace hu := hu e e' (τ.src_for_oap hₘ) ha ha',
       have ho : e.oap = oap, by refl,
       have ho' : e'.oap = oap', by refl,
-      suffices hg : ∀ {o} (h : o ∈ τ.oaps), o ∈ τ.σ.η.deps (τ.src_for_oap h) role.output, {
+      suffices hg : ∀ {o} (h : o ∈ τ.oaps), o ∈ τ.σ.deps (τ.src_for_oap h) role.output, {
         rw [ho, ho'] at hu,
         replace hu := hu (hg hₘ),
         rw hₛ at hu,
@@ -185,10 +231,9 @@ namespace network
       intros o ho,
       unfold src_for_oap,
       generalize_proofs hgp, 
-      have H, from hgp.some_spec,
-      have HH, from set.mem_singleton hgp.some,
-      rw ←H at HH,
-      exact rcn_dep_to_prt_dep_of_rcn HH
+      have h, from set.mem_singleton hgp.some,
+      rw ←(hgp.some_spec) at h,
+      exact rcn_dep_to_prt_iff_prt_dep_of_rcn.mp h
     end
 
   -- The priority for a given OAP is the priority of the (unique) reaction it is connected to.
@@ -209,7 +254,10 @@ namespace network
     if a.rtr ≠ b.rtr then a.rtr < b.rtr else
     true
 
+  -- The `≤` symbol for OAP-priorities is `oap_priority.le`.
   instance oap_priority.has_le : has_le oap_priority := ⟨oap_priority.le⟩
+
+
   instance oap_priority.le_trans : is_trans _ oap_priority.le := sorry
   instance oap_priority.le_antisymm : is_antisymm _ oap_priority.le := sorry
   instance oap_priority.le_total : is_total _ oap_priority.le := sorry
@@ -284,7 +332,7 @@ namespace network
   -- has to return the value of the OAP with the lowest priority (the OAP that was written to *last*),
   -- where the value for the tag is not `none`.
   noncomputable def new_events (τ : timed.network υ) : event_map υ := 
-    λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.η.port role.output oap) >>= (λ o, o.map t))
+    λ iap t, ((τ.oaps_for_iap' iap).sort oap_le).mfirst (λ oap, (τ.σ.port role.output oap) >>= (λ o, o.map t))
 
   -- *All* events contained in a given network.
   -- For pre-instantaneous networks, this property is equal to `timed.network.μ`.

@@ -91,17 +91,17 @@ namespace reactor
 
   -- The set of reactions in the given reactor, which connect to the given port as anti-/dependency.
   def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=
-    { x ∈ rtr.priorities | p ∈ (rtr.reactions x).deps r }
+    { x | p ∈ (rtr.reactions x).deps r }
 
-  -- If a given reaction is a(n) anti-/dependency to a given port, 
-  -- then the anti-/dependency of that reaction contain the given port.
-  lemma rcn_dep_to_prt_dep_of_rcn {rtr : reactor υ} {r : ports.role} {p : ℕ} {rcn : ℕ} (h : rcn ∈ rtr.rcns_dep_to r p) : 
-    p ∈ (rtr.reactions rcn).deps r :=
+  -- A given reaction is a(n) anti-/dependency to a given port iff, 
+  -- the anti-/dependency of that reaction contains the given port.
+  lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {rtr : reactor υ} {r : ports.role} {p : ℕ} {rcn : ℕ} : 
+    (rcn ∈ rtr.rcns_dep_to r p) ↔ (p ∈ (rtr.reactions rcn).deps r) :=
     begin
-      unfold rcns_dep_to at h,
+      unfold rcns_dep_to,
       cases r ; {
-        unfold reaction.deps at ⊢ h,
-        exact h.2
+        unfold reaction.deps,
+        simp,
       }
     end
 

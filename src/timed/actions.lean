@@ -32,18 +32,18 @@ def finset.are_local (es : finset action_edge) : Prop :=
 def finset.have_one_src_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
   ∀ e : action_edge, e ∈ es → 
   ∃! r : reaction.id, 
-    (e.oap ∈ σ.η.deps r role.output)
+    (e.oap ∈ σ.deps r role.output)
 
 -- The proposition that a reaction can not connect to the same IAP through multiple OAPs.
 def finset.are_functionally_unique_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
   ∀ (e e' : action_edge) (r : reaction.id), e ∈ es → e' ∈ es → 
-    (e.oap ∈ σ.η.deps r role.output) → (e'.oap ∈ σ.η.deps r role.output) → 
+    (e.oap ∈ σ.deps r role.output) → (e'.oap ∈ σ.deps r role.output) → 
     e.iap = e'.iap → e.oap = e'.oap
 
 -- The proposition that action ports do not also behave as regular ports (by being connected
 -- with network graph edges).
 def finset.are_separate_from (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
-  ∀ (ae : action_edge) (ne : inst.network.graph.edge), ae ∈ es → ne ∈ σ.η.edges → 
+  ∀ (ae : action_edge) (ne : inst.network.graph.edge), ae ∈ es → ne ∈ σ.edges → 
     ae.iap ≠ ne.dst ∧ ae.oap ≠ ne.src
 
 -- A given set of action edges (and by extension action ports) is well-formed for a given
@@ -65,7 +65,7 @@ lemma timed.network.equiv_inst_network_wf (es : finset action_edge) {σ σ' : in
       simp [hw],
       simp [hw],
       {
-        unfold finset.have_one_src_in inst.network.graph.deps inst.network.graph.rcn at ⊢ hw,
+        unfold finset.have_one_src_in inst.network.deps inst.network.graph.deps inst.network.graph.rcn at ⊢ hw,
         intros e hₑ,
         obtain ⟨i, hᵢ⟩ := hw.right.right.left e hₑ,
         rw exists_unique,
@@ -82,13 +82,13 @@ lemma timed.network.equiv_inst_network_wf (es : finset action_edge) {σ σ' : in
           }
       },
       {
-        unfold finset.are_functionally_unique_in inst.network.graph.deps inst.network.graph.rcn,
+        unfold finset.are_functionally_unique_in inst.network.deps inst.network.graph.deps inst.network.graph.rcn,
         intros e e' i,
         rw (hq.right.right i.rtr).right,
         exact hw.right.right.right.left e e' i
       },
       {
-        unfold finset.are_separate_from,
+        unfold finset.are_separate_from inst.network.edges,
         rw hq.left,
         exact hw.right.right.right.right
       }
