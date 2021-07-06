@@ -23,14 +23,17 @@ namespace network
   -- A lifted version of `inst.network.graph.edges`.
   noncomputable def edges (σ : network υ) := σ.η.edges
 
+  -- A lifted version of `inst.network.graph.rtr`.
+    noncomputable def rtr (σ : network υ) : reactor.id → reactor υ := σ.η.rtr
+
   -- A lifted version of `inst.network.graph.port`.
   noncomputable def port (σ : network υ) : ports.role → port.id → option υ := σ.η.port
 
   -- A lifted version of `inst.network.graph.port'`.
   noncomputable def port' (σ : network υ) : ports.role → port.id → option (option υ) := σ.η.port'
 
-  -- A lifted version of `inst.network.graph.rtr`.
-  noncomputable def rtr (σ : network υ) : reactor.id → reactor υ := σ.η.rtr
+  -- A lifted version of `inst.network.graph.deps`.
+  noncomputable def deps (σ : network υ) : reaction.id → ports.role → finset port.id := σ.η.deps
 
   -- The set of occupied port-IDs in the network.
   def port_ids (σ : network υ) (r : ports.role) : set port.id :=

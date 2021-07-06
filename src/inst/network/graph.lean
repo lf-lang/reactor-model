@@ -54,7 +54,7 @@ namespace graph
         {
           intro h,
           obtain ⟨x, hₓ, hₚ⟩ := h,
-          simp [←hₚ, hₓ],
+          simp [←hₚ, hₓ]
         },
         {
           intro h,

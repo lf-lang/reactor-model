@@ -1,6 +1,7 @@
 import inst.reactor
 
 -- A type of unique identifiers for reactors in a network.
+@[derive has_lt]
 protected def reactor.id := ℕ
 
 -- A type of unique identifiers for reactions in a network.
@@ -21,7 +22,16 @@ protected structure port.id :=
   (rtr : reactor.id)
   (prt : ℕ)
 
--- Port-IDs' equality is non-constructively decidable.
-noncomputable instance : decidable_eq port.id := classical.dec_eq _
+namespace port.id
 
+  -- A (lexicographic) < for port-IDs.
+  def lt : port.id → port.id → Prop := λ a b, 
+    a.rtr < b.rtr ∨ (a.rtr = b.rtr ∧ a.prt < b.prt)
+
+  instance has_lt : has_lt port.id := ⟨port.id.lt⟩
+
+  -- Port-IDs' equality is non-constructively decidable.
+  noncomputable instance dec_eq : decidable_eq port.id := classical.dec_eq _
+
+end port.id
 

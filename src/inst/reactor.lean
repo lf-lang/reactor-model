@@ -93,6 +93,18 @@ namespace reactor
   def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=
     { x ∈ rtr.priorities | p ∈ (rtr.reactions x).deps r }
 
+  -- If a given reaction is a(n) anti-/dependency to a given port, 
+  -- then the anti-/dependency of that reaction contain the given port.
+  lemma rcn_dep_to_prt_dep_of_rcn {rtr : reactor υ} {r : ports.role} {p : ℕ} {rcn : ℕ} (h : rcn ∈ rtr.rcns_dep_to r p) : 
+    p ∈ (rtr.reactions rcn).deps r :=
+    begin
+      unfold rcns_dep_to at h,
+      cases r ; {
+        unfold reaction.deps at ⊢ h,
+        exact h.2
+      }
+    end
+
   -- Updates a given port in the reactor, to hold a given value.
   def update (rtr : reactor υ) : ports.role → ℕ → option υ → reactor υ
     | role.input  p v := {input  := rtr.input.update_nth p v,  ..rtr}

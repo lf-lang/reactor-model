@@ -60,6 +60,10 @@ namespace network
         }
     end
 
+  -- The IAP to which a given OAP is connected.
+  noncomputable def iap_for_oap (τ : timed.network υ) {oap : port.id} (h : oap ∈ τ.oaps) : port.id := 
+    (oaps_mem.mp h).some
+
   -- The proposition that a given IAP is connected to a given OAP.
   -- This property is trivially stated, but is defined separately anyway as it
   -- is used for further definitions below (notably as the starting point for `oaps_for_iap`).
@@ -75,7 +79,7 @@ namespace network
       suffices h : function.injective (λ (x : port.id), { action_edge . oap := x, iap := iap }), 
       from τ.actions.finite_to_set.preimage (h.inj_on _),
       unfold function.injective,
-      intros a1 a2 h,
+      intros _ _ h,
       injection h
     end 
 
@@ -103,7 +107,25 @@ namespace network
   -- A lifted version of `reactor.rcns_dep_to`.
   -- This is the starting point for the definition of `src_for_oap`.
   def rcns_dep_to (τ : timed.network υ) (r : ports.role) (p : port.id) : set reaction.id :=
-    ((τ.σ.η.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
+    ((τ.σ.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
+
+  -- A lifted version of `reactor.rcn_dep_to_prt_dep_of_rcn`.
+  lemma rcn_dep_to_prt_dep_of_rcn {τ : timed.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} (h : rcn ∈ τ.rcns_dep_to r p) : 
+    p ∈ τ.σ.deps rcn r :=
+    begin
+      unfold rcns_dep_to at h,
+      rw set.mem_image at h,
+      obtain ⟨x, hm, he⟩ := h,
+      unfold inst.network.deps inst.network.graph.deps inst.network.graph.rcn,
+      rw finset.mem_image,
+      replace hm := reactor.rcn_dep_to_prt_dep_of_rcn hm,
+      have hx : rcn.rcn = x, by finish,
+      rw ←hx at hm,
+      have hr : rcn.rtr = p.rtr, by finish,
+      rw hr,
+      have hp : { port.id . rtr := p.rtr, prt := p.prt } = p, { ext ; refl },
+      exact ⟨p.prt, hm, hp⟩
+    end
 
   -- This is a different way of expressing `finset.have_one_src_in`,
   -- which is more suitable for use in `src_for_oap`.
@@ -132,36 +154,82 @@ namespace network
       generalize_proofs at he,
       rw ←he
     end
-  
+
   -- If two OAPs have the same source (are connected to the same reaction), 
-  -- then they must be the same OAP. This is a result of `have_one_src_in` property
-  -- of action edges in timed networks.
+  -- then they must be the same OAP. This is a result of `are_functionally_unique_in`
+  -- property of action edges in timed networks.
   -- This lemma is ultimately used to show that `oap_le` is antisymmetric.
-  lemma eq_src_eq_oap {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} (h : τ.src_for_oap hₘ = τ.src_for_oap hₘ') : 
+  lemma eq_src_and_iap_eq_oap 
+    {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} 
+    (hₛ : τ.src_for_oap hₘ = τ.src_for_oap hₘ') (hᵢ : τ.iap_for_oap hₘ = τ.iap_for_oap hₘ') : 
     oap = oap' :=
-    -- This should be similar to the proof of `oap_src_eq_rtr` above.
-    sorry 
+    begin
+      have hu, from τ.well_formed.2.2.2.1,
+      unfold finset.are_functionally_unique_in at hu,
+      unfold iap_for_oap at hᵢ,
+      generalize_proofs hp hp' at hᵢ,
+      have ha, from hp.some_spec,
+      have ha', from hp'.some_spec,
+      rw ←hᵢ at ha',
+      set e := { action_edge . oap := oap, iap := hp.some } with he,
+      set e' := { action_edge . oap := oap', iap := hp.some } with he',
+      replace hu := hu e e' (τ.src_for_oap hₘ) ha ha',
+      have ho : e.oap = oap, by refl,
+      have ho' : e'.oap = oap', by refl,
+      suffices hg : ∀ {o} (h : o ∈ τ.oaps), o ∈ τ.σ.η.deps (τ.src_for_oap h) role.output, {
+        rw [ho, ho'] at hu,
+        replace hu := hu (hg hₘ),
+        rw hₛ at hu,
+        exact hu (hg hₘ') (refl _)
+      },
+      intros o ho,
+      unfold src_for_oap,
+      generalize_proofs hgp, 
+      have H, from hgp.some_spec,
+      have HH, from set.mem_singleton hgp.some,
+      rw ←H at HH,
+      exact rcn_dep_to_prt_dep_of_rcn HH
+    end
 
   -- The priority for a given OAP is the priority of the (unique) reaction it is connected to.
   --
-  -- The OAP's reactor's ID is added as part of the priority (now ℕ × ℕ instead of just ℕ),
-  -- to make sure that each OAP in a *network* has a unique priority.
+  -- The OAP's connected IAP is added as part of the priority,
+  -- to make sure that each OAP within a *reactor* has a unique priority.
   -- This makes ordering them (in `oap_le`) a bit easier, without any loss of generality.
+  --
+  -- The OAP's reactor's ID is added as part of the priority,
+  -- to make sure that each OAP within a *network* has a unique priority.
+  -- This makes ordering them (in `oap_le`) a bit easier, without any loss of generality.
+  structure oap_priority := (p : ℕ) (iap: port.id) (rtr : ℕ)
+
+  -- A (lexicographic) ≤ for OAP-priorities.
+  def oap_priority.le : oap_priority → oap_priority → Prop := λ a b, 
+    if a.p ≠ b.p     then a.p < b.p     else
+    if a.iap ≠ b.iap then a.iap < b.iap else
+    if a.rtr ≠ b.rtr then a.rtr < b.rtr else
+    true
+
+  instance oap_priority.has_le : has_le oap_priority := ⟨oap_priority.le⟩
+  instance oap_priority.le_trans : is_trans _ oap_priority.le := sorry
+  instance oap_priority.le_antisymm : is_antisymm _ oap_priority.le := sorry
+  instance oap_priority.le_total : is_total _ oap_priority.le := sorry
+
+  -- The priority for a given OAP is the priority of the (unique) reaction it is connected to.
   --
   -- This property is only defined when the given port is proven to be an OAP.
   -- For all other ports, we wouldn't be able to define this property (cf. the documentation 
   -- for `src_for_oap`).
-  noncomputable def priority_for_oap (τ : timed.network υ) (oap : port.id) (h : oap ∈ τ.oaps) : lex ℕ ℕ :=
-    (oap.rtr, (τ.src_for_oap h).priority)
+  noncomputable def priority_for_oap (τ : timed.network υ) {oap : port.id} (h : oap ∈ τ.oaps) : oap_priority :=
+    { p := (τ.src_for_oap h).priority, iap := τ.iap_for_oap h, rtr := oap.rtr }
 
   -- No two (different) OAPs have the same priority.
   lemma unique_oap_priority 
     {τ : timed.network υ} {oap oap' : port.id} {hₘ : oap ∈ τ.oaps} {hₘ' : oap' ∈ τ.oaps} 
-    (h : τ.priority_for_oap oap hₘ = τ.priority_for_oap oap' hₘ') : 
+    (h : τ.priority_for_oap hₘ = τ.priority_for_oap hₘ') : 
     oap = oap' :=
     begin
       unfold priority_for_oap reaction.id.priority at h,
-      injection h with hr hp,
+      injection h with hp hi hr,
       clear h,
       have hs, from oap_src_eq_rtr hₘ,
       have hs', from oap_src_eq_rtr hₘ',
@@ -170,7 +238,7 @@ namespace network
         have hs_eq, from eq.trans hs (symm hs'),
         ext ; assumption
       },
-      exact eq_src_eq_oap h,
+      exact eq_src_and_iap_eq_oap h hi
     end
 
   -- A predicate for sorting OAPs by their priority.
@@ -178,7 +246,7 @@ namespace network
   -- because only then can we ensure that we can associate a priority with the port
   -- (cf. the documentation for `priority_for_oap`).
   def oap_le {τ : timed.network υ} (oap oap' : { o // o ∈ τ.oaps }) : Prop :=
-    τ.priority_for_oap ↑oap oap.property ≤ τ.priority_for_oap ↑oap' oap'.property
+    τ.priority_for_oap oap.property ≤ τ.priority_for_oap oap'.property
 
   -- `oap_le` is transitive.
   instance {τ : timed.network υ} : is_trans _ (@oap_le _ _ τ) := ⟨begin
@@ -191,15 +259,21 @@ namespace network
   instance {τ : timed.network υ} : is_antisymm _ (@oap_le _ _ τ) := ⟨begin
     intros a b,
     unfold oap_le,
+    generalize_proofs hp hp',
     intros h h',
-    exact subtype.ext (unique_oap_priority (le_antisymm h h'))
+    apply subtype.ext,
+    suffices hg : τ.priority_for_oap hp = τ.priority_for_oap hp',
+    from unique_oap_priority hg,
+    apply oap_priority.le_antisymm.antisymm,
+    exact h,
+    exact h'
   end⟩ 
 
   -- `oap_le` is total.
   instance {τ : timed.network υ} : is_total _ (@oap_le _ _ τ) := ⟨begin
     intros a b,
     unfold oap_le,
-    apply le_total
+    apply oap_priority.le_total.total
   end⟩
 
   -- The events contained in the OAPs of the given network, represented as an event-map.
