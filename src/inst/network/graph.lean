@@ -221,7 +221,7 @@ namespace graph
   lemma update_input_eq_rel_to {η : graph υ} {i : reaction.id} {p : ℕ} (v : option υ) (h : p ∉ (η.rcn i).dᵢ) :
     (η.update_port role.input ⟨i.rtr, p⟩ v).rtr i.rtr =i.rcn= η.rtr i.rtr :=
     begin
-      simp only [update_port, update_reactor, rtr, lgraph.update_data_same, rcn] at h ⊢,
+      simp only [update_port, update_reactor, rtr, lgraph.update_data_same, rcn, port.id.rtr] at h ⊢,
       exact reactor.eq_rel_to_symm (reactor.eq_rel_to.single (refl _) h)
     end 
 

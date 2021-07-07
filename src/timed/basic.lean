@@ -129,7 +129,7 @@ namespace network
           rw ←hx at hm,
           have hr : rcn.rtr = p.rtr, by finish,
           rw hr,
-          have hp : { port.id . rtr := p.rtr, prt := p.prt } = p, { ext ; refl },
+          have hp : port.id.mk p.rtr p.prt = p, { ext ; refl },
           exact ⟨p.prt, hm, hp⟩
         },
         {
@@ -245,22 +245,36 @@ namespace network
   -- The OAP's reactor's ID is added as part of the priority,
   -- to make sure that each OAP within a *network* has a unique priority.
   -- This makes ordering them (in `oap_le`) a bit easier, without any loss of generality.
+  @[ext]
   structure oap_priority := (p : ℕ) (iap: port.id) (rtr : ℕ)
 
-  -- A (lexicographic) ≤ for OAP-priorities.
-  def oap_priority.le : oap_priority → oap_priority → Prop := λ a b, 
-    if a.p ≠ b.p     then a.p < b.p     else
-    if a.iap ≠ b.iap then a.iap < b.iap else
-    if a.rtr ≠ b.rtr then a.rtr < b.rtr else
-    true
+  namespace oap_priority
 
-  -- The `≤` symbol for OAP-priorities is `oap_priority.le`.
-  instance oap_priority.has_le : has_le oap_priority := ⟨oap_priority.le⟩
+    -- A representation of an OAP-priority as a ℕ × port.id × ℕ.
+    -- This is used to simplify the definition of ≤, by using that of `≤`.
+    def to_lex (op : oap_priority) : lex ℕ (lex port.id ℕ) := (op.p, (op.iap, op.rtr))
 
+    -- Two OAP-priorities are equal iff their lex-representations are equal.
+    lemma lex_ext (a b : oap_priority) : a = b ↔ a.to_lex = b.to_lex :=
+      begin
+        unfold to_lex,
+        split,
+          { intro h, rw h },
+          {
+            intro h,
+            injection h with h1 h2,
+            injection h2,
+            ext1 ; assumption
+          }
+      end
 
-  instance oap_priority.le_trans : is_trans _ oap_priority.le := sorry
-  instance oap_priority.le_antisymm : is_antisymm _ oap_priority.le := sorry
-  instance oap_priority.le_total : is_total _ oap_priority.le := sorry
+    -- A (lexicographic) ≤ for OAP-priorities.
+    def le (a b : oap_priority) := a.to_lex ≤ b.to_lex
+        
+    -- The `≤` symbol for OAP-priorities is `oap_priority.le`.
+    instance has_le : has_le oap_priority := ⟨oap_priority.le⟩
+
+  end oap_priority
 
   -- The priority for a given OAP is the priority of the (unique) reaction it is connected to.
   --
@@ -299,7 +313,7 @@ namespace network
   -- `oap_le` is transitive.
   instance {τ : timed.network υ} : is_trans _ (@oap_le _ _ τ) := ⟨begin
     intros a b c,
-    unfold oap_le,
+    simp only [oap_le, (≤), oap_priority.le],
     exact trans
   end⟩
 
@@ -312,16 +326,16 @@ namespace network
     apply subtype.ext,
     suffices hg : τ.priority_for_oap hp = τ.priority_for_oap hp',
     from unique_oap_priority hg,
-    apply oap_priority.le_antisymm.antisymm,
-    exact h,
-    exact h'
+    simp only [(≤), oap_priority.le] at h h',
+    rw oap_priority.lex_ext,
+    exact le_antisymm h h'
   end⟩ 
 
   -- `oap_le` is total.
   instance {τ : timed.network υ} : is_total _ (@oap_le _ _ τ) := ⟨begin
     intros a b,
-    unfold oap_le,
-    apply oap_priority.le_total.total
+    simp only [oap_le, (≤), oap_priority.le],
+    apply total_of
   end⟩
 
   -- The events contained in the OAPs of the given network, represented as an event-map.

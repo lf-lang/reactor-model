@@ -68,12 +68,12 @@ namespace network
                     apply list.ext,
                     intro prt,
                     rw [ht, he] at hi₁,
-                    exact eq.trans (hi₁ ⟨rtr, prt⟩) (symm (hi₂ ⟨rtr, prt⟩))
+                    exact eq.trans (hi₁ (port.id.mk rtr prt)) (symm (hi₂ (port.id.mk rtr prt)))
                   },
                   { 
                     apply list.ext,
                     intro prt,
-                    exact eq.trans (ho₁ ⟨rtr, prt⟩) (symm (ho₂ ⟨rtr, prt⟩))
+                    exact eq.trans (ho₁ (port.id.mk rtr prt)) (symm (ho₂ (port.id.mk rtr prt)))
                   },
                   { exact eq.trans (symm hs₁) hs₂ },
                   { exact eq.trans hp₁ (symm hp₂) },
