@@ -2,13 +2,13 @@ import data.finset
 
 -- Type `ε` is a `lgraph.edge`-type over ID-type `ι`, if it can produce a `src` and `dst` ID.
 class lgraph.edge (ε ι : Type*) :=
-  (src : ε → ι)
-  (dst : ε → ι)
+  (lsrc : ε → ι)
+  (ldst : ε → ι)
 
 -- The proposition that a given set of edges makes connections only between given IDs.
 -- This is used to ensure validity of L-graphs.
 def finset.are_well_formed_over {ε ι : Type*} [lgraph.edge ε ι] (edges : finset ε) (ids : finset ι) : Prop :=
-  ∀ e ∈ edges, (edge.src e) ∈ ids ∧ (edge.dst e) ∈ ids
+  ∀ e ∈ edges, (edge.lsrc e) ∈ ids ∧ (edge.ldst e) ∈ ids
 
 variables ι δ ε : Type*
 variables [decidable_eq ι] [decidable_eq δ]
@@ -63,7 +63,7 @@ namespace lgraph
 
   -- The proposition that an L-graph connects two given vertices with an edge.
   def has_edge_from_to (g : lgraph ι δ ε) (i i' : ι) : Prop :=
-    ∃ e ∈ g.edges, (edge.src e, edge.dst e) = (i, i')
+    ∃ e ∈ g.edges, (edge.lsrc e, edge.ldst e) = (i, i')
 
   notation i-g->j := g.has_edge_from_to i j
 

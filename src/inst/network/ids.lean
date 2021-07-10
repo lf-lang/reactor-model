@@ -26,9 +26,9 @@ namespace port.id
   -- In order to easily derive `linear_order`, it is now a `lex`.
   -- So the following constructors and accessors replicate the original
   -- (structure-based) definition.
-  @[simp] def mk (rtr : reactor.id) (prt : ℕ) : port.id := (rtr, prt)
-  @[simp] def rtr (p : port.id) := p.1
-  @[simp] def prt (p : port.id) := p.2
+  def mk (rtr : reactor.id) (prt : ℕ) : port.id := (rtr, prt)
+  def rtr (p : port.id) := p.1
+  def prt (p : port.id) := p.2
 
   -- Port-IDs' equality is non-constructively decidable.
   noncomputable instance dec_eq : decidable_eq port.id := classical.dec_eq _

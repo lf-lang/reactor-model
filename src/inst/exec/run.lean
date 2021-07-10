@@ -25,9 +25,9 @@ namespace network
     run_aux σ ((fₜ ∘ fₚ) σ)
 
   -- A version of `run` with arbitrary instances of `prec_func` and `topo_func` filled in.
-  -- The `determinism` theorem proves that the specific instances are irrelevant. 
+  -- The theorem of `determinism` proves that the specific instances are irrelevant. 
   noncomputable def run' (σ : inst.network υ) : inst.network υ :=
-    σ.run (classical.choice prec_func.nonempty) (classical.choice topo_func.nonempty)
+    σ.run prec_func.inhabited.default topo_func.inhabited.default
 
   -- Running a network produces an equivalent network - i.e. its structure doesn't change.
   theorem run_equiv (σ : inst.network υ) (fₚ : prec_func υ) (fₜ : topo_func υ) : (σ.run fₚ fₜ).η ≈ σ.η :=

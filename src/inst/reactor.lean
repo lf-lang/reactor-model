@@ -93,6 +93,11 @@ namespace reactor
   def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=
     { x | p ∈ (rtr.reactions x).deps r }
 
+  -- A port can only have a anti-/dependency to finitely many reactions (since a reactor can only contain
+  -- finitely many reactions in the first place).
+  lemma rcns_dep_to_finite (rtr : reactor υ) (r : ports.role) (p : ℕ) : (rtr.rcns_dep_to r p).finite :=
+    sorry
+
   -- A given reaction is a(n) anti-/dependency to a given port iff, 
   -- the anti-/dependency of that reaction contains the given port.
   lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {rtr : reactor υ} {r : ports.role} {p : ℕ} {rcn : ℕ} : 

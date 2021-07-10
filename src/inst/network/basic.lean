@@ -35,6 +35,53 @@ namespace network
   -- A lifted version of `inst.network.graph.deps`.
   noncomputable def deps (σ : network υ) : reaction.id → ports.role → finset port.id := σ.η.deps
 
+  -- A lifted version of `reactor.rcns_dep_to`.
+  noncomputable def rcns_dep_to (σ : inst.network υ) (r : ports.role) (p : port.id) : finset reaction.id :=
+    (reactor.rcns_dep_to_finite (σ.rtr p.rtr) r p.prt).to_finset.image (reaction.id.mk p.rtr)
+
+  -- A lifted version of `reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn`.
+  lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {σ : inst.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} : 
+    (rcn ∈ σ.rcns_dep_to r p) ↔ (p ∈ σ.deps rcn r) :=
+    begin
+      unfold rcns_dep_to,
+      rw finset.mem_image,
+      split,
+        {
+          intro h,
+          obtain ⟨x, hm, he⟩ := h,
+          unfold deps graph.deps graph.rcn,
+          rw finset.mem_image,
+          rw set.finite.mem_to_finset at hm,
+          replace hm := reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mp hm,
+          have hx : rcn.rcn = x, by finish,
+          rw ←hx at hm,
+          have hr : rcn.rtr = p.rtr, by finish,
+          rw hr,
+          have hp : port.id.mk p.rtr p.prt = p, { ext ; refl },
+          exact ⟨p.prt, hm, hp⟩
+        },
+        {
+          intro h,
+          existsi rcn.rcn,
+          unfold deps graph.deps at h,
+          rw set.finite.mem_to_finset,
+          rw finset.mem_image at h,
+          obtain ⟨x, hx, he⟩ := h,
+          split,
+            {
+              apply reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mpr,
+              unfold inst.network.graph.rcn at hx,
+              have hp : p.prt = x, by finish,
+              have hr : p.rtr = rcn.rtr, by finish,
+              simp only [inst.network.rtr, hp, hr, hx]
+            },
+            {
+              rw ←he,
+              ext ; refl
+            }
+        }
+    end
+
   -- The set of occupied port-IDs in the network.
   def port_ids (σ : network υ) (r : ports.role) : set port.id :=
     -- `p.prt < ...` means that `p.prt` is valid index in the port list.

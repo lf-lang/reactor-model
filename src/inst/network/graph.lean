@@ -10,7 +10,7 @@ structure inst.network.graph.edge :=
 
 -- Reactor network graph edges are directed.
 instance inst.graph.lgraph_edge : lgraph.edge inst.network.graph.edge reactor.id := 
-  { src := (λ e, e.src.rtr), dst := (λ e, e.dst.rtr) }
+  { lsrc := (λ e, e.src.rtr), ldst := (λ e, e.dst.rtr) }
 
 -- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
@@ -31,6 +31,21 @@ namespace graph
   -- The reaction in a network graph, that is associated with a given reaction ID.
   noncomputable def rcn (η : graph υ) (i : reaction.id) : reaction υ :=
     (η.rtr i.rtr).reactions i.rcn
+
+  -- All of the reaction-IDs associated with a given reactor in a given network graph.
+  noncomputable def rcns_for (η : graph υ) (i : reactor.id) : finset reaction.id :=
+    (η.rtr i).priorities.image (reaction.id.mk i)
+
+  -- If a reaction is part of a reactor, then it's ID's `rcn`-component is part of
+  -- the reactor's `prioirities`.
+  lemma rcns_for_mem_def {η : graph υ} {i : reaction.id} (h : i ∈ η.rcns_for i.rtr) : 
+    i.rcn ∈ (η.rtr i.rtr).priorities :=
+    begin
+      simp only [rcns_for, finset.mem_image] at h,
+      obtain ⟨x, hx, he⟩ := h,
+      rw ←he,
+      exact hx
+    end
 
   -- The port in a network graph, that is associated with a given role and port ID.
   noncomputable def port (η : graph υ) (r : ports.role) (i : port.id) : option υ :=
@@ -54,7 +69,7 @@ namespace graph
         {
           intro h,
           obtain ⟨x, hₓ, hₚ⟩ := h,
-          simp [←hₚ, hₓ]
+          simp [port.id.mk, port.id.rtr, port.id.prt, ←hₚ, hₓ]
         },
         {
           intro h,

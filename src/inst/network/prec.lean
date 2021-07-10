@@ -12,7 +12,7 @@ namespace network
 
   -- Precedence graph edges are directed.
   instance prec.graph.lgraph_edge : lgraph.edge prec.graph.edge reaction.id := 
-    { src := (λ e, e.src), dst := (λ e, e.dst) }
+    { lsrc := (λ e, e.src), ldst := (λ e, e.dst) }
 
   -- Cf. inst/primitives.lean
   variables (υ : Type*) [decidable_eq υ]

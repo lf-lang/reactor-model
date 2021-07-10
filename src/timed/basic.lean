@@ -107,51 +107,14 @@ namespace network
   noncomputable def oaps_for_iap' (τ : timed.network υ) (iap : port.id) : finset { oap // oap ∈ τ.oaps } :=
     (τ.oaps_for_iap iap).attach.image (λ oap, subtype.mk ↑oap (oaps_for_iap_mem oap.property))
 
-  -- A lifted version of `reactor.rcns_dep_to`.
+  -- A lifted version of `inst.network.rcns_dep_to`.
   -- This is the starting point for the definition of `src_for_oap`.
-  def rcns_dep_to (τ : timed.network υ) (r : ports.role) (p : port.id) : set reaction.id :=
-    ((τ.σ.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr)
+  noncomputable def rcns_dep_to (τ : timed.network υ) : ports.role → port.id → finset reaction.id := τ.σ.rcns_dep_to
 
-  -- A lifted version of `reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn`.
+  -- A lifted version of `inst.network.rcn_dep_to_prt_iff_prt_dep_of_rcn`.
   lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {τ : timed.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} : 
     (rcn ∈ τ.rcns_dep_to r p) ↔ (p ∈ τ.σ.deps rcn r) :=
-    begin
-      unfold rcns_dep_to,
-      rw set.mem_image,
-      split,
-        {
-          intro h,
-          obtain ⟨x, hm, he⟩ := h,
-          unfold inst.network.deps inst.network.graph.deps inst.network.graph.rcn,
-          rw finset.mem_image,
-          replace hm := reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mp hm,
-          have hx : rcn.rcn = x, by finish,
-          rw ←hx at hm,
-          have hr : rcn.rtr = p.rtr, by finish,
-          rw hr,
-          have hp : port.id.mk p.rtr p.prt = p, { ext ; refl },
-          exact ⟨p.prt, hm, hp⟩
-        },
-        {
-          intro h,
-          existsi rcn.rcn,
-          unfold inst.network.deps inst.network.graph.deps at h,
-          rw finset.mem_image at h,
-          obtain ⟨x, hx, he⟩ := h,
-          split,
-            {
-              apply reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mpr,
-              unfold inst.network.graph.rcn at hx,
-              have hp : p.prt = x, by finish,
-              have hr : p.rtr = rcn.rtr, by finish,
-              simp only [inst.network.rtr, hp, hr, hx]
-            },
-            {
-              rw ←he,
-              ext ; refl
-            }
-        }
-    end
+    by { apply inst.network.rcn_dep_to_prt_iff_prt_dep_of_rcn }
 
   -- This is a different way of expressing `finset.have_one_src_in`,
   -- which is more suitable for use in `src_for_oap`.
@@ -165,10 +128,10 @@ namespace network
       unfold exists_unique at ho,
       obtain ⟨r, hm, hu⟩ := ho,
       existsi r,
-      rw set.eq_singleton_iff_nonempty_unique_mem,
+      rw finset.eq_singleton_iff_nonempty_unique_mem,
       split,
         {
-          unfold set.nonempty,
+          unfold finset.nonempty,
           exact ⟨r, rcn_dep_to_prt_iff_prt_dep_of_rcn.mpr hm⟩
         },
         {
@@ -192,9 +155,9 @@ namespace network
     (τ.src_for_oap h).rtr = oap.rtr :=
     begin
       unfold src_for_oap,
-      have h', from set.mem_singleton (rcns_dep_to_oap_singleton h).some,
+      have h', from finset.mem_singleton_self (rcns_dep_to_oap_singleton h).some,
       rw ←(Exists.some_spec (rcns_dep_to_oap_singleton h)) at h',
-      simp only [rcns_dep_to, set.mem_image] at h',
+      simp only [rcns_dep_to, inst.network.rcns_dep_to, finset.mem_image] at h',
       obtain ⟨_, _, he⟩ := h',
       unfold Exists.some at ⊢ he,
       generalize_proofs at he,
@@ -231,7 +194,7 @@ namespace network
       intros o ho,
       unfold src_for_oap,
       generalize_proofs hgp, 
-      have h, from set.mem_singleton hgp.some,
+      have h, from finset.mem_singleton_self hgp.some,
       rw ←(hgp.some_spec) at h,
       exact rcn_dep_to_prt_iff_prt_dep_of_rcn.mp h
     end
