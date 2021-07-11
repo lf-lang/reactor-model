@@ -32,21 +32,6 @@ namespace graph
   noncomputable def rcn (η : graph υ) (i : reaction.id) : reaction υ :=
     (η.rtr i.rtr).reactions i.rcn
 
-  -- All of the reaction-IDs associated with a given reactor in a given network graph.
-  noncomputable def rcns_for (η : graph υ) (i : reactor.id) : finset reaction.id :=
-    (η.rtr i).priorities.image (reaction.id.mk i)
-
-  -- If a reaction is part of a reactor, then it's ID's `rcn`-component is part of
-  -- the reactor's `prioirities`.
-  lemma rcns_for_mem_def {η : graph υ} {i : reaction.id} (h : i ∈ η.rcns_for i.rtr) : 
-    i.rcn ∈ (η.rtr i.rtr).priorities :=
-    begin
-      simp only [rcns_for, finset.mem_image] at h,
-      obtain ⟨x, hx, he⟩ := h,
-      rw ←he,
-      exact hx
-    end
-
   -- The port in a network graph, that is associated with a given role and port ID.
   noncomputable def port (η : graph υ) (r : ports.role) (i : port.id) : option υ :=
     (η.rtr i.rtr).port r i.prt
