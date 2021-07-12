@@ -82,6 +82,14 @@ namespace network
         }
     end
 
+  -- A lifted version of `inst.network.graph.rcns_for`.
+  noncomputable def rcns_for (σ : inst.network υ) : reactor.id → finset reaction.id := σ.η.rcns_for
+
+  -- A lifted version of `inst.network.graph.rcns_for_def`.
+  lemma rcns_for_def {σ : inst.network υ} {rcn : reaction.id} {rtr : reactor.id} :
+    rcn ∈ σ.rcns_for rtr ↔ (rcn.rtr = rtr ∧ rcn.rcn ∈ (σ.rtr rtr).priorities) :=
+    inst.network.graph.rcns_for_def
+
   -- The set of occupied port-IDs in the network.
   def port_ids (σ : network υ) (r : ports.role) : set port.id :=
     -- `p.prt < ...` means that `p.prt` is valid index in the port list.

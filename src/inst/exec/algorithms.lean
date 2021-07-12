@@ -38,24 +38,16 @@ namespace network
       end
 
     -- An implementation detail of `prec_func.implementation`.
-    noncomputable def impl.rcns_for (σ : inst.network υ) (i : reactor.id) : finset reaction.id :=
-      (σ.rtr i).priorities.image (reaction.id.mk i)
-
-    -- An implementation detail of `prec_func.implementation`.
     noncomputable def impl.internal_reaction_pairs (σ : inst.network υ) (rtr : reactor.id) : finset (reaction.id × reaction.id) :=
-      (finset.product (impl.rcns_for σ rtr) (impl.rcns_for σ rtr)).filter (λ p, p.1.rcn > p.2.rcn)
+      (finset.product (σ.rcns_for rtr) (σ.rcns_for rtr)).filter (λ p, p.1.rcn > p.2.rcn)
 
     -- An implementation detail of `prec_func.implementation`.
     noncomputable def impl.internal_edges (σ : inst.network υ) : finset prec.graph.edge :=
       σ.ids.bUnion (λ rtr, (impl.internal_reaction_pairs σ rtr).image (λ p, ⟨p.1, p.2⟩))
 
     -- An implementation detail of `prec_func.implementation`.
-    noncomputable def impl.external_reaction_pairs (σ : inst.network υ) : finset (reaction.id × reaction.id) :=
-      σ.ids.bUnion (λ rtr, finset.product (impl.rcns_for σ rtr) (impl.rcns_for σ rtr))
-
-    -- An implementation detail of `prec_func.implementation`.
     noncomputable def impl.external_edges (σ : inst.network υ) : finset prec.graph.edge :=
-      (impl.external_reaction_pairs σ).bUnion (λ p, 
+      (finset.product σ.η.rcn_ids σ.η.rcn_ids).bUnion (λ p, 
         (finset.product (σ.deps p.1 role.output) (σ.deps p.2 role.input)).bUnion (λ q,
           if (network.graph.edge.mk q.1 q.2) ∈ σ.edges then {prec.graph.edge.mk p.1 p.2} else ∅
         )
@@ -64,7 +56,7 @@ namespace network
     -- *Some* concrete implementation of a `prec_func` algorithm.
     noncomputable def implementation : inst.network υ → prec.graph υ := λ σ,
       { lgraph . 
-        ids := σ.ids.bUnion (λ rtr, impl.rcns_for σ rtr),        
+        ids := σ.ids.bUnion (λ rtr, σ.rcns_for rtr),        
         data := σ.η.rcn,                                         
         edges := impl.internal_edges σ ∪ impl.external_edges σ,
         well_formed := begin
@@ -85,41 +77,27 @@ namespace network
             { 
               simp only [impl.external_edges, finset.mem_bUnion, finset.mem_image] at he,
               obtain ⟨r, hr, p, hp, he⟩ := he,
-              simp only [impl.external_reaction_pairs, finset.mem_bUnion, finset.mem_product] at hr,
-              obtain ⟨x, hm, hx⟩ := hr,
+              simp only [graph.rcn_ids, finset.mem_bUnion, finset.mem_product] at hr,
               split,
-                {
+                work_on_goal 0 { obtain ⟨x, hm, hx⟩ := hr.1 },
+                work_on_goal 1 { obtain ⟨x, hm, hx⟩ := hr.2 },
+                all_goals {                 
                   existsi x,
-                  existsi hm,
-                  simp only [lgraph.edge.lsrc],
-                  split_ifs at he,
-                    {
-                      simp at he,
-                      simp only [he],
-                      exact hx.1
-                    },
-                    {
-                      by_contradiction,
-                      have h, from finset.not_mem_empty e,
-                      contradiction
-                    }
+                  existsi hm
                 },
-                {
-                  existsi x,
-                  existsi hm,
-                  simp only [lgraph.edge.ldst],
+                work_on_goal 0 { simp only [lgraph.edge.lsrc] },
+                work_on_goal 1 { simp only [lgraph.edge.ldst] },
+                all_goals { 
                   split_ifs at he,
-                    {
-                      simp at he,
-                      simp only [he],
-                      exact hx.2
-                    },
-                    {
-                      by_contradiction,
-                      have h, from finset.not_mem_empty e,
-                      contradiction
-                    }
-                },
+                  work_on_goal 1 { 
+                    by_contradiction,
+                    have h, from finset.not_mem_empty e,
+                    contradiction
+                  },
+                  simp at he,
+                  simp only [he],
+                  exact hx
+                }
             }
         end  
       }
@@ -128,7 +106,129 @@ namespace network
     -- This is used to define a parameter-free version of `run` (called `run'`).
     noncomputable instance inhabited : inhabited (prec_func υ) := ⟨{ prec_func .
       func := prec_func.implementation,
-      well_formed := sorry,
+      well_formed := begin
+        intro σ,
+        unfold implementation prec.graph.is_well_formed_over,
+        repeat { split },
+          {
+            unfold prec.graph.ids_are_well_formed_over,
+            intro i,
+            simp,
+            unfold ids,
+            split,
+              {
+                intro h,
+                obtain ⟨r, hr⟩ := h,
+                have h, from rcns_for_def.mp hr.2,
+                rw h.1,
+                exact ⟨hr.1, h.2⟩
+              },
+              {
+                intro h,
+                existsi i.rtr,
+                existsi h.1,
+                rw rcns_for_def,
+                unfold rtr,
+                exact ⟨refl _, h.2⟩
+              }
+          },
+          {
+            unfold prec.graph.data_is_well_formed_over prec.graph.rcn,
+            intro i,
+            refl
+          },
+          {
+            unfold prec.graph.edges_are_well_formed_over,
+            intro e,
+            simp,
+            split,
+              {
+                intros h,
+                cases h,
+                  {
+                    simp only [impl.internal_edges, finset.mem_bUnion] at h,
+                    obtain ⟨r, hr, hm⟩ := h,
+                    simp only [finset.mem_image] at hm,
+                    obtain ⟨p, hp, he⟩ := hm,
+                    simp only [impl.internal_reaction_pairs, finset.mem_filter, finset.mem_product] at hp,
+                    unfold prec.graph.internally_dependent,
+                    have ht1, from rcns_for_def.mp hp.1.1,
+                    have ht2, from rcns_for_def.mp hp.1.2,
+                    simp only [←he, ht1.1, ht2.1],
+                    have hi1 : p.fst.rtr ∈ σ.η.ids, { rw ←ht1.1 at hr, exact hr },
+                    have hi2 : p.snd.rtr ∈ σ.η.ids, { rw ←ht2.1 at hr, exact hr },
+                    have hp1 : p.fst.rcn ∈ (σ.η.rtr p.fst.rtr).priorities, { rw ht1.1, exact ht1.2 },
+                    have hp2 : p.snd.rcn ∈ (σ.η.rtr p.snd.rtr).priorities, { rw ht2.1, exact ht2.2 },
+                    have hr1, from graph.rcns_ids_def.mpr ⟨hi1, hp1⟩,
+                    have hr2, from graph.rcns_ids_def.mpr ⟨hi2, hp2⟩,
+                    exact ⟨hr1, hr2, or.inl ⟨refl _, hp.2⟩⟩
+                  },
+                  {
+                    simp only [impl.external_edges, finset.mem_bUnion] at h,
+                    obtain ⟨r, hr, p, hp, h⟩ := h,
+                    simp only [finset.mem_bUnion, finset.mem_product] at hr,
+                    simp only [finset.mem_product] at hp,
+                    unfold prec.graph.externally_dependent,
+                    split_ifs at h with hi,
+                    work_on_goal 1 {
+                      by_contradiction,
+                      have hc, from finset.not_mem_empty e,
+                      contradiction
+                    },
+                    simp at h,
+                    simp only [h],
+                    repeat { split }, exact hr.1, exact hr.2,
+                    right,
+                    existsi { graph.edge . src := p.fst, dst := p.snd },
+                    split, exact hi,
+                    exact hp
+                  }
+              },
+              {
+                intros h,
+                obtain ⟨ha1, ha2, h⟩ := h,
+                rw graph.rcns_ids_def at ha1 ha2,
+                cases h,
+                  {
+                    unfold prec.graph.internally_dependent at h,
+                    simp only [impl.internal_edges, finset.mem_bUnion],
+                    left,
+                    existsi e.src.rtr,
+                    existsi ha1.1,
+                    simp only [finset.mem_image],
+                    existsi (e.src, e.dst),
+                    suffices hg : (e.src, e.dst) ∈ impl.internal_reaction_pairs σ e.src.rtr, {
+                      existsi hg,
+                      ext ; refl
+                    },
+                    simp only [impl.internal_reaction_pairs, finset.mem_filter, finset.mem_product],
+                    have hg, from graph.rcns_for_def.mpr ⟨refl _, ha1.2⟩,
+                    rw ←h.1 at ha2,
+                    have hg', from graph.rcns_for_def.mpr ⟨(symm h.1), ha2.2⟩,
+                    exact ⟨⟨hg, hg'⟩, h.2⟩
+                  },
+                  {
+                    right,
+                    unfold prec.graph.externally_dependent at h,
+                    obtain ⟨x, hm, hx⟩ := h,
+                    simp only [impl.external_edges, finset.mem_bUnion],
+                    existsi (e.src, e.dst),
+                    have hi1, from graph.rcns_ids_def.mpr ha1,
+                    have hi2, from graph.rcns_ids_def.mpr ha2,
+                    existsi (@finset.mem_product _ _ _ _ (e.src, e.dst)).mpr ⟨hi1, hi2⟩,
+                    existsi (x.src, x.dst),
+                    existsi (@finset.mem_product _ _ _ _ (x.src, x.dst)).mpr hx,
+                    split_ifs with hi,
+                      { simp, ext1 ; refl },
+                      {
+                        have he : x = {src := x.src, dst := x.dst}, { ext1 ; refl },
+                        have hc : x ∉ σ.η.edges, { rw he, exact hi },
+                        contradiction
+                      }
+                  }
+              }
+          }
+      end
     }⟩
 
   end prec_func

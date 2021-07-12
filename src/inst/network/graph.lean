@@ -4,6 +4,7 @@ open reactor
 open reactor.ports
 
 -- An edge in a reactor network graph connects reactors' ports.
+@[ext]
 structure inst.network.graph.edge :=
   (src : port.id)
   (dst : port.id)
@@ -39,6 +40,21 @@ namespace graph
   -- A different version of `port` - cf. `reactor.port` vs. `reactor.port'`.
   noncomputable def port' (η : graph υ) (r : ports.role) (i : port.id) : option (option υ) :=
     (η.rtr i.rtr).port' r i.prt
+
+  -- All of the reaction-IDs associated with a given reactor in a given network graph.
+  noncomputable def rcns_for (η : graph υ) (i : reactor.id) : finset reaction.id :=
+    (η.rtr i).priorities.image (reaction.id.mk i)
+
+  lemma rcns_for_def {η : graph υ} {rcn : reaction.id} {rtr : reactor.id} :
+    rcn ∈ η.rcns_for rtr ↔ (rcn.rtr = rtr ∧ rcn.rcn ∈ (η.rtr rtr).priorities) :=
+    sorry
+
+  -- All of the valid reaction-IDs in a given network graph.
+  noncomputable def rcn_ids (η : graph υ) : finset reaction.id := η.ids.bUnion (rcns_for η)
+
+  lemma rcns_ids_def {η : graph υ} {rcn : reaction.id} :
+    rcn ∈ η.rcn_ids ↔ (rcn.rtr ∈ η.ids ∧ rcn.rcn ∈ (η.rtr rcn.rtr).priorities) :=
+    sorry
 
   -- The dependencies of a given reaction for a given role, as proper `port.id`s.
   noncomputable def deps (η : graph υ) (i : reaction.id) (r : ports.role) : finset port.id :=

@@ -6,6 +6,7 @@ namespace inst
 namespace network
 
   -- An edge in a precedence graph connects reactions.
+  @[ext]
   structure prec.graph.edge := 
     (src : reaction.id)
     (dst : reaction.id)
@@ -48,7 +49,10 @@ namespace network
     -- A well-formed precedence graph should contain edges between exactly those reactions that
     -- have a direct dependency in the corresponding network graph.
     def edges_are_well_formed_over (ρ : prec.graph υ) (η : inst.network.graph υ) : Prop :=
-      ∀ e : edge, e ∈ ρ.edges ↔ (internally_dependent e.src e.dst ∨ externally_dependent e.src e.dst η)
+      ∀ e : edge, e ∈ ρ.edges ↔ 
+        (e.src ∈ η.rcn_ids) ∧ 
+        (e.dst ∈ η.rcn_ids) ∧
+        (internally_dependent e.src e.dst ∨ externally_dependent e.src e.dst η)
 
     -- A well-formed precedence graph should contain an ID (and by extension a member) iff
     -- the ID can be used to identify a reaction in the corresponding network graph.
