@@ -47,14 +47,50 @@ namespace graph
 
   lemma rcns_for_def {η : graph υ} {rcn : reaction.id} {rtr : reactor.id} :
     rcn ∈ η.rcns_for rtr ↔ (rcn.rtr = rtr ∧ rcn.rcn ∈ (η.rtr rtr).priorities) :=
-    sorry
+    begin
+      simp only [rcns_for, finset.mem_image],
+      split,
+        {
+          intro h,
+          obtain ⟨x, hx, he⟩ := h,
+          split, finish,
+          have h2 : rcn.rcn = x, by finish,  
+          rw h2,
+          exact hx,
+        },
+        {
+          intro h,
+          existsi rcn.rcn,
+          existsi h.2,
+          ext,
+            exact symm h.1,
+            refl
+        }
+    end
 
   -- All of the valid reaction-IDs in a given network graph.
   noncomputable def rcn_ids (η : graph υ) : finset reaction.id := η.ids.bUnion (rcns_for η)
 
   lemma rcn_ids_def {η : graph υ} {rcn : reaction.id} :
     rcn ∈ η.rcn_ids ↔ (rcn.rtr ∈ η.ids ∧ rcn.rcn ∈ (η.rtr rcn.rtr).priorities) :=
-    sorry
+    begin
+      simp only [rcn_ids, finset.mem_bUnion],
+      split,
+        {
+          intro h,
+          obtain ⟨x, hx, hr⟩ := h,
+          obtain ⟨y, hy⟩ := rcns_for_def.mp hr,
+          rw ←y at hy hx,
+          exact ⟨hx, hy⟩
+        },
+        {
+          intro h,
+          existsi rcn.rtr,
+          existsi h.1,
+          rw rcns_for_def,
+          exact ⟨refl _, h.2⟩
+        }
+    end
 
   -- The dependencies of a given reaction for a given role, as proper `port.id`s.
   noncomputable def deps (η : graph υ) (i : reaction.id) (r : ports.role) : finset port.id :=
