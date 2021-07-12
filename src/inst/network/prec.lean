@@ -48,10 +48,18 @@ namespace network
 
     -- A well-formed precedence graph should contain edges between exactly those reactions that
     -- have a direct dependency in the corresponding network graph.
+    --
+    -- Note that it would be incorrect to include *all* edges that fulfill `internally_dependent` or
+    -- `externally_dependent`, as this would, for example, include all edges of the form ((x, y), (x, z)) for
+    -- y > z, even if (x, y) and (x, z) aren't actually reactions in the network graph.
+    -- This would in turn always force well-formed precedence graphs to contain an infinite number of edges.
+    -- As a result, it would be impossible to create a well-formed precedence graph, as it's edges are defined
+    -- to be a *finite* set.
+    -- Hence we must restrict the edge's endpoints to be part of the valid set of reactions (`ρ.ids`).
     def edges_are_well_formed_over (ρ : prec.graph υ) (η : inst.network.graph υ) : Prop :=
       ∀ e : edge, e ∈ ρ.edges ↔ 
-        (e.src ∈ η.rcn_ids) ∧ 
-        (e.dst ∈ η.rcn_ids) ∧
+        (e.src ∈ ρ.ids) ∧ 
+        (e.dst ∈ ρ.ids) ∧
         (internally_dependent e.src e.dst ∨ externally_dependent e.src e.dst η)
 
     -- A well-formed precedence graph should contain an ID (and by extension a member) iff
@@ -59,6 +67,18 @@ namespace network
     def ids_are_well_formed_over (ρ : prec.graph υ) (η : inst.network.graph υ) : Prop :=
       ∀ i : reaction.id, i ∈ ρ.ids ↔ (i.rtr ∈ η.ids ∧ i.rcn ∈ (η.rtr i.rtr).priorities)
       
+    -- The definition of `ids_are_well_formed_over` corresponds exactly to that of `inst.network.graph.rcn_ids`.
+    -- 
+    --? Perhaps the definition of `ids_are_well_formed_over` should just be `ρ.ids = η.rcn_ids`.
+    lemma wf_ids_eq_net_graph_rcn_ids {η : inst.network.graph υ} {ρ : prec.graph υ} (hw : ρ.ids_are_well_formed_over η) : 
+      ρ.ids = η.rcn_ids :=
+      begin
+        unfold ids_are_well_formed_over at hw,
+        ext,
+        rw network.graph.rcn_ids_def,
+        exact hw a
+      end
+    
     -- A well-formed precedence graph's data map should return exactly those reactions that
     -- correspond to the given ID in the network graph.
     -- Originally this was formalized as: `∀ i, i ∈ ρ.ids → ρ.rcn i = η.rcn i`
@@ -81,10 +101,13 @@ namespace network
     notation ρ `⋈` η := (ρ.is_well_formed_over η) 
 
     -- Two reactions are independent in a precedence graph if there are no paths between them.
+    -- This property trivially holds for all reactions that are not part of the precedence graph.
+    -- Hence most uses of this property should also constrain `i` and `i'` to be `∈ ρ.ids`.
     def indep (ρ : prec.graph υ) (i i' : reaction.id) : Prop := ¬(i~ρ~>i') ∧ ¬(i'~ρ~>i)
 
     -- Independent reactions can not live in the same reactor.
-    lemma indep_rcns_neq_rtrs {η : inst.network.graph υ} {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hₙ : i ≠ i') (hᵢ : ρ.indep i i') :
+    lemma indep_rcns_neq_rtrs {η : inst.network.graph υ} {ρ : prec.graph υ} {i i' : reaction.id} 
+      (hw : ρ ⋈ η) (hₙ : i ≠ i') (hᵢ : ρ.indep i i') (hₘ : i ∈ ρ.ids) (hₘ' : i' ∈ ρ.ids) :
       i.rtr ≠ i'.rtr :=
       begin
         by_contradiction hc,
@@ -93,19 +116,22 @@ namespace network
           {
             let e := {edge . src := i, dst := i'},
             have hd : internally_dependent i i', from ⟨hc, hg⟩,
-            have hₑ, from (hw.right.right e).mpr (or.inl hd),
+            have hₑ, from (hw.right.right e).mpr ⟨hₘ, hₘ', or.inl hd⟩,
             have h_c', from lgraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
             have hᵢ', from hᵢ.left,
             contradiction
           },
           {
             by_cases hg' : i.rcn = i'.rcn,
-              { have hₑ : i = i', { ext, exact hc, exact hg' }, contradiction },
+              { 
+                have hₑ : i = i', { ext, exact hc, exact hg' }, 
+                contradiction
+              },
               {
                 simp at hg hg',
                 let e := {edge . src := i', dst := i},
                 have h_d : internally_dependent i' i, from ⟨symm hc, nat.lt_of_le_and_ne hg hg'⟩,
-                have hₑ, from (hw.right.right e).mpr (or.inl h_d),
+                have hₑ, from (hw.right.right e).mpr ⟨hₘ', hₘ, or.inl h_d⟩,
                 have h_c', from lgraph.has_path_from_to.direct ⟨e, hₑ, refl _⟩,
                 have hᵢ', from hᵢ.right,
                 contradiction
@@ -114,7 +140,8 @@ namespace network
       end
 
     -- If a reaction `i'` does not depend on another reaction `i`, then it is neither internally nor externally dependent on `i`.
-    lemma no_path_no_dep {η : inst.network.graph υ} {ρ : prec.graph υ} (h : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) :
+    lemma no_path_no_dep {η : inst.network.graph υ} {ρ : prec.graph υ} {i i' : reaction.id} 
+      (h : ρ ⋈ η) (hᵢ : ¬(i~ρ~>i')) (hₘ : i ∈ ρ.ids) (hₘ' : i' ∈ ρ.ids) :
       ¬(internally_dependent i i') ∧ ¬(externally_dependent i i' η) :=
       begin 
         let e := {edge . src := i, dst := i'},
@@ -126,13 +153,21 @@ namespace network
           contradiction
         },
         replace h := (not_iff_not_of_iff h).mp hₑ',
-        exact not_or_distrib.mp h
+        cases not_and_distrib.mp h with h' h',
+          { contradiction },
+          {
+            cases not_and_distrib.mp h' with h'' h'',
+            { contradiction },
+            {
+              exact not_or_distrib.mp h''
+            }
+          }
       end
 
     -- If there is no path from a reaction `i` to a reaction `i'`, then none of the edges coming out of `i`'s output dependencies have 
     -- a dependency relationship with `i'`.
     -- This lemma is somewhat specific, as it is required for `inst.network.graph.run_reaction_comm`.
-    lemma no_path_no_eₒ_dep {η : inst.network.graph υ} {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) {ps : finset port.id} (hₛ : ps ⊆ η.deps i role.output) :
+    lemma no_path_no_eₒ_dep {η : inst.network.graph υ} {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) {ps : finset port.id} (hₛ : ps ⊆ η.deps i role.output) (hₘ : i ∈ ρ.ids) (hₘ' : i' ∈ ρ.ids) :
       ∀ (p ∈ ps) (e : inst.network.graph.edge), (e ∈ η.eₒ p) → e.dst ∉ (η.deps i' role.input) ∧ (e.src ∉ η.deps i' role.output) :=
       begin
         intros p hₚ e hₑ,
@@ -140,7 +175,7 @@ namespace network
         simp only [(⊆)] at hₛ,
         split,
           {
-            have hd, from (no_path_no_dep hw hᵢ).right,
+            have hd, from (no_path_no_dep hw hᵢ hₘ hₘ').right,
             rw [externally_dependent, not_exists] at hd,
             replace hd := hd e,
             repeat { rw not_and_distrib at hd },
@@ -171,8 +206,12 @@ namespace network
   theorem prec.wf_prec_graphs_are_eq {η : inst.network.graph υ} {ρ ρ' : prec.graph υ} (hw : ρ ⋈ η) (hw' : ρ' ⋈ η) :
     ρ = ρ' :=
     begin
+      have hi : ρ.ids = ρ'.ids, {
+        ext x,
+        exact iff.trans (hw.left x) (iff.symm (hw'.left x))
+      },
       ext x,
-        exact iff.trans (hw.left x) (iff.symm (hw'.left x)),
+        { rw hi },
         { 
           funext, 
           exact eq.trans (hw.right.left x) (eq.symm (hw'.right.left x)) 
@@ -180,7 +219,9 @@ namespace network
         {
           rw finset.ext_iff,
           intro x,
-          exact iff.trans (hw.right.right x) (iff.symm (hw'.right.right x))
+          have h', from hw.right.right x,
+          rw hi at h',
+          exact iff.trans h' (iff.symm (hw'.right.right x))
         }
     end
 

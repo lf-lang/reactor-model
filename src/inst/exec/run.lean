@@ -43,7 +43,11 @@ namespace network
       have hₜ, from t.is_topo hw,
       have hₜ', from t'.is_topo hw,
       have hₚ, from topo.complete_perm hₜ hₜ',
-      exact graph.run_topo_comm σ.unique_ins hw hₜ.left hₜ'.left hₚ
+      apply graph.run_topo_comm σ.unique_ins hw hₜ.left hₜ'.left hₚ,
+      unfold list.is_complete_topo_over at hₜ',
+      intros x hx,
+      have hm, from (hₜ'.2 x).mp hx,
+      exact hm
     end
 
 end network

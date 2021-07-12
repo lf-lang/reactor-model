@@ -52,7 +52,7 @@ namespace graph
   -- All of the valid reaction-IDs in a given network graph.
   noncomputable def rcn_ids (η : graph υ) : finset reaction.id := η.ids.bUnion (rcns_for η)
 
-  lemma rcns_ids_def {η : graph υ} {rcn : reaction.id} :
+  lemma rcn_ids_def {η : graph υ} {rcn : reaction.id} :
     rcn ∈ η.rcn_ids ↔ (rcn.rtr ∈ η.ids ∧ rcn.rcn ∈ (η.rtr rcn.rtr).priorities) :=
     sorry
 

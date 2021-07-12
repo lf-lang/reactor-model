@@ -26,12 +26,12 @@ namespace graph
 
   -- A specialized version of `no_dep_no_eₒ_dep` for `run_reaction`.
   -- This is needed in the proof of `run_reaction_comm`.
-  lemma run_reaction_no_path_no_eₒ_dep {η : graph υ} {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) :
+  lemma run_reaction_no_path_no_eₒ_dep {η : graph υ} {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ¬(i~ρ~>i')) (hₙ : i.rtr ≠ i'.rtr) (hₘ : i ∈ ρ.ids) (hₘ' : i' ∈ ρ.ids) :
     ∀ (p ∈ ((η.run_local i).index_diff η i.rtr role.output).val.to_list) (e : edge), (e ∈ (η.run_local i).eₒ p) → e.dst ∉ ((η.run_local i).deps i' role.input) ∧ (e.src ∉ (η.run_local i).deps i' role.output) :=
     begin
       intros p hₚ e hₑ,
       have hₛ, from index_diff_sub_dₒ η i,
-      have h, from prec.graph.no_path_no_eₒ_dep hw hᵢ hₙ hₛ p,      
+      have h, from prec.graph.no_path_no_eₒ_dep hw hᵢ hₙ hₛ hₘ hₘ' p,      
       rw multiset.mem_to_list at hₚ,
       replace h := h hₚ e,
       have hq, from run_local_equiv η i,
@@ -46,16 +46,16 @@ namespace graph
   -- If two reactions are independent, then their order of execution doesn't matter.
   -- The main part of the proof is the last line, which equates to:
   -- (run i)(run i')(prop i)(prop i') -> (run i')(run i)(prop i)(prop i') -> (run i')(run i)(prop i')(prop i) -> (run i')(prop i')(run i)(prop i)
-  lemma run_reaction_comm {η : graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ρ.indep i i') :
+  lemma run_reaction_comm {η : graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (hw : ρ ⋈ η) {i i' : reaction.id} (hᵢ : ρ.indep i i') (hₘ : i ∈ ρ.ids) (hₘ' : i' ∈ ρ.ids) :
     (η.run_reaction i).run_reaction i' = (η.run_reaction i').run_reaction i :=
     begin
       by_cases hc : i = i',  
         rw hc,
         {
-          have hₙ, from prec.graph.indep_rcns_neq_rtrs hw hc hᵢ,
+          have hₙ, from prec.graph.indep_rcns_neq_rtrs hw hc hᵢ hₘ hₘ',
           unfold run_reaction,
-          have hd, from run_reaction_no_path_no_eₒ_dep hw hᵢ.left hₙ,
-          have hd', from run_reaction_no_path_no_eₒ_dep hw hᵢ.right (ne.symm hₙ),
+          have hd,  from run_reaction_no_path_no_eₒ_dep hw hᵢ.left hₙ hₘ hₘ',
+          have hd', from run_reaction_no_path_no_eₒ_dep hw hᵢ.right (ne.symm hₙ) hₘ' hₘ,
           have hₑ,  from eq_rel_to.multiple (propagate_ports_eq_rel_to (by { intros p hₚ e hₑ, exact (hd  p hₚ e hₑ).left })) (run_local_eq_rel_to η hₙ),
           have hₑ', from eq_rel_to.multiple (propagate_ports_eq_rel_to (by { intros p hₚ e hₑ, exact (hd' p hₚ e hₑ).left })) (run_local_eq_rel_to η (ne.symm hₙ)),
           rw [run_local_index_diff_eq_rel_to hₑ, run_local_index_diff_eq_rel_to hₑ'],
@@ -84,7 +84,7 @@ namespace graph
     end
 
   -- Pulling a fully independent reaction out of a reaction queue and moving it to the front does not change the result of executing the queue.
-  lemma run_topo_swap {η : graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (h_w : ρ ⋈ η) {t : list reaction.id} (hₜ : t.is_topo_over ρ) {i : reaction.id} (h_ti : i ∈ t) (hᵢ : topo.indep i t ρ) :
+  lemma run_topo_swap {η : graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (h_w : ρ ⋈ η) {t : list reaction.id} (hₜ : t.is_topo_over ρ) {i : reaction.id} (h_ti : i ∈ t) (hᵢ : topo.indep i t ρ) (hₘ : ∀ i ∈ t, i ∈ ρ.ids) :
     run_topo η t = run_topo η (i :: (t.erase i)) :=
     begin
       induction t generalizing i η,
@@ -102,7 +102,8 @@ namespace graph
               have hᵤ' : (run_reaction η t_hd).has_unique_port_ins, 
               from graph.eq_edges_unique_port_ins (graph.equiv_symm h_e).left hᵤ,
               have h_wf' : (ρ ⋈ run_reaction η t_hd), from equiv_wf_prec_inv h_e h_w,
-              have hᵢ', from @t_ih h_tc i (run_reaction η t_hd) hᵤ' h_wf' h_ti' h_fi',
+              have hm' : ∀ i ∈ t_tl, i ∈ ρ.ids, { intros x hx, exact hₘ _ (list.mem_cons_of_mem t_hd hx) },
+              have hᵢ', from @t_ih h_tc hm' i (run_reaction η t_hd) hᵤ' h_wf' h_ti' h_fi',
               have h_rr : run_topo (run_reaction η t_hd) t_tl = list.foldl run_reaction (run_reaction η t_hd) t_tl, from refl _,
               rw [←h_rr, hᵢ'],
               unfold run_topo,
@@ -110,16 +111,16 @@ namespace graph
               repeat { rw list.foldl_cons },
               have h_ind : topo.indep t_hd (t_hd :: t_tl) ρ, from topo.indep_head _ _ hₜ,
               unfold topo.indep at hᵢ h_ind,
-              rw run_reaction_comm hᵤ h_w ⟨(hᵢ t_hd (list.mem_cons_self _ _)), (h_ind i h_ti)⟩
+              rw run_reaction_comm hᵤ h_w ⟨(hᵢ t_hd (list.mem_cons_self _ _)), (h_ind i h_ti)⟩ (hₘ _ (list.mem_cons_self _ _)) (hₘ _ h_ti)
             }     
         }
     end
 
   -- Executing different permutations of a reaction queue on a network graph, produces the same results as long as they're topologically ordered.
   theorem run_topo_comm {η : graph υ} (hᵤ : η.has_unique_port_ins) {ρ : prec.graph υ} (h_wf : ρ ⋈ η) :
-    ∀ {t t' : list reaction.id} (h_t : t.is_topo_over ρ) (h_t' : t'.is_topo_over ρ) (hₚ : t ~ t'), run_topo η t = run_topo η t' :=
+    ∀ {t t' : list reaction.id} (h_t : t.is_topo_over ρ) (h_t' : t'.is_topo_over ρ) (hₚ : t ~ t') (hₘ : ∀ x ∈ t', x ∈ ρ.ids), run_topo η t = run_topo η t' :=
     begin
-      intros t t' h_t h_t' hₚ,
+      intros t t' h_t h_t' hₚ hₘ,
       induction t generalizing t' η,
         rw list.perm.eq_nil (list.perm.symm hₚ),
         {
@@ -135,11 +136,12 @@ namespace graph
             have h_fi₁ : topo.indep t_hd (t_hd :: t_tl) ρ, from topo.indep_head _ _ h_t,
             exact topo.indep_perm hₚ h_fi₁,
           }, 
-          have hₘ : t_hd ∈ t', from h_pe.left,
-          rw (run_topo_swap hᵤ h_wf h_t' hₘ h_fi),
+          have hmt : t_hd ∈ t', from h_pe.left,
+          rw (run_topo_swap hᵤ h_wf h_t' hmt h_fi hₘ),
           unfold run_topo, 
           repeat { rw list.foldl_cons },
-          exact t_ih h_tc hᵤ' h_wf' hte' htep'
+          have hm' : ∀ x ∈ t'.erase t_hd, x ∈ ρ.ids, {  intros x hx, exact hₘ _ (list.mem_of_mem_erase hx) },
+          exact t_ih h_tc hᵤ' h_wf' hte' htep' hm'
         }
     end
 
