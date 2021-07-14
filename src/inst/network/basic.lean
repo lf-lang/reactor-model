@@ -24,7 +24,7 @@ namespace network
   noncomputable def edges (σ : network υ) := σ.η.edges
 
   -- A lifted version of `inst.network.graph.rtr`.
-    noncomputable def rtr (σ : network υ) : reactor.id → reactor υ := σ.η.rtr
+  noncomputable def rtr (σ : network υ) : reactor.id → reactor υ := σ.η.rtr
 
   -- A lifted version of `inst.network.graph.port`.
   noncomputable def port (σ : network υ) : ports.role → port.id → option υ := σ.η.port
