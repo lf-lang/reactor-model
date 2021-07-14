@@ -9,7 +9,7 @@ The current formalization of reactors and networks was very much built on the fl
 
 For example, the definition of `reactor` contains two fields for ports: `(input : ports υ)` and `(output : ports υ)`. Later on I noticed that I had to duplicate certain definitions that differed only in the kinds of ports that were being affected (input vs. output). The solution to this was `ports.role`, which allowed definitions *and proofs* to be written in a role-agnostic way. For example:
 
-```
+```lean
 -- Updates a given port in the reactor, to hold a given value.
 def update (rtr : reactor υ) : ports.role → ℕ → option υ → reactor υ
   | role.input  p v := {input  := rtr.input.update_nth p v,  ..rtr}
@@ -29,7 +29,7 @@ Having sets that simply contain all of the distinct components of an object shou
 [Provable Determinism in Reactors (PDiR)](https://github.com/marcusrossel/bachelors-thesis/blob/main/Thesis/Thesis.pdf) Sections 1.2.2 and 2.3 explain why the formalization is a bit "loose" sometimes, i.e. why it does not constrain types and functions to always contain/produce valid data. During further formalization, I've noticed that it's a bit too loose sometimes. The result is that non-loose definition can be really hard to work with in proofs. E.g. `reaction.rcns_dep_to` defines the set of reactions that have a anti-/dependency relationship with a given port.
 This was originally defined as:
 
-```
+```lean
 def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=
   { x | p ∈ (rtr.reactions x).deps r }
 ```
@@ -38,7 +38,7 @@ The problem with this is that since `reactor.reactions` was defined as `ℕ → 
 The `reactor.reactions` were defined this way, because we also defined `reactor.priorities : finset ℕ` and implicitly stated that `reactor.reactions` only need return "real" values for all elements of `reactor.priorities`.
 Hence, the only solution for the definition of `rcns_dep_to` is to constrain `x` to be part of `reactor.priorities`:
 
-```
+```lean
 def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=
   { x ∈ rtr.priorities | p ∈ (rtr.reactions x).deps r }
 ```
@@ -62,7 +62,7 @@ The formalization of reactor networks builds on a hierarchy of types, which are 
 
 The way in which this is generally formalized is by creating a new structure which has an instance of the "lower" type with additional fields. For example:
 
-```
+```lean
 structure inst.network :=
   (η : inst.network.graph υ)
   (unique_ins : η.has_unique_port_ins)
@@ -71,7 +71,7 @@ structure inst.network :=
 
 A major annoyance that comes with this setup is the fact that definitions for `inst.network.graph` have to be manually "lifted" to also be available to `inst.network`. For example:
 
-```
+```lean
 noncomputable def rtr (η : inst.network.graph υ) (i : reactor.id) : reactor υ := η.data i
 
 -- Lifted for `inst.network`.
@@ -81,7 +81,7 @@ noncomputable def rtr (σ : inst.network υ) : reactor.id → reactor υ := σ.�
 This is already the case for over a dozen definitions and lemmas.
 Unfortunately there is no general solution to this problem, as not every definition can be trivially lifted (or even lifted at all). For example: 
 
-```
+```lean
 noncomputable def update_port (η : inst.network.graph υ) (r : ports.role) (p : port.id) (v : option υ) : inst.network.graph υ :=
   η.update_reactor p.rtr ((η.rtr p.rtr).update r p.prt v)
 
