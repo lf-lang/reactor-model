@@ -111,10 +111,17 @@ namespace network
   -- This is the starting point for the definition of `src_for_oap`.
   noncomputable def rcns_dep_to (τ : timed.network υ) : ports.role → port.id → finset reaction.id := τ.σ.rcns_dep_to
 
-  -- A lifted version of `inst.network.rcn_dep_to_prt_iff_prt_dep_of_rcn`.
-  lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {τ : timed.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} : 
-    (rcn ∈ τ.rcns_dep_to r p) ↔ (p ∈ τ.σ.deps rcn r) :=
-    by { apply inst.network.rcn_dep_to_prt_iff_prt_dep_of_rcn }
+  -- A lifted version of `inst.network.rcn_dep_to_def`.
+  @[simp]
+  lemma rcns_dep_to_def {τ : timed.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} (h : rcn ∈ τ.rcns_dep_to r p) : 
+    p ∈ τ.σ.deps rcn r :=
+    inst.network.rcns_dep_to_def h
+
+  -- A lifted version of `inst.network.rcns_dep_to_mem`.
+  @[simp]
+  lemma rcns_dep_to_mem {τ : timed.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} (hₚ : p ∈ τ.σ.deps rcn r) (hₘ : rcn ∈ τ.σ.rcns_for rcn.rtr) : 
+    rcn ∈ τ.rcns_dep_to r p :=
+    inst.network.rcns_dep_to_mem hₚ hₘ
 
   -- This is a different way of expressing `finset.have_one_src_in`,
   -- which is more suitable for use in `src_for_oap`.
@@ -126,19 +133,20 @@ namespace network
       obtain ⟨iap, he⟩ := oaps_mem.mp h,
       replace ho := ho _ he,
       unfold exists_unique at ho,
-      obtain ⟨r, hm, hu⟩ := ho,
+      obtain ⟨r, ⟨hm1, ⟨hm2, hm3⟩⟩, hu⟩ := ho,
       existsi r,
       rw finset.eq_singleton_iff_nonempty_unique_mem,
       split,
         {
           unfold finset.nonempty,
-          exact ⟨r, rcn_dep_to_prt_iff_prt_dep_of_rcn.mpr hm⟩
+          existsi r,
+          suffices hg : r ∈ τ.σ.rcns_for r.rtr, from rcns_dep_to_mem hm2 hg,
+          rw inst.network.rcns_for_def,
+          rw inst.network.rcn_ids_def at hm1,
+          exact ⟨refl _, hm1.2⟩
         },
-        {
-          intro x,
-          replace hu := hu x,
-          rw ←rcn_dep_to_prt_iff_prt_dep_of_rcn at hu,
-          exact hu
+        { 
+          
         }
     end
 
@@ -196,7 +204,7 @@ namespace network
       generalize_proofs hgp, 
       have h, from finset.mem_singleton_self hgp.some,
       rw ←(hgp.some_spec) at h,
-      exact rcn_dep_to_prt_iff_prt_dep_of_rcn.mp h
+      exact rcns_dep_to_def h
     end
 
   -- The priority for a given OAP is the priority of the (unique) reaction it is connected to.

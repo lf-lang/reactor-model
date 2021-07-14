@@ -65,18 +65,14 @@ namespace network
     -- A well-formed precedence graph should contain an ID (and by extension a member) iff
     -- the ID can be used to identify a reaction in the corresponding network graph.
     def ids_are_well_formed_over (ρ : prec.graph υ) (η : inst.network.graph υ) : Prop :=
-      ∀ i : reaction.id, i ∈ ρ.ids ↔ (i.rtr ∈ η.ids ∧ i.rcn ∈ (η.rtr i.rtr).priorities)
+      ρ.ids = η.rcn_ids
       
-    -- The definition of `ids_are_well_formed_over` corresponds exactly to that of `inst.network.graph.rcn_ids`.
-    -- 
-    --? Perhaps the definition of `ids_are_well_formed_over` should just be `ρ.ids = η.rcn_ids`.
-    lemma wf_ids_eq_net_graph_rcn_ids {η : inst.network.graph υ} {ρ : prec.graph υ} (hw : ρ.ids_are_well_formed_over η) : 
-      ρ.ids = η.rcn_ids :=
+    lemma wf_ids_def {η : inst.network.graph υ} {ρ : prec.graph υ} (hw : ρ.ids_are_well_formed_over η) : 
+      ∀ i : reaction.id, i ∈ ρ.ids ↔ (i.rtr ∈ η.ids ∧ i.rcn ∈ (η.rtr i.rtr).priorities) :=
       begin
-        unfold ids_are_well_formed_over at hw,
-        ext,
-        rw network.graph.rcn_ids_def,
-        exact hw a
+        intro i,
+        simp only [ids_are_well_formed_over, finset.ext_iff, network.graph.rcn_ids_def] at hw,
+        exact hw i
       end
     
     -- A well-formed precedence graph's data map should return exactly those reactions that
@@ -208,7 +204,7 @@ namespace network
     begin
       have hi : ρ.ids = ρ'.ids, {
         ext x,
-        exact iff.trans (hw.left x) (iff.symm (hw'.left x))
+        exact iff.trans ((prec.graph.wf_ids_def hw.left) x) (iff.symm ((prec.graph.wf_ids_def hw'.left) x))
       },
       ext x,
         { rw hi },
@@ -236,9 +232,7 @@ namespace network
         repeat { split },
           {
             unfold ids_are_well_formed_over at hw ⊢,
-            intro x,
-            rw ←h.right.left at hw,
-            simp only [symm (h.right.right x.rtr).left, hw.left x]
+            simp [hw.1, equiv_eq_rcn_ids h]
           },
           {
             unfold data_is_well_formed_over rcn at hw ⊢,

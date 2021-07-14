@@ -35,60 +35,83 @@ namespace network
   -- A lifted version of `inst.network.graph.deps`.
   noncomputable def deps (σ : network υ) : reaction.id → ports.role → finset port.id := σ.η.deps
 
-  -- A lifted version of `reactor.rcns_dep_to`.
-  noncomputable def rcns_dep_to (σ : inst.network υ) (r : ports.role) (p : port.id) : finset reaction.id :=
-    (reactor.rcns_dep_to_finite (σ.rtr p.rtr) r p.prt).to_finset.image (reaction.id.mk p.rtr)
-
-  -- A lifted version of `reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn`.
-  lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {σ : inst.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} : 
-    (rcn ∈ σ.rcns_dep_to r p) ↔ (p ∈ σ.deps rcn r) :=
-    begin
-      unfold rcns_dep_to,
-      rw finset.mem_image,
-      split,
-        {
-          intro h,
-          obtain ⟨x, hm, he⟩ := h,
-          unfold deps graph.deps graph.rcn,
-          rw finset.mem_image,
-          rw set.finite.mem_to_finset at hm,
-          replace hm := reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mp hm,
-          have hx : rcn.rcn = x, by finish,
-          rw ←hx at hm,
-          have hr : rcn.rtr = p.rtr, by finish,
-          rw hr,
-          have hp : port.id.mk p.rtr p.prt = p, { ext ; refl },
-          exact ⟨p.prt, hm, hp⟩
-        },
-        {
-          intro h,
-          existsi rcn.rcn,
-          unfold deps graph.deps at h,
-          rw set.finite.mem_to_finset,
-          rw finset.mem_image at h,
-          obtain ⟨x, hx, he⟩ := h,
-          split,
-            {
-              apply reactor.rcn_dep_to_prt_iff_prt_dep_of_rcn.mpr,
-              unfold inst.network.graph.rcn at hx,
-              have hp : p.prt = x, by finish,
-              have hr : p.rtr = rcn.rtr, by finish,
-              simp only [inst.network.rtr, hp, hr, hx]
-            },
-            {
-              rw ←he,
-              ext ; refl
-            }
-        }
-    end
-
-  -- A lifted version of `inst.network.graph.rcns_for`.
+    -- A lifted version of `inst.network.graph.rcns_for`.
   noncomputable def rcns_for (σ : inst.network υ) : reactor.id → finset reaction.id := σ.η.rcns_for
 
   -- A lifted version of `inst.network.graph.rcns_for_def`.
   lemma rcns_for_def {σ : inst.network υ} {rcn : reaction.id} {rtr : reactor.id} :
     rcn ∈ σ.rcns_for rtr ↔ (rcn.rtr = rtr ∧ rcn.rcn ∈ (σ.rtr rtr).priorities) :=
     inst.network.graph.rcns_for_def
+
+  -- A lifted version of `inst.network.graph.rcn_ids`.
+  noncomputable def rcn_ids (σ : inst.network υ) : finset reaction.id := σ.η.rcn_ids
+
+  -- A lifted version of `inst.network.graph.rcns_ids_def`.
+  lemma rcn_ids_def {σ : inst.network υ} {rcn : reaction.id} :
+    rcn ∈ σ.rcn_ids ↔ (rcn.rtr ∈ σ.ids ∧ rcn.rcn ∈ (σ.rtr rcn.rtr).priorities) :=
+    inst.network.graph.rcn_ids_def
+
+  -- A lifted version of `reactor.rcns_dep_to`.
+  noncomputable def rcns_dep_to (σ : inst.network υ) (r : ports.role) (p : port.id) : finset reaction.id :=
+    if p.rtr ∈ σ.ids then ((σ.rtr p.rtr).rcns_dep_to r p.prt).image (reaction.id.mk p.rtr) else ∅
+
+  -- A lifted version of `reactor.rcn_dep_to_def`.
+  @[simp]
+  lemma rcns_dep_to_def {σ : inst.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} (h : rcn ∈ σ.rcns_dep_to r p) : 
+    p ∈ σ.deps rcn r :=
+    begin
+      unfold rcns_dep_to at h,
+      split_ifs at h,
+      work_on_goal 1 {  
+        have hc, from finset.not_mem_empty rcn,
+        contradiction
+      },
+      rw finset.mem_image at h,
+      obtain ⟨x, hm, he⟩ := h,
+      simp only [deps, graph.deps, graph.rcn, finset.mem_image],
+      have hx : rcn.rcn = x, by finish,
+      have hr : rcn.rtr = p.rtr, by finish,
+      rw ←hx at hm,
+      rw hr,
+      replace hm := reactor.rcns_dep_to_def hm,
+      have hp : port.id.mk p.rtr p.prt = p, { ext ; refl },
+      exact ⟨p.prt, hm, hp⟩
+    end
+
+  -- A lifted version of `reactor.rcn_dep_to_mem`.
+  @[simp]  
+  lemma rcns_dep_to_mem {σ : inst.network υ} {r : ports.role} {p : port.id} {rcn : reaction.id} (hₚ : p ∈ σ.deps rcn r) (hₘ : rcn ∈ σ.rcns_for rcn.rtr) : 
+    rcn ∈ σ.rcns_dep_to r p :=
+    begin
+      unfold rcns_dep_to,
+      split_ifs,
+        {
+          rw finset.mem_image,
+          existsi rcn.rcn,
+          unfold deps graph.deps at hₚ,
+          rw finset.mem_image at hₚ,
+          obtain ⟨x, hx, he⟩ := hₚ,
+          have h', from (rcns_for_def.mp hₘ).2,
+          split,
+            {
+              unfold inst.network.graph.rcn at hx,
+              have hp : p.prt = x, by finish,
+              have hr : p.rtr = rcn.rtr, by finish,
+              simp only [inst.network.rtr, hp, hr, hx],
+              exact reactor.rcns_dep_to_mem (rcns_for_def.mp hₘ).2 hx
+            },
+            {
+              rw ←he,
+              ext ; refl
+            }
+        },
+        {
+          sorry 
+          -- Not provable atm, since we know nothing about `p`.
+          -- I feel like this whole problem of reactions and port having to be
+          -- provably part of the reactor network is spreading.
+        }
+    end
 
   -- The set of occupied port-IDs in the network.
   def port_ids (σ : network υ) (r : ports.role) : set port.id :=
@@ -111,6 +134,10 @@ namespace network
   @[trans]
   lemma equiv_trans {σ₁ σ₂ σ₃ : network υ} (h₁₂ : σ₁ ≈ σ₂) (h₂₃ : σ₂ ≈ σ₃) : σ₁ ≈ σ₃ :=
     by { simp [(≈)] at ⊢ h₁₂ h₂₃, simp [h₁₂, h₂₃] }
+
+  -- A lifted version of `inst.network.graph.equiv_eq_rcn_ids`.
+  lemma equiv_eq_rcn_ids {σ σ' : network υ} (h : σ ≈ σ') : σ.rcn_ids = σ'.rcn_ids := 
+    graph.equiv_eq_rcn_ids h
 
   -- Forwards the `update_port` function from the network graph to the network.
   noncomputable def update_port (σ : network υ) (r : ports.role) (p : port.id) (v : option υ) : network υ :=

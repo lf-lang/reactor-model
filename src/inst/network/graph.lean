@@ -153,6 +153,15 @@ namespace graph
   lemma equiv_trans {η₁ η₂ η₃ : graph υ} (h₁₂ : η₁ ≈ η₂) (h₂₃ : η₂ ≈ η₃) : η₁ ≈ η₃ :=
     by { simp [(≈)] at ⊢ h₁₂ h₂₃, simp [h₁₂, h₂₃] }
 
+  -- Equivalent network graphs have equal reaction-IDs.
+  lemma equiv_eq_rcn_ids {η η' : graph υ} (h : η ≈ η') : η.rcn_ids = η'.rcn_ids :=
+    begin
+      simp [(≈)] at h,
+      ext x,
+      repeat { rw rcn_ids_def },
+      rw [h.2.1, (h.2.2 x.rtr).1]
+    end
+
   -- The proposition, that for all input ports (`i`) in `η` the number of edges that end in `i` is ≤ 1.
   def has_unique_port_ins (η : graph υ) : Prop :=
     ∀ e e' : edge, (e ∈ η.edges) → (e' ∈ η.edges) → e ≠ e' → e.dst ≠ e'.dst

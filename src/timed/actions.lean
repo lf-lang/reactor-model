@@ -31,7 +31,7 @@ def finset.are_local (es : finset action_edge) : Prop :=
 -- The proposition that an OAP has exactly one incoming connection.
 def finset.have_one_src_in (es : finset action_edge) (σ : inst.network (tpa υ)) : Prop :=
   ∀ e : action_edge, e ∈ es → 
-  ∃! r : reaction.id, 
+  ∃! r ∈ σ.rcn_ids, 
     (e.oap ∈ σ.deps r role.output)
 
 -- The proposition that a reaction can not connect to the same IAP through multiple OAPs.
@@ -72,12 +72,12 @@ lemma timed.network.equiv_inst_network_wf (es : finset action_edge) {σ σ' : in
         existsi i,
         split,
           { 
-            rw (hq.right.right i.rtr).right,
-            exact hᵢ.left
+            rw [(hq.right.right i.rtr).right, inst.network.equiv_eq_rcn_ids hq],
+            exact hᵢ.left,
           },
           { 
             intro x,
-            rw (hq.right.right x.rtr).right,
+            rw [(hq.right.right x.rtr).right, inst.network.equiv_eq_rcn_ids hq],
             exact hᵢ.right x
           }
       },

@@ -111,28 +111,6 @@ namespace network
         unfold implementation prec.graph.is_well_formed_over,
         repeat { split },
           {
-            unfold prec.graph.ids_are_well_formed_over,
-            intro i,
-            simp,
-            unfold ids,
-            split,
-              {
-                intro h,
-                obtain ⟨r, hr⟩ := h,
-                have h, from rcns_for_def.mp hr.2,
-                rw h.1,
-                exact ⟨hr.1, h.2⟩
-              },
-              {
-                intro h,
-                existsi i.rtr,
-                existsi h.1,
-                rw rcns_for_def,
-                unfold rtr,
-                exact ⟨refl _, h.2⟩
-              }
-          },
-          {
             unfold prec.graph.data_is_well_formed_over prec.graph.rcn,
             intro i,
             refl

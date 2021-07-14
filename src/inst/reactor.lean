@@ -90,24 +90,23 @@ namespace reactor
     | role.output := list.nth rtr.output
 
   -- The set of reactions in the given reactor, which connect to the given port as anti-/dependency.
-  def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : set ℕ :=
-    { x | p ∈ (rtr.reactions x).deps r }
-
-  -- A port can only have a anti-/dependency to finitely many reactions (since a reactor can only contain
-  -- finitely many reactions in the first place).
-  lemma rcns_dep_to_finite (rtr : reactor υ) (r : ports.role) (p : ℕ) : (rtr.rcns_dep_to r p).finite :=
-    sorry
-
-  -- A given reaction is a(n) anti-/dependency to a given port iff, 
-  -- the anti-/dependency of that reaction contains the given port.
-  lemma rcn_dep_to_prt_iff_prt_dep_of_rcn {rtr : reactor υ} {r : ports.role} {p : ℕ} {rcn : ℕ} : 
-    (rcn ∈ rtr.rcns_dep_to r p) ↔ (p ∈ (rtr.reactions rcn).deps r) :=
+  def rcns_dep_to (rtr : reactor υ) (r : ports.role) (p : ℕ) : finset ℕ :=
+    rtr.priorities.filter (λ x, p ∈ (rtr.reactions x).deps r)
+  
+  @[simp]
+  lemma rcns_dep_to_def {rtr : reactor υ} {r : ports.role} {p : ℕ} {rcn : ℕ} (h : rcn ∈ rtr.rcns_dep_to r p) : 
+    p ∈ (rtr.reactions rcn).deps r :=
     begin
-      unfold rcns_dep_to,
-      cases r ; {
-        unfold reaction.deps,
-        simp,
-      }
+      simp only [rcns_dep_to, finset.mem_filter] at h,
+      exact h.2
+    end
+
+  @[simp]  
+  lemma rcns_dep_to_mem {rtr : reactor υ} {r : ports.role} {p : ℕ} {rcn : ℕ} (hₚ : rcn ∈ rtr.priorities) (hₘ : p ∈ (rtr.reactions rcn).deps r) : 
+    rcn ∈ rtr.rcns_dep_to r p :=
+    begin
+      simp only [rcns_dep_to, finset.mem_filter],
+      exact ⟨hₚ, hₘ⟩
     end
 
   -- Updates a given port in the reactor, to hold a given value.
