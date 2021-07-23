@@ -1,5 +1,9 @@
 import inst.network.prec
+import lgraph
 open reactor
+open reactor.ports
+
+open_locale classical
 
 -- Cf. inst/primitives.lean
 variables (υ : Type*) [decidable_eq υ]
@@ -7,15 +11,18 @@ variables (υ : Type*) [decidable_eq υ]
 -- An instantaneous reactor network is an instantaneous reactor network graph with the constraints
 -- of having unique input-port connections as well as being precedence-acyclic.
 @[ext]
-structure inst.network :=
-  (η : inst.network.graph υ)
-  (unique_ins : η.has_unique_port_ins)
-  (prec_acyclic : η.is_prec_acyclic)
+structure inst.network extends (inst.network.graph υ) :=
+  (unique_ins : to_graph.has_unique_port_ins)
+  (prec_acyclic : to_graph.is_prec_acyclic)
   
 variables {υ}
 
-namespace inst
-namespace network
+namespace inst.network
+
+  -- LIFT THE DEFINITIONS FROM NETWORK-GRAPH AND
+  -- DEFINE THE ENTIRE ACCESSOR API!
+
+
 
   -- A lifted version of `inst.network.graph.ids`.
   noncomputable def ids (σ : network υ) := σ.η.ids
@@ -175,5 +182,4 @@ namespace network
   lemma copy_ports_equiv (σ σ' : inst.network υ) (ps : finset port.id) (r : ports.role) : σ.copy_ports σ' ps r ≈ σ :=
     by { unfold copy_ports, exact graph.copy_ports_equiv _ _ _ _ }
 
-end network
-end inst
+end inst.network

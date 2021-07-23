@@ -1,4 +1,55 @@
 import tactic
+import data.finmap
+
+notation α `⇀` β := finmap (λ _ : α, β) 
+
+def finmap.ids {α β : Type*} (f : α ⇀ β) := f.keys
+
+noncomputable def finmap.values {α β : Type*} [decidable_eq α] [decidable_eq β] (f : α ⇀ β) : finset β :=
+  let description := { x | ∃ i ∈ f.keys, f.lookup i = some x } in
+  have is_finite : description.finite :=
+      begin
+        let s : finset β := f.keys.bUnion (λ i, (f.lookup i).elim ∅ singleton),
+        suffices h : ↑s = description, by simp only [←h, finset.finite_to_set],
+        ext,
+        split,
+          {
+            intro h,
+            simp only [finset.set_bUnion_coe, set.mem_Union, finset.coe_bUnion] at h,
+            obtain ⟨i, ⟨hi, hm⟩⟩ := h,
+            simp only [set.mem_set_of_eq],
+            existsi i, 
+            existsi hi,
+            cases f.lookup i
+              ; simp only [option.elim] at hm,
+              {
+                exfalso,
+                simp only [finset.coe_empty, set.mem_empty_eq] at hm,
+                exact hm
+              },
+              {
+                simp only [set.mem_singleton_iff, finset.coe_singleton] at hm,
+                simp only [hm]
+              }
+          },
+          {
+            intro h,
+            simp only [set.mem_set_of_eq] at h,
+            obtain ⟨i, ⟨hi, he⟩⟩ := h,
+            simp only [finset.set_bUnion_coe, set.mem_Union, finset.coe_bUnion],
+            existsi i,
+            existsi hi,
+            cases f.lookup i
+              ; simp only [option.elim]
+              ; simp only at he,
+              { exfalso, exact he },
+              { simp only [he, set.mem_singleton_iff, finset.coe_singleton] }
+          }
+      end,
+    is_finite.to_finset
+
+-- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/not.20some.20implies.20none/near/246065313
+def option.not_eq_some_eq_none {α : Type*} {a : option α} (h : ∀ b, ¬(a = some b)) : a = none := by tidy
 
 -- This file contains lemmas about objects in Mathlib, which have not yet landed in Mathlib.
 -- The following lemmas have all been proven by Yakov Pechersky.
