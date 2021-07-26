@@ -50,8 +50,55 @@ theorem perm.eqNil {l : List α} (p : l ~ []) : l = [] :=
 theorem perm.nilEq {l : List α} (p : [] ~ l) : [] = l :=
   p.symm.eqNil.symm
 
-theorem perm.subset {l₁ l₂ : List α} (p : l₁ ~ l₂) : l₁ ⊆ l₂ := by
-sorry
+theorem perm.subset {l₁ l₂ : List α} (p : l₁ ~ l₂) [DecidableEq α]: l₁ ⊆ l₂ := by
+induction p with
+ | nil =>
+   intro x
+   exfalso
+ | @cons x l₁ l₂ p h  =>
+   intros y h_y_in_x_cons_l₁
+   apply List.mem_cons.2
+   by_cases hxy : (y = x)
+   -- y = x
+   apply Or.inl
+   exact hxy
+   -- y != x
+   have horl₁  := List.mem_cons.1 h_y_in_x_cons_l₁
+   cases horl₁ with
+    | inl heq => contradiction
+    | inr hl₁ =>
+      apply Or.inr
+      apply h
+      exact hl₁
+ | swap x y l =>
+   intros a ha
+   have ha' := List.mem_cons.1 ha
+   apply List.mem_cons.2
+   cases ha' with
+    -- a = y
+    | inl heq =>
+      apply Or.inr
+      apply List.mem_cons.2
+      apply Or.inl
+      exact heq
+    -- a ∈ x :: l
+    | inr h_in_x_cons_l =>
+    have hxl := List.mem_cons.1 h_in_x_cons_l
+    cases hxl with
+    -- a = x
+    | inl heq =>
+       apply Or.inl
+       exact heq
+    | inr h_in_l =>
+      apply Or.inr
+      apply List.mem_cons.2
+      apply Or.inr
+      exact h_in_l
+ | trans _ _ h_l₁_subseteq_l₂ h_l₂_subseteq_l₃  =>
+   intros x hx
+   apply h_l₂_subseteq_l₃
+   apply h_l₁_subseteq_l₂
+   exact hx
 
 theorem perm.pairwiseIff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y x) :
   ∀ {l₁ l₂ : List α} (p : l₁ ~ l₂), pairwise R l₁ ↔ pairwise R l₂ := by
