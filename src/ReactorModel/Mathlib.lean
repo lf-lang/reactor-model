@@ -1,5 +1,15 @@
 import Mathlib
 
+namespace Option 
+
+protected def elim : Option α → β → (α → β) → β
+  | (some x), y, f => f x
+  | none,     y, f => y
+
+instance Bind : Bind (Option) := ⟨Option.bind⟩
+
+end Option
+
 namespace List
 
 variable (r : α → α → Prop)
@@ -8,7 +18,21 @@ inductive pairwise : List α → Prop
   | nil : pairwise []
   | cons : ∀ {a : α} {l : List α}, (∀ a' ∈ l, r a a') → pairwise l → pairwise (a::l)
 
+def pwFilter (R : α → α → Prop) [DecidableRel R] : List α → List α
+| []        => []
+| (x :: xs) => 
+  let IH := pwFilter R xs
+  sorry -- if ∀ y, y ∈ IH → R x y then x :: IH else IH
+
+theorem pairwisePWFilter {R : α → α → Prop} [DecidableRel R] : ∀ (l : List α), pairwise R (pwFilter R l)
+| []       => pairwise.nil
+| (x :: l) => sorry
+
 def nodup : List α → Prop := pairwise (. ≠ .)
+
+def eraseDup [DecidableEq α] : List α → List α := pwFilter (. ≠ .)
+
+theorem nodupEraseDup [DecidableEq α] : ∀ l : List α, l.eraseDup.nodup := pairwisePWFilter
 
 inductive perm : List α → List α → Prop
   | nil   : perm [] []
@@ -110,7 +134,7 @@ theorem perm.pairwiseIff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y 
     rw [←p.nilEq]
     constructor
   | @cons a l₁ h d IH =>
-    have : a ∈ l₂ := p.subset (mem_cons_self _ _)
+    -- have : a ∈ l₂ := p.subset (mem_cons_self _ _)
     sorry
     /-
     rcases mem_split this with ⟨s₂, t₂, rfl⟩,
@@ -123,7 +147,7 @@ theorem perm.nodupIff {l₁ l₂ : List α} : l₁ ~ l₂ → (List.nodup l₁ �
   perm.pairwiseIff Ne.symm
 
 theorem perm.memIff {a : α} {l₁ l₂ : List α} (h : l₁ ~ l₂) : a ∈ l₁ ↔ a ∈ l₂ :=
-  Iff.intro (λ m => h.subset m) (λ m => h.symm.subset m)
+  sorry -- Iff.intro (λ m => h.subset m) (λ m => h.symm.subset m)
 
 def keys {β : α → Type v} : List (Sigma β) → List α :=
   map Sigma.fst
@@ -153,10 +177,32 @@ theorem perm.map {β} (f : α → β) {l₁ l₂ : List α} (p : l₁ ~ l₂) :
 theorem permNodupkeys {β : α → Type v} {l₁ l₂ : List (Sigma β)} (h : l₁ ~ l₂) : nodupkeys l₁ ↔ nodupkeys l₂ :=
   (h.map _).nodupIff
 
+def countp (p : α → Prop) [DecidablePred p] : List α → Nat
+| []      => 0
+| (x::xs) => if p x then Nat.succ (countp p xs) else countp p xs
+
+def count [DecidableEq α] (a : α) : List α → Nat := countp (Eq a)
+
+theorem permIffCount [DecidableEq α] {l₁ l₂ : List α} : l₁ ~ l₂ ↔ (∀ a, count a l₁ = count a l₂) :=
+  sorry
+
+theorem perm.eraseDup [DecidableEq α] {l₁ l₂ : List α} (p : l₁ ~ l₂) : eraseDup l₁ ~ eraseDup l₂ :=
+  sorry
+
+def lookup' (a : α) : List (Sigma β) → Option (β a)
+| []             => none
+| (⟨a', b⟩ :: l) => sorry -- if h : a' = a then some (Eq.recOn h b) else lookup' l
+
+theorem permLookup (a : α) {l₁ l₂ : List (Sigma β)}
+  (nd₁ : l₁.nodupkeys) (nd₂ : l₂.nodupkeys) (p : l₁ ~ l₂) : lookup' a l₁ = lookup' a l₂ :=
+  sorry
+
 end List
 
 def Multiset.{u} (α : Type u) : Type u :=
   Quotient (List.isSetoid α)
+
+instance : Coe (List α) (Multiset α) := ⟨Quot.mk _⟩
 
 namespace Multiset
 
@@ -166,10 +212,41 @@ def nodup (s : Multiset α) : Prop :=
 def mem (a : α) (s : Multiset α) : Prop :=
   Quot.liftOn s (λ l => a ∈ l) (λ l₁ l₂ (e : l₁ ~ l₂) => propext e.memIff)
 
-def nodupkeys {β : α → Type v} (s : Multiset (Sigma β)) : Prop :=
+def nodupkeys {β : α → Type _} (s : Multiset (Sigma β)) : Prop :=
   Quot.liftOn s List.nodupkeys (λ s t p => propext $ List.permNodupkeys p)
 
+-- I couldn't find a specific instance for coercing lists to multisets in Lean 3,
+-- so I'm guessing that may have been implemented for quotient types in general.
+-- It seems that hasn't been implemented yet in Lean 4.
+-- This also affects Alist.toFinmap and Multiset.nodupEraseDup
+def map (f : α → β) (s : Multiset α) : Multiset β :=
+-- Quot.liftOn s (λ l : List α => (l.map f : Multiset β)) (λ l₁ l₂ p => Quot.sound (p.map f))
+  sorry
+
+def keys {β : α → Type _} (s : Multiset (Sigma β)) : Multiset α :=
+  s.map Sigma.fst
+
+-- https://leanprover.zulipchat.com/#narrow/stream/217875-Is-there.20code.20for.20X.3F/topic/multiset.2Esum
+def sum : Multiset α → α := sorry
+
+def join : Multiset (Multiset α) → Multiset α := sum
+
+def bind (s : Multiset α) (f : α → Multiset β) : Multiset β :=
+  join (map f s)
+
+def eraseDup [DecidableEq α] (s : Multiset α) : Multiset α :=
+  sorry
+  -- Quot.liftOn s (λ l => (l.eraseDup : Multiset α)) (λ s t p => Quot.sound p.eraseDup)
+
+theorem nodupEraseDup [DecidableEq α] (s : Multiset α) : s.eraseDup.nodup :=
+  sorry
+  -- Quot.inductionOn s List.nodupEraseDup
+
 instance : Mem α (Multiset α) := ⟨Multiset.mem⟩
+
+instance : EmptyCollection (Multiset α) := ⟨@List.nil α⟩
+
+theorem nodupEmpty : @nodup α ∅ := List.pairwise.nil
 
 end Multiset
 
@@ -177,15 +254,116 @@ structure Finset (α) where
   val : Multiset α
   nodup : Multiset.nodup val
 
+def Multiset.toFinset [DecidableEq α] (s : Multiset α) : Finset α := ⟨_, nodupEraseDup s⟩
+
 namespace Finset
 
 instance : Mem α (Finset α) := ⟨λ a f => a ∈ f.val⟩
 
+instance : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nodupEmpty }⟩
+
+protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=
+  (s.val.bind (λ a => (t a).val)).toFinset
+
+def singleton (a : α) : Finset α := ⟨[a], sorry⟩
+
+instance : CoeT (Finset α) f (Set α) := ⟨{x | x ∈ f}⟩
+
 end Finset
+
+namespace Set 
+
+def finite (s : Set α) : Prop :=
+  ∃ f : Finset α, ∀ a, a ∈ s ↔ a ∈ f
+
+noncomputable def finite.toFinset {s : Set α} (h : s.finite) : Finset α :=
+  Classical.choose h
+
+end Set
+
+structure Alist {α : Type u} (β : α → Type v) : Type (max u v) :=
+  entries : List (Sigma β)
+  nodupkeys : entries.nodupkeys
+
+namespace Alist 
+
+def lookup (a : α) (s : Alist β) : Option (β a) :=
+  s.entries.lookup' a
+
+theorem permLookup {a : α} {s₁ s₂ : Alist β} (p : s₁.entries ~ s₂.entries) :
+  s₁.lookup a = s₂.lookup a :=
+  List.permLookup _ s₁.nodupkeys s₂.nodupkeys p
+
+end Alist
 
 structure Finmap {α : Type u} (β : α → Type v) : Type (max u v) where
   entries : Multiset (Sigma β)
   nodupkeys : entries.nodupkeys
 
-def Set.finite (s : Set α) : Prop :=
-  ∃ f : Finset α, ∀ a, a ∈ s ↔ a ∈ f
+def Alist.toFinmap {β : α → Type _} (s : Alist β) : Finmap β := sorry -- ⟨s.entries, s.nodupkeys⟩
+
+namespace Finmap
+
+infix:50 " ⇀ " => (λ α β => Finmap (λ _ : α => β))
+
+def liftOn
+  {β : α → Type v} {γ} (s : Finmap β) (f : Alist β → γ)
+  (H : ∀ a b : Alist β, a.entries ~ b.entries → f a = f b) : γ :=
+  sorry
+
+def lookup {β : α → Type _} (a : α) (s : Finmap β) : Option (β a) :=
+  liftOn s (Alist.lookup a) (λ s t => Alist.permLookup)
+
+theorem inductionOn {β : α → Type _} {C : Finmap β → Prop} (s : Finmap β) (H : ∀ (a : Alist β), C a.toFinmap) : C s := by
+  -- by rcases s with ⟨⟨a⟩, h⟩; exact H ⟨a, h⟩
+  sorry
+
+def keys {β : α → Type _} (s : Finmap β) : Finset α :=
+  sorry -- ⟨s.entries.keys, inductionOn s keys_nodup⟩
+
+def ids (f : α ⇀ β) := f.keys
+
+noncomputable def values [DecidableEq α] [DecidableEq β] (f : α ⇀ β) : Finset β :=
+  let description := { x | ∃ i ∈ f.keys, f.lookup i = some x }
+  let isFinite : description.finite := by
+    let s : Finset β := f.keys.bUnion (λ i => (f.lookup i).elim ∅ Finset.singleton)
+    sorry
+    /-suffices h : ↑s = description by simp only [←h, Finset.finite_to_set]  
+    split
+    focus 
+      intro h
+      simp only [finset.set_bUnion_coe, set.mem_Union, finset.coe_bUnion] at h
+      match h with 
+      | ⟨i, ⟨hi, hm⟩⟩ =>
+        simp only [set.mem_set_of_eq]
+        exists i
+        exists hi
+        cases f.lookup i
+        allGoals simp only [option.elim] at hm
+        focus
+          exfalso
+          simp only [finset.coe_empty, set.mem_empty_eq] at hm
+          exact hm
+        focus
+          simp only [set.mem_singleton_iff, finset.coe_singleton] at hm
+          simp only [hm]
+    focus
+      intro h
+      simp only [set.mem_set_of_eq] at h
+      match h with 
+      | ⟨i, ⟨hi, he⟩⟩ =>
+      simp only [finset.set_bUnion_coe, set.mem_Union, finset.coe_bUnion]
+      exists i
+      exists hi
+      cases f.lookup i
+      allGoals simp only [option.elim]
+      allGoals simp only at he
+      focus 
+        exfalso
+        exact he
+      focus
+        simp only [he, set.mem_singleton_iff, finset.coe_singleton]
+    -/
+  isFinite.toFinset
+
+end Finmap
