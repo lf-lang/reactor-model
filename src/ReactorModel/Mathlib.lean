@@ -124,7 +124,40 @@ induction p with
    apply h_l₁_subseteq_l₂
    exact hx
 
-theorem perm.pairwiseIff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y x) :
+theorem perm.permMiddle {a : α} : ∀ {l₁ l₂ : List α}, l₁++a::l₂ ~ a::(l₁++l₂) := by
+ intros l₁
+ induction l₁ with
+ | nil =>
+ simp
+ intros l₂
+ apply perm.refl
+ | @cons b l₁ IH =>
+ intro l₂
+ have IH' := @IH (l₂)
+ have IH'' := perm.cons b IH'
+ have Sab :=  (swap a b (l₁ ++ l₂))
+ have T := perm.trans IH'' Sab
+ simp [T]
+
+theorem perm.consInv {a : α} {l₁ l₂ : List α} : a::l₁ ~ a::l₂ → l₁ ~ l₂ := by
+intro h
+-- need to bring hypothesis to form l₁' ~ l₂' for induction
+generalize hl₁' : (a::l₁)  = l₁'
+generalize hl₂' : (a::l₂)  = l₂'
+rw [hl₁'] at h
+rw [hl₂'] at h
+-- now we can do induction
+induction h with
+| nil =>
+contradiction
+| cons =>
+sorry
+| swap =>
+sorry
+| trans =>
+sorry
+
+theorem perm.pairwiseIff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y x) [DecidableEq α]:
   ∀ {l₁ l₂ : List α} (p : l₁ ~ l₂), pairwise R l₁ ↔ pairwise R l₂ := by
   suffices ∀ {l₁ l₂}, l₁ ~ l₂ → pairwise R l₁ → pairwise R l₂ 
   from λ l₁ l₂ p => ⟨this p, this p.symm⟩
@@ -134,8 +167,14 @@ theorem perm.pairwiseIff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y 
     rw [←p.nilEq]
     constructor
   | @cons a l₁ h d IH =>
+<<<<<<< HEAD
     -- have : a ∈ l₂ := p.subset (mem_cons_self _ _)
     sorry
+=======
+    have : a ∈ l₂ := p.subset (mem_cons_self _ _)
+    cases (mem_split this)
+    have p' := (p.trans perm.permMiddle).cons_inv
+>>>>>>> a3ac5b2a6105242c7f6dc5ab9aab2843a6e4d019
     /-
     rcases mem_split this with ⟨s₂, t₂, rfl⟩,
     have p' := (p.trans perm_middle).cons_inv,
