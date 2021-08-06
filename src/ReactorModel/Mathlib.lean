@@ -167,22 +167,17 @@ theorem perm.pairwiseIff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y 
     rw [←p.nilEq]
     constructor
   | @cons a l₁ h d IH =>
-<<<<<<< HEAD
-    -- have : a ∈ l₂ := p.subset (mem_cons_self _ _)
-    sorry
-=======
     have : a ∈ l₂ := p.subset (mem_cons_self _ _)
     cases (mem_split this)
-    have p' := (p.trans perm.permMiddle).cons_inv
->>>>>>> a3ac5b2a6105242c7f6dc5ab9aab2843a6e4d019
-    /-
+    sorry
+    /-have p' := (p.trans perm.permMiddle).cons_inv
     rcases mem_split this with ⟨s₂, t₂, rfl⟩,
     have p' := (p.trans perm_middle).cons_inv,
     refine (pairwise_middle S).2 (pairwise_cons.2 ⟨λ b m, _, IH _ p'⟩),
     exact h _ (p'.symm.subset m)
     -/
 
-theorem perm.nodupIff {l₁ l₂ : List α} : l₁ ~ l₂ → (List.nodup l₁ ↔ List.nodup l₂) :=
+theorem perm.nodupIff [DecidableEq α] {l₁ l₂ : List α} : l₁ ~ l₂ → (List.nodup l₁ ↔ List.nodup l₂) :=
   perm.pairwiseIff Ne.symm
 
 theorem perm.memIff {a : α} {l₁ l₂ : List α} (h : l₁ ~ l₂) : a ∈ l₁ ↔ a ∈ l₂ :=
@@ -213,7 +208,7 @@ theorem perm.map {β} (f : α → β) {l₁ l₂ : List α} (p : l₁ ~ l₂) :
   map f l₁ ~ map f l₂ :=
   filterMapEqMap f ▸ p.filterMap _
 
-theorem permNodupkeys {β : α → Type v} {l₁ l₂ : List (Sigma β)} (h : l₁ ~ l₂) : nodupkeys l₁ ↔ nodupkeys l₂ :=
+theorem permNodupkeys [DecidableEq α] {β : α → Type v} {l₁ l₂ : List (Sigma β)} (h : l₁ ~ l₂) : nodupkeys l₁ ↔ nodupkeys l₂ :=
   (h.map _).nodupIff
 
 def countp (p : α → Prop) [DecidablePred p] : List α → Nat
@@ -241,17 +236,17 @@ end List
 def Multiset.{u} (α : Type u) : Type u :=
   Quotient (List.isSetoid α)
 
-instance : Coe (List α) (Multiset α) := ⟨Quot.mk _⟩
+instance : Coe (List α) (Multiset α) := ⟨Quotient.mk⟩
 
 namespace Multiset
 
-def nodup (s : Multiset α) : Prop :=
+def nodup [DecidableEq α] (s : Multiset α) : Prop :=
   Quot.liftOn s List.nodup (λ _ _ p => propext p.nodupIff)
 
 def mem (a : α) (s : Multiset α) : Prop :=
   Quot.liftOn s (λ l => a ∈ l) (λ l₁ l₂ (e : l₁ ~ l₂) => propext e.memIff)
 
-def nodupkeys {β : α → Type _} (s : Multiset (Sigma β)) : Prop :=
+def nodupkeys [DecidableEq α] {β : α → Type _} (s : Multiset (Sigma β)) : Prop :=
   Quot.liftOn s List.nodupkeys (λ s t p => propext $ List.permNodupkeys p)
 
 -- I couldn't find a specific instance for coercing lists to multisets in Lean 3,
@@ -285,11 +280,11 @@ instance : Mem α (Multiset α) := ⟨Multiset.mem⟩
 
 instance : EmptyCollection (Multiset α) := ⟨@List.nil α⟩
 
-theorem nodupEmpty : @nodup α ∅ := List.pairwise.nil
+theorem nodupEmpty [DecidableEq α] : @nodup α _ ∅ := List.pairwise.nil
 
 end Multiset
 
-structure Finset (α) where
+structure Finset (α) [DecidableEq α] where
   val : Multiset α
   nodup : Multiset.nodup val
 
@@ -297,25 +292,25 @@ def Multiset.toFinset [DecidableEq α] (s : Multiset α) : Finset α := ⟨_, no
 
 namespace Finset
 
-instance : Mem α (Finset α) := ⟨λ a f => a ∈ f.val⟩
+instance [DecidableEq α] : Mem α (Finset α) := ⟨λ a f => a ∈ f.val⟩
 
-instance : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nodupEmpty }⟩
+instance [DecidableEq α] : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nodupEmpty }⟩
 
-protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=
+protected def bUnion [DecidableEq α] [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=
   (s.val.bind (λ a => (t a).val)).toFinset
 
-def singleton (a : α) : Finset α := ⟨[a], sorry⟩
+def singleton [DecidableEq α] (a : α) : Finset α := ⟨[a], sorry⟩
 
-instance : CoeT (Finset α) f (Set α) := ⟨{x | x ∈ f}⟩
+instance [DecidableEq α] : Coe (Finset α) (Set α) := ⟨λ f => {x | x ∈ f}⟩
 
 end Finset
 
 namespace Set 
 
-def finite (s : Set α) : Prop :=
+def finite [DecidableEq α] (s : Set α) : Prop :=
   ∃ f : Finset α, ∀ a, a ∈ s ↔ a ∈ f
 
-noncomputable def finite.toFinset {s : Set α} (h : s.finite) : Finset α :=
+noncomputable def finite.toFinset [DecidableEq α] {s : Set α} (h : s.finite) : Finset α :=
   Classical.choose h
 
 end Set
@@ -335,32 +330,32 @@ theorem permLookup {a : α} {s₁ s₂ : Alist β} (p : s₁.entries ~ s₂.entr
 
 end Alist
 
-structure Finmap {α : Type u} (β : α → Type v) : Type (max u v) where
+structure Finmap {α : Type u} [DecidableEq α] (β : α → Type v) : Type (max u v) where
   entries : Multiset (Sigma β)
   nodupkeys : entries.nodupkeys
 
-def Alist.toFinmap {β : α → Type _} (s : Alist β) : Finmap β := sorry -- ⟨s.entries, s.nodupkeys⟩
+def Alist.toFinmap [DecidableEq α] {β : α → Type _} (s : Alist β) : Finmap β := sorry -- ⟨s.entries, s.nodupkeys⟩
 
 namespace Finmap
 
-infix:50 " ⇀ " => (λ α β => Finmap (λ _ : α => β))
+infix:50 " ⇀ " => (λ a b [DecidableEq a] => Finmap (λ _ : a => b))
 
 def liftOn
-  {β : α → Type v} {γ} (s : Finmap β) (f : Alist β → γ)
+  [DecidableEq α] {β : α → Type v} {γ} (s : Finmap β) (f : Alist β → γ)
   (H : ∀ a b : Alist β, a.entries ~ b.entries → f a = f b) : γ :=
   sorry
 
-def lookup {β : α → Type _} (a : α) (s : Finmap β) : Option (β a) :=
+def lookup [DecidableEq α] {β : α → Type _} (a : α) (s : Finmap β) : Option (β a) :=
   liftOn s (Alist.lookup a) (λ s t => Alist.permLookup)
 
-theorem inductionOn {β : α → Type _} {C : Finmap β → Prop} (s : Finmap β) (H : ∀ (a : Alist β), C a.toFinmap) : C s := by
+theorem inductionOn [DecidableEq α] {β : α → Type _} {C : Finmap β → Prop} (s : Finmap β) (H : ∀ (a : Alist β), C a.toFinmap) : C s := by
   -- by rcases s with ⟨⟨a⟩, h⟩; exact H ⟨a, h⟩
   sorry
 
-def keys {β : α → Type _} (s : Finmap β) : Finset α :=
+def keys [DecidableEq α] {β : α → Type _} (s : Finmap β) : Finset α :=
   sorry -- ⟨s.entries.keys, inductionOn s keys_nodup⟩
 
-def ids (f : α ⇀ β) := f.keys
+def ids [DecidableEq α] (f : α ⇀ β) := f.keys
 
 noncomputable def values [DecidableEq α] [DecidableEq β] (f : α ⇀ β) : Finset β :=
   let description := { x | ∃ i ∈ f.keys, f.lookup i = some x }
