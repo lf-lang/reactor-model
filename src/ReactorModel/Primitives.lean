@@ -39,7 +39,7 @@ theorem at'ToAt {p p' : Ports ι υ} {i : ι} (h : p.at' i = p'.at' i) :
   p.at i = p'.at i := by sorry
   -- simp only [«at», h]
 
-lemma at'AbsentAtNone {p : Ports ι υ} {i : ι} (h : p.at' i = some ⊥) :
+theorem at'AbsentAtNone {p : Ports ι υ} {i : ι} (h : p.at' i = some ⊥) :
   p.at i = none := by sorry
   -- simp [«at», h]
 
@@ -91,7 +91,7 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
         }-/
   isFinite.toFinset
 
-lemma inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p.at i = none) : i ∉ p.inhabitedIDs :=
+theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p.at i = none) : i ∉ p.inhabitedIDs :=
   by sorry
   -- simp [inhabitedIDs, h]
 
