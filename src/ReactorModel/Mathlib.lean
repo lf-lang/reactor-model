@@ -8,6 +8,11 @@ protected def elim : Option α → β → (α → β) → β
 
 instance Bind : Bind (Option) := ⟨Option.bind⟩
 
+lemma ne_none_iff_exists {o : Option α} : o ≠ none ↔ ∃ (x : α), some x = o := sorry
+
+@[simp] theorem bind_eq_some {α β} {x : Option α} {f : α → Option β} {b : β} :
+  x >>= f = some b ↔ ∃ a, x = some a ∧ f a = some b := sorry
+
 end Option
 
 namespace List
@@ -195,17 +200,40 @@ def singleton (a : α) : Finset α := ⟨[a], sorry⟩
 
 instance : Coe (Finset α) (Set α) := ⟨λ f => {x | x ∈ f}⟩
 
+def filter (s : Finset α) (p : α → Prop) [DecidablePred p] : Finset α := sorry
+
+theorem ext_iff {s₁ s₂ : Finset α} : s₁ = s₂ ↔ ∀ a, a ∈ s₁ ↔ a ∈ s₂ := sorry
+
+theorem ext {s₁ s₂ : Finset α} : (∀ a, a ∈ s₁ ↔ a ∈ s₂) → s₁ = s₂ := ext_iff.mpr
+
+def range (n : ℕ) : Finset ℕ := sorry
+
+@[simp] theorem mem_range : m ∈ range n ↔ m < n := sorry
+
+@[simp] theorem mem_coe {a : α} {s : Finset α} : a ∈ (s : Set α) ↔ a ∈ s := sorry
+
+@[simp] theorem coe_filter (p : α → Prop) [DecidablePred p] (s : Finset α) : ↑(s.filter p) = ({x ∈ (↑s : Set α) | p x} : Set α) := sorry
+
 end Finset
 
 namespace Set 
 
-def finite (s : Set α) : Prop :=
-  ∃ f : Finset α, ∀ a, a ∈ s ↔ a ∈ f
+theorem ext {a b : Set α} (h : ∀ x, x ∈ a ↔ x ∈ b) : a = b := sorry
 
-noncomputable def finite.toFinset {s : Set α} (h : s.finite) : Finset α :=
-  Classical.choose h
+@[simp] theorem mem_sep_eq {s : Set α} {p : α → Prop} {x : α} : 
+  x ∈ {x ∈ s | p x} ↔ (x ∈ s ∧ p x) := sorry
+
+@[simp] theorem mem_set_of_eq {a : α} {p : α → Prop} : a ∈ {a | p a} ↔ p a := sorry
+
+def finite (s : Set α) : Prop := sorry
+
+noncomputable def finite.toFinset {s : Set α} (h : s.finite) : Finset α := sorry
+
+theorem finite.mem_to_finset {s : Set α} (h : finite s) {a : α} : a ∈ h.toFinset ↔ a ∈ s := sorry
 
 end Set
+
+theorem Finset.finite_to_set (s : Finset α) : Set.finite (↑s : Set α) := sorry
 
 structure Alist {α : Type u} (β : α → Type v) : Type (max u v) :=
   entries : List (Sigma β)
@@ -237,7 +265,15 @@ def lookup [DecidableEq α] {β : α → Type _} (a : α) (s : Finmap β) : Opti
 theorem inductionOn [DecidableEq α] {β : α → Type _} {C : Finmap β → Prop} (s : Finmap β) (H : ∀ (a : Alist β), C a.toFinmap) : C s := sorry
 
 def keys [DecidableEq α] {β : α → Type _} (s : Finmap β) : Finset α :=
-  sorry -- ⟨s.entries.keys, inductionOn s keys_nodup⟩
+  ⟨s.entries.keys, sorry⟩
+
+instance [DecidableEq α] {β : α → Type _} : Mem α (Finmap β) := ⟨λ a s => a ∈ s.entries.keys⟩
+
+theorem mem_keys [DecidableEq α] {a : α} {s : Finmap β} : a ∈ s.keys ↔ a ∈ s := sorry
+
+theorem mem_def [DecidableEq α] {β : α → Type _} {a : α} {s : Finmap β} : a ∈ s ↔ a ∈ s.entries.keys := sorry
+
+lemma mem_of_lookup_eq_some [DecidableEq α] {a : α} {b : β a} {s : Finmap β} (h : s.lookup a = some b) : a ∈ s := sorry
 
 infix:50 " ⇀ " => (λ a b [DecidableEq a] => Finmap (λ _ : a => b))
 

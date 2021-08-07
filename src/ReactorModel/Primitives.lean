@@ -51,11 +51,21 @@ notation p " =" i "= " q => eqAt i p q
 
 instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := { 
   r := eqAt is,
-  iseqv := ⟨
-    by sorry, -- tauto,
-    by sorry, -- tauto,
-    by sorry -- { simp only [transitive, eqAt]; finish }
-  ⟩
+  iseqv := { 
+    refl := by
+      simp only [eqAt]
+      intro x i hi
+      rfl
+    symm := by
+      simp only [eqAt]
+      intro x y h i hi
+      apply Eq.symm
+      exact h i hi
+    trans := by
+      simp only [eqAt]
+      intro x y z hxy hyz i hi
+      exact Eq.trans (hxy i hi) (hyz i hi)
+  }
 }
 
 noncomputable def mergeOnto («from» «to» : Ports ι υ) : Ports ι υ :=
@@ -65,35 +75,38 @@ noncomputable def mergeOnto («from» «to» : Ports ι υ) : Ports ι υ :=
 
 noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
   let description : Set ι := { i | p.at i ≠ none }
-  let isFinite : description.finite := sorry
-      /-let f : finset ι := p.ids.filter (λ i => p.at i ≠ none)
-      suffices h : ↑f = description by simp only [←h, finset.finite_to_set]
-      ext
-      split
-        {
-          intro h,
-          simp only [set.mem_sep_eq, finset.mem_range, finset.mem_coe, finset.coe_filter] at h,
-          simp only [h, ne.def, not_false_iff, set.mem_set_of_eq]
-        },
-        {
-          intro h,
-          simp only [set.mem_set_of_eq] at h,
-          have h', from h,
-          simp only [«at», Option.ne_none_iff_exists] at h',
-          obtain ⟨_, h'⟩ := h',
-          replace h' := eq.symm h',
-          simp [Option.bind_eq_some] at h',
-          obtain ⟨_, ⟨h', _⟩⟩ := h',
-          simp only [at'] at h',
-          have h'', from finmap.mem_of_lookup_eq_some h',
-          simp only [set.mem_sep_eq, finset.mem_coe, finset.coe_filter],
-          exact ⟨h'', h ⟩
-        }-/
+  let isFinite : description.finite := by
+    let f : Finset ι := p.ids.filter (λ i => p.at i ≠ none)
+    suffices h : ↑f = description by 
+      rw [←h]
+      simp only [Finset.finite_to_set]
+    apply Set.ext
+    intro x
+    split
+    focus
+      intro h
+      simp only [Set.mem_sep_eq, Finset.mem_range, Finset.mem_coe, Finset.coe_filter] at h
+      simp only [h, Ne.def, not_false_iff, Set.mem_set_of_eq]
+    focus
+      intro h
+      simp only [Set.mem_set_of_eq] at h
+      have h' := h
+      simp only [«at», Option.ne_none_iff_exists] at h'
+      match h' with
+      | ⟨_, h'⟩ =>
+        have h' := Eq.symm h'
+        simp [Option.bind_eq_some] at h'
+        match h' with
+        | ⟨_, ⟨h', _⟩⟩ =>
+          simp only [at'] at h'
+          have h'' := Finmap.mem_of_lookup_eq_some h'
+          simp only [Set.mem_sep_eq, Finset.mem_coe, Finset.coe_filter, Finmap.ids, Finmap.mem_keys]
+          exact ⟨h'', h⟩
   isFinite.toFinset
 
-theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p.at i = none) : i ∉ p.inhabitedIDs :=
-  by sorry
-  -- simp [inhabitedIDs, h]
+theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p.at i = none) : i ∉ p.inhabitedIDs := by
+  simp only [inhabitedIDs, Set.finite.mem_to_finset, setOf]
+  simp [h, Mem.mem, Set.mem]
 
 end Ports
 
