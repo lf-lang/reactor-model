@@ -1,5 +1,17 @@
 import Mathlib
 
+namespace Tactics
+
+/-syntax "unfold " ident+ : tactic
+
+macro_rules 
+  | `(unfold $[$l:ident]+) => `(simp only [$[$l],+])-/
+
+macro "obtain " t:term " := " h:ident : tactic =>
+  `(match $h:ident with | $t:term => ?use)
+
+end Tactics
+
 namespace Option 
 
 protected def elim : Option α → β → (α → β) → β
