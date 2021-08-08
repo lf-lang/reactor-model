@@ -2,13 +2,12 @@ import Mathlib
 
 namespace Tactics
 
-/-syntax "unfold " ident+ : tactic
+--! Broken
+macro "unfold " l:(ident+) : tactic =>
+  `(simp only [$(l.getArgs),*])
 
-macro_rules 
-  | `(unfold $[$l:ident]+) => `(simp only [$[$l],+])-/
-
-macro "obtain " t:term " := " h:ident : tactic =>
-  `(match $h:ident with | $t:term => ?use)
+macro "obtain " t:term " := " h:term : tactic => 
+  `(match $h:term with | $t:term => ?use)
 
 end Tactics
 
@@ -18,12 +17,20 @@ protected def elim : Option α → β → (α → β) → β
   | (some x), y, f => f x
   | none,     y, f => y
 
-instance Bind : Bind (Option) := ⟨Option.bind⟩
+instance : Bind (Option) := ⟨Option.bind⟩
+
+instance : Mem α (Option α) := ⟨λ a b => b = some a⟩
 
 lemma ne_none_iff_exists {o : Option α} : o ≠ none ↔ ∃ (x : α), some x = o := sorry
 
-@[simp] theorem bind_eq_some {α β} {x : Option α} {f : α → Option β} {b : β} :
+lemma bind_eq_bind {f : α → Option β} {x : Option α} :
+  x >>= f = x.bind f := rfl
+
+@[simp] theorem bind_eq_some {x : Option α} {f : α → Option β} {b : β} :
   x >>= f = some b ↔ ∃ a, x = some a ∧ f a = some b := sorry
+
+@[simp] theorem bind_eq_none {o : Option α} {f : α → Option β} :
+  o >>= f = none ↔ (∀ b a, a ∈ o → b ∉ f a) := sorry
 
 end Option
 

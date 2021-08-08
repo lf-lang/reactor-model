@@ -36,12 +36,12 @@ def «at» (p : Ports ι υ) (i : ι) : Option υ :=
   p.at' i >>= (λ v => if v = ⊥ then none else v)
 
 theorem at'ToAt {p p' : Ports ι υ} {i : ι} (h : p.at' i = p'.at' i) :
-  p.at i = p'.at i := by sorry
-  -- simp only [«at», h]
-
+  p.at i = p'.at i := by
+  simp [«at», bind, h]
+  
 theorem at'AbsentAtNone {p : Ports ι υ} {i : ι} (h : p.at' i = some ⊥) :
-  p.at i = none := by sorry
-  -- simp [«at», h]
+  p.at i = none := by
+  simp [«at», bind, Option.bind, h]
 
 @[reducible]
 def eqAt (is : Finset ι) (p p' : Ports ι υ) : Prop := 
