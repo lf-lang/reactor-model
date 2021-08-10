@@ -1,4 +1,3 @@
-import ReactorModel.Mathlib
 import ReactorModel.LGraph
 
 variable {κ δ ε : Type _}

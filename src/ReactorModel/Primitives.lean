@@ -1,4 +1,5 @@
-import ReactorModel.Mathlib
+import ReactorModel.Mathlib.Tactics
+import ReactorModel.Mathlib.Finmap
 
 class Reactor.Value (α) := 
   (absent : α)
@@ -47,7 +48,7 @@ theorem at'AbsentAtNone {p : Ports ι υ} {i : ι} (h : p.at' i = some ⊥) :
 def eqAt (is : Finset ι) (p p' : Ports ι υ) : Prop := 
   ∀ i ∈ is, p.at' i = p'.at' i
 
-notation p " =" i "= " q => eqAt i p q
+notation p " =(" i ")= " q => eqAt i p q
 
 instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := { 
   r := eqAt is,
