@@ -12,6 +12,9 @@ instance : Mem α (Finset α) := ⟨λ a f => a ∈ f.val⟩
 
 instance : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nodupEmpty }⟩
 
+instance : Inhabited (Finset α) where
+  default := ∅
+
 protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=
   (s.val.bind (λ a => (t a).val)).toFinset
 
@@ -32,6 +35,8 @@ def range (n : ℕ) : Finset ℕ := sorry
 @[simp] theorem mem_coe {a : α} {s : Finset α} : a ∈ (s : Set α) ↔ a ∈ s := sorry
 
 @[simp] theorem coe_filter (p : α → Prop) [DecidablePred p] (s : Finset α) : ↑(s.filter p) = ({x ∈ (↑s : Set α) | p x} : Set α) := sorry
+
+@[simp] theorem mem_filter (p : α → Prop) [DecidablePred p] {s : Finset α} {a : α} : a ∈ s.filter p ↔ a ∈ s ∧ p a := sorry
 
 instance : Subset (Finset α) := sorry
 

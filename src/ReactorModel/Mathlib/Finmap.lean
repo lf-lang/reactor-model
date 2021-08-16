@@ -1,77 +1,34 @@
-import ReactorModel.Mathlib.Alist
 import ReactorModel.Mathlib.Set
 import ReactorModel.Mathlib.Option
 
-structure Finmap {α : Type u} (β : α → Type v) : Type (max u v) where
-  entries : Multiset (Sigma β)
-  nodupkeys : entries.nodupkeys
-
-def Alist.toFinmap [DecidableEq α] {β : α → Type _} (s : Alist β) : Finmap β := sorry
+structure Finmap (α β) where
+  map : α → Option β 
+  finite : (Set.univ.image map).finite
 
 namespace Finmap
 
-def liftOn [DecidableEq α] {β : α → Type v} {γ} (s : Finmap β) (f : Alist β → γ) (H : ∀ a b : Alist β, a.entries ~ b.entries → f a = f b) : γ := sorry
+infix:50 " ⇀ " => (λ a b => Finmap a b)
 
-def lookup [DecidableEq α] {β : α → Type _} (a : α) (s : Finmap β) : Option (β a) := liftOn s (Alist.lookup a) (λ s t => Alist.permLookup)
+instance : CoeFun (α ⇀ β) (λ _ => α → Option β) where
+  coe f := f.map
 
-theorem inductionOn [DecidableEq α] {β : α → Type _} {C : Finmap β → Prop} (s : Finmap β) (H : ∀ (a : Alist β), C a.toFinmap) : C s := sorry
+instance : EmptyCollection (Finmap α β) where
+  emptyCollection := Finmap.mk (λ _ => none) sorry
 
-def keys [DecidableEq α] {β : α → Type _} (s : Finmap β) : Finset α :=
-  ⟨s.entries.keys, sorry⟩
+instance : Inhabited (Finmap α β) where
+  default := ∅
 
-instance [DecidableEq α] {β : α → Type _} : Mem α (Finmap β) := ⟨λ a s => a ∈ s.entries.keys⟩
+noncomputable def ids (f : α ⇀ β) : Finset α :=
+  let description := { i | f i ≠ none }
+  let isFinite : description.finite := sorry
+  isFinite.toFinset
 
-theorem mem_keys [DecidableEq α] {a : α} {s : Finmap β} : a ∈ s.keys ↔ a ∈ s := sorry
+theorem idsDef {f : α ⇀ β} {i : α} : i ∈ f.ids ↔ f i ≠ none := by
+  simp [ids, Set.finite.mem_to_finset, Set.mem_set_of_eq]
 
-theorem mem_def [DecidableEq α] {β : α → Type _} {a : α} {s : Finmap β} : a ∈ s ↔ a ∈ s.entries.keys := sorry
-
-lemma mem_of_lookup_eq_some [DecidableEq α] {a : α} {b : β a} {s : Finmap β} (h : s.lookup a = some b) : a ∈ s := sorry
-
-infix:50 " ⇀ " => (λ a b => Finmap (λ _ : a => b))
-
-def ids [DecidableEq α] (f : α ⇀ β) := f.keys
-
-noncomputable def values [DecidableEq α] [DecidableEq β] (f : α ⇀ β) : Finset β :=
-  let description := { x | ∃ i ∈ f.keys, f.lookup i = some x }
-  let isFinite : description.finite := by
-    let s : Finset β := f.keys.bUnion (λ i => (f.lookup i).elim ∅ Finset.singleton)
-    sorry
-    /-suffices h : ↑s = description by simp only [←h, Finset.finite_to_set]  
-    split
-    focus 
-      intro h
-      simp only [finset.set_bUnion_coe, set.mem_Union, finset.coe_bUnion] at h
-      match h with 
-      | ⟨i, ⟨hi, hm⟩⟩ =>
-        simp only [set.mem_set_of_eq]
-        exists i
-        exists hi
-        cases f.lookup i
-        allGoals simp only [option.elim] at hm
-        focus
-          exfalso
-          simp only [finset.coe_empty, set.mem_empty_eq] at hm
-          exact hm
-        focus
-          simp only [set.mem_singleton_iff, finset.coe_singleton] at hm
-          simp only [hm]
-    focus
-      intro h
-      simp only [set.mem_set_of_eq] at h
-      match h with 
-      | ⟨i, ⟨hi, he⟩⟩ =>
-      simp only [finset.set_bUnion_coe, set.mem_Union, finset.coe_bUnion]
-      exists i
-      exists hi
-      cases f.lookup i
-      allGoals simp only [option.elim]
-      allGoals simp only at he
-      focus 
-        exfalso
-        exact he
-      focus
-        simp only [he, set.mem_singleton_iff, finset.coe_singleton]
-    -/
+noncomputable def data (f : α ⇀ β) : Finset β :=
+  let description := { v | ∃ i, f i ≠ some v }
+  let isFinite : description.finite := sorry
   isFinite.toFinset
 
 end Finmap

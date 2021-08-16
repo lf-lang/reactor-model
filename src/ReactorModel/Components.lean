@@ -4,12 +4,14 @@ import ReactorModel.LGraph
 open Reactor
 open Reactor.Ports
 
-structure Network.Edge (ι) := 
+structure NetworkEdge (ι) := 
   (src : ι)
   (dst : ι)
 
-instance (ι) : LGraph.Edge (Network.Edge ι) ι := 
-  ⟨Network.Edge.src, Network.Edge.dst⟩
+instance (ι) : LGraph.Edge (NetworkEdge ι) ι := 
+  ⟨NetworkEdge.src, NetworkEdge.dst⟩
+
+namespace Component
 
 mutual 
 
@@ -38,10 +40,19 @@ inductive Reactor (ι υ)
     (rcns : ι ⇀ Mutation ι υ)
     (muts : ι ⇀ Mutation ι υ)
     -- (prioRel : PartialOrder ι)
-    -- (nest : Network)
+    (nest : Network ι υ)
     -- (wf_rcn_deps : ∀ {rcn : reaction d} (h : rcn ∈ rcns.values) (r : ports.role), (rcn.deps r) ⊆ (prts r).ids)
     -- (wf_mut_deps : ∀ {m : mutation d} (h : m ∈ muts.values) (r : ports.role), (m.deps r) ⊆ (prts r).ids)
 
 inductive Network (ι υ)
+  | mk [l : LGraph.Edge (NetworkEdge ι) ι]
+    (nodes : ι ⇀ (Reactor ι υ))
+    (edges : Finset (NetworkEdge ι))
 
 end
+
+-- This is just a sanity check, to make sure that this definition of reactors actually allows them to be constructed.
+instance : Inhabited (Reactor ι υ) where
+  default := Reactor.mk Inhabited.default Inhabited.default Inhabited.default Inhabited.default (Network.mk Inhabited.default Inhabited.default)
+
+end Component

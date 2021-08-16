@@ -15,7 +15,13 @@ namespace Reactor
 
 def StateVars := ι ⇀ υ
 
+instance : Inhabited (StateVars ι υ) where
+  default := (Inhabited.default : Finmap _ _)
+
 def Ports := ι ⇀ υ
+
+instance : Inhabited (Ports ι υ) where
+  default := (Inhabited.default : Finmap _ _)
 
 namespace Ports
 
@@ -31,7 +37,7 @@ def Role.opposite : Role → Role
   | Role.out => Role.in
 
 def at' (p : Ports ι υ) (i : ι) : Option υ := 
-  p.lookup i
+  p.map i
 
 def «at» (p : Ports ι υ) (i : ι) : Option υ := 
   p.at' i >>= (λ v => if v = ⊥ then none else v)
@@ -98,9 +104,13 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
       simp [Option.bind_eq_some] at h'
       obtain ⟨_, ⟨h', _⟩⟩ := h'
       simp only [at'] at h'
-      have h'' := Finmap.mem_of_lookup_eq_some h'
-      simp only [Set.mem_sep_eq, Finset.mem_coe, Finset.coe_filter, Finmap.ids, Finmap.mem_keys]
-      exact ⟨h'', h⟩
+      simp [Set.mem_sep_eq, Finset.mem_coe, Finset.coe_filter]
+      split
+      focus
+        apply Finset.mem_coe.mp
+        simp [Finmap.idsDef, Set.mem_set_of_eq, h']
+      focus
+        exact h
   isFinite.toFinset
 
 theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p.at i = none) : i ∉ p.inhabitedIDs := by
