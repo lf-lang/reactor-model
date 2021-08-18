@@ -26,7 +26,7 @@ noncomputable def ids (f : α ⇀ β) : Finset α :=
 theorem idsDef {f : α ⇀ β} {i : α} : i ∈ f.ids ↔ f i ≠ none := by
   simp [ids, Set.finite.mem_to_finset, Set.mem_set_of_eq]
 
-noncomputable def data (f : α ⇀ β) : Finset β :=
+noncomputable def values (f : α ⇀ β) : Finset β :=
   let description := { v | ∃ i, f i ≠ some v }
   let isFinite : description.finite := sorry
   isFinite.toFinset

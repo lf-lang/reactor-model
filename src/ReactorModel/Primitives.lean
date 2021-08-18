@@ -1,15 +1,21 @@
 import ReactorModel.Mathlib.Tactics
 import ReactorModel.Mathlib.Finmap
 
-class Reactor.Value (α) := 
-  (absent : α)
-  (decEq : DecidableEq α)
+class ID (α) where
+  -- rtr : α → α
+  decEq : DecidableEq α
 
-notation "⊥" => Reactor.Value.absent
+instance ID.DecidableEq {ι} [ID ι] : DecidableEq ι := ID.decEq
 
-instance Reactor.Value.DecidableEq {υ} [Reactor.Value υ] : DecidableEq υ := Reactor.Value.decEq
+class Value (α) where
+  absent : α
+  decEq : DecidableEq α
 
-variable (ι υ) [DecidableEq ι] [Reactor.Value υ]
+notation "⊥" => Value.absent
+
+instance Value.DecidableEq {υ} [Value υ] : DecidableEq υ := Value.decEq
+
+variable (ι υ) [ID ι] [Value υ]
 
 namespace Reactor
 
@@ -54,7 +60,7 @@ theorem at'AbsentAtNone {p : Ports ι υ} {i : ι} (h : p.at' i = some ⊥) :
 def eqAt (is : Finset ι) (p p' : Ports ι υ) : Prop := 
   ∀ i ∈ is, p.at' i = p'.at' i
 
-notation p " =(" i ")= " q => eqAt i p q
+notation p " =[" i "] " q => eqAt i p q
 
 instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := { 
   r := eqAt is,
