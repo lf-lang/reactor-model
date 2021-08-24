@@ -2,8 +2,10 @@ import ReactorModel.Mathlib.Tactics
 import ReactorModel.Mathlib.Finmap
 
 class ID (α) where
-  -- rtr : α → α
+  root : α
   decEq : DecidableEq α
+
+notation "⊤" => ID.root
 
 instance ID.DecidableEq {ι} [ID ι] : DecidableEq ι := ID.decEq
 
@@ -19,7 +21,7 @@ variable (ι υ) [ID ι] [Value υ]
 
 namespace Reactor
 
-def StateVars := ι ⇀ υ
+abbrev StateVars := ι ⇀ υ
 
 instance : Inhabited (StateVars ι υ) where
   default := (Inhabited.default : Finmap _ _)
