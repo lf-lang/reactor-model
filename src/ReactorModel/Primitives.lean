@@ -103,12 +103,13 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
       simp only [Set.mem_sep_eq, Finset.mem_range, Finset.mem_coe, Finset.coe_filter] at h
       simp only [h, Ne.def, not_false_iff, Set.mem_set_of_eq]
     focus
-      intro h
       simp only [Set.mem_set_of_eq] at h
       have h' := h
       simp only [«at», Option.ne_none_iff_exists] at h'
       obtain ⟨_, h'⟩ := h'
-      have h' := Eq.symm h'
+      sorry
+    sorry
+      /-have h' := Eq.symm h'
       simp [Option.bind_eq_some] at h'
       obtain ⟨_, ⟨h', _⟩⟩ := h'
       simp only [at'] at h'
@@ -118,7 +119,7 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
         apply Finset.mem_coe.mp
         simp [Finmap.idsDef, Set.mem_set_of_eq, h']
       focus
-        exact h
+        exact h-/
   isFinite.toFinset
 
 theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p.at i = none) : i ∉ p.inhabitedIDs := by

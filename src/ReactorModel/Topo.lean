@@ -1,20 +1,20 @@
 import ReactorModel.LGraph
 
-variable {κ δ ε : Type _}
-variable [DecidableEq κ] [DecidableEq δ] [LGraph.Edge ε κ]
+variable {ι δ ε : Type _}
+variable [DecidableEq ι] [DecidableEq δ] [LGraph.Edge ε ι]
 
 -- The definition of what it means for a given list to be a topological ordering for a given graph.
 -- Note that this is not the same as a "complete" topological ordering (`list.is_complete_topo_over`).
 -- 
 -- `list`s with `nodup` are the formalization for finite ordered sets: 
 -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Ordered.20set
-def List.isTopoOver (l : List κ) (g : LGraph κ δ ε) : Prop :=
+def List.isTopoOver (l : List ι) (g : LGraph ι δ ε) : Prop :=
   l.nodup ∧ (∀ k k', k ∈ l → (k' ∈ l) → (k~g~>k') → (l.indexOf k < l.indexOf k'))
 
 namespace Topo
 
 -- Removing an element from a topological ordering does not break the property of it being a topological ordering.
-theorem eraseIsTopo {t : List κ} {g : LGraph κ δ ε} (k : κ) (h : t.isTopoOver g) :
+theorem eraseIsTopo {t : List ι} {g : LGraph ι δ ε} (k : ι) (h : t.isTopoOver g) :
   (t.erase k).isTopoOver g := by
   simp only [List.isTopoOver] at h ⊢
   split
@@ -26,7 +26,7 @@ theorem eraseIsTopo {t : List κ} {g : LGraph κ δ ε} (k : κ) (h : t.isTopoOv
     exact List.index_of_erase_lt hᵢ hₓ hₓ' h.left
 
 -- If a list is a topological ordering for some graph, then so is its tail.
-theorem consIsTopo {hd : κ} {tl : List κ} {g : LGraph κ δ ε} (h : (hd :: tl).isTopoOver g) :
+theorem consIsTopo {hd : ι} {tl : List ι} {g : LGraph ι δ ε} (h : (hd :: tl).isTopoOver g) :
   tl.isTopoOver g := by
   rw [←List.erase_cons_head hd tl]
   exact eraseIsTopo hd h
@@ -34,13 +34,13 @@ theorem consIsTopo {hd : κ} {tl : List κ} {g : LGraph κ δ ε} (h : (hd :: tl
 end Topo
 
 -- A topological ordering is "complete" if it contains all of its graph's vertices.
-def List.isCompleteTopoOver (l : List κ) (g : LGraph κ δ ε) : Prop :=
-  l.isTopoOver g ∧ (∀ k : κ, k ∈ l ↔ k ∈ g.keys) -- The `.keys` should be redundant here, but the Mem-instance cant be synthed atm ¯\_(ツ)_/¯ 
+def List.isCompleteTopoOver (l : List ι) (g : LGraph ι δ ε) : Prop :=
+  l.isTopoOver g ∧ (∀ k, k ∈ l ↔ k ∈ g.ids) -- The `.ids` should be redundant here, but the Mem-instance cant be synthed atm ¯\_(ツ)_/¯ 
 
 namespace Topo
 
 -- Complete topological orderings are permutations of each other.
-theorem completePerm {g : LGraph κ δ ε} {l l' : List κ} (h : l.isCompleteTopoOver g) (h' : l'.isCompleteTopoOver g) :
+theorem completePerm {g : LGraph ι δ ε} {l l' : List ι} (h : l.isCompleteTopoOver g) (h' : l'.isCompleteTopoOver g) :
   l ~ l' := by
   rw [List.perm_ext h.left.left h'.left.left]
   intro x
@@ -50,10 +50,10 @@ theorem completePerm {g : LGraph κ δ ε} {l l' : List κ} (h : l.isCompleteTop
 -- An item `k` is independent for a topological ordering if the corresponding graph contains no path
 -- that starts with an element in the ordering and ends in `k`.
 -- Note that `k` is not constrained to be an element of the topological ordering.
-def indep (k : κ) (t : List κ) (g : LGraph κ δ ε) : Prop := ∀ k' ∈ t, ¬(k'~g~>k)
+def indep (k : ι) (t : List ι) (g : LGraph ι δ ε) : Prop := ∀ k' ∈ t, ¬(k'~g~>k)
 
 -- The head of a topological ordering is always independent.
-theorem indepHead (hd : κ) (tl : List κ) {g : LGraph κ δ ε} (h : (hd :: tl).isTopoOver g) :
+theorem indepHead (hd : ι) (tl : List ι) {g : LGraph ι δ ε} (h : (hd :: tl).isTopoOver g) :
   indep hd (hd :: tl) g := by
   simp only [indep]
   simp only [List.isTopoOver] at h
@@ -64,14 +64,14 @@ theorem indepHead (hd : κ) (tl : List κ) {g : LGraph κ δ ε} (h : (hd :: tl)
   exact Nat.not_lt_zero _ hᵢ
 
 -- If an element is independent in a list, then it is also independent in its tail.
-theorem indepCons {k hd : κ} {tl : List κ} {g : LGraph κ δ ε} (h : indep k (hd :: tl) g) :
+theorem indepCons {k hd : ι} {tl : List ι} {g : LGraph ι δ ε} (h : indep k (hd :: tl) g) :
   indep k tl g := by
   simp only [indep] at h ⊢
   intros x hₓ
   exact h x (List.mem_cons_of_mem _ hₓ)
 
 -- If an element is independent in a list, then if is also independent in a permutation of that list.
-theorem indepPerm {k : κ} {t t' : List κ} {g : LGraph κ δ ε} (hₚ : t ~ t') (hᵢ : indep k t g) :
+theorem indepPerm {k : ι} {t t' : List ι} {g : LGraph ι δ ε} (hₚ : t ~ t') (hᵢ : indep k t g) :
   indep k t' g := by 
   simp only [indep] at hᵢ ⊢
   intros x hₓ

@@ -96,37 +96,38 @@ end Network
 
 namespace Reactor
 
-def RootID (root : Reactor ι υ) := List ι
-
-def isParentOf'' (parent : Reactor ι υ) (child : ι) : Prop :=
-  (∃ r, (parent.ports r).at' child ≠ none) ∨
-  (parent.state child ≠ none) ∨ 
-  (parent.rcns child ≠ none) ∨
-  (parent.muts child ≠ none) ∨
-  (parent.nest.nodes child ≠ none)
-
-def isParentOf' (root : Reactor ι υ) : (RootID root) → ι → Prop
-  | [],         child => root.isParentOf'' child
+def isParentOf' (root : Reactor ι υ) : (List ι) → ι → Prop
   | (hd :: tl), child => ∃ p, (root.nest.nodes hd = some p) ∧ (p.isParentOf' tl child)
+  | [],         child =>
+    (∃ r, child ∈ (root.ports r).ids) ∨
+    (child ∈ root.state.ids) ∨ 
+    (child ∈ root.rcns.ids) ∨
+    (child ∈ root.muts.ids) ∨
+    (child ∈ root.nest.nodes.ids)
 
+-- A `parent` is the parent of a `child` in the context of a `root` reactor, 
+-- if there exists a sequence of reactor-IDs ending on `parent` (that's what
+-- `is ++ [parent]` is), such that the `isParentOf'` relation is fulfilled.
+-- In the case of `parent` being `⊤`, the behaviour is slightly different.
 def isParentOf (root : Reactor ι υ) (parent child : ι) : Prop :=
   if parent = ⊤ 
   then isParentOf' root [] child
   else ∃ is, isParentOf' root (is ++ [parent]) child
 
-notation p " >[" r "]" c => isParentOf r p c
-
-theorem uniqueParentRootID {root : Reactor ι υ} {parent child : ι} (h : parent >[root] child) : 
-  -- This doesnt quite work, because ⊤ doesnt have a root-id. you can probably fix this in the definition of isParentOf', or by replacing ⊤ with Otpion.none
-  -- ∃! i : RootID root, isParentOf' root i child
+notation p " △[" r "] " c => isParentOf r p c
 
 end Reactor
 
 structure Reactor' (ι υ) [ID ι] [Value υ] where
-  core : Component.Reactor ι υ
-  wfIDs : ∀ child, ∃! parent, core.isParentOf child parent
+  root : Component.Reactor ι υ
+  uniqueParent : ∀ p₁ p₂ c, (p₁ △[root] c) ∧ (p₂ △[root] c) → p₁ = p₂
+  noRootParent : ∀ p, ¬(p △[root] ⊤)
 
+namespace Reactor'
 
+-- Define accessors.
+
+end Reactor'
 
 protected def Reactor.lt : Reactor ι υ -> Reactor ι υ -> Prop := sorry
 protected def Reactor.ltWF (x: Reactor ι υ): Acc Reactor.lt x := sorry
