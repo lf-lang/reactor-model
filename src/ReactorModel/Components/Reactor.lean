@@ -1,24 +1,28 @@
-import ReactorModel.Components.Basic
+import ReactorModel.Components.Raw
 
 open Reactor
+open Reactor.Ports
 
-structure Reactor (ι υ) [ID ι] [Value υ] where
-  core : Component.Reactor ι υ
+variable (ι υ) [ID ι] [Value υ]
 
-  -- *Long list of all of the constraints that need to be enforced on all the subcomponents*
+def Raw.Reactor.wellFormed (rtr : Raw.Reactor ι υ) : Prop :=
+  (∀ m,       m ∈ rtr.muts.values → m.triggers ⊆ m.deps Role.in) ∧                                      /-mutsTsSubInDeps : -/
+  (∀ m,       m ∈ rtr.muts.values → ∀ i i' s, (i =[m.deps Role.in] i') → m.body i s = m.body i' s) ∧    /-mutsInDepOnly : -/
+  (∀ m,       m ∈ rtr.muts.values → ∀ i s o, (o ∉ m.deps Role.out) → (m.body i s).prtVals[o] = none ) ∧ /-mutsOutDepOnly : -/
+  (∀ m r,     m ∈ rtr.muts.values → (m.deps r) ⊆ (rtr.ports r).ids) ∧ -- Is this the way it should be?  /-wfMutDeps : -/
+  (∀ rcn r, rcn ∈ rtr.rcns.values → (rcn.deps r) ⊆ (rtr.ports r).ids) ∧                                 /-wfRcnDeps : -/
+  (∀ r : Raw.Reactor ι υ, r ∈ rtr.nest.nodes.values → r.wellFormed)                                     /-nestedWf : -/
 
-  -- mut_tsSubInDeps : ∀ triggers ⊆ deps Role.in
-  -- mut_inDepOnly : ∀ {i i'} s, (i =[deps Role.in] i') → body i s = body i' s
-  -- mut_outDepOnly : ∀ i s {o}, (o ∉ deps Role.out) → (body i s).prtVals.at o = none 
-  wfRcnDeps : ∀ {rcn : Component.Mutation ι υ} (h : rcn ∈ core.rcns.values) (r : Ports.Role), (rcn.deps r) ⊆ (core.ports r).ids
-  wfMutDeps : ∀ {m : Component.Mutation ι υ} (h : m ∈ core.muts.values) (r : Ports.Role), (m.deps r) ⊆ (core.ports r).ids
+structure Reactor where
+  raw : Raw.Reactor ι υ
+  wf : raw.wellFormed  
 
 variable {ι υ} [ID ι] [Value υ]
 
 namespace Reactor
 
-def ports (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.core.ports
-def state (rtr : Reactor ι υ) : StateVars ι υ          := rtr.core.state
-def prios (rtr : Reactor ι υ) : PartialOrder ι         := rtr.core.prios
+def ports (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports
+def state (rtr : Reactor ι υ) : StateVars ι υ          := rtr.raw.state
+def prios (rtr : Reactor ι υ) : PartialOrder ι         := rtr.raw.prios
 
 end Reactor

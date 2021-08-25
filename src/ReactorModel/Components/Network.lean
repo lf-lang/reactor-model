@@ -4,6 +4,7 @@ open Reactor.Ports
 
 variable (ι υ) [ID ι] [Value υ]
 
+/- TODO -/
 structure Network extends LGraph ι (Reactor ι υ) (Connection ι) where
   uniquePortIns : ∀ (c c') (_ : c ∈ toLGraph.edges) (_ : c' ∈ toLGraph.edges), c.dst = c'.dst → c = c'
   /-(wfConnPrts : 

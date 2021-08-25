@@ -13,7 +13,7 @@ open LGraph
 -- A labled multidigraph, i.e. a type of digraphs, where the vertices are IDs, 
 -- which are mappable to underlying values and connected by a generic edge type.
 structure LGraph :=
-  (nodes : ι ⇀ υ)
+  (nodes : ι ▸ υ)
   (edges : Finset ε)
   (wf : ∀ e ∈ edges, (Edge.lsrc e) ∈ nodes.ids ∧ (Edge.ldst e) ∈ nodes.ids)
 

@@ -21,12 +21,12 @@ variable (ι υ) [ID ι] [Value υ]
 
 namespace Reactor
 
-abbrev StateVars := ι ⇀ υ
+abbrev StateVars := ι ▸ υ
 
 instance : Inhabited (StateVars ι υ) where
   default := (Inhabited.default : Finmap _ _)
 
-def Ports := ι ⇀ υ
+def Ports := ι ▸ υ
 
 instance : Inhabited (Ports ι υ) where
   default := (Inhabited.default : Finmap _ _)
@@ -44,23 +44,24 @@ def Role.opposite : Role → Role
   | Role.in => Role.out
   | Role.out => Role.in
 
-def at' (p : Ports ι υ) (i : ι) : Option υ := 
-  p.map i
+notation p "[" i "]'" => Finmap.lookup p i
 
-def «at» (p : Ports ι υ) (i : ι) : Option υ := 
-  p.at' i >>= (λ v => if v = ⊥ then none else v)
+def get (p : Ports ι υ) (i : ι) : Option υ := 
+  p[i]' >>= (λ v => if v = ⊥ then none else v)
 
-theorem at'ToAt {p p' : Ports ι υ} {i : ι} (h : p.at' i = p'.at' i) :
-  p.at i = p'.at i := by
-  simp [«at», bind, h]
+notation p "[" i "]" => get p i
+
+theorem lookupToGet {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁[i]' = p₂[i]') :
+  p₁[i] = p₂[i] := by
+  simp [get, bind, h]
   
-theorem at'AbsentAtNone {p : Ports ι υ} {i : ι} (h : p.at' i = some ⊥) :
-  p.at i = none := by
-  simp [«at», bind, Option.bind, h]
+theorem lookupAbsentAtNone {p : Ports ι υ} {i : ι} (h : p[i]' = some ⊥) :
+  p[i] = none := by
+  simp [get, bind, Option.bind, h]
 
 @[reducible]
-def eqAt (is : Finset ι) (p p' : Ports ι υ) : Prop := 
-  ∀ i ∈ is, p.at' i = p'.at' i
+def eqAt (is : Finset ι) (p₁ p₂ : Ports ι υ) : Prop := 
+  ∀ i ∈ is, p₁[i]' = p₂[i]'
 
 notation p " =[" i "] " q => eqAt i p q
 
@@ -83,15 +84,15 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := {
   }
 }
 
-noncomputable def mergeOnto («from» «to» : Ports ι υ) : Ports ι υ :=
-  let description := ∃ result : Ports ι υ, result.ids = to.ids ∧ (∀ i ∈ result.ids, result.at i = (from.at i <|> to.at i))
+noncomputable def mergeOnto (src dst : Ports ι υ) : Ports ι υ :=
+  let description := ∃ result : Ports ι υ, result.ids = dst.ids ∧ (∀ i ∈ result.ids, result[i] = (src[i] <|> dst[i]))
   let existence : description := sorry
   Classical.choose existence
 
 noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
-  let description : Set ι := { i | p.at i ≠ none }
+  let description : Set ι := { i | p[i] ≠ none }
   let isFinite : description.finite := by
-    let f : Finset ι := p.ids.filter (λ i => p.at i ≠ none)
+    let f : Finset ι := p.ids.filter (λ i => p[i] ≠ none)
     suffices h : ↑f = description by 
       rw [←h]
       simp only [Finset.finite_to_set]
@@ -105,7 +106,7 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
     focus
       simp only [Set.mem_set_of_eq] at h
       have h' := h
-      simp only [«at», Option.ne_none_iff_exists] at h'
+      simp only [get, Option.ne_none_iff_exists] at h'
       obtain ⟨_, h'⟩ := h'
       sorry
     sorry
@@ -122,7 +123,7 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
         exact h-/
   isFinite.toFinset
 
-theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p.at i = none) : i ∉ p.inhabitedIDs := by
+theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p[i] = none) : i ∉ p.inhabitedIDs := by
   simp only [inhabitedIDs, Set.finite.mem_to_finset, setOf]
   simp [h, Mem.mem, Set.mem]
 
