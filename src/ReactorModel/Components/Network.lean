@@ -15,7 +15,7 @@ structure Network where
   cns : Finset (Connection ι) 
   wfCns : ∀ c, c ∈ cns → (c.src ∈ rtrs.portIDs Role.out) ∧ (c.dst ∈ rtrs.portIDs Role.in)
   uniquePortIns : ∀ c₁ c₂, c₁ ∈ cns → c₂ ∈ cns → c₁.dst = c₂.dst → c₁ = c₂
-  wfIDs : false -- !!!
+  wfIDs : true -- !!!
 
 variable {ι υ}
 

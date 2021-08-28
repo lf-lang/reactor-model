@@ -88,8 +88,8 @@ end Reactor
 
 namespace Network
 
-def nodes : Network ι υ → (ι ▸ Reactor ι υ)     | mk n _ => n
-def edges : Network ι υ → Finset (Connection ι) | mk _ e => e
+def rtrs : Network ι υ → (ι ▸ Reactor ι υ)     | mk r _ => r
+def cns  : Network ι υ → Finset (Connection ι) | mk _ c => c
 
 end Network
 

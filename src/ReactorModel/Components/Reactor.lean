@@ -6,7 +6,7 @@ open Reactor.Ports
 variable {ι υ} [ID ι] [Value υ]
 
 noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Finset ι :=
-  rtr.nest.nodes.values.bUnion (λ x => (x.ports r).ids)
+  rtr.nest.rtrs.values.bUnion (λ x => (x.ports r).ids)
 
 structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   mutsTsSubInDeps : ∀ m,       m ∈ rtr.muts.values → m.triggers ⊆ m.deps Role.in                                     
@@ -14,8 +14,8 @@ structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   mutsOutDepOnly :  ∀ m,       m ∈ rtr.muts.values → ∀ i s o, (o ∉ m.deps Role.out) → (m.body i s).prtVals[o] = none 
   rtrWFMutDeps :    ∀ m r,     m ∈ rtr.muts.values → (m.deps r) ⊆ (rtr.ports r).ids -- ? ¯\_(ツ)_/¯                   
   rtrWFRcnDeps :    ∀ rcn r, rcn ∈ rtr.rcns.values → (rcn.deps r) ⊆ (rtr.ports r).ids ∪ (rtr.nestedPortIDs r.opposite)
-  nestWFCns :       ∀ c,       c ∈ rtr.nest.edges  → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
-  wfIDs :           false -- !!!
+  nestWFCns :       ∀ c,       c ∈ rtr.nest.cns    → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
+  wfIDs :           true -- !!!
 
 /-
 How to define ID-uniqueness:
@@ -46,7 +46,7 @@ This isn't an issue though, because
 
 -- Recursive step for wellFormed'.
 def Raw.Reactor.wellFormed (rtr : Raw.Reactor ι υ) : Prop :=
-  rtr.wellFormed' -- ∧ (∀ r : Raw.Reactor ι υ, r ∈ rtr.nest.nodes.values → r.wellFormed)
+  rtr.wellFormed' -- ∧ (∀ r : Raw.Reactor ι υ, r ∈ rtr.nest.rtrs.values → r.wellFormed)
 
 structure Reactor (ι υ) [ID ι] [Value υ] where 
   raw : Raw.Reactor ι υ
