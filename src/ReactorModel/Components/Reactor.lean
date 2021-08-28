@@ -5,6 +5,17 @@ open Reactor.Ports
 
 variable {ι υ} [ID ι] [Value υ]
 
+def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : List ι → Prop
+  | hd :: tl => ∃ ctx', (ctx.nest.rtrs hd = some ctx') ∧ (tl.isRtrIDPathFor i ctx')
+  | [] => 
+    (∃ r, i ∈ (ctx.ports r).ids) ∨ 
+    (i ∈ ctx.state.ids) ∨
+    (i ∈ ctx.rcns.ids) ∨ 
+    (i ∈ ctx.muts.ids) ∨ 
+    (i ∈ ctx.nest.rtrs.ids)
+
+notation p " *ᵣ[" r "] " i => List.isRtrIDPathFor i r p
+
 noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Finset ι :=
   rtr.nest.rtrs.values.bUnion (λ x => (x.ports r).ids)
 
@@ -14,11 +25,11 @@ structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   mutsOutDepOnly :  ∀ m,       m ∈ rtr.muts.values → ∀ i s o, (o ∉ m.deps Role.out) → (m.body i s).prtVals[o] = none 
   rtrWFMutDeps :    ∀ m r,     m ∈ rtr.muts.values → (m.deps r) ⊆ (rtr.ports r).ids -- ? ¯\_(ツ)_/¯                   
   rtrWFRcnDeps :    ∀ rcn r, rcn ∈ rtr.rcns.values → (rcn.deps r) ⊆ (rtr.ports r).ids ∪ (rtr.nestedPortIDs r.opposite)
-  nestWFCns :       ∀ c,       c ∈ rtr.nest.cns    → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
-  wfIDs :           true -- !!!
+  nestWFCns :       ∀ c,       c ∈ rtr.nest.cns → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
+  wfIDs :           ∀ i₁ i₂ p₁ p₂, (p₁ *ᵣ[rtr] i₁) → (p₂ *ᵣ[rtr] i₂) → i₁ = i₂ → p₁ = p₂
 
 /-
-How to define ID-uniqueness:
+`wfIDs` ensures ID-uniqueness, i.e. no two distinct instances of the component can have the same ID.
 
 Given a „context“ reactor ⊤, ID-uniqueness is fulfilled if:
 ∀ (i₁ i₂ : ι) (p₁ p₂ : ID-paths for i₁ and i₂ in ⊤), i₁ = i₂ → p₁ = p₂
