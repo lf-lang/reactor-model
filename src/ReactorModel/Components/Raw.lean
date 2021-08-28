@@ -9,9 +9,6 @@ structure Connection (ι) [ID ι] where
   src : ι
   dst : ι
 
-instance (ι) [ID ι] : LGraph.Edge (Connection ι) ι := 
-  ⟨Connection.src, Connection.dst⟩
-
 namespace Raw
 
 -- This block basically just serves the purpose of defining `Component.Reactor`.
@@ -47,8 +44,8 @@ inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
   
 inductive Network (ι υ) [i : ID ι] [v : Value υ]
   | mk 
-    (nodes : ι ▸ (Reactor ι υ))
-    (edges : Finset (Connection ι))
+    (rtrs : ι ▸ (Reactor ι υ))
+    (cns : Finset (Connection ι))
 
 end
 

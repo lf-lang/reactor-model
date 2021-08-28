@@ -1,17 +1,21 @@
 import ReactorModel.Components.Reactor
 
+open Reactor
 open Reactor.Ports
 
-variable (ι υ) [ID ι] [Value υ]
+variable {ι υ} [ID ι] [Value υ]
 
-/- TODO -/
-structure Network extends LGraph ι (Reactor ι υ) (Connection ι) where
-  uniquePortIns : ∀ (c c') (_ : c ∈ toLGraph.edges) (_ : c' ∈ toLGraph.edges), c.dst = c'.dst → c = c'
-  /-(wfConnPrts : 
-    ∀ c : Connection ι, c ∈ toLGraph.edges → 
-      ∃ s, (toLGraph.nodes (ID.rtr c.src) = some s) ∧ (c.src.prt ∈ (s.prts Role.out).ids) ∧
-      ∃ d, (l.nodes.lookup e.dst.rtr = some d) ∧ (e.dst.prt ∈ (d.prts role.in).ids)
-  )-/
+noncomputable def Finmap.portIDs (rtrs : ι ▸ Reactor ι υ) (r : Ports.Role) : Finset ι :=
+  rtrs.values.bUnion (λ x => (x.ports r).ids)
+
+variable (ι υ)
+
+structure Network where
+  rtrs : ι ▸ Reactor ι υ
+  cns : Finset (Connection ι) 
+  wfCns : ∀ c, c ∈ cns → (c.src ∈ rtrs.portIDs Role.out) ∧ (c.dst ∈ rtrs.portIDs Role.in)
+  uniquePortIns : ∀ c₁ c₂, c₁ ∈ cns → c₂ ∈ cns → c₁.dst = c₂.dst → c₁ = c₂
+  wfIDs : false -- !!!
 
 variable {ι υ}
 

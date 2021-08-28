@@ -10,6 +10,8 @@ namespace Finset
 
 instance : Mem α (Finset α) := ⟨λ a f => a ∈ f.val⟩
 
+instance : Union (Finset α) := sorry
+
 instance : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nodupEmpty }⟩
 
 instance : Inhabited (Finset α) where
