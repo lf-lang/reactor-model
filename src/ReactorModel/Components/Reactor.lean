@@ -72,4 +72,4 @@ def prios (rtr : Reactor ι υ) : PartialOrder ι         := rtr.raw.prios
 
 end Reactor
 
--- Lift the `wellFormed` properties (as new theorems) to not be about `Raw` components anymore.
+-- TODO: Lift the `wellFormed` properties (as new theorems) to not be about `Raw` components anymore.

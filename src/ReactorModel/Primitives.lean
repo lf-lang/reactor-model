@@ -85,7 +85,7 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := {
 }
 
 noncomputable def mergeOnto (src dst : Ports ι υ) : Ports ι υ :=
-  let description := ∃ result : Ports ι υ, result.ids = dst.ids ∧ (∀ i ∈ result.ids, result[i] = (src[i] <|> dst[i]))
+  let description := ∃! result : Ports ι υ, result.ids = dst.ids ∧ (∀ i ∈ result.ids, result[i] = (src[i] <|> dst[i]))
   let existence : description := sorry
   Classical.choose existence
 

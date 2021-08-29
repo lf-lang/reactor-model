@@ -42,4 +42,8 @@ def range (n : ℕ) : Finset ℕ := sorry
 
 instance : Subset (Finset α) := sorry
 
+theorem subset_iff {s₁ s₂ : Finset α} : s₁ ⊆ s₂ ↔ ∀ {x}, x ∈ s₁ → x ∈ s₂ := sorry
+
+theorem mem_of_subset {s₁ s₂ : Finset α} {a : α} : s₁ ⊆ s₂ → a ∈ s₁ → a ∈ s₂ := sorry
+
 end Finset
