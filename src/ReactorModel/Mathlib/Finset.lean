@@ -20,6 +20,8 @@ instance : Inhabited (Finset α) where
 protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=
   (s.val.bind (λ a => (t a).val)).toFinset
 
+def image (f : α → β) (s : Finset α) : Finset β := sorry
+
 def singleton (a : α) : Finset α := ⟨[a], sorry⟩
 
 instance : Coe (Finset α) (Set α) := ⟨λ f => {x | x ∈ f}⟩

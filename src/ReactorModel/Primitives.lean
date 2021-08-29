@@ -1,5 +1,5 @@
 import ReactorModel.Mathlib.Tactics
-import ReactorModel.Mathlib.Finmap
+import ReactorModel.Finmap
 
 class ID (α) where
   root : α

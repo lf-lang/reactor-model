@@ -15,6 +15,18 @@ noncomputable def finite.toFinset {s : Set α} (h : s.finite) : Finset α := sor
 
 theorem finite.mem_to_finset {s : Set α} (h : finite s) {a : α} : a ∈ h.toFinset ↔ a ∈ s := sorry
 
+protected def nonempty (s : Set α) : Prop := ∃ x, x ∈ s
+
+@[simp] theorem nonempty.image_const {s : Set α} (hs : s.nonempty) (a : β) : s.image (λ _ => a) = {a} := sorry
+
+theorem not_nonempty_iff_eq_empty {s : Set α} : ¬s.nonempty ↔ s = ∅ := sorry
+
+@[simp] theorem image_empty (f : α → β) : (∅ : Set α).image f = ∅ := sorry
+
+@[simp] theorem finite_empty : @finite α ∅ := sorry
+
+@[simp] theorem finite_singleton (a : α) : finite ({a} : Set α) := sorry
+
 end Set
 
 theorem Finset.finite_to_set (s : Finset α) : Set.finite (↑s : Set α) := sorry
