@@ -16,8 +16,8 @@ def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : List ι → Prop
 
 notation p " *ᵣ[" r "] " i => List.isRtrIDPathFor i r p
 
-noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Finset ι :=
-  sorry -- rtr.nest.rtrs.values.bUnion (λ x => (x.ports r).ids)
+noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Set ι :=
+  {i | ∃ j x, rtr.nest.rtrs j = some x ∧ i ∈ (x.ports r).ids}
 
 structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   mutsFinite :      { i | rtr.muts i ≠ none }.finite
@@ -26,7 +26,7 @@ structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   mutsOutDepOnly :  ∀ m i, rtr.muts i = some m → ∀ i s o, (o ∉ m.deps Role.out) → (m.body i s).prtVals[o] = none 
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   rtrWFMutDeps :    ∀ m r, rtr.muts i = some m  → (m.deps r) ⊆ (rtr.ports r).ids -- ? ¯\_(ツ)_/¯                   
-  rtrWFRcnDeps :    ∀ rcn i r, rtr.rcns i = some rcn → (rcn.deps r) ⊆ (rtr.ports r).ids ∪ (rtr.nestedPortIDs r.opposite)
+  rtrWFRcnDeps :    ∀ rcn i r, rtr.rcns i = some rcn → ↑(rcn.deps r) ⊆ ↑(rtr.ports r).ids ∪ (rtr.nestedPortIDs r.opposite)
   nestFiniteRtrs :  { i | rtr.nest.rtrs i ≠ none }.finite
   nestWFCns :       ∀ c,       c ∈ rtr.nest.cns → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
   wfIDs :           ∀ i₁ i₂ p₁ p₂, (p₁ *ᵣ[rtr] i₁) → (p₂ *ᵣ[rtr] i₂) → i₁ = i₂ → p₁ = p₂  
