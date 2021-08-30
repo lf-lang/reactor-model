@@ -67,7 +67,7 @@ theorem eqInputEqTriggering {m : Mutation ι υ} {p₁ p₂ : Ports ι υ} (h : 
       exists r
       exists v
       have hₜ := Finset.mem_of_subset m.tsSubInDeps r
-      have h := lookupToGet (h t hₜ)
+      have h := eqLookupEqGet (h t hₜ)
       simp [←h', h]
   }
 

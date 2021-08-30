@@ -44,24 +44,25 @@ def Role.opposite : Role → Role
   | Role.in => Role.out
   | Role.out => Role.in
 
-notation p "[" i "]'" => Finmap.lookup p i
-
 def get (p : Ports ι υ) (i : ι) : Option υ := 
-  p[i]' >>= (λ v => if v = ⊥ then none else v)
+  p.lookup i >>= (λ v => if v = ⊥ then none else v)
 
 notation p "[" i "]" => get p i
 
-theorem lookupToGet {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁[i]' = p₂[i]') :
+theorem eqLookupEqGet {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁.lookup i = p₂.lookup i) :
   p₁[i] = p₂[i] := by
   simp [get, bind, h]
-  
-theorem lookupAbsentAtNone {p : Ports ι υ} {i : ι} (h : p[i]' = some ⊥) :
+
+theorem lookupNoneGetNone {p : Ports ι υ} {i : ι} (h : p.lookup i = none) : p[i] = none := by
+  simp [get, h]
+
+theorem lookupAbsentAtNone {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥) :
   p[i] = none := by
   simp [get, bind, Option.bind, h]
 
 @[reducible]
 def eqAt (is : Finset ι) (p₁ p₂ : Ports ι υ) : Prop := 
-  ∀ i ∈ is, p₁[i]' = p₂[i]'
+  ∀ i ∈ is, p₁.lookup i = p₂.lookup i
 
 notation p " =[" i "] " q => eqAt i p q
 
@@ -84,43 +85,37 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := {
   }
 }
 
-noncomputable def mergeOnto (src dst : Ports ι υ) : Ports ι υ :=
-  let description := ∃! result : Ports ι υ, result.ids = dst.ids ∧ (∀ i ∈ result.ids, result[i] = (src[i] <|> dst[i]))
-  let existence : description := sorry
-  Classical.choose existence
+def mergeOnto (src dst : Ports ι υ) : Ports ι υ := {
+  lookup := λ i => src[i] <|> dst.lookup i,
+  finite := by
+    suffices h : { i | (λ j => src[j] <|> dst.lookup j) i ≠ none } ⊆ ↑(src.ids ∪ dst.ids) by
+      exact Set.finite.subset (Finset.finite_to_set (src.ids ∪ dst.ids)) h
+    simp [Set.subset_def]
+    intro x h
+    simp [Finmap.idsDef]
+    byContra hc
+    rw [←and_iff_not_or_not] at hc
+    rw [hc.right, Option.orelse_none, lookupNoneGetNone hc.left] at h
+    contradiction
+} 
 
 noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
   let description : Set ι := { i | p[i] ≠ none }
-  let isFinite : description.finite := by
+  let finite : description.finite := by
     let f : Finset ι := p.ids.filter (λ i => p[i] ≠ none)
-    suffices h : ↑f = description by 
-      simp only [←h, Finset.finite_to_set]
-    apply Set.ext
-    intro x
+    suffices h : description ⊆ ↑f by 
+      exact Set.finite.subset (Finset.finite_to_set _) h
+    simp [Set.subset_def]
+    intro x h
+    simp at *
     split
-    focus
-      intro h
-      simp only [Set.mem_sep_eq, Finset.mem_range, Finset.mem_coe, Finset.coe_filter] at h
-      simp only [h, Ne.def, not_false_iff, Set.mem_set_of_eq]
-    focus
-      simp only [Set.mem_set_of_eq] at h
-      have h' := h
-      simp only [get, Option.ne_none_iff_exists] at h'
-      obtain ⟨_, h'⟩ := h'
-      sorry
-    sorry
-      /-have h' := Eq.symm h'
-      simp [Option.bind_eq_some] at h'
-      obtain ⟨_, ⟨h', _⟩⟩ := h'
-      simp only [at'] at h'
-      simp [Set.mem_sep_eq, Finset.mem_coe, Finset.coe_filter]
-      split
-      focus
-        apply Finset.mem_coe.mp
-        simp [Finmap.idsDef, Set.mem_set_of_eq, h']
-      focus
-        exact h-/
-  isFinite.toFinset
+    case right => exact h
+    case left =>
+      rw [Finmap.idsDef]
+      simp [get, Option.ne_none_iff_exists] at h
+      obtain ⟨_, ⟨_, ⟨h, _⟩⟩⟩ := h
+      simp [Option.ne_none_iff_exists, h]
+  finite.toFinset
 
 theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p[i] = none) : i ∉ p.inhabitedIDs := by
   simp only [inhabitedIDs, Set.finite.mem_to_finset, setOf]

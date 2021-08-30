@@ -28,4 +28,10 @@ lemma bind_eq_bind {f : α → Option β} {x : Option α} :
   o >>= f = none ↔ (∀ b a, a ∈ o → b ∉ f a) := 
   sorry
 
+@[simp] theorem some_orelse (a : α) (x : Option α) : (some a <|> x) = some a := sorry
+
+@[simp] theorem orelse_none (x : Option α) : (x <|> none) = x := sorry
+
+@[simp] theorem none_bind {α β} (f : α → Option β) : none >>= f = none := sorry
+
 end Option

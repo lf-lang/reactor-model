@@ -50,4 +50,6 @@ theorem mem_of_subset {s₁ s₂ : Finset α} {a : α} : s₁ ⊆ s₂ → a ∈
 
 @[simp] theorem mem_image {s : Finset α} {f : α → β} {b : β} : b ∈ s.image f ↔ ∃ a ∈ s, f a = b := sorry
 
+@[simp] theorem mem_union {a : α} {s₁ s₂ : Finset α} : a ∈ s₁ ∪ s₂ ↔ a ∈ s₁ ∨ a ∈ s₂ := sorry
+
 end Finset

@@ -32,6 +32,10 @@ theorem finite_option {s : Set (Option α)} : finite s ↔ finite {x : α | some
 @[simp] theorem mem_image (f : α → β) (s : Set α) (y : β) :
   y ∈ s.image f ↔ ∃ x, x ∈ s ∧ f x = y := sorry
 
+theorem finite.subset {s : Set α} : finite s → ∀ {t : Set α}, t ⊆ s → finite t := sorry
+
+theorem subset_def {s t : Set α} : (s ⊆ t) = ∀ x, x ∈ s → x ∈ t := sorry
+
 end Set
 
 theorem Finset.finite_to_set (s : Finset α) : Set.finite (↑s : Set α) := sorry
