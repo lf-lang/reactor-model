@@ -94,8 +94,7 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
   let isFinite : description.finite := by
     let f : Finset ι := p.ids.filter (λ i => p[i] ≠ none)
     suffices h : ↑f = description by 
-      rw [←h]
-      simp only [Finset.finite_to_set]
+      simp only [←h, Finset.finite_to_set]
     apply Set.ext
     intro x
     split

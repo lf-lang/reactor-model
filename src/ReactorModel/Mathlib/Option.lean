@@ -10,6 +10,8 @@ instance : Bind (Option) := ⟨Option.bind⟩
 
 instance : Mem α (Option α) := ⟨λ a b => b = some a⟩
 
+@[simp] theorem mem_def {a : α} {b : Option α} : a ∈ b ↔ b = some a := sorry
+
 lemma ne_none_iff_exists {o : Option α} : 
   o ≠ none ↔ ∃ (x : α), some x = o := 
   sorry

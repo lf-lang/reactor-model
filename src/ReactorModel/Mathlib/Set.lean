@@ -27,6 +27,11 @@ theorem not_nonempty_iff_eq_empty {s : Set α} : ¬s.nonempty ↔ s = ∅ := sor
 
 @[simp] theorem finite_singleton (a : α) : finite ({a} : Set α) := sorry
 
+theorem finite_option {s : Set (Option α)} : finite s ↔ finite {x : α | some x ∈ s} := sorry
+
+@[simp] theorem mem_image (f : α → β) (s : Set α) (y : β) :
+  y ∈ s.image f ↔ ∃ x, x ∈ s ∧ f x = y := sorry
+
 end Set
 
 theorem Finset.finite_to_set (s : Finset α) : Set.finite (↑s : Set α) := sorry

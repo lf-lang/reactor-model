@@ -48,4 +48,6 @@ theorem subset_iff {s₁ s₂ : Finset α} : s₁ ⊆ s₂ ↔ ∀ {x}, x ∈ s�
 
 theorem mem_of_subset {s₁ s₂ : Finset α} {a : α} : s₁ ⊆ s₂ → a ∈ s₁ → a ∈ s₂ := sorry
 
+@[simp] theorem mem_image {s : Finset α} {f : α → β} {b : β} : b ∈ s.image f ↔ ∃ a ∈ s, f a = b := sorry
+
 end Finset
