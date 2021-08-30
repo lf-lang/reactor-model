@@ -4,7 +4,7 @@ open Reactor
 
 variable (ι υ) [ID ι] [Value υ]
 
-structure MutationOutput where
+structure MutOutput where
   prtVals : Ports ι υ
   state   : StateVars ι υ
   newCns  : List (ι × ι)

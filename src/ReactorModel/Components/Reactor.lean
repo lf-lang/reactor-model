@@ -28,7 +28,7 @@ structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   rtrWFMutDeps :    ∀ m r, rtr.muts i = some m  → (m.deps r) ⊆ (rtr.ports r).ids -- ? ¯\_(ツ)_/¯                   
   rtrWFRcnDeps :    ∀ rcn i r, rtr.rcns i = some rcn → ↑(rcn.deps r) ⊆ ↑(rtr.ports r).ids ∪ (rtr.nestedPortIDs r.opposite)
   nestFiniteRtrs :  { i | rtr.nest.rtrs i ≠ none }.finite
-  nestWFCns :       ∀ c,       c ∈ rtr.nest.cns → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
+  nestWFCns :       ∀ c, c ∈ rtr.nest.cns → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
   wfIDs :           ∀ i₁ i₂ p₁ p₂, (p₁ *ᵣ[rtr] i₁) → (p₂ *ᵣ[rtr] i₂) → i₁ = i₂ → p₁ = p₂  
 
 /-

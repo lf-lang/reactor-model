@@ -1,4 +1,4 @@
-import ReactorModel.Components.MutationOutput
+import ReactorModel.Components.MutOutput
 
 open Reactor
 open Reactor.Ports
@@ -8,7 +8,7 @@ variable (ι υ) [ID ι] [Value υ]
 structure Mutation where
   deps : Ports.Role → Finset ι 
   triggers : Finset ι
-  body : Ports ι υ → StateVars ι υ → MutationOutput ι υ
+  body : Ports ι υ → StateVars ι υ → MutOutput ι υ
   tsSubInDeps : triggers ⊆ deps Role.in
   inDepOnly : ∀ {i i'} s, (i =[deps Role.in] i') → body i s = body i' s
   outDepOnly : ∀ i s {o}, (o ∉ deps Role.out) → (body i s).prtVals[o] = none 
@@ -41,7 +41,7 @@ def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Mutation ι υ :=
 
 namespace Mutation
 
-instance : CoeFun (Mutation ι υ) (λ _ => Ports ι υ → StateVars ι υ → MutationOutput ι υ) where
+instance : CoeFun (Mutation ι υ) (λ _ => Ports ι υ → StateVars ι υ → MutOutput ι υ) where
   coe m := m.body
 
 theorem outPrtValsSubOutDeps (m : Mutation ι υ) (p : Ports ι υ) (s : StateVars ι υ) :

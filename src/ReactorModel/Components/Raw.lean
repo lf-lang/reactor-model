@@ -1,5 +1,4 @@
 import ReactorModel.Components.Reaction
-import ReactorModel.LGraph
 import ReactorModel.Mathlib.PartialOrder
 
 open Reactor
@@ -17,10 +16,8 @@ namespace Raw
 -- Those subcomponents are then (re-)defined as well, by using the definition of 
 -- `Reactor`.
 mutual 
- 
--- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Type.20Mismatch.3F
 
-inductive MutationOutput (ι υ) [i : ID ι] [v : Value υ]
+inductive MutOutput (ι υ) [i : ID ι] [v : Value υ]
   | mk
     (prtVals : Ports ι υ)
     (state   : StateVars ι υ)
@@ -33,7 +30,7 @@ inductive Mutation (ι υ) [i : ID ι] [v : Value υ]
   | mk 
     (deps : Ports.Role → Finset ι) 
     (triggers : Finset ι)
-    (body : Ports ι υ → StateVars ι υ → MutationOutput ι υ)
+    (body : Ports ι υ → StateVars ι υ → MutOutput ι υ)
 
 inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
   | mk 
@@ -58,22 +55,22 @@ open Inhabited in
 instance : Inhabited (Reactor ι υ) where
   default := Reactor.mk default default default default default (Network.mk default default)
 
-namespace MutationOutput
+namespace MutOutput
 
-def prtVals : MutationOutput ι υ → Ports ι υ          | mk p _ _ _ _ _ => p
-def state :   MutationOutput ι υ → StateVars ι υ      | mk _ s _ _ _ _ => s
-def newCns :  MutationOutput ι υ → List (ι × ι)       | mk _ _ c _ _ _ => c
-def delCns :  MutationOutput ι υ → List (ι × ι)       | mk _ _ _ c _ _ => c
-def newRtrs : MutationOutput ι υ → List (Reactor ι υ) | mk _ _ _ _ r _ => r
-def delRtrs : MutationOutput ι υ → Finset ι           | mk _ _ _ _ _ r => r
+def prtVals : MutOutput ι υ → Ports ι υ          | mk p _ _ _ _ _ => p
+def state :   MutOutput ι υ → StateVars ι υ      | mk _ s _ _ _ _ => s
+def newCns :  MutOutput ι υ → List (ι × ι)       | mk _ _ c _ _ _ => c
+def delCns :  MutOutput ι υ → List (ι × ι)       | mk _ _ _ c _ _ => c
+def newRtrs : MutOutput ι υ → List (Reactor ι υ) | mk _ _ _ _ r _ => r
+def delRtrs : MutOutput ι υ → Finset ι           | mk _ _ _ _ _ r => r
 
-end MutationOutput
+end MutOutput
 
 namespace Mutation
 
-def deps :     Mutation ι υ → (Ports.Role → Finset ι)                          | mk d _ _ => d
-def triggers : Mutation ι υ → (Finset ι)                                       | mk _ t _ => t
-def body :     Mutation ι υ → (Ports ι υ → StateVars ι υ → MutationOutput ι υ) | mk _ _ b => b
+def deps :     Mutation ι υ → (Ports.Role → Finset ι)                     | mk d _ _ => d
+def triggers : Mutation ι υ → (Finset ι)                                  | mk _ t _ => t
+def body :     Mutation ι υ → (Ports ι υ → StateVars ι υ → MutOutput ι υ) | mk _ _ b => b
 
 end Mutation
 
