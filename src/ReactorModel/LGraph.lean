@@ -1,4 +1,4 @@
-import ReactorModel.Mathlib.Finmap
+import ReactorModel.Finmap
 
 -- Type `ε` is a `LGraph.Edge`-type over ID-type `ι`, if it can produce a `src` and `dst` ID.
 class LGraph.Edge (ε ι) :=

@@ -15,8 +15,9 @@ structure Mutation where
 
 variable {ι υ}
 
-def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Mutation ι υ := 
-  rtr.raw.muts.map (λ m => {
+def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Mutation ι υ :=
+  let raw : Finmap ι (Raw.Mutation ι υ) := {lookup := rtr.raw.muts, finite := rtr.wf.mutsFinite}
+  raw.map (λ m => {
       deps := m.deps,
       triggers := m.triggers,
       body := (λ p s => {

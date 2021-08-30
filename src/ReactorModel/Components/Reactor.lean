@@ -10,23 +10,26 @@ def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : List ι → Prop
   | [] => 
     (∃ r, i ∈ (ctx.ports r).ids) ∨ 
     (i ∈ ctx.state.ids) ∨
-    (i ∈ ctx.rcns.ids) ∨ 
-    (i ∈ ctx.muts.ids) ∨ 
-    (i ∈ ctx.nest.rtrs.ids)
+    (∃ v, ctx.rcns i = some v) ∨ 
+    (∃ v, ctx.muts i = some v) ∨ 
+    (∃ v, ctx.nest.rtrs i = some v)
 
 notation p " *ᵣ[" r "] " i => List.isRtrIDPathFor i r p
 
 noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Finset ι :=
-  rtr.nest.rtrs.values.bUnion (λ x => (x.ports r).ids)
+  sorry -- rtr.nest.rtrs.values.bUnion (λ x => (x.ports r).ids)
 
 structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
-  mutsTsSubInDeps : ∀ m,       m ∈ rtr.muts.values → m.triggers ⊆ m.deps Role.in                                     
-  mutsInDepOnly :   ∀ m,       m ∈ rtr.muts.values → ∀ i i' s, (i =[m.deps Role.in] i') → m.body i s = m.body i' s    
-  mutsOutDepOnly :  ∀ m,       m ∈ rtr.muts.values → ∀ i s o, (o ∉ m.deps Role.out) → (m.body i s).prtVals[o] = none 
-  rtrWFMutDeps :    ∀ m r,     m ∈ rtr.muts.values → (m.deps r) ⊆ (rtr.ports r).ids -- ? ¯\_(ツ)_/¯                   
-  rtrWFRcnDeps :    ∀ rcn r, rcn ∈ rtr.rcns.values → (rcn.deps r) ⊆ (rtr.ports r).ids ∪ (rtr.nestedPortIDs r.opposite)
+  mutsFinite :      { i | rtr.muts i ≠ none }.finite
+  mutsTsSubInDeps : ∀ m i, rtr.muts i = some m → m.triggers ⊆ m.deps Role.in                                     
+  mutsInDepOnly :   ∀ m i, rtr.muts i = some m → ∀ i i' s, (i =[m.deps Role.in] i') → m.body i s = m.body i' s    
+  mutsOutDepOnly :  ∀ m i, rtr.muts i = some m → ∀ i s o, (o ∉ m.deps Role.out) → (m.body i s).prtVals[o] = none 
+  rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
+  rtrWFMutDeps :    ∀ m r, rtr.muts i = some m  → (m.deps r) ⊆ (rtr.ports r).ids -- ? ¯\_(ツ)_/¯                   
+  rtrWFRcnDeps :    ∀ rcn i r, rtr.rcns i = some rcn → (rcn.deps r) ⊆ (rtr.ports r).ids ∪ (rtr.nestedPortIDs r.opposite)
+  nestFiniteRtrs :  { i | rtr.nest.rtrs i ≠ none }.finite
   nestWFCns :       ∀ c,       c ∈ rtr.nest.cns → (c.src ∈ rtr.nestedPortIDs Role.out) ∧ (c.dst ∈ rtr.nestedPortIDs Role.in)
-  wfIDs :           ∀ i₁ i₂ p₁ p₂, (p₁ *ᵣ[rtr] i₁) → (p₂ *ᵣ[rtr] i₂) → i₁ = i₂ → p₁ = p₂
+  wfIDs :           ∀ i₁ i₂ p₁ p₂, (p₁ *ᵣ[rtr] i₁) → (p₂ *ᵣ[rtr] i₂) → i₁ = i₂ → p₁ = p₂  
 
 /-
 `wfIDs` ensures ID-uniqueness, i.e. no two distinct instances of the component can have the same ID.
@@ -67,7 +70,7 @@ namespace Reactor
 
 def ports (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports
 def state (rtr : Reactor ι υ) : StateVars ι υ          := rtr.raw.state
-def rcns  (rtr : Reactor ι υ) : ι ▸ Reaction ι υ       := rtr.raw.rcns
+def rcns  (rtr : Reactor ι υ) : ι ▸ Reaction ι υ       := {lookup := rtr.raw.rcns, finite := rtr.wf.rcnsFinite}
 def prios (rtr : Reactor ι υ) : PartialOrder ι         := rtr.raw.prios
 
 end Reactor

@@ -25,14 +25,12 @@ structure Network where
 
 variable {ι υ}
 
-def Reactor.nest (rtr : Reactor ι υ) : Network ι υ := {
-  rtrs := rtr.raw.nest.rtrs.map (λ r => {
-      raw := r,
-      wf := sorry 
-    }
-  ),
-  cns := rtr.raw.nest.cns,
-  wfCns := sorry,
-  uniquePortIns := sorry,
-  wfIDs := sorry
-}
+def Reactor.nest (rtr : Reactor ι υ) : Network ι υ := 
+  let rawRtrs : Finmap ι (Raw.Reactor ι υ) := {lookup := rtr.raw.nest.rtrs, finite := rtr.wf.nestFiniteRtrs}
+  {
+    rtrs := rawRtrs.map (λ r => {raw := r, wf := sorry}),
+    cns := rtr.raw.nest.cns,
+    wfCns := sorry,
+    uniquePortIns := sorry,
+    wfIDs := sorry
+  }

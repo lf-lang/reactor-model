@@ -17,6 +17,8 @@ namespace Raw
 -- Those subcomponents are then (re-)defined as well, by using the definition of 
 -- `Reactor`.
 mutual 
+ 
+-- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Type.20Mismatch.3F
 
 inductive MutationOutput (ι υ) [i : ID ι] [v : Value υ]
   | mk
@@ -37,14 +39,14 @@ inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
   | mk 
     (ports : Ports.Role → Ports ι υ) 
     (state : StateVars ι υ)
-    (rcns : ι ▸ Reaction ι υ)
-    (muts : ι ▸ Mutation ι υ)
+    (rcns : ι → Option (Reaction ι υ))
+    (muts : ι → Option (Mutation ι υ))
     (prios : PartialOrder ι)
     (nest : Network ι υ)
   
 inductive Network (ι υ) [i : ID ι] [v : Value υ]
   | mk 
-    (rtrs : ι ▸ (Reactor ι υ))
+    (rtrs : ι → Option (Reactor ι υ))
     (cns : Finset (Connection ι))
 
 end
@@ -77,19 +79,19 @@ end Mutation
 
 namespace Reactor
 
-def ports : Reactor ι υ → (Ports.Role → Ports ι υ) | mk p _ _ _ _ _ => p
-def state : Reactor ι υ → StateVars ι υ            | mk _ s _ _ _ _ => s 
-def rcns :  Reactor ι υ → (ι ▸ Reaction ι υ)       | mk _ _ r _ _ _ => r
-def muts :  Reactor ι υ → (ι ▸ Mutation ι υ)       | mk _ _ _ m _ _ => m
-def prios : Reactor ι υ → PartialOrder ι           | mk _ _ _ _ p _ => p 
-def nest :  Reactor ι υ → Network ι υ              | mk _ _ _ _ _ n => n
+def ports : Reactor ι υ → (Ports.Role → Ports ι υ)    | mk p _ _ _ _ _ => p
+def state : Reactor ι υ → StateVars ι υ               | mk _ s _ _ _ _ => s 
+def rcns :  Reactor ι υ → (ι → Option (Reaction ι υ)) | mk _ _ r _ _ _ => r
+def muts :  Reactor ι υ → (ι → Option (Mutation ι υ)) | mk _ _ _ m _ _ => m
+def prios : Reactor ι υ → PartialOrder ι              | mk _ _ _ _ p _ => p 
+def nest :  Reactor ι υ → Network ι υ                 | mk _ _ _ _ _ n => n
 
 end Reactor
 
 namespace Network
 
-def rtrs : Network ι υ → (ι ▸ Reactor ι υ)     | mk r _ => r
-def cns  : Network ι υ → Finset (Connection ι) | mk _ c => c
+def rtrs : Network ι υ → (ι → Option (Reactor ι υ)) | mk r _ => r
+def cns  : Network ι υ → Finset (Connection ι)      | mk _ c => c
 
 end Network
 

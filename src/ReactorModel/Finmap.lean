@@ -5,7 +5,7 @@ open Classical
 
 structure Finmap (α β) where
   lookup : α → Option β 
-  finite : { i | lookup i ≠ none }.finite
+  finite : { a | lookup a ≠ none }.finite
 
 namespace Finmap
 
@@ -60,7 +60,5 @@ def map (f : α ▸ β) (g : β → γ) : Finmap α γ := {
     | ⟨v, ⟨b, ⟨hb, hv⟩⟩⟩ =>
       simp [idsDef, Option.ne_none_iff_exists, hb]
 }
-
-example (o : Option α) (a : α) (h : a ∈ o) : True := True.intro
 
 end Finmap
