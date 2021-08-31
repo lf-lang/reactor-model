@@ -1,6 +1,6 @@
 # New Foundations
 
-*This is somewhat out of date as of the Lean 4 transition.*
+*This documents describes the reasons behind the rewrite of the formalization, started on 23.07.2021 (commit: 809d7063f7d9a907f751a57b9e3311955ef58fcd).*
 
 ---
 
