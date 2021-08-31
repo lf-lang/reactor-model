@@ -1,4 +1,5 @@
 import ReactorModel.Components.Reactor
+import ReactorModel.Components.Mutation
 
 open Reactor
 open Reactor.Ports
@@ -34,3 +35,47 @@ def Reactor.nest (rtr : Reactor ι υ) : Network ι υ :=
     uniquePortIns := sorry,
     wfIDs := sorry
   }
+
+inductive Cmp -- Component
+  | rtr
+  | rcn
+  | «mut»
+  | prt
+  | stateVar
+
+variable (ι υ)
+
+def Cmp.type : Cmp → Type _ 
+  | rtr      => Reactor ι υ
+  | rcn      => Reaction ι υ
+  | «mut»    => Mutation ι υ
+  | prt      => Ports ι υ
+  | stateVar => StateVars ι υ
+
+namespace Network
+
+variable {ι υ}
+
+def containerOf (η : Network ι υ) (c : Cmp) (i : ι) : Option ι := 
+  sorry
+
+notation η " ↑[" c "] " i => Network.containerOf η c i
+
+def cmp (η : Network ι υ) (c : Cmp) (i : ι) : Option (c.type ι υ) :=
+  match c with
+  | Cmp.rtr => sorry
+  | Cmp.rcn => sorry
+  | Cmp.«mut» => sorry
+  | Cmp.prt => sorry
+  | Cmp.stateVar => sorry
+
+notation η " *[" c "] " i => Network.cmp η c i
+
+noncomputable def allIDsFor (η : Network ι υ) (c : Cmp) : Finset ι := 
+  let description := {i | (η *[c] i) ≠ none}
+  let finite : description.finite := sorry
+  finite.toFinset
+
+notation η "&[" c "]" => Network.allIDsFor η c
+
+end Network

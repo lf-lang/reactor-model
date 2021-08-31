@@ -13,19 +13,31 @@ variable {ι}
 
 namespace PrecGraph
 
-def rcnsAreInternallyDep (rcn₁ rcn₂ : ι) (η : Network ι υ) : Prop := sorry --! requires a function that returns the parent for a given id of specific component-type
-  -- (i.rtr = i'.rtr) ∧ (i.rcn > i'.rcn)
+-- It's important here to compare *identity* of the parent (`i`) instead of just:
+-- `(η *[Cmp.rtr] rcn₁) = some rtr ∧ (η *[Cmp.rtr] rcn₂) = some rtr`
+-- because this condition could also hold when `rcn₁` and `rcn₂` have different parents.
+def rcnsAreInternallyDep (rcn₁ rcn₂ : ι) (η : Network ι υ) : Prop := 
+  ∃ (i : ι) (rtr : Reactor ι υ), 
+    (η ↑[Cmp.rcn] rcn₁) = some i ∧
+    (η ↑[Cmp.rcn] rcn₂) = some i ∧
+    (η *[Cmp.rtr] i)    = some rtr ∧
+    rtr.prios.lt rcn₁ rcn₂
 
-def rcnsAreExternallDep (rcn₁ rcn₂ : ι) (η : Network ι υ) : Prop := sorry
-  -- ∃ e : inst.network.edge, (e ∈ γ.edges) ∧ (e.src ∈ γ.deps i role.out) ∧ (e.dst ∈ γ.deps i' role.in)
+def rcnsAreExternallDep (rcn₁ rcn₂ : ι) (η : Network ι υ) : Prop :=
+  ∃ (c : Connection ι) (rn₁ rn₂ : Reaction ι υ),
+    c ∈ η.cns ∧ 
+    (η *[Cmp.rcn] rcn₁) = some rn₁ ∧ 
+    (η *[Cmp.rcn] rcn₂) = some rn₂ ∧
+    c.src ∈ rn₁.deps Role.out ∧ 
+    c.dst ∈ rn₂.deps Role.in
 
 end PrecGraph
 
 structure PrecGraph (η : Network ι υ) :=
   (rcns : ι ▸ Reaction ι υ)
   (edges : Finset (PrecGraphEdge ι))
-  -- (wfIDs : rcns.ids = η.rcnIDs)
-  -- (wfData : ∀ i, rcns i = η.rcn i)
+  (wfIDs : rcns.ids = η &[Cmp.rcn])
+  (wfData : ∀ i, rcns i = η *[Cmp.rcn] i)
   (wfEdges : 
     ∀ e, e ∈ edges ↔ 
       (e.src ∈ rcns.ids) ∧ 
