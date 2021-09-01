@@ -1,8 +1,7 @@
 import ReactorModel.Primitives
 import ReactorModel.Mathlib.Tactics
 
-open Reactor
-open Reactor.Ports
+open Ports
 
 variable (ι υ) [ID ι] [Value υ]
 

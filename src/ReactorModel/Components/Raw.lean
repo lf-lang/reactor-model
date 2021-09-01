@@ -1,8 +1,7 @@
 import ReactorModel.Components.Reaction
 import ReactorModel.Mathlib.PartialOrder
 
-open Reactor
-open Reactor.Ports
+open Ports
 
 structure Connection (ι) [ID ι] where
   src : ι

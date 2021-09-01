@@ -1,7 +1,5 @@
 import ReactorModel.Components.Reactor
 
-open Reactor
-
 variable (ι υ) [ID ι] [Value υ]
 
 structure MutOutput where

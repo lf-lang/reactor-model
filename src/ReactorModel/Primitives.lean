@@ -19,8 +19,6 @@ instance Value.DecidableEq {υ} [Value υ] : DecidableEq υ := Value.decEq
 
 variable (ι υ) [ID ι] [Value υ]
 
-namespace Reactor
-
 abbrev StateVars := ι ▸ υ
 
 instance : Inhabited (StateVars ι υ) where
@@ -122,5 +120,3 @@ theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p[i] = none) : i ∉ p.
   simp [h, Mem.mem, Set.mem]
 
 end Ports
-
-end Reactor

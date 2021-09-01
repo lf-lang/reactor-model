@@ -1,7 +1,6 @@
 import ReactorModel.Components.Raw
 
-open Reactor
-open Reactor.Ports
+open Ports
 
 variable {ι υ} [ID ι] [Value υ]
 
