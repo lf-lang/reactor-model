@@ -17,6 +17,7 @@ namespace Reaction
 
 variable {ι υ}
 
+-- A coercion so that reactions can be called directly as functions.
 instance : CoeFun (Reaction ι υ) (λ _ => Ports ι υ → StateVars ι υ → (Ports ι υ × StateVars ι υ)) where
   coe rcn := rcn.body
 
@@ -29,6 +30,7 @@ theorem outPrtValsSubOutDeps (rcn : Reaction ι υ) (p : Ports ι υ) (s : State
   have hₙ := rcn.outDepOnly i s h
   exact Ports.inhabitedIDsNone hₙ
 
+-- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction ι υ) (p : Ports ι υ) : Prop :=
   ∃ (t : ι) (v : υ), t ∈ rcn.triggers ∧ p[t] = some v
 

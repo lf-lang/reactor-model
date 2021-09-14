@@ -3,17 +3,20 @@ import ReactorModel.Mathlib.PartialOrder
 
 open Ports
 
+-- A type for connections between a source port and a destination port
+-- (identified by their IDs) in a reactor network.
+-- 
+-- Note that the extent of "legal" connections will be constrained in `Reactor` (not `Raw.Reactor`).
 structure Connection (ι) [ID ι] where
   src : ι
   dst : ι
 
 namespace Raw
 
--- This block basically just serves the purpose of defining `Component.Reactor`.
--- We later define a version of `Component.Reactor` called `Reactor`, which adds
+-- This block basically just serves the purpose of defining `Raw.Reactor`.
+-- We later define an extension of `Raw.Reactor` called `Reactor`, which adds
 -- all of the necessary constraints on it subcomponents.
--- Those subcomponents are then (re-)defined as well, by using the definition of 
--- `Reactor`.
+-- Those subcomponents are then (re-)defined as well, by using the definition of `Reactor`.
 mutual 
 
 inductive MutOutput (ι υ) [i : ID ι] [v : Value υ]
@@ -53,6 +56,8 @@ variable {ι υ} [ID ι] [Value υ]
 open Inhabited in
 instance : Inhabited (Reactor ι υ) where
   default := Reactor.mk default default default default default (Network.mk default default)
+
+-- The definitions below are all just structure-like accessors for the fields of the types defined above.
 
 namespace MutOutput
 

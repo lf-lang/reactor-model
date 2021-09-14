@@ -4,12 +4,15 @@ open Ports
 
 variable {ι υ} [ID ι] [Value υ]
 
+-- This is still WIP.
+-- Cf. the big comment block in `Reactor.lean` for an explanation.
 def List.isNetIDPathFor (i : ι) (ctx : ι ▸ Reactor ι υ) : List ι → Prop
   | [] => false
   | hd :: tl => ∃ rtr, ctx hd = some rtr ∧ (tl *ᵣ[rtr.raw] i)
 
 notation p " *ₙ[" n "] " i => List.isNetIDPathFor i n p
 
+-- The set of (defined) port IDs contained in a given network's reactors.
 noncomputable def Finmap.portIDs (rtrs : ι ▸ Reactor ι υ) (r : Ports.Role) : Finset ι :=
   rtrs.values.bUnion (λ x => (x.ports r).ids)
 
@@ -24,6 +27,8 @@ structure Network where
 
 variable {ι υ}
 
+-- A non-`Raw` accessor for a `Reactor`'s nested network.
+-- This uses the constraints given by `Reactor.wf` in order to convert a `Raw.Network` to a `Network`.
 def Reactor.nest (rtr : Reactor ι υ) : Network ι υ := 
   let rawRtrs : Finmap ι (Raw.Reactor ι υ) := {lookup := rtr.raw.nest.rtrs, finite := rtr.wf.nestFiniteRtrs}
   {

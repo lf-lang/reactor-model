@@ -14,6 +14,8 @@ structure Mutation where
 
 variable {ι υ}
 
+-- A non-`Raw` accessor for a `Reactor`'s mutations.
+-- This uses the constraints given by `Reactor.wf` in order to convert `Raw.Mutation`s to `Mutation`s.
 def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Mutation ι υ :=
   let raw : Finmap ι (Raw.Mutation ι υ) := {lookup := rtr.raw.muts, finite := rtr.wf.mutsFinite}
   raw.map (λ m => {
@@ -40,9 +42,11 @@ def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Mutation ι υ :=
 
 namespace Mutation
 
+-- A coercion so that mutations can be called directly as functions.
 instance : CoeFun (Mutation ι υ) (λ _ => Ports ι υ → StateVars ι υ → MutOutput ι υ) where
   coe m := m.body
 
+-- The condition under which a given mutation triggers on a given (input) port-assignment.
 theorem outPrtValsSubOutDeps (m : Mutation ι υ) (p : Ports ι υ) (s : StateVars ι υ) :
   (m i s).prtVals.inhabitedIDs ⊆ m.deps Role.out := by
   simp only [Finset.subset_iff]

@@ -4,6 +4,8 @@ open Ports
 
 variable {ι υ} [ID ι] [Value υ]
 
+-- This is still WIP.
+-- Cf. the big comment block below for an explanation.
 def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : List ι → Prop
   | hd :: tl => ∃ ctx', (ctx.nest.rtrs hd = some ctx') ∧ (tl.isRtrIDPathFor i ctx')
   | [] => 
@@ -15,6 +17,7 @@ def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : List ι → Prop
 
 notation p " *ᵣ[" r "] " i => List.isRtrIDPathFor i r p
 
+-- The set of (defined) port IDs contained in a given reactor's nested network.
 noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Set ι :=
   {i | ∃ j x, rtr.nest.rtrs j = some x ∧ i ∈ (x.ports r).ids}
 
@@ -66,6 +69,10 @@ structure Reactor (ι υ) [ID ι] [Value υ] where
   wf : raw.wellFormed  
 
 namespace Reactor
+
+-- These are the "tivial" accessors on `Reactor` - i.e. those that don't (barely) involve 
+-- the constraints given by `Reactor.wf`. The non-trivial accessors are defined in the files
+-- where the corresponding components are defined (`Mutation` and `Network`).
 
 def ports (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports
 def state (rtr : Reactor ι υ) : StateVars ι υ          := rtr.raw.state
