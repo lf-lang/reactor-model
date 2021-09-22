@@ -3,14 +3,6 @@ import ReactorModel.Mathlib.PartialOrder
 
 open Ports
 
--- A type for connections between a source port and a destination port
--- (identified by their IDs) in a reactor network.
--- 
--- Note that the extent of "legal" connections will be constrained in `Reactor` (not `Raw.Reactor`).
-structure Connection (ι) [ID ι] where
-  src : ι
-  dst : ι
-
 namespace Raw
 
 -- This block basically just serves the purpose of defining `Raw.Reactor`.
@@ -40,13 +32,8 @@ inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
     (state : StateVars ι υ)
     (rcns : ι → Option (Reaction ι υ))
     (muts : ι → Option (Mutation ι υ))
+    (nest : ι → Option (Reactor ι υ))
     (prios : PartialOrder ι)
-    (nest : Network ι υ)
-  
-inductive Network (ι υ) [i : ID ι] [v : Value υ]
-  | mk 
-    (rtrs : ι → Option (Reactor ι υ))
-    (cns : Finset (Connection ι))
 
 end
 
@@ -55,7 +42,7 @@ variable {ι υ} [ID ι] [Value υ]
 -- This is just a sanity check, to make sure that this definition of reactors actually allows them to be constructed.
 open Inhabited in
 instance : Inhabited (Reactor ι υ) where
-  default := Reactor.mk default default default default default (Network.mk default default)
+  default := Reactor.mk default default default default default default
 
 -- The definitions below are all just structure-like accessors for the fields of the types defined above.
 
@@ -84,16 +71,9 @@ def ports : Reactor ι υ → (Ports.Role → Ports ι υ)    | mk p _ _ _ _ _ =
 def state : Reactor ι υ → StateVars ι υ               | mk _ s _ _ _ _ => s 
 def rcns :  Reactor ι υ → (ι → Option (Reaction ι υ)) | mk _ _ r _ _ _ => r
 def muts :  Reactor ι υ → (ι → Option (Mutation ι υ)) | mk _ _ _ m _ _ => m
-def prios : Reactor ι υ → PartialOrder ι              | mk _ _ _ _ p _ => p 
-def nest :  Reactor ι υ → Network ι υ                 | mk _ _ _ _ _ n => n
+def nest :  Reactor ι υ → (ι → Option (Reactor ι υ))  | mk _ _ _ _ n _ => n
+def prios : Reactor ι υ → PartialOrder ι              | mk _ _ _ _ _ p => p 
 
 end Reactor
-
-namespace Network
-
-def rtrs : Network ι υ → (ι → Option (Reactor ι υ)) | mk r _ => r
-def cns  : Network ι υ → Finset (Connection ι)      | mk _ c => c
-
-end Network
 
 end Raw

@@ -1,20 +1,11 @@
-import ReactorModel.Components.Network
+import ReactorModel.Components.Mutation
 
 open Classical
+open Ports
 
 -- `ι` and `υ` live in the same universe:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Stuck.20at.20solving.20universe.20constraint/near/253232009
-variable {ι υ : Type u} [ID ι] [Value υ]
-
--- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
-inductive Cmp
-  | rtr
-  | rcn
-  | «mut»
-  | prt (r : Ports.Role)
-  | stateVar
-
-variable (ι υ)
+variable (ι υ : Type u) [ID ι] [Value υ]
 
 -- The *type* corresponding to the component labeled by a given `Cmp`.
 -- 
@@ -52,11 +43,11 @@ notation r " &[" c "] " i => Reactor.containerOf r c i
 -- An implementation detail of `objFor`.
 abbrev directObj (rtr : Reactor ι υ) (cmp : Cmp) (i : ι) : Option (cmp.type ι υ) := 
   match cmp with
-  | Cmp.rtr => rtr.nest.rtrs i
+  | Cmp.rtr => rtr.nest i
   | Cmp.rcn => rtr.rcns i
   | Cmp.«mut» => rtr.muts i
-  | Cmp.prt r => sorry -- (rtr.ports r).lookup i
-  | Cmp.stateVar => sorry -- rtr.state i
+  | Cmp.prt r => (rtr.ports r).lookup i -- TODO: Should this be a `lookup` or a `get`?
+  | Cmp.stateVar => rtr.state i
 
 -- This function returns (if possible) the object identified by a given ID `i` 
 -- in the context of reactor `rtr`. The *kind* of component addressed by `i`

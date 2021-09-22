@@ -4,7 +4,6 @@
 import ReactorModel.Components.Accessors
 import ReactorModel.Components.Mutation
 import ReactorModel.Components.MutOutput
-import ReactorModel.Components.Network
 import ReactorModel.Components.Raw
 import ReactorModel.Components.Reaction
 import ReactorModel.Components.Reactor
