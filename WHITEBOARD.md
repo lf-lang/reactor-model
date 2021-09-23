@@ -14,10 +14,9 @@
 
 #### Questions:
 
-1. Use relay reactions instead of connections?
-2. Add initialization and termination triggers to reactions/mutations?
+1. Add initialization and termination triggers to reactions/mutations?
     * This would also be required to actually define what mutations' reactor-creations and -deletions do.
-3. Add stop-request to reactions/mutations?
+2. Add stop-request to reactions/mutations?
 
 #### Formalization:
 
@@ -31,7 +30,6 @@
     * "Using CONNECT (see Algorithm 7), a mutation *m* can connect any ports that are in its sources *D(m)* or effects *D∨(m)*, or ports of reactors that it created at runtime."
     * Since the IDs of created reactors' ports can't be added to *D∨(m)* (because of the quote at the start of 3.), there would need to be some other field in `Mutation` that records the IDs of created reactors' ports.
 4. Add mutations to `PrecGraph` and adjust the well-formedness conditions to match Algorithm 3 of *Reactors: A Deterministic Model for Composable Reactive Systems* (mind Line 8!). Use the idea from 5 (below) to separate reaction and mutation IDs.
-5. Make `Cmp` a part of IDs. The result is that (a) given the current ID-uniqueness-constraints, IDs would become unique *across* components too and (b) IDs would become a bit more type-safe as there'd be no ambiguity as to what kind of component they refer to.
 
 ## Federated Execution
 

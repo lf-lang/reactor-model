@@ -51,14 +51,7 @@ structure uniqueIDs (rtr : Raw.Reactor ι υ) : Prop where
   external : ∀ i c p₁ p₂, (p₁ ~[rtr, c] i) → (p₂ ~[rtr, c] i) → p₁ = p₂  
   internal : ∀ i c p, (p ~[rtr, c] i) → ¬∃ c', (c ≠ c') ∧ (p ~[rtr, c'] i)
 
-structure rcnIsOutputConstrained (rcn : Raw.Reaction ι υ) : Prop where
-  noDelCns :  ∀ i s, (rcn.body i s).delCns  = []
-  noDelRtrs : ∀ i s, (rcn.body i s).delRtrs = []
-  noNewCns :  ∀ i s, (rcn.body i s).newCns  = []
-  noNewRtrs : ∀ i s, (rcn.body i s).newRtrs = []
-
 structure rcnIsWF (rcn : Raw.Reaction ι υ) : Prop where
-  rcnsWF :          ¬rcn.isMut → rcnIsOutputConstrained rcn
   rcnsTsSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
   rcnsInDepOnly :   ∀ i i' s, (i =[rcn.deps Role.in] i') → rcn.body i s = rcn.body i' s    
   rcnsOutDepOnly :  ∀ i s o, (o ∉ rcn.deps Role.out) → (rcn.body i s).prtVals[o] = none 
@@ -67,9 +60,9 @@ structure wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   rcnsFinite :       { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :   { i | rtr.nest i ≠ none }.finite
   rcnsWF :           ∀ rcn i, rtr.rcns i = some rcn → rcnIsWF rcn
-  wfNormDeps :       ∀ n i r, rtr.rcns i = some n → ¬n.isMut → ↑(n.deps r) ⊆ ↑(rtr.ports r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports r.opposite).ids}
+  wfNormDeps :       ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports r.opposite).ids}
   wfMutDeps :        True -- TODO: What are the constraints on mutations' dependencies?
-  mutsBeforeNorms :  ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → ¬n.isMut → m.isMut → rtr.prios.lt iₘ iₙ
+  mutsBeforeNorms :  ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
   uniqueIDs :        uniqueIDs rtr  
 
 -- Recursive step for wellFormed'.

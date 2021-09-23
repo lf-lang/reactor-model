@@ -23,24 +23,30 @@ variable {ι}
 -- It's important here to compare *identity* of the parent (`i`) instead of just:
 -- `(σ *[Cmp.rtr] i₁) = some rtr ∧ (σ *[Cmp.rtr] i₂) = some rtr`
 -- because this condition could also hold when `i₁` and `i₂` have different parents.
-def internallyDependent (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop := 
-  ∃ (p : ι) (rtr : Reactor ι υ), 
+def internalDependence (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop := 
+  ∃ (p : ι) (rtr : Reactor ι υ),
     (σ & i₁) = p ∧ 
     (σ & i₂) = p ∧
     (σ *[Cmp.rtr] p) = rtr ∧
     rtr.prios.lt i₁ i₂
 
-notation i₁ " <[" σ "]> " i₂ => PrecGraph.internallyDependent i₁ i₂ σ
-
 -- The condition under which two reactions are "externally dependent" in a 
 -- given reactor. This is the case if they share a port as anti-/dependency.
-def externallyDependent (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop :=
+def externalDependence (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop :=
   ∃ (rcn₁ rcn₂ : Reaction ι υ),
     (σ *[Cmp.rcn] i₁) = rcn₁ ∧
     (σ *[Cmp.rcn] i₂) = rcn₂ ∧ 
     (rcn₁.deps Role.out) ∩ (rcn₂.deps Role.in) ≠ ∅ 
 
-notation r₁ " >[" σ "]< " r₂ => PrecGraph.externallyDependent r₁ r₂ σ
+def mutationDependence (iₘ iᵣ : ι)  (σ : Reactor ι υ) : Prop :=
+  sorry -- Marten's PhD: Algorithm 9 Line 7
+
+inductive dependence (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop 
+  | internal (_ : internalDependence i₁ i₂ σ)
+  | external (_ : externalDependence i₁ i₂ σ)
+  | mutation (_ : mutationDependence i₁ i₂ σ)
+
+notation i₁ " <[" σ "]" i₂ => dependence i₁ i₂ σ
 
 end PrecGraph
 
@@ -50,13 +56,8 @@ variable {ι υ} [ID ι] [Value υ]
 -- which are (pairwise) connected iff they are internally or externally dependent.
 structure PrecGraph (σ : Reactor ι υ) where
   edges : Finset (PrecGraph.Edge ι)
-  wf : 
-    let rcns := (σ *[Cmp.rcn])
-    ∀ e, e ∈ edges ↔ 
-      (e.src ∈ rcns.ids) ∧ 
-      (e.dst ∈ rcns.ids) ∧ 
-      ((e.src <[σ]> e.dst) ∨ (e.src >[σ]< e.dst))
-      -- !!! TODO: There are more connection conditions !!!
+  wf : let rcns := (σ *[Cmp.rcn]) 
+       ∀ e, e ∈ edges ↔ (e.src ∈ rcns.ids) ∧ (e.dst ∈ rcns.ids) ∧ (e.src <[σ] e.dst)
 
 namespace PrecGraph
 

@@ -5,17 +5,12 @@ open Ports
 variable (ι υ) [ID ι] [Value υ]
 
 structure Reaction where
-  isMut :       Bool
   deps :        Ports.Role → Finset ι 
   triggers :    Finset ι
   body :        Ports ι υ → StateVars ι υ → RcnOutput ι υ
   tsSubInDeps : triggers ⊆ deps Role.in
   inDepOnly :   ∀ {i i'} s, (i =[deps Role.in] i') → body i s = body i' s
   outDepOnly :  ∀ i s {o}, (o ∉ deps Role.out) → (body i s).prtVals[o] = none 
-  normDelCns :  ¬isMut → ∀ i s, (body i s).delCns  = []
-  normDelRtrs : ¬isMut → ∀ i s, (body i s).delRtrs = []
-  normNewCns :  ¬isMut → ∀ i s, (body i s).newCns  = []
-  normNewRtrs : ¬isMut → ∀ i s, (body i s).newRtrs = []
 
 variable {ι υ}
 
@@ -24,7 +19,6 @@ variable {ι υ}
 def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := {lookup := rtr.raw.rcns, finite := rtr.wf.rcnsFinite}
   raw.map (λ rcn => {
-      isMut := rcn.isMut,
       deps := rcn.deps,
       triggers := rcn.triggers,
       body := (λ p s => {
@@ -42,11 +36,7 @@ def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
       ),
       tsSubInDeps := sorry,
       inDepOnly := sorry,
-      outDepOnly := sorry,
-      normDelCns := sorry,
-      normDelRtrs := sorry,
-      normNewCns := sorry,
-      normNewRtrs := sorry
+      outDepOnly := sorry
     }
   )
 
@@ -57,6 +47,14 @@ variable {ι υ}
 -- A coercion so that reactions can be called directly as functions.
 instance : CoeFun (Reaction ι υ) (λ _ => Ports ι υ → StateVars ι υ → (RcnOutput ι υ)) where
   coe rcn := rcn.body
+
+structure isNorm (rcn : Reaction ι υ) : Prop :=
+  noDelCns :  ∀ i s, (rcn i s).delCns  = []
+  noDelRtrs : ∀ i s, (rcn i s).delRtrs = []
+  noNewCns :  ∀ i s, (rcn i s).newCns  = []
+  noNewRtrs : ∀ i s, (rcn i s).newRtrs = []
+
+def isMut (rcn : Reaction ι υ) : Prop := ¬rcn.isNorm
 
 theorem outPrtValsSubOutDeps (rcn : Reaction ι υ) (p : Ports ι υ) (s : StateVars ι υ) :
   (rcn i s).prtVals.inhabitedIDs ⊆ rcn.deps Role.out := by

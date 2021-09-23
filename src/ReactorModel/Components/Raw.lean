@@ -21,7 +21,6 @@ inductive RcnOutput (ι υ) [i : ID ι] [v : Value υ]
 
 inductive Reaction (ι υ) [i : ID ι] [v : Value υ]
   | mk 
-    (isMut : Bool)
     (deps : Ports.Role → Finset ι) 
     (triggers : Finset ι)
     (body : Ports ι υ → StateVars ι υ → RcnOutput ι υ)
@@ -58,10 +57,17 @@ end RcnOutput
 
 namespace Reaction
 
-def isMut :    Reaction ι υ → Bool                                        | mk i _ _ _ => i
-def deps :     Reaction ι υ → (Ports.Role → Finset ι)                     | mk _ d _ _ => d
-def triggers : Reaction ι υ → (Finset ι)                                  | mk _ _ t _ => t
-def body :     Reaction ι υ → (Ports ι υ → StateVars ι υ → RcnOutput ι υ) | mk _ _ _ b => b
+def deps :     Reaction ι υ → (Ports.Role → Finset ι)                     | mk d _ _ => d
+def triggers : Reaction ι υ → (Finset ι)                                  | mk _ t _ => t
+def body :     Reaction ι υ → (Ports ι υ → StateVars ι υ → RcnOutput ι υ) | mk _ _ b => b
+
+structure isNorm (rcn : Reaction ι υ) : Prop :=
+  noDelCns :  ∀ i s, (rcn.body i s).delCns  = []
+  noDelRtrs : ∀ i s, (rcn.body i s).delRtrs = []
+  noNewCns :  ∀ i s, (rcn.body i s).newCns  = []
+  noNewRtrs : ∀ i s, (rcn.body i s).newRtrs = []
+
+def isMut (rcn : Reaction ι υ) : Prop := ¬rcn.isNorm
 
 end Reaction
 
