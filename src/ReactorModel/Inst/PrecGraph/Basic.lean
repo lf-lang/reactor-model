@@ -9,7 +9,7 @@ variable (ι) {υ} [ID ι] [Value υ]
 
 -- A type for edges between reactions (identified by their IDs) in a precedence graph.
 -- An edge from `src` to `dst` will mean that the reaction identified by `src` takes precedence over `dst`.
-structure Edge where
+protected structure Edge where
   src : ι
   dst : ι
 
@@ -41,28 +41,22 @@ def externalDependence (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop :=
 def mutationDependence (iₘ iᵣ : ι)  (σ : Reactor ι υ) : Prop :=
   sorry -- Marten's PhD: Algorithm 9 Line 7
 
-inductive dependence (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop 
+inductive rcnsAreDependent (i₁ i₂ : ι) (σ : Reactor ι υ) : Prop 
   | internal (_ : internalDependence i₁ i₂ σ)
   | external (_ : externalDependence i₁ i₂ σ)
   | mutation (_ : mutationDependence i₁ i₂ σ)
 
-notation i₁ " <[" σ "]" i₂ => dependence i₁ i₂ σ
+structure Edge.isRequiredFor (e : PrecGraph.Edge ι) (σ : Reactor ι υ) : Prop where
+  srcMem : e.src ∈ (σ *[Cmp.rcn]).ids
+  dstMem : e.dst ∈ (σ *[Cmp.rcn]).ids
+  dep    : rcnsAreDependent e.src e.dst σ
 
 end PrecGraph
 
 variable {ι υ} [ID ι] [Value υ]
 
--- A precedence graph over a given reactor is a (labeled) directed graph of its reactions,
--- which are (pairwise) connected iff they are internally or externally dependent.
 structure PrecGraph (σ : Reactor ι υ) where
   edges : Finset (PrecGraph.Edge ι)
-  wf : let rcns := (σ *[Cmp.rcn]) 
-       ∀ e, e ∈ edges ↔ (e.src ∈ rcns.ids) ∧ (e.dst ∈ rcns.ids) ∧ (e.src <[σ] e.dst)
+  wf : edges = { e : PrecGraph.Edge ι | e.isRequiredFor σ }
 
-namespace PrecGraph
-
-variable {σ : Reactor ι υ}
-
-def rcns (π : PrecGraph σ) : ι ▸ Reaction ι υ := σ *[Cmp.rcn]
-
-end PrecGraph
+def PrecGraph.rcns {σ : Reactor ι υ} (π : PrecGraph σ) : ι ▸ Reaction ι υ := σ *[Cmp.rcn]
