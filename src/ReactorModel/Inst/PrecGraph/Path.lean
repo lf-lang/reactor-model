@@ -7,7 +7,7 @@ variable {ι υ} [ID ι] [Value υ] {σ : Reactor ι υ}
 -- A precedence graph contains a path from one reaction to another,
 -- if there is a sequence of edges that connects them.
 inductive hasPathFromTo (π : PrecGraph σ) : ι → ι → Prop
-  | direct {rcn₁ rcn₂} : ({src := rcn₁, dst := rcn₂} ∈ π.edges) → hasPathFromTo π rcn₁ rcn₂
+  | direct {rcn₁ rcn₂} : ⟨rcn₁, rcn₂⟩ ∈ π.edges → hasPathFromTo π rcn₁ rcn₂
   | transitive {rcn₁ rcn₂ rcn₃} : hasPathFromTo π rcn₁ rcn₂ → hasPathFromTo π rcn₂ rcn₃ → hasPathFromTo π rcn₁ rcn₃
 
 notation r:max "~[" π "]~>" s:max => hasPathFromTo π r s

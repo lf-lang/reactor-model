@@ -12,67 +12,66 @@ variable (ι υ : Type u) [ID ι] [Value υ]
 -- Note that the types for `prt` and `stateVar` are just `υ`, 
 -- because IDs don't refer to entire instances of `Ports` or `StateVars`,
 -- but rather the single values within them.
-@[reducible]
-def Cmp.type : Cmp → Type _
-  | rtr      => Reactor ι υ
-  | rcn      => Reaction ι υ
-  | prt _    => υ
-  | stateVar => υ
+abbrev Cmp.type : Cmp → Type _
+  | rtr   => Reactor ι υ
+  | rcn   => Reaction ι υ
+  | prt _ => υ
+  | stv   => υ
 
 variable {ι υ}
 
 namespace Reactor
 
 -- This function returns (if possible) the ID of the reactor that contains
--- the component identified by a given ID `i` in the context of reactor `rtr`.
--- The *kind* of component addressed by `i` is not required, as all IDs in a reactor are unique.
+-- the component identified by a given ID `i` in the context of reactor `σ`.
+-- The *kind* of component addressed by `i` is not required, as all IDs in a
+-- reactor are unique.
 --
 -- Example: 
--- If `r.containerOf i = some x`, then:
--- * `r` is the "context" (top-level) reactor.
+-- If `σ.containerOf i = some x`, then:
+-- * `σ` is the "context" (top-level) reactor.
 -- * `x` is the ID of a reactor which contains a reaction identified by `i`.
-noncomputable def containerOf (rtr : Reactor ι υ) (i : ι) : Option ι := 
-  -- Don't define this in terms of `*ᵣ`.
+def containerOf (σ : Reactor ι υ) (i : ι) : Option ι := 
   sorry
 
 -- This notation is chosen to be akin to the address notation in C,
 -- because you get back a component's *identifier*, not the object.
-notation r:max " & " i:max => Reactor.containerOf r i
+notation σ:max " & " i:max => Reactor.containerOf σ i
 
 -- An implementation detail of `objFor`.
-abbrev directObj (rtr : Reactor ι υ) (cmp : Cmp) (i : ι) : Option (cmp.type ι υ) := 
+abbrev directObj (σ : Reactor ι υ) (cmp : Cmp) (i : ι) : Option (cmp.type ι υ) := 
   match cmp with
-  | Cmp.rtr => rtr.nest i
-  | Cmp.rcn => rtr.rcns i
-  | Cmp.prt r => (rtr.ports r).lookup i -- TODO: Should this be a `lookup` or a `get`?
-  | Cmp.stateVar => rtr.state i
+  | Cmp.rtr   => σ.nest i
+  | Cmp.rcn   => σ.rcns i
+  | Cmp.prt r => (σ.ports r).lookup i -- TODO: Should this be a `lookup` or a `get`?
+  | Cmp.stv   => σ.state i
 
 -- This function returns (if possible) the object identified by a given ID `i` 
--- in the context of reactor `rtr`. The *kind* of component addressed by `i`
--- is specified by parameter `cmp`.
+-- in the context of reactor `σ`. The *kind* of component addressed by `i` is
+-- specified by parameter `cmp`.
 --
 -- Example: 
--- If `r.objFor Cmp.rcn i = some x`, then:
--- * `r` is the "context" (top-level) reactor.
+-- If `σ.objFor Cmp.rcn i = some x`, then:
+-- * `σ` is the "context" (top-level) reactor.
 -- * `i` is interpreted as being an ID that refers to a reaction (because of `Cmp.rcn`).
 -- * `x` is the `Reaction` identified by `i`.
-def objFor (rtr : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) := 
+def objFor (σ : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) := 
   sorry 
-/-
-  if i = ⊤ then rtr else
-    match (rtr &[c] i) with
-    | none => none
-    | some iₚ =>
-      if iₚ = ⊤ then (directObj rtr c i) else
-        match (rtr.objFor Cmp.rtr iₚ) with
-        | none => none -- Unreachable
-        | some p => directObj p c i
--/
 
 -- This notation is chosen to be akin to the dereference notation in C,
 -- because you get back a component *object*.
-notation r:max " *[" c "]"   => Reactor.objFor r c
-notation r:max " *[" c "]" i:max => Reactor.objFor r c i
+notation σ:max " *[" c "]"  => Reactor.objFor σ c
+notation σ:max " *[" c "] " i:max => Reactor.objFor σ c i
+
+-- Updates the given reactor by replacing the component (of kind `cmp`) identified by `i` 
+-- with a given object `o`. 
+-- If `i` does not identify a component of kind `cmp` in `σ`, or if the given object `o`
+-- can not be combined with `σ` without breaking reactor constraints, then the output is 
+-- `Option.none`.
+def update (σ : Reactor ι υ) (cmp : Cmp) (i : ι) (o : cmp.type ι υ) : Option (Reactor ι υ) :=
+  sorry
+
+notation r:max " ←[" c ", " i "]" o:max  => Reactor.update r c i o
 
 end Reactor
 

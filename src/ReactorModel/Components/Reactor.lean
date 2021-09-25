@@ -7,17 +7,17 @@ inductive Cmp
   | rtr
   | rcn
   | prt (r : Ports.Role)
-  | stateVar
+  | stv -- state var
 
 variable {ι υ} [ID ι] [Value υ]
 
 -- Cf. the big comment block below for an explanation.
 def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : Cmp → List ι → Prop
-  | cmp, hd :: tl =>    ∃ ctx', (ctx.nest hd = some ctx') ∧ (tl.isRtrIDPathFor i ctx' cmp)
-  | Cmp.rtr, [] =>      ∃ v, ctx.nest i = some v 
-  | Cmp.rcn, [] =>      ∃ v, ctx.rcns i = some v
-  | Cmp.prt r, [] =>    ∃ r, i ∈ (ctx.ports r).ids
-  | Cmp.stateVar, [] => i ∈ ctx.state.ids
+  | cmp, hd :: tl =>  ∃ ctx', (ctx.nest hd = some ctx') ∧ (tl.isRtrIDPathFor i ctx' cmp)
+  | Cmp.rtr,   [] =>  ∃ v, ctx.nest i = some v 
+  | Cmp.rcn,   [] =>  ∃ v, ctx.rcns i = some v
+  | Cmp.prt r, [] =>  ∃ r, i ∈ (ctx.ports r).ids 
+  | Cmp.stv,   [] =>  i ∈ ctx.state.ids 
 
 notation p:max " ~[" r:max "," c:max "] " i => List.isRtrIDPathFor i r c p
 

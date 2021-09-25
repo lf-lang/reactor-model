@@ -1,30 +1,57 @@
 import ReactorModel.Inst.PrecGraph
 
+open Reactor
+open Ports
+
 namespace Inst
 
 variable {ι υ} [ID ι] [Value υ]
 
-def isExecOfRcn (rtr₁ rtr₂ : Reactor ι υ) (rcn : ι) : Prop := sorry
+def appOfPorts (σ₁ σ₂ : Reactor ι υ) (iₚ : ι) (p : Ports ι υ) : Prop := 
+  sorry -- Find a way to apply the ports in a "random" order.
 
-notation rtr₁ "-[" rcn "]→ " rtr₂:max => isExecOfRcn rtr₁ rtr₂ rcn
+notation σ₁:max " -[" p ", " iₚ "]→ₚ " σ₂:max => appOfPorts σ₁ σ₂ iₚ p
 
-def isExecOfQueue (rtr₁ rtr₂ : Reactor ι υ) : List ι → Prop
-  | [] => rtr₁ = rtr₂
-  | hd::tl => ∃ rtrₘ, (rtr₁ -[hd]→ rtrₘ) ∧ (isExecOfQueue rtrₘ rtr₂ tl)
+def appOfState (σ₁ σ₂ : Reactor ι υ) (iₚ : ι) (s : StateVars ι υ) : Prop := 
+  sorry -- Find a way to apply the state vars in a "random" order.
+
+notation σ₁:max " -[" s ", " iₚ "]→ₛ " σ₂:max => appOfState σ₁ σ₂ iₚ s
+
+def appOfOut (σ₁ σ₂ : Reactor ι υ) (iₚ : ι) (o : RcnOutput ι υ) : Prop :=
+  ∃ (σₘ : Reactor ι υ),
+    (σ₁ -[o.state,   iₚ]→ₛ σₘ) ∧ 
+    (σₘ -[o.prtVals, iₚ]→ₚ σ₂)
+  -- TODO: Process all of the mutation-aspects of `o`.
+
+notation σ₁:max " -[" o ", " iₚ "]→ " σ₂:max => appOfOut σ₁ σ₂ iₚ o
+
+def execOfRcn (σ₁ σ₂ : Reactor ι υ) (i : ι) : Prop :=
+  ∃ (iₚ : ι) (rtr : Reactor ι υ) (rcn : Reaction ι υ),
+    (σ₁ & i = iₚ) ∧
+    (σ₁ *[Cmp.rtr] iₚ = rtr) ∧
+    (rtr.rcns i = rcn) ∧
+    let out := rcn (rtr.ports Role.in) rtr.state
+    σ₁ -[out, iₚ]→ σ₂
+
+notation σ₁ " -[" rcn "]→ " σ₂:max => execOfRcn σ₁ σ₂ rcn
+
+def execOfQueue (σ₁ σ₂ : Reactor ι υ) : List ι → Prop
+  | [] => σ₁ = σ₂
+  | hd::tl => ∃ σₘ, (σ₁ -[hd]→ σₘ) ∧ (execOfQueue σₘ σ₂ tl)
   
-notation r₁:max " -[" q "]→ " r₂:max => isExecOfQueue r₁ r₂ q
+notation σ₁:max " -[" q "]→ " σ₂:max => execOfQueue σ₁ σ₂ q
 
-def isPartialExec (rtr₁ rtr₂ : Reactor ι υ) (rem : List ι) : Prop :=
-  ∃ (π : PrecGraph rtr₁) (hd : List ι), 
+def partialExec (σ₁ σ₂ : Reactor ι υ) (rem : List ι) : Prop :=
+  ∃ (π : PrecGraph σ₁) (hd : List ι), 
     π.isAcyclic ∧ 
     (hd ++ rem).isCompleteTopoOver π ∧  
-    rtr₁ -[hd]→ rtr₂
+    σ₁ -[hd]→ σ₂
 
-notation r₁:max " →ₑ " r₂:max " % " rem:max => isPartialExec r₁ r₂ rem
+notation σ₁:max " →ₑ " σ₂:max " % " rem:max => partialExec σ₁ σ₂ rem
 
-def isExec (rtr₁ rtr₂ : Reactor ι υ) : Prop :=
-  rtr₁ →ₑ rtr₂ % []
+def exec (σ₁ σ₂ : Reactor ι υ) : Prop :=
+  σ₁ →ₑ σ₂ % []
 
-notation r₁:max " →ₑ " r₂:max => isExec r₁ r₂
+notation σ₁:max " →ₑ " σ₂:max => exec σ₁ σ₂
 
 end Inst
