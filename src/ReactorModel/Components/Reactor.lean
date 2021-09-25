@@ -19,7 +19,7 @@ def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : Cmp → List ι →
   | Cmp.prt r, [] =>    ∃ r, i ∈ (ctx.ports r).ids
   | Cmp.stateVar, [] => i ∈ ctx.state.ids
 
-notation p " ~[" r "," c "] " i => List.isRtrIDPathFor i r c p
+notation p:max " ~[" r:max "," c:max "] " i => List.isRtrIDPathFor i r c p
 
 namespace Raw.Reactor
 

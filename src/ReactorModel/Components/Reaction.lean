@@ -9,8 +9,8 @@ structure Reaction where
   triggers :    Finset ι
   body :        Ports ι υ → StateVars ι υ → RcnOutput ι υ
   tsSubInDeps : triggers ⊆ deps Role.in
-  inDepOnly :   ∀ {i i'} s, (i =[deps Role.in] i') → body i s = body i' s
-  outDepOnly :  ∀ i s {o}, (o ∉ deps Role.out) → (body i s).prtVals[o] = none 
+  inDepOnly :   ∀ {i i'} s, (i =[deps Role.in] i') → (body i s = body i' s)
+  outDepOnly :  ∀ i s {o}, (o ∉ deps Role.out) → (body i s).prtVals[o] = none
 
 variable {ι υ}
 

@@ -37,7 +37,7 @@ noncomputable def containerOf (rtr : Reactor ι υ) (i : ι) : Option ι :=
 
 -- This notation is chosen to be akin to the address notation in C,
 -- because you get back a component's *identifier*, not the object.
-notation r " & " i => Reactor.containerOf r i
+notation r:max " & " i:max => Reactor.containerOf r i
 
 -- An implementation detail of `objFor`.
 abbrev directObj (rtr : Reactor ι υ) (cmp : Cmp) (i : ι) : Option (cmp.type ι υ) := 
@@ -71,16 +71,8 @@ def objFor (rtr : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) :=
 
 -- This notation is chosen to be akin to the dereference notation in C,
 -- because you get back a component *object*.
-notation r " *[" c "]"   => Reactor.objFor r c
-notation r " *[" c "]" i => Reactor.objFor r c i
-
--- The (finite) set of all valid IDs for a given type of component in a given (context) reactor.
-noncomputable def allIDsFor (rtr : Reactor ι υ) (cmp : Cmp) : Finset ι := 
-  let description := {i | (rtr *[cmp] i) ≠ none}
-  let finite : description.finite := sorry
-  finite.toFinset
-
-notation r " & " c => Reactor.allIDsFor r c
+notation r:max " *[" c "]"   => Reactor.objFor r c
+notation r:max " *[" c "]" i:max => Reactor.objFor r c i
 
 end Reactor
 

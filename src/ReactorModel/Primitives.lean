@@ -64,7 +64,7 @@ def Role.opposite : Role → Role
 def get (p : Ports ι υ) (i : ι) : Option υ := 
   p.lookup i >>= (λ v => if v = ⊥ then none else v)
 
-notation p "[" i "]" => get p i
+notation p:max "[" i "]" => get p i
 
 theorem eqLookupEqGet {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁.lookup i = p₂.lookup i) :
   p₁[i] = p₂[i] := by
@@ -82,7 +82,7 @@ theorem lookupAbsentAtNone {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥
 def eqAt (is : Finset ι) (p₁ p₂ : Ports ι υ) : Prop := 
   ∀ i ∈ is, p₁.lookup i = p₂.lookup i
 
-notation p " =[" i "] " q => eqAt i p q
+notation p:max " =[" i "] " q:max => eqAt i p q
 
 -- (For a fixed set of IDs) `eqAt` is an equivalence relation.
 instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := { 
@@ -108,7 +108,7 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := {
 -- That is, the non-absent values in `src` override the values in `dst`:
 -- 
 --                  ID: 0 1 2 3  
---               `src`: a b ⊥ ∅    (∅ means `.lookup = none` here)
+--               `src`: a b ⊥ ∅   (we use ∅ as notation for `.lookup = none` here)
 --               `dst`: c ∅ d ⊥
 -- `mergeOnto src dst`: a b d ⊥
 --

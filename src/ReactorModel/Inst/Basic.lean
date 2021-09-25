@@ -6,13 +6,13 @@ variable {ι υ} [ID ι] [Value υ]
 
 def isExecOfRcn (rtr₁ rtr₂ : Reactor ι υ) (rcn : ι) : Prop := sorry
 
-notation rtr₁ "-[" rcn:max "]→ " rtr₂:max => isExecOfRcn rtr₁ rtr₂ rcn
+notation rtr₁ "-[" rcn "]→ " rtr₂:max => isExecOfRcn rtr₁ rtr₂ rcn
 
 def isExecOfQueue (rtr₁ rtr₂ : Reactor ι υ) : List ι → Prop
   | [] => rtr₁ = rtr₂
   | hd::tl => ∃ rtrₘ, (rtr₁ -[hd]→ rtrₘ) ∧ (isExecOfQueue rtrₘ rtr₂ tl)
   
-notation r₁:max " -[" q:max "]→ " r₂:max => isExecOfQueue r₁ r₂ q
+notation r₁:max " -[" q "]→ " r₂:max => isExecOfQueue r₁ r₂ q
 
 def isPartialExec (rtr₁ rtr₂ : Reactor ι υ) (rem : List ι) : Prop :=
   ∃ (π : PrecGraph rtr₁) (hd : List ι), 
