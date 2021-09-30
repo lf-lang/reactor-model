@@ -5,13 +5,18 @@ import ReactorModel.Finmap
 -- 
 -- IDs tend to require a "context" in order to associate them to actual objects. 
 -- This context is usually a (top-level) reactor, which is then identified by the `root` value.
+--
+-- In the context of instantaneous execution it is sometimes necessary to be able to list
+-- objects in an arbitrary order. Hence, IDs need to provide an arbitrary linear `order`.
 class ID (α) where
   root : α
   decEq : DecidableEq α
+  order : LinearOrder α
 
 notation "⊤" => ID.root
 
 instance ID.DecidableEq {ι} [ID ι] : DecidableEq ι := ID.decEq
+instance ID.LinearOrder {ι} [ID ι] : LinearOrder ι := ID.order
 
 -- The class of types that can be used as values in a reactor.
 class Value (α) where
@@ -103,30 +108,6 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := {
       exact Eq.trans (hxy i hi) (hyz i hi)
   }
 }
-
--- The port-assignment that is the result of merging a given `src` port-assignment "onto" a given `dst` port-assignment.
--- That is, the non-absent values in `src` override the values in `dst`:
--- 
---                  ID: 0 1 2 3  
---               `src`: a b ⊥ ∅   (we use ∅ as notation for `.lookup = none` here)
---               `dst`: c ∅ d ⊥
--- `mergeOnto src dst`: a b d ⊥
---
--- Note that ports that didn't exist in `dst` can become extant because of `src` (example ID 1),
--- and vice versa (example ID 3).
-def mergeOnto (src dst : Ports ι υ) : Ports ι υ := {
-  lookup := λ i => src[i] <|> dst.lookup i,
-  finite := by
-    suffices h : { i | (λ j => src[j] <|> dst.lookup j) i ≠ none } ⊆ ↑(src.ids ∪ dst.ids)
-      from Set.finite.subset (Finset.finite_to_set (src.ids ∪ dst.ids)) h
-    simp [Set.subset_def]
-    intro x h
-    simp [Finmap.idsDef]
-    byContra hc
-    rw [←and_iff_not_or_not] at hc
-    rw [hc.right, Option.orelse_none, lookupNoneGetNone hc.left] at h
-    contradiction
-} 
 
 -- The (finite) set of IDs for which a given port-assignment contains non-absent values.
 noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=

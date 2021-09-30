@@ -13,10 +13,10 @@ variable (ι υ : Type u) [ID ι] [Value υ]
 -- because IDs don't refer to entire instances of `Ports` or `StateVars`,
 -- but rather the single values within them.
 abbrev Cmp.type : Cmp → Type _
-  | rtr   => Reactor ι υ
-  | rcn   => Reaction ι υ
-  | prt _ => υ
-  | stv   => υ
+  | rtr => Reactor ι υ
+  | rcn => Reaction ι υ
+  | prt => υ
+  | stv => υ
 
 variable {ι υ}
 
@@ -35,16 +35,16 @@ def containerOf (σ : Reactor ι υ) (i : ι) : Option ι :=
   sorry
 
 -- This notation is chosen to be akin to the address notation in C,
--- because you get back a component's *identifier*, not the object.
+-- because you get back a component's container's *identifier*, not the object.
 notation σ:max " & " i:max => Reactor.containerOf σ i
 
 -- An implementation detail of `objFor`.
 abbrev directObj (σ : Reactor ι υ) (cmp : Cmp) (i : ι) : Option (cmp.type ι υ) := 
   match cmp with
-  | Cmp.rtr   => σ.nest i
-  | Cmp.rcn   => σ.rcns i
-  | Cmp.prt r => (σ.ports r).lookup i -- TODO: Should this be a `lookup` or a `get`?
-  | Cmp.stv   => σ.state i
+  | Cmp.rtr => σ.nest i
+  | Cmp.rcn => σ.rcns i
+  | Cmp.prt => σ.ports.lookup i -- TODO: Should this be a `lookup` or a `get`?
+  | Cmp.stv => σ.state i
 
 -- This function returns (if possible) the object identified by a given ID `i` 
 -- in the context of reactor `σ`. The *kind* of component addressed by `i` is

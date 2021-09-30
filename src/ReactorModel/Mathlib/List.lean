@@ -26,6 +26,8 @@ theorem pairwisePWFilter {R : α → α → Prop} [DecidableRel R] :
   ∀ (l : List α), pairwise R (pwFilter R l) := 
   sorry
 
+def sorted : List α → Prop := pairwise r
+
 def nodup : List α → Prop := pairwise (. ≠ .)
 
 theorem nodup_erase_of_nodup [DecidableEq α] (a : α) {l} : 

@@ -27,7 +27,8 @@ inductive Reaction (ι υ) [i : ID ι] [v : Value υ]
 
 inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
   | mk 
-    (ports : Ports.Role → Ports ι υ) 
+    (ports : Ports ι υ) 
+    (roles : ι ▸ Ports.Role)
     (state : StateVars ι υ)
     (rcns : ι → Option (Reaction ι υ))
     (nest : ι → Option (Reactor ι υ))
@@ -40,7 +41,7 @@ variable {ι υ} [ID ι] [Value υ]
 -- This is just a sanity check, to make sure that this definition of reactors actually allows them to be constructed.
 open Inhabited in
 instance : Inhabited (Reactor ι υ) where
-  default := Reactor.mk default default default default default
+  default := Reactor.mk default default default default default default
 
 -- The definitions below are all just structure-like accessors for the fields of the types defined above.
 
@@ -73,11 +74,16 @@ end Reaction
 
 namespace Reactor
 
-def ports : Reactor ι υ → (Ports.Role → Ports ι υ)    | mk p _ _ _ _ => p
-def state : Reactor ι υ → StateVars ι υ               | mk _ s _ _ _ => s 
-def rcns :  Reactor ι υ → (ι → Option (Reaction ι υ)) | mk _ _ r _ _ => r
-def nest :  Reactor ι υ → (ι → Option (Reactor ι υ))  | mk _ _ _ n _ => n
-def prios : Reactor ι υ → PartialOrder ι              | mk _ _ _ _ p => p 
+def ports : Reactor ι υ → Ports ι υ                   | mk p _ _ _ _ _ => p
+def roles : Reactor ι υ → (ι ▸ Ports.Role)            | mk _ r _ _ _ _ => r
+def state : Reactor ι υ → StateVars ι υ               | mk _ _ s _ _ _ => s 
+def rcns :  Reactor ι υ → (ι → Option (Reaction ι υ)) | mk _ _ _ r _ _ => r
+def nest :  Reactor ι υ → (ι → Option (Reactor ι υ))  | mk _ _ _ _ n _ => n
+def prios : Reactor ι υ → PartialOrder ι              | mk _ _ _ _ _ p => p 
+
+-- An accessor for ports, that allows you to separate them by port role.
+noncomputable def ports' (rtr : Reactor ι υ) (r : Ports.Role) : Ports ι υ := 
+  rtr.ports.filter (λ i => rtr.roles i = r)
 
 end Reactor
 

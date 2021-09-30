@@ -6,20 +6,20 @@ open Ports
 inductive Cmp
   | rtr
   | rcn
-  | prt (r : Ports.Role)
+  | prt
   | stv -- state var
 
 variable {ι υ} [ID ι] [Value υ]
 
 -- Cf. the big comment block below for an explanation.
 def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : Cmp → List ι → Prop
-  | cmp, hd :: tl =>  ∃ ctx', (ctx.nest hd = some ctx') ∧ (tl.isRtrIDPathFor i ctx' cmp)
-  | Cmp.rtr,   [] =>  ∃ v, ctx.nest i = some v 
-  | Cmp.rcn,   [] =>  ∃ v, ctx.rcns i = some v
-  | Cmp.prt r, [] =>  ∃ r, i ∈ (ctx.ports r).ids 
-  | Cmp.stv,   [] =>  i ∈ ctx.state.ids 
+  | cmp, hd :: tl => ∃ ctx', (ctx.nest hd = some ctx') ∧ (tl.isRtrIDPathFor i ctx' cmp)
+  | Cmp.rtr,   [] => ∃ v, ctx.nest i = some v 
+  | Cmp.rcn,   [] => ∃ v, ctx.rcns i = some v
+  | Cmp.prt,   [] => i ∈ ctx.ports.ids 
+  | Cmp.stv,   [] => i ∈ ctx.state.ids 
 
-notation p:max " ~[" r:max "," c:max "] " i => List.isRtrIDPathFor i r c p
+notation p:max " ~[" r:max ", " c:max "] " i => List.isRtrIDPathFor i r c p
 
 namespace Raw.Reactor
 
@@ -60,7 +60,8 @@ structure wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   rcnsFinite :       { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :   { i | rtr.nest i ≠ none }.finite
   rcnsWF :           ∀ rcn i, rtr.rcns i = some rcn → rcnIsWF rcn
-  wfNormDeps :       ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports r.opposite).ids}
+  wfRoles :          rtr.roles.ids = rtr.ports.ids
+  wfNormDeps :       ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :        True -- TODO: What are the constraints on mutations' dependencies?
   mutsBeforeNorms :  ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
   uniqueIDs :        uniqueIDs rtr  
@@ -81,10 +82,13 @@ namespace Reactor
 -- the constraints given by `Reactor.wf`. The non-trivial accessors are defined in the files
 -- where the corresponding components are defined (`Reaction`).
 
-def ports (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports
-def state (rtr : Reactor ι υ) : StateVars ι υ          := rtr.raw.state
-def nest  (rtr : Reactor ι υ) : ι ▸ Reactor ι υ        := {lookup := rtr.raw.nest, finite := rtr.wf.nestFiniteRtrs : Finmap ι (Raw.Reactor ι υ)}.map (λ r => {raw := r, wf := sorry})
-def prios (rtr : Reactor ι υ) : PartialOrder ι         := rtr.raw.prios
+def ports (rtr : Reactor ι υ) : Ports ι υ       := rtr.raw.ports
+def roles (rtr : Reactor ι υ) : ι ▸ Ports.Role  := rtr.raw.roles
+def state (rtr : Reactor ι υ) : StateVars ι υ   := rtr.raw.state
+def nest  (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := {lookup := rtr.raw.nest, finite := rtr.wf.nestFiniteRtrs : Finmap ι (Raw.Reactor ι υ)}.map (λ r => {raw := r, wf := sorry})
+def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
+
+noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
 
 end Reactor
 
