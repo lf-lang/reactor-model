@@ -57,18 +57,19 @@ structure rcnIsWF (rcn : Raw.Reaction ι υ) : Prop where
   rcnsOutDepOnly :  ∀ i s o (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
 
 structure wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
-  rcnsFinite :       { i | rtr.rcns i ≠ none }.finite
-  nestFiniteRtrs :   { i | rtr.nest i ≠ none }.finite
-  rcnsWF :           ∀ rcn i, rtr.rcns i = some rcn → rcnIsWF rcn
-  wfRoles :          rtr.roles.ids = rtr.ports.ids
-  wfNormDeps :       ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
-  wfMutDeps :        True -- TODO: What are the constraints on mutations' dependencies?
-  mutsBeforeNorms :  ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
-  uniqueIDs :        uniqueIDs rtr  
+  rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
+  nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
+  rcnsWF :          ∀ rcn i, rtr.rcns i = some rcn → rcnIsWF rcn
+  wfRoles :         rtr.roles.ids = rtr.ports.ids
+  wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
+  wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
+  mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
+  mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁)
+  uniqueIDs :       uniqueIDs rtr  
 
 -- Recursive step for wellFormed'.
-def wellFormed (rtr : Raw.Reactor ι υ) : Prop :=
-  rtr.wellFormed' -- ∧ (∀ r : Raw.Reactor ι υ, r ∈ rtr.nest.rtrs.values → r.wellFormed)
+def wellFormed (rtr : Raw.Reactor ι υ) : Prop := 
+  rtr.wellFormed' -- TODO: ∧ (∀ r : Raw.Reactor ι υ, r ∈ rtr.nest.rtrs.values → r.wellFormed)
 
 end Raw.Reactor
 
