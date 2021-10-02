@@ -63,15 +63,5 @@ def objFor (σ : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) :=
 notation σ:max " *[" c "]"  => Reactor.objFor σ c
 notation σ:max " *[" c "] " i:max => Reactor.objFor σ c i
 
--- Updates the given reactor by replacing the component (of kind `cmp`) identified by `i` 
--- with a given object `o`. 
--- If `i` does not identify a component of kind `cmp` in `σ`, or if the given object `o`
--- can not be combined with `σ` without breaking reactor constraints, then the output is 
--- `Option.none`.
-def update (σ : Reactor ι υ) (cmp : Cmp) (i : ι) (o : cmp.type ι υ) : Option (Reactor ι υ) :=
-  sorry
-
-notation r:max " ←[" c ", " i "]" o:max  => Reactor.update r c i o
-
 end Reactor
 

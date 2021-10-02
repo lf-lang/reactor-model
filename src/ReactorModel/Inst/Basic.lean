@@ -7,43 +7,21 @@ namespace Inst
 
 variable {ι υ} [ID ι] [Value υ]
 
--- TODO: Prove that `appOfPorts` and `appOfState` behave the same (respectively),
--- independently of the specific `ID.order`.
+def appOfChange (σ₁ σ₂ : Reactor ι υ) : Change ι υ → Prop
+  | Change.port i v           => sorry -- needs application *and* propagation
+  | Change.state i v          => sorry
+  | Change.connect src dst    => sorry
+  | Change.disconnect src dst => sorry
+  | Change.create rtr i       => sorry
+  | Change.delete i           => sorry
 
-def appOfValues (arePorts : Bool) (σ₁ σ₂ : Reactor ι υ) (f : ι ▸ υ) : Prop := 
-  ∃ (es : List (ι × υ)), 
-    es.toFinset = f.entries ∧ 
-    es.sorted (λ l r => l.fst < r.fst) ∧ 
-    σ₂ = aux σ₁ arePorts es
-where 
-  aux (σ : Reactor ι υ) (arePorts : Bool) : List (ι × υ) → Option (Reactor ι υ)
-    | [] => σ
-    | hd::tl => 
-      let σ' := 
-        if arePorts 
-        then (σ ←[Cmp.prt, hd.fst] hd.snd) 
-        else (σ ←[Cmp.stv, hd.fst] hd.snd)
-      match σ' with
-      | some σ' => aux σ' arePorts tl
-      | none => none
+notation σ₁:max " -[" c "]→ " σ₂:max => appOfChange σ₁ σ₂ c
 
-def appOfPorts : Reactor ι υ → Reactor ι υ → StateVars ι υ → Prop := appOfValues (arePorts := true)
-def appOfState : Reactor ι υ → Reactor ι υ → StateVars ι υ → Prop := appOfValues (arePorts := false)
+def appOfOutput (σ₁ σ₂ : Reactor ι υ) : List (Change ι υ) → Prop
+  | [] => σ₁ = σ₂
+  | hd::tl => ∃ σₘ, (σ₁ -[hd]→ σₘ) ∧ (appOfOutput σₘ σ₂ tl)
 
-notation σ₁:max " -[" p "]→ₚ " σ₂:max => appOfPorts σ₁ σ₂ p
-notation σ₁:max " -[" s "]→ₛ " σ₂:max => appOfState σ₁ σ₂ s
-
-def appOfOut (σ₁ σ₂ : Reactor ι υ) (o : RcnOutput ι υ) : Prop :=
-  ∃ (σₘ : Reactor ι υ),
-    σ₁ -[o.state]→ₛ σₘ ∧ 
-    σₘ -[o.prtVals]→ₚ σ₂
-  -- TODO: 
-  -- Process all of the mutation-aspects of `o`.
-  -- Do they need to occur before some of the other aspects?
-  -- Should the user actually be able to determine the order of these events,
-  -- given by the order in which they call the corresponding API method?
-
-notation σ₁:max " -[" o  "]→ₒ " σ₂:max => appOfOut σ₁ σ₂ o
+notation σ₁:max " -[" o "]→ " σ₂:max => appOfOutput σ₁ σ₂ o
 
 def execOfRcn (σ₁ σ₂ : Reactor ι υ) (i : ι) : Prop :=
   ∃ (iₚ : ι) (rtr : Reactor ι υ) (rcn : Reaction ι υ),
@@ -51,13 +29,13 @@ def execOfRcn (σ₁ σ₂ : Reactor ι υ) (i : ι) : Prop :=
     σ₁ *[Cmp.rtr] iₚ = rtr ∧
     rtr.rcns i = rcn ∧
     let out := rcn (rtr.ports' Role.in) rtr.state
-    σ₁ -[out]→ₒ σ₂
+    σ₁ -[out]→ σ₂
 
-notation σ₁ " -[" rcn "]→ᵣ " σ₂:max => execOfRcn σ₁ σ₂ rcn
+notation σ₁ " -[" rcn "]→ " σ₂:max => execOfRcn σ₁ σ₂ rcn
 
 def execOfQueue (σ₁ σ₂ : Reactor ι υ) : List ι → Prop
   | [] => σ₁ = σ₂
-  | hd::tl => ∃ σₘ, (σ₁ -[hd]→ᵣ σₘ) ∧ (execOfQueue σₘ σ₂ tl)
+  | hd::tl => ∃ σₘ, (σ₁ -[hd]→ σₘ) ∧ (execOfQueue σₘ σ₂ tl)
   
 notation σ₁:max " -[" q "]→ " σ₂:max => execOfQueue σ₁ σ₂ q
 
@@ -118,6 +96,6 @@ inductive exec (σ₁ σ₂ : Reactor ι υ) (remIn remOut : List ι) : Prop
         σₘ -[l]→ σ₂
     ) 
 
-notation i:max " % " σ₁:max "→ₑ" σ₂:max " % " o:max => exec σ₁ σ₂ i o
+notation i:max " % " σ₁:max "→" σ₂:max " % " o:max => exec σ₁ σ₂ i o
 
 end Inst

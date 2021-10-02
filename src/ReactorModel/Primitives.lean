@@ -5,18 +5,13 @@ import ReactorModel.Finmap
 -- 
 -- IDs tend to require a "context" in order to associate them to actual objects. 
 -- This context is usually a (top-level) reactor, which is then identified by the `root` value.
---
--- In the context of instantaneous execution it is sometimes necessary to be able to list
--- objects in an arbitrary order. Hence, IDs need to provide an arbitrary linear `order`.
 class ID (α) where
   root : α
   decEq : DecidableEq α
-  order : LinearOrder α
 
 notation "⊤" => ID.root
 
 instance ID.DecidableEq {ι} [ID ι] : DecidableEq ι := ID.decEq
-instance ID.LinearOrder {ι} [ID ι] : LinearOrder ι := ID.order
 
 -- The class of types that can be used as values in a reactor.
 class Value (α) where
