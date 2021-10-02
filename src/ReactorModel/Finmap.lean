@@ -75,4 +75,13 @@ noncomputable def filter (f : α ▸ β) (p : α → Prop) : Finmap α β := {
   finite := sorry
 }
 
+noncomputable def filter' (f : α ▸ β) (p : β → Prop) : Finmap α β := {
+  lookup := (λ i => 
+    match f i with
+    | some b => if p b then b else none
+    | none => none
+  ),
+  finite := sorry
+}
+
 end Finmap

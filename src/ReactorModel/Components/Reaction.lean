@@ -28,9 +28,9 @@ def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
     }
   )
 
-namespace Reaction
-
 variable {ι υ}
+
+namespace Reaction
 
 -- A coercion so that reactions can be called directly as functions.
 instance : CoeFun (Reaction ι υ) (λ _ => Ports ι υ → StateVars ι υ → (List (Change ι υ))) where
@@ -62,3 +62,9 @@ theorem eqInputEqTriggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} (h 
   }
 
 end Reaction
+
+noncomputable def Reactor.norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  rtr.rcns.filter' (Reaction.isNorm)
+
+noncomputable def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  rtr.rcns.filter' (Reaction.isMut)
