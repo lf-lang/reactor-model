@@ -2,7 +2,7 @@
 -- instead of listing the specific imports required.
 
 import ReactorModel.Components.Accessors
-import ReactorModel.Components.RcnOutput
+import ReactorModel.Components.Change
 import ReactorModel.Components.Raw
 import ReactorModel.Components.Reaction
 import ReactorModel.Components.Reactor

@@ -1,4 +1,4 @@
-import ReactorModel.Components.RcnOutput
+import ReactorModel.Components.Change
 
 open Ports
 
@@ -7,10 +7,10 @@ variable (ι υ) [ID ι] [Value υ]
 structure Reaction where
   deps :        Ports.Role → Finset ι 
   triggers :    Finset ι
-  body :        Ports ι υ → StateVars ι υ → RcnOutput ι υ
+  body :        Ports ι υ → StateVars ι υ → List (Change ι υ)
   tsSubInDeps : triggers ⊆ deps Role.in
   inDepOnly :   ∀ {i i'} s, (i =[deps Role.in] i') → (body i s = body i' s)
-  outDepOnly :  ∀ i s {o}, (o ∉ deps Role.out) → (body i s).prtVals[o] = none
+  outDepOnly :  ∀ i s {o} (v : υ), (o ∉ deps Role.out) → (Change.port o v) ∉ (body i s)
 
 variable {ι υ}
 
@@ -21,19 +21,7 @@ def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   raw.map (λ rcn => {
       deps := rcn.deps,
       triggers := rcn.triggers,
-      body := (λ p s => {
-          prtVals := (rcn.body p s).prtVals,
-          state   := (rcn.body p s).state,
-          newCns  := (rcn.body p s).newCns,
-          delCns  := (rcn.body p s).delCns,
-          newRtrs := (rcn.body p s).newRtrs.map (λ r => {
-              raw := r,
-              wf := sorry 
-            }
-          ),
-          delRtrs := (rcn.body p s).delRtrs,
-        }
-      ),
+      body := (λ p s => (rcn.body p s).map (λ c => sorry)),
       tsSubInDeps := sorry,
       inDepOnly := sorry,
       outDepOnly := sorry
@@ -45,25 +33,13 @@ namespace Reaction
 variable {ι υ}
 
 -- A coercion so that reactions can be called directly as functions.
-instance : CoeFun (Reaction ι υ) (λ _ => Ports ι υ → StateVars ι υ → (RcnOutput ι υ)) where
+instance : CoeFun (Reaction ι υ) (λ _ => Ports ι υ → StateVars ι υ → (List (Change ι υ))) where
   coe rcn := rcn.body
 
-structure isNorm (rcn : Reaction ι υ) : Prop :=
-  noDelCns :  ∀ i s, (rcn i s).delCns  = []
-  noDelRtrs : ∀ i s, (rcn i s).delRtrs = []
-  noNewCns :  ∀ i s, (rcn i s).newCns  = []
-  noNewRtrs : ∀ i s, (rcn i s).newRtrs = []
+def isNorm (rcn : Reaction ι υ) : Prop :=
+  ∀ i s c, c ∈ (rcn i s) → ¬c.mutates
 
 def isMut (rcn : Reaction ι υ) : Prop := ¬rcn.isNorm
-
-theorem outPrtValsSubOutDeps (rcn : Reaction ι υ) (p : Ports ι υ) (s : StateVars ι υ) :
-  (rcn i s).prtVals.inhabitedIDs ⊆ rcn.deps Role.out := by
-  simp only [Finset.subset_iff]
-  intro o
-  rw [←not_imp_not]
-  intro h
-  have hₙ := rcn.outDepOnly i s h
-  exact Ports.inhabitedIDsNone hₙ
 
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction ι υ) (p : Ports ι υ) : Prop :=

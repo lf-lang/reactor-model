@@ -53,8 +53,8 @@ structure uniqueIDs (rtr : Raw.Reactor ι υ) : Prop where
 
 structure rcnIsWF (rcn : Raw.Reaction ι υ) : Prop where
   rcnsTsSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
-  rcnsInDepOnly :   ∀ i i' s, (i =[rcn.deps Role.in] i') → rcn.body i s = rcn.body i' s    
-  rcnsOutDepOnly :  ∀ i s o, (o ∉ rcn.deps Role.out) → (rcn.body i s).prtVals[o] = none 
+  rcnsInDepOnly :   ∀ i i' s, (i =[rcn.deps Role.in] i') → (rcn.body i s = rcn.body i' s)    
+  rcnsOutDepOnly :  ∀ i s o (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
 
 structure wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   rcnsFinite :       { i | rtr.rcns i ≠ none }.finite
