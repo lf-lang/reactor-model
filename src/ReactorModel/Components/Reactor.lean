@@ -1,4 +1,5 @@
 import ReactorModel.Components.Raw
+import ReactorModel.Relations
 
 open Ports
 
@@ -20,6 +21,22 @@ notation p " *ᵣ[" r "] " i => List.isRtrIDPathFor i r p
 -- The set of (defined) port IDs contained in a given reactor's nested network.
 noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Set ι :=
   {i | ∃ j x, rtr.nest.rtrs j = some x ∧ i ∈ (x.ports r).ids}
+
+/-
+To define properties of reactors recursively, we need the concept of containment.
+That is, that a reactor is contained in a different reactor.
+We do this as a transitive closure of a direct containment relation.
+Thus, we first define what it means for a (raw) reactor to be contained directly
+in a different reactor.
+-/
+def containedDirectlyIn (rtr rtr' : Raw.Reactor ι υ) : Prop :=
+ ∃ i, rtr'.nest.rtrs i = some rtr
+
+/-
+This direct containment we can then extend through a
+reflexive, transitive closure, as an inductively defined proposition:
+-/
+def containedIn := Relations.multi containedDirectlyIn
 
 structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   mutsFinite :      { i | rtr.muts i ≠ none }.finite
@@ -62,7 +79,7 @@ This isn't an issue though, because
 
 -- Recursive step for wellFormed'.
 def Raw.Reactor.wellFormed (rtr : Raw.Reactor ι υ) : Prop :=
-  rtr.wellFormed' -- ∧ (∀ r : Raw.Reactor ι υ, r ∈ rtr.nest.rtrs.values → r.wellFormed)
+  rtr.wellFormed' ∧ (∀ r : Raw.Reactor ι υ, ∃ i, r ∈ rtr.nest.rtrs → r.wellFormed')
 
 structure Reactor (ι υ) [ID ι] [Value υ] where 
   raw : Raw.Reactor ι υ
