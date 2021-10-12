@@ -16,7 +16,7 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
 
   -- "Connecting" means inserting a relay reaction.
   -- 
-  -- The objects and IDs used in the below correspond to this illustration:
+  -- The objects and IDs used below correspond to this illustration:
   -- The outer box is a reactor, the boxes within the colons are nested reactors
   -- and the box connecting them is the relay reaction.
   --     __________________________________________________
@@ -25,7 +25,7 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
   --    |       :  |    src|>---        ---|>dst   |   :   |
   --    |       :  |_______|   |        |  |_______|   :   |
   --    |       :              |        |              :   |
-  --    |       :::::::::::::::|::::::::|:::::::::::::::   |
+  --    |       ...............|........|...............   |
   --    |                      |  ____  |                  |
   --    |                      --|i   |--                  |
   --    |                        |____|                    |
@@ -34,20 +34,20 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
   | Change.connect src dst =>
     ∃ (iₚ i₁ i₂ i : ι) (p₁ p₂ : Reactor ι υ), 
       σ₁ *[Cmp.rtr] iₚ = p₁ ∧
-      σ₁ & i₁ = iₚ ∧ -- We don't need specify that i₁ and i₂ identify a reactor, because the next two lines
-      σ₁ & i₂ = iₚ ∧ -- implicitly require this.
-      σ₁ & src = i₁ ∧ -- We don't need to check whether src and dst are out- and input ports respectively,
-      σ₁ & dst = i₂ ∧ -- because the relay reaction below can only become part of σ₂ if that is the case.
-      (i ∉ p₁.rcns.ids) ∧ -- Checks that i is an ununsed ID. 
+      σ₁ & i₁ = iₚ ∧                                         -- We don't need specify that i₁ and i₂ identify a reactor,
+      σ₁ & i₂ = iₚ ∧                                         -- because the next two lines implicitly require this.
+      σ₁ & src = i₁ ∧                                        -- We don't need to check whether src and dst are out- and input ports respectively,
+      σ₁ & dst = i₂ ∧                                        -- because the relay reaction below can only become part of σ₂ if that is the case.
+      (i ∉ p₁.rcns.ids) ∧                                    -- Checks that i is an ununsed ID in p₁'s set of reactions, so no overriding occurs. 
       p₂.rcns = p₁.rcns.update' i (Reaction.relay src dst) ∧ -- Inserts the required relay reaction.
-      p₂.prios = p₁.prios.withIncomparable i ∧ -- Sets the priority of the relay reaction to *.
+      p₂.prios = p₁.prios.withIncomparable i ∧               -- Sets the priority of the relay reaction to *.
       p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.nest = p₁.nest ∧ 
       σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
 
   -- "Disconnecting" means checking whether src and dst are connected by a relay reaction,
   -- and if so removing that reaction.
   -- 
-  -- The objects and IDs used in the below correspond to this illustration:
+  -- The objects and IDs used below correspond to this illustration:
   -- The outer box is a reactor, the boxes within the colons are nested reactors
   -- and the box connecting them is the relay reaction.
   --     __________________________________________________
@@ -56,7 +56,7 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
   --    |       :  |    src|>---        ---|>dst   |   :   |
   --    |       :  |_______|   |        |  |_______|   :   |
   --    |       :              |        |              :   |
-  --    |       :::::::::::::::|::::::::|:::::::::::::::   |
+  --    |       ...............|........|...............   |
   --    |                      |  ____  |                  |
   --    |                      --|iᵣ  |--                  |
   --    |                        |____|                    |
@@ -65,44 +65,64 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
   | Change.disconnect src dst =>
     ∃ (iₚ i₁ i₂ iᵣ : ι) (p₁ p₂ : Reactor ι υ), 
       σ₁ *[Cmp.rtr] iₚ = p₁ ∧
-      σ₁ & i₁ = iₚ ∧ -- We don't need specify that i₁ and i₂ identify a reactor, because the next two lines
-      σ₁ & i₂ = iₚ ∧ -- implicitly require this.
-      σ₁ & src = i₁ ∧ -- We don't need to check whether src and dst are out- and input ports respectively,
-      σ₁ & dst = i₂ ∧ -- because the relay reaction below can only be part of σ₁ if that is the case.
+      σ₁ & i₁ = iₚ ∧                               -- We don't need specify that i₁ and i₂ identify a reactor, 
+      σ₁ & i₂ = iₚ ∧                               -- because the next two lines implicitly require this.
+      σ₁ & src = i₁ ∧                              -- We don't need to check whether src and dst are out- and input ports respectively,
+      σ₁ & dst = i₂ ∧                              -- because the relay reaction below can only be part of σ₁ if that is the case.
       σ₁.rcns iᵣ = some (Reaction.relay src dst) ∧ -- Makes sure there is a relay reaction from src to dst.
-      p₂.rcns = p₁.rcns.update iᵣ none ∧ -- Removes the relay reaction.
+      p₂.rcns = p₁.rcns.update iᵣ none ∧           -- Removes the relay reaction.
       p₂.prios = p₁.prios ∧ p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.nest = p₁.nest ∧ 
       σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
 
-  -- Marten's PhD thesis:
-  -- "If CREATE is called at (t, m), then any reaction of the newly-created reactor
-  -- and any reactor in its containment hierarchy that is triggered by • will execute
-  -- at (t, m) also (see start in Algorithm 5), but not before the last mutation of
-  -- the new reactor’s container has finished executing (see Section 2.6)."
+  -- The objects and IDs used below correspond to this illustration:
+  -- The outer box is a reactor, the box within the colons is the new reactor
+  -- and the box outside the colons is the mutation that initiated this change.
+  --     ______________________
+  --    |iₚ/p₁  :   _______  : | 
+  --    |       :  |i/rtr  | : | 
+  --    |       :  |_______| : |
+  --    |       :            : |
+  --    |       .............. |
+  --    |    _______           |
+  --    |   |orig/m |          |
+  --    |   |_______|          |
+  --    |______________________|
+  --  
   | Change.create rtr i =>
-    σ₁ & i = none ∧ -- The ID `i` has to be new.
-    ∃ (iₚ : ι) (p₁ p₂ : Reactor ι υ) (rcn₁ rcn₂ : Reaction ι υ),
-      σ₁ & orig = iₚ ∧
+    ∃ (iₚ : ι) (p₁ p₂ : Reactor ι υ) (m : Reaction ι υ),
       σ₁ *[Cmp.rtr] iₚ = p₁ ∧
-      p₁.rcns orig = rcn₁ ∧
-      rcn₂.children = rcn₁.children ∪ (Finset.singleton i) ∧
-      rcn₂.deps = rcn₁.deps ∧ rcn₂.body = rcn₁.body ∧ rcn₂.triggers = rcn₁.triggers ∧ 
-      p₂.rcns = p₁.rcns.update orig rcn₂ ∧
-      p₂.nest = p₁.nest.update i rtr ∧ 
+      σ₁ & orig = iₚ ∧
+      p₁.rcns orig = m ∧
+      let m' := m.updateChildren (m.children ∪ (Finset.singleton i)) -- Adds the ID of the new reactor to the children 
+      p₂.rcns = p₁.rcns.update orig m' ∧                             -- of the mutation that caused this change.
+      (i ∉ p₁.nest.ids) ∧                                            -- Checks that i is an ununsed ID in p₁'s set of nested reactors, so no overriding occurs. 
+      p₂.nest = p₁.nest.update i rtr ∧                               -- Adds the new reactor using ID i. 
       p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.prios = p₁.prios ∧ 
       σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
-      -- TODO: Somehow trigger startup reactions (by modifying the queue?).
 
   -- Deletion takes place in the time-world.
   -- Hence, here we only make sure that the conditions for deletion are met:
   -- The deleted reactor has to be nested in the reactor whose mutation triggered the deletion.
+  --
+  -- The objects and IDs used below correspond to this illustration:
+  -- The outer box is a reactor, the box within the colons is the new reactor
+  -- and the box outside the colons is the mutation that initiated this change.
+  --     _____________________
+  --    |iₚ/p  :   _______  : | 
+  --    |      :  |i/rtr  | : | 
+  --    |      :  |_______| : |
+  --    |      :            : |
+  --    |      .............. |
+  --    |    _____            |
+  --    |   |orig |           |
+  --    |   |_____|           |
+  --    |_____________________|
+  --  
   | Change.delete i =>
     ∃ (iₚ : ι) (p : Reactor ι υ),
+      σ₁ *[Cmp.rtr] iₚ = p ∧
       σ₁ & orig = iₚ ∧
-      σ₁ *[Cmp.rtr] iₚ = p ∧ 
-      p *[Cmp.rtr] i ≠ none -- `p & i ≠ none` does not suffice here
-      -- TODO: Somehow trigger shutdown reactions (by modifying the queue?).
-      -- TODO: Remove `i` from the children of the respective reaction.
+      i ∈ p.nest.ids
 
 notation σ₁:max " -[" c ", " orig "]→ " σ₂:max => appOfChange σ₁ σ₂ orig c
 

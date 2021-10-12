@@ -103,7 +103,7 @@ noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is
   outDepOnly := rcn.outDepOnly
 }
 
-noncomputable def updateChildren {rcn : Reaction ι υ} {is : Finset ι} : Reaction ι υ := {
+noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) : Reaction ι υ := {
   deps := rcn.deps,
   triggers := rcn.triggers, 
   children := is,
