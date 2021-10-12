@@ -45,5 +45,5 @@ Formalize time precedence graphs (Lamport clock relation).
   E.g:
   def relation (a b : Thing) : Prop := Exists proof, a.change proof = b
     
-
+* Where do we place constraints? In the objects or in the execution?
   

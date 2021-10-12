@@ -10,41 +10,69 @@ variable {ι υ} [ID ι] [Value υ]
 -- The parameter `orig` is the ID of the reaction from which this change was initiated.
 -- This is required to ensure that mutations stay within their reactor.
 def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Prop
-  | Change.port i v =>  
-    σ₁ -[Cmp.prt, i := v]→ σ₂ -- Port propagation doesn't exist, because we're using relay reactions.
-  | Change.state i v => 
-    σ₁ -[Cmp.stv, i := v]→ σ₂
+  | Change.port i v =>  σ₁ -[Cmp.prt, i := v]→ σ₂ -- Port propagation isn't necessary/possible, because we're using relay reactions. 
+  
+  | Change.state i v => σ₁ -[Cmp.stv, i := v]→ σ₂
 
   -- "Connecting" means inserting a relay reaction.
   -- 
   -- The objects and IDs used in the below correspond to this illustration:
-  -- The outer box is a reactor and the boxes within the colons are nested reactors.
-  --     ____________________________________________________
-  --    |iₚ/p₁  :   ________                 ________    :   |
-  --    |       :  |i₁/rtr₁ |               |i₂/rtr₂ |   :   |
-  --    |       :  |        |               |        |   :   |
-  --    |       :  |     src|>---        ---|>dst    |   :   |
-  --    |       :  |________|   |        |  |________|   :   |
-  --    |       :               |        |               :   |
-  --    |       ::::::::::::::::|::::::::|::::::::::::::::   |
-  --    |                       |  ____  |                   |
-  --    |                       --|____|--                   |
-  --    |____________________________________________________|
-  --
-  | Change.connect src dst =>  
-    ∃ (iₚ i₁ i₂ i : ι) (p₁ p₂ rtr₁ rtr₂ : Reactor ι υ), 
+  -- The outer box is a reactor, the boxes within the colons are nested reactors
+  -- and the box connecting them is the relay reaction.
+  --     __________________________________________________
+  --    |iₚ/p₁  :   _______                 _______    :   |
+  --    |       :  |i₁     |               |     i₂|   :   |
+  --    |       :  |    src|>---        ---|>dst   |   :   |
+  --    |       :  |_______|   |        |  |_______|   :   |
+  --    |       :              |        |              :   |
+  --    |       :::::::::::::::|::::::::|:::::::::::::::   |
+  --    |                      |  ____  |                  |
+  --    |                      --|i   |--                  |
+  --    |                        |____|                    |
+  --    |__________________________________________________|
+  --  
+  | Change.connect src dst =>
+    ∃ (iₚ i₁ i₂ i : ι) (p₁ p₂ : Reactor ι υ), 
       σ₁ *[Cmp.rtr] iₚ = p₁ ∧
-      σ₁ & i₁ = iₚ ∧ -- We don't need specidy that i₁ and i₂ identify a reactor, because the next two lines
+      σ₁ & i₁ = iₚ ∧ -- We don't need specify that i₁ and i₂ identify a reactor, because the next two lines
       σ₁ & i₂ = iₚ ∧ -- implicitly require this.
       σ₁ & src = i₁ ∧ -- We don't need to check whether src and dst are out- and input ports respectively,
-      σ₁ & dst = i₂ ∧ -- because the relay reaction below will only be valid if that is the case.
+      σ₁ & dst = i₂ ∧ -- because the relay reaction below can only become part of σ₂ if that is the case.
       (i ∉ p₁.rcns.ids) ∧ -- Checks that i is an ununsed ID. 
       p₂.rcns = p₁.rcns.update' i (Reaction.relay src dst) ∧ -- Inserts the required relay reaction.
       p₂.prios = p₁.prios.withIncomparable i ∧ -- Sets the priority of the relay reaction to *.
       p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.nest = p₁.nest ∧ 
       σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
-  
-  | Change.disconnect src dst => sorry
+
+  -- "Disconnecting" means checking whether src and dst are connected by a relay reaction,
+  -- and if so removing that reaction.
+  -- 
+  -- The objects and IDs used in the below correspond to this illustration:
+  -- The outer box is a reactor, the boxes within the colons are nested reactors
+  -- and the box connecting them is the relay reaction.
+  --     __________________________________________________
+  --    |iₚ/p₁  :   _______                 _______    :   |
+  --    |       :  |i₁     |               |     i₂|   :   |
+  --    |       :  |    src|>---        ---|>dst   |   :   |
+  --    |       :  |_______|   |        |  |_______|   :   |
+  --    |       :              |        |              :   |
+  --    |       :::::::::::::::|::::::::|:::::::::::::::   |
+  --    |                      |  ____  |                  |
+  --    |                      --|iᵣ  |--                  |
+  --    |                        |____|                    |
+  --    |__________________________________________________|
+  --  
+  | Change.disconnect src dst =>
+    ∃ (iₚ i₁ i₂ iᵣ : ι) (p₁ p₂ : Reactor ι υ), 
+      σ₁ *[Cmp.rtr] iₚ = p₁ ∧
+      σ₁ & i₁ = iₚ ∧ -- We don't need specify that i₁ and i₂ identify a reactor, because the next two lines
+      σ₁ & i₂ = iₚ ∧ -- implicitly require this.
+      σ₁ & src = i₁ ∧ -- We don't need to check whether src and dst are out- and input ports respectively,
+      σ₁ & dst = i₂ ∧ -- because the relay reaction below can only be part of σ₁ if that is the case.
+      σ₁.rcns iᵣ = some (Reaction.relay src dst) ∧ -- Makes sure there is a relay reaction from src to dst.
+      p₂.rcns = p₁.rcns.update iᵣ none ∧ -- Removes the relay reaction.
+      p₂.prios = p₁.prios ∧ p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.nest = p₁.nest ∧ 
+      σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
 
   -- Marten's PhD thesis:
   -- "If CREATE is called at (t, m), then any reaction of the newly-created reactor
