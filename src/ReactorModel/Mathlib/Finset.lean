@@ -26,6 +26,10 @@ def image (f : α → β) (s : Finset α) : Finset β := sorry
 
 def singleton (a : α) : Finset α := ⟨[a], sorry⟩
 
+theorem mem_singleton_self (a : α) : a ∈ (Finset.singleton a) := sorry
+
+theorem not_mem_singleton {a b : α} : ¬(a ∈ Finset.singleton b) ↔ a ≠ b := sorry
+
 instance : Coe (Finset α) (Set α) := ⟨λ f => {x | x ∈ f}⟩
 
 def filter (s : Finset α) (p : α → Prop) [DecidablePred p] : Finset α := sorry
@@ -48,11 +52,17 @@ instance : Subset (Finset α) := sorry
 
 theorem subset_iff {s₁ s₂ : Finset α} : s₁ ⊆ s₂ ↔ ∀ {x}, x ∈ s₁ → x ∈ s₂ := sorry
 
+@[simp] theorem subset.refl (s : Finset α) : s ⊆ s := sorry
+
 theorem mem_of_subset {s₁ s₂ : Finset α} {a : α} : s₁ ⊆ s₂ → a ∈ s₁ → a ∈ s₂ := sorry
+
+theorem inter_subset_right (s₁ s₂ : Finset α) [DecidableEq α] : s₁ ∩ s₂ ⊆ s₂ := sorry
 
 @[simp] theorem mem_image {s : Finset α} {f : α → β} {b : β} : b ∈ s.image f ↔ ∃ a ∈ s, f a = b := sorry
 
 @[simp] theorem mem_union {a : α} {s₁ s₂ : Finset α} : a ∈ s₁ ∪ s₂ ↔ a ∈ s₁ ∨ a ∈ s₂ := sorry
+
+instance : Sdiff (Finset α) := sorry
 
 end Finset
 

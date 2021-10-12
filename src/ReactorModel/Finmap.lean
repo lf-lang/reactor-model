@@ -57,6 +57,15 @@ noncomputable def entries (f : α ▸ β) : Finset (α × β) :=
   let finite : description.finite := sorry
   finite.toFinset
 
+noncomputable def update (f : α ▸ β) (a : α) (b : Option β) : α ▸ β := {
+  lookup := Function.update f.lookup a b,
+  finite := sorry
+}
+
+-- Sometimes when using `update`, the parameter `b` isn't lifted to be an `Option` automatically.
+-- In this case `update'` can be used.
+noncomputable def update' (f : α ▸ β) (a : α) (b : β) : α ▸ β := f.update a b
+
 -- The finmap that combines a given finmap `f` with a function `g`
 -- by mapping all (defined) values in `f` through `g`. 
 def map (f : α ▸ β) (g : β → γ) : Finmap α γ := {

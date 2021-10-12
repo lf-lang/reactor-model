@@ -22,6 +22,7 @@ inductive Reaction (ι υ) [i : ID ι] [v : Value υ]
   | mk 
     (deps : Ports.Role → Finset ι) 
     (triggers : Finset ι)
+    (children : Finset ι)
     (body : Ports ι υ → StateVars ι υ → List (Change ι υ))
 
 inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
@@ -56,9 +57,10 @@ end Change
 
 namespace Reaction
 
-def deps :     Reaction ι υ → (Ports.Role → Finset ι)                         | mk d _ _ => d
-def triggers : Reaction ι υ → (Finset ι)                                      | mk _ t _ => t
-def body :     Reaction ι υ → (Ports ι υ → StateVars ι υ → List (Change ι υ)) | mk _ _ b => b
+def deps :     Reaction ι υ → (Ports.Role → Finset ι)                         | mk d _ _ _ => d
+def triggers : Reaction ι υ → Finset ι                                        | mk _ t _ _ => t
+def children : Reaction ι υ → Finset ι                                        | mk _ _ c _ => c
+def body :     Reaction ι υ → (Ports ι υ → StateVars ι υ → List (Change ι υ)) | mk _ _ _ b => b
 
 def isNorm (rcn : Reaction ι υ) : Prop :=
   ∀ i s c, c ∈ (rcn.body i s) → ¬c.mutates

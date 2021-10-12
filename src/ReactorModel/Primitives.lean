@@ -45,6 +45,13 @@ inductive Role
   | «in» 
   | out
 
+instance : DecidableEq Role := λ r₁ r₂ =>
+  match r₁, r₂ with
+  | Role.in,  Role.in =>  Decidable.isTrue rfl 
+  | Role.out, Role.out => Decidable.isTrue rfl
+  | Role.in,  Role.out => Decidable.isFalse (by simp)
+  | Role.out, Role.in =>  Decidable.isFalse (by simp)
+
 @[reducible]
 def Role.opposite : Role → Role 
   | Role.in => Role.out

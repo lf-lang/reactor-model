@@ -1,16 +1,18 @@
 import ReactorModel.Components.Change
 
 open Ports
+open Classical
 
 variable (ι υ) [ID ι] [Value υ]
 
 structure Reaction where
   deps :        Ports.Role → Finset ι 
   triggers :    Finset ι
+  children :    Finset ι
   body :        Ports ι υ → StateVars ι υ → List (Change ι υ)
   tsSubInDeps : triggers ⊆ deps Role.in
-  inDepOnly :   ∀ {i i'} s, (i =[deps Role.in] i') → (body i s = body i' s)
-  outDepOnly :  ∀ i s {o} (v : υ), (o ∉ deps Role.out) → (Change.port o v) ∉ (body i s)
+  inDepOnly :   ∀ {p₁ p₂} s, (p₁ =[deps Role.in] p₂) → (body p₁ s = body p₂ s)
+  outDepOnly :  ∀ p s {o} (v : υ), (o ∉ deps Role.out) → (Change.port o v) ∉ (body p s)
 
 variable {ι υ}
 
@@ -21,6 +23,7 @@ def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   raw.map (λ rcn => {
       deps := rcn.deps,
       triggers := rcn.triggers,
+      children := rcn.children,
       body := (λ p s => (rcn.body p s).map (λ c => sorry)),
       tsSubInDeps := sorry,
       inDepOnly := sorry,
@@ -36,10 +39,79 @@ namespace Reaction
 instance : CoeFun (Reaction ι υ) (λ _ => Ports ι υ → StateVars ι υ → (List (Change ι υ))) where
   coe rcn := rcn.body
 
+-- A reaction is normal ("norm") if its body produces no mutating changes.
 def isNorm (rcn : Reaction ι υ) : Prop :=
   ∀ i s c, c ∈ (rcn i s) → ¬c.mutates
 
 def isMut (rcn : Reaction ι υ) : Prop := ¬rcn.isNorm
+
+-- A relay reaction that connects a `src` port with a `dst` port.
+def relay (src dst : ι) : Reaction ι υ := {
+  deps := λ r => match r with | Role.in => Finset.singleton src | Role.out => Finset.singleton dst,
+  triggers := Finset.singleton src,
+  children := ∅,
+  body := λ p _ => match p[src] with | none => [] | some v => [Change.port dst v],
+  tsSubInDeps := by simp,
+  inDepOnly := by
+    simp [Ports.get]
+    intro p₁ p₂ h
+    simp [eqAt] at h
+    rw [h src (Finset.mem_singleton_self src)],
+  outDepOnly := by
+    intro p _ o v h hc
+    simp at *
+    cases hs : p[src]
+    case none => simp [hs] at *
+    case some v' =>
+      simp [hs] at *
+      rw [Finset.not_mem_singleton] at h
+      have hc' := hc.left
+      contradiction
+}
+
+noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ {i₁ i₂} s, i₁ =[is] i₂ → rcn i₁ s = rcn i₂ s) : Reaction ι υ := 
+  let deps' := Function.update rcn.deps Role.in is
+  {
+    deps := deps',
+    triggers := rcn.triggers ∩ (deps' Role.in), 
+    children := rcn.children,
+    body := rcn.body,
+    tsSubInDeps := Finset.inter_subset_right _ _,
+    inDepOnly := λ s h' => h s h',
+    outDepOnly := λ i s _ v h' => rcn.outDepOnly i s v h'
+  }
+
+noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ i s {o} (v : υ), (o ∉ is) → (Change.port o v) ∉ rcn i s) : Reaction ι υ := 
+  let deps' := Function.update rcn.deps Role.out is
+  {
+    deps := deps',
+    triggers := rcn.triggers ∩ (deps' Role.in), 
+    children := rcn.children,
+    body := rcn.body,
+    tsSubInDeps := Finset.inter_subset_right _ _,
+    inDepOnly := λ s h' => rcn.inDepOnly s h',
+    outDepOnly := λ i s _ v h' => h i s v h'
+  } 
+
+noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is ⊆ rcn.deps Role.in) : Reaction ι υ := {
+  deps := rcn.deps,
+  triggers := is, 
+  children := rcn.children,
+  body := rcn.body,
+  tsSubInDeps := h,
+  inDepOnly := rcn.inDepOnly,
+  outDepOnly := rcn.outDepOnly
+}
+
+noncomputable def updateChildren {rcn : Reaction ι υ} {is : Finset ι} : Reaction ι υ := {
+  deps := rcn.deps,
+  triggers := rcn.triggers, 
+  children := is,
+  body := rcn.body,
+  tsSubInDeps := rcn.tsSubInDeps,
+  inDepOnly := rcn.inDepOnly,
+  outDepOnly := rcn.outDepOnly
+}
 
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction ι υ) (p : Ports ι υ) : Prop :=

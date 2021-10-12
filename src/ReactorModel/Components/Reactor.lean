@@ -52,9 +52,10 @@ structure uniqueIDs (rtr : Raw.Reactor ι υ) : Prop where
   internal : ∀ i c p, (p ~[rtr, c] i) → ¬∃ c', (c ≠ c') ∧ (p ~[rtr, c'] i)
 
 structure rcnIsWF (rcn : Raw.Reaction ι υ) : Prop where
-  rcnsTsSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
-  rcnsInDepOnly :   ∀ i i' s, (i =[rcn.deps Role.in] i') → (rcn.body i s = rcn.body i' s)    
-  rcnsOutDepOnly :  ∀ i s o (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
+  triggersSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
+  inDepOnly :   ∀ i i' s, (i =[rcn.deps Role.in] i') → (rcn.body i s = rcn.body i' s)    
+  outDepOnly :  ∀ i s o (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
+  normNoChild : rcn.isNorm → rcn.children = ∅
 
 structure wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
@@ -63,6 +64,7 @@ structure wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   wfRoles :         rtr.roles.ids = rtr.ports.ids
   wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
+  wfMutChildren :   ∀ m i, rtr.rcns i = some m → m.isMut → ↑m.children ⊆ { i | rtr.nest i ≠ none }
   mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
   mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁)
   uniqueIDs :       uniqueIDs rtr  
