@@ -83,20 +83,20 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
   --    |       :  |_______| : |
   --    |       :            : |
   --    |       .............. |
-  --    |    _______           |
-  --    |   |orig/m |          |
-  --    |   |_______|          |
+  --    |    ______            |
+  --    |   |orig/m|           |
+  --    |   |______|           |
   --    |______________________|
   --  
   | Change.create rtr i =>
-    ∃ (iₚ : ι) (p₁ p₂ : Reactor ι υ) (m : Reaction ι υ),
+    ∃ (iₚ : ι) (p₁ p₂ : Reactor ι υ) (m : Reaction ι υ) (hₘ : m.isMut),
       σ₁ *[Cmp.rtr] iₚ = p₁ ∧
       σ₁ & orig = iₚ ∧
       p₁.rcns orig = m ∧
-      let m' := m.updateChildren (m.children ∪ (Finset.singleton i)) -- Adds the ID of the new reactor to the children 
-      p₂.rcns = p₁.rcns.update orig m' ∧                             -- of the mutation that caused this change.
-      (i ∉ p₁.nest.ids) ∧                                            -- Checks that i is an ununsed ID in p₁'s set of nested reactors, so no overriding occurs. 
-      p₂.nest = p₁.nest.update i rtr ∧                               -- Adds the new reactor using ID i. 
+      let m' := m.updateChildren (m.children ∪ (Finset.singleton i)) hₘ -- Adds the ID of the new reactor to the children 
+      p₂.rcns = p₁.rcns.update orig m' ∧                                -- of the mutation that caused this change.
+      (i ∉ p₁.nest.ids) ∧                                               -- Checks that i is an ununsed ID in p₁'s set of nested reactors, so no overriding occurs. 
+      p₂.nest = p₁.nest.update i rtr ∧                                  -- Adds the new reactor using ID i. 
       p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.prios = p₁.prios ∧ 
       σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
 

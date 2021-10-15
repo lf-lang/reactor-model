@@ -93,4 +93,9 @@ noncomputable def filter' (f : α ▸ β) (p : β → Prop) : Finmap α β := {
   finite := sorry
 }
 
+noncomputable def restrict (f : α ▸ β) (as : Finset α) : Finmap α β :=
+  f.filter (λ a => a ∈ as)
+
+notation f:50 " % " as:50 => restrict f as
+
 end Finmap

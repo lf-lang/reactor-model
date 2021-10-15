@@ -11,8 +11,9 @@ structure Reaction where
   children :    Finset ι
   body :        Ports ι υ → StateVars ι υ → List (Change ι υ)
   tsSubInDeps : triggers ⊆ deps Role.in
-  inDepOnly :   ∀ {p₁ p₂} s, (p₁ =[deps Role.in] p₂) → (body p₁ s = body p₂ s)
+  inDepOnly :   ∀ p, body p = body (p % deps Role.in)
   outDepOnly :  ∀ p s {o} (v : υ), (o ∉ deps Role.out) → (Change.port o v) ∉ (body p s)
+  normNoChild : (∀ i s c, c ∈ (body i s) → ¬c.mutates) → children = ∅
 
 variable {ι υ}
 
@@ -27,7 +28,8 @@ def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
       body := (λ p s => (rcn.body p s).map (λ c => sorry)),
       tsSubInDeps := sorry,
       inDepOnly := sorry,
-      outDepOnly := sorry
+      outDepOnly := sorry,
+      normNoChild := sorry
     }
   )
 
@@ -53,10 +55,10 @@ def relay (src dst : ι) : Reaction ι υ := {
   body := λ p _ => match p[src] with | none => [] | some v => [Change.port dst v],
   tsSubInDeps := by simp,
   inDepOnly := by
-    simp [Ports.get]
-    intro p₁ p₂ h
-    simp [eqAt] at h
-    rw [h src (Finset.mem_singleton_self src)],
+    simp [Finmap.restrict, Finmap.filter]
+    intro p
+    funext s
+    sorry
   outDepOnly := by
     intro p _ o v h hc
     simp at *
@@ -67,9 +69,10 @@ def relay (src dst : ι) : Reaction ι υ := {
       rw [Finset.not_mem_singleton] at h
       have hc' := hc.left
       contradiction
+  normNoChild := by simp
 }
 
-noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ {i₁ i₂} s, i₁ =[is] i₂ → rcn i₁ s = rcn i₂ s) : Reaction ι υ := 
+noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ p, rcn p = rcn (p % is)) : Reaction ι υ := 
   let deps' := Function.update rcn.deps Role.in is
   {
     deps := deps',
@@ -77,8 +80,9 @@ noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ 
     children := rcn.children,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
-    inDepOnly := λ s h' => h s h',
-    outDepOnly := λ i s _ v h' => rcn.outDepOnly i s v h'
+    inDepOnly := h,
+    outDepOnly := λ i s _ v h' => rcn.outDepOnly i s v h',
+    normNoChild := rcn.normNoChild
   }
 
 noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ i s {o} (v : υ), (o ∉ is) → (Change.port o v) ∉ rcn i s) : Reaction ι υ := 
@@ -89,8 +93,9 @@ noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀
     children := rcn.children,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
-    inDepOnly := λ s h' => rcn.inDepOnly s h',
-    outDepOnly := λ i s _ v h' => h i s v h'
+    inDepOnly := rcn.inDepOnly,
+    outDepOnly := λ i s _ v h' => h i s v h',
+    normNoChild := rcn.normNoChild
   } 
 
 noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is ⊆ rcn.deps Role.in) : Reaction ι υ := {
@@ -100,17 +105,22 @@ noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is
   body := rcn.body,
   tsSubInDeps := h,
   inDepOnly := rcn.inDepOnly,
-  outDepOnly := rcn.outDepOnly
+  outDepOnly := rcn.outDepOnly,
+  normNoChild := rcn.normNoChild
 }
 
-noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) : Reaction ι υ := {
+noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) (h : rcn.isMut) : Reaction ι υ := {
   deps := rcn.deps,
   triggers := rcn.triggers, 
   children := is,
   body := rcn.body,
   tsSubInDeps := rcn.tsSubInDeps,
   inDepOnly := rcn.inDepOnly,
-  outDepOnly := rcn.outDepOnly
+  outDepOnly := rcn.outDepOnly,
+  normNoChild := by
+    simp only [isMut, isNorm] at h
+    intro h'
+    contradiction
 }
 
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
