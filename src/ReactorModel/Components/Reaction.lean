@@ -11,7 +11,6 @@ structure Reaction where
   children :    Finset ι
   body :        Ports ι υ → StateVars ι υ → List (Change ι υ)
   tsSubInDeps : triggers ⊆ deps Role.in
-  inDepOnly :   ∀ p, body p = body (p % deps Role.in)
   outDepOnly :  ∀ p s {o} (v : υ), (o ∉ deps Role.out) → (Change.port o v) ∉ (body p s)
   normNoChild : (∀ i s c, c ∈ (body i s) → ¬c.mutates) → children = ∅
 
@@ -27,7 +26,6 @@ def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
       children := rcn.children,
       body := (λ p s => (rcn.body p s).map (λ c => sorry)),
       tsSubInDeps := sorry,
-      inDepOnly := sorry,
       outDepOnly := sorry,
       normNoChild := sorry
     }
@@ -54,11 +52,6 @@ def relay (src dst : ι) : Reaction ι υ := {
   children := ∅,
   body := λ p _ => match p[src] with | none => [] | some v => [Change.port dst v],
   tsSubInDeps := by simp,
-  inDepOnly := by
-    simp [Finmap.restrict, Finmap.filter]
-    intro p
-    funext s
-    sorry
   outDepOnly := by
     intro p _ o v h hc
     simp at *
@@ -72,7 +65,7 @@ def relay (src dst : ι) : Reaction ι υ := {
   normNoChild := by simp
 }
 
-noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ p, rcn p = rcn (p % is)) : Reaction ι υ := 
+noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} : Reaction ι υ := 
   let deps' := Function.update rcn.deps Role.in is
   {
     deps := deps',
@@ -80,7 +73,6 @@ noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ 
     children := rcn.children,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
-    inDepOnly := h,
     outDepOnly := λ i s _ v h' => rcn.outDepOnly i s v h',
     normNoChild := rcn.normNoChild
   }
@@ -93,7 +85,6 @@ noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀
     children := rcn.children,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
-    inDepOnly := rcn.inDepOnly,
     outDepOnly := λ i s _ v h' => h i s v h',
     normNoChild := rcn.normNoChild
   } 
@@ -104,7 +95,6 @@ noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is
   children := rcn.children,
   body := rcn.body,
   tsSubInDeps := h,
-  inDepOnly := rcn.inDepOnly,
   outDepOnly := rcn.outDepOnly,
   normNoChild := rcn.normNoChild
 }
@@ -115,7 +105,6 @@ noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) (h : rc
   children := is,
   body := rcn.body,
   tsSubInDeps := rcn.tsSubInDeps,
-  inDepOnly := rcn.inDepOnly,
   outDepOnly := rcn.outDepOnly,
   normNoChild := by
     simp only [isMut, isNorm] at h

@@ -137,7 +137,7 @@ def execOfRcn (σ₁ σ₂ : Reactor ι υ) (i : ι) : Prop :=
     σ₁ & i = iₚ ∧
     σ₁ *[Cmp.rtr] iₚ = ctx ∧
     ctx.rcns i = rcn ∧
-    let out := rcn (ctx.ports' Role.in) ctx.state
+    let out := rcn (ctx.ports' Role.in % rcn.deps Role.in) ctx.state
     σ₁ -[out, i]→ σ₂
 
 notation σ₁ " -[" rcn "]→ " σ₂:max => execOfRcn σ₁ σ₂ rcn
