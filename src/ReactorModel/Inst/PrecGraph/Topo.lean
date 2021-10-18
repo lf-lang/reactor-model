@@ -9,8 +9,8 @@ variable {ι υ} [ID ι] [Value υ] {σ : Reactor ι υ}
 -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Ordered.20set
 structure List.isTopoOver (l : List ι) (π : PrecGraph σ) : Prop where
   nodup : l.nodup 
-  mem   : ∀ {rcn}, rcn ∈ l → rcn ∈ π.rcns.ids 
-  order : ∀ {rcn₁ rcn₂}, rcn₁ ∈ l → rcn₂ ∈ l → (rcn₁ ~π~> rcn₂) → (l.indexOf rcn₁ < l.indexOf rcn₂)
+  mem   : ∀ {rcn}, (rcn ∈ l) → (rcn ∈ π.rcns.ids)
+  order : ∀ {rcn₁ rcn₂}, (rcn₁ ∈ l) → (rcn₂ ∈ l) → (rcn₁ ~[π]~> rcn₂) → (l.indexOf rcn₁ < l.indexOf rcn₂)
 
 namespace Topo
 
@@ -56,7 +56,7 @@ theorem completePerm {π : PrecGraph σ} {l l' : List ι} (h : l.isCompleteTopoO
 -- to be an element of the topological ordering.
 protected structure indep (rcn : ι) (t : List ι) (π : PrecGraph σ) : Prop where
   mem  : rcn ∈ π.rcns.ids
-  path : ∀ rcn' ∈ t, ¬(rcn' ~π~> rcn)
+  path : ∀ rcn' ∈ t, ¬(rcn' ~[π]~> rcn)
 
 -- The head of a topological ordering is always independent.
 theorem indepHead (hd : ι) (tl : List ι) {π : PrecGraph σ} (h : (hd :: tl).isTopoOver π) :

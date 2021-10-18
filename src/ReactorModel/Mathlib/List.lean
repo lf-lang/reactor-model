@@ -2,6 +2,10 @@ import Mathlib
 
 namespace List
 
+def empty : List α → Bool
+| []       => true
+| (_ :: _) => false
+
 def findIndex (p : α → Prop) [DecidablePred p] : List α → Nat
   | []     => 0
   | (a::l) => if p a then 0 else Nat.succ (findIndex p l)
@@ -25,6 +29,8 @@ def pwFilter (R : α → α → Prop) [DecidableRel R] : List α → List α
 theorem pairwisePWFilter {R : α → α → Prop} [DecidableRel R] : 
   ∀ (l : List α), pairwise R (pwFilter R l) := 
   sorry
+
+def sorted : List α → Prop := pairwise r
 
 def nodup : List α → Prop := pairwise (. ≠ .)
 

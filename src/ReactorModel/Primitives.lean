@@ -1,5 +1,4 @@
-import ReactorModel.Mathlib.Tactics
-import ReactorModel.Finmap
+import ReactorModel.Mathlib
 
 -- The class of types that can be used as identifiers for components in a reactor.
 -- 
@@ -45,6 +44,13 @@ inductive Role
   | «in» 
   | out
 
+instance : DecidableEq Role := λ r₁ r₂ =>
+  match r₁, r₂ with
+  | Role.in,  Role.in =>  Decidable.isTrue rfl 
+  | Role.out, Role.out => Decidable.isTrue rfl
+  | Role.in,  Role.out => Decidable.isFalse (by simp)
+  | Role.out, Role.in =>  Decidable.isFalse (by simp)
+
 @[reducible]
 def Role.opposite : Role → Role 
   | Role.in => Role.out
@@ -64,7 +70,7 @@ def Role.opposite : Role → Role
 def get (p : Ports ι υ) (i : ι) : Option υ := 
   p.lookup i >>= (λ v => if v = ⊥ then none else v)
 
-notation p "[" i "]" => get p i
+notation p:max "[" i "]" => get p i
 
 theorem eqLookupEqGet {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁.lookup i = p₂.lookup i) :
   p₁[i] = p₂[i] := by
@@ -82,7 +88,7 @@ theorem lookupAbsentAtNone {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥
 def eqAt (is : Finset ι) (p₁ p₂ : Ports ι υ) : Prop := 
   ∀ i ∈ is, p₁.lookup i = p₂.lookup i
 
-notation p " =[" i "] " q => eqAt i p q
+notation p:max " =[" i "] " q:max => eqAt i p q
 
 -- (For a fixed set of IDs) `eqAt` is an equivalence relation.
 instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := { 
@@ -103,30 +109,6 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := {
       exact Eq.trans (hxy i hi) (hyz i hi)
   }
 }
-
--- The port-assignment that is the result of merging a given `src` port-assignment "onto" a given `dst` port-assignment.
--- That is, the non-absent values in `src` override the values in `dst`:
--- 
---                  ID: 0 1 2 3  
---               `src`: a b ⊥ ∅    (∅ means `.lookup = none` here)
---               `dst`: c ∅ d ⊥
--- `mergeOnto src dst`: a b d ⊥
---
--- Note that ports that didn't exist in `dst` can become extant because of `src` (example ID 1),
--- and vice versa (example ID 3).
-def mergeOnto (src dst : Ports ι υ) : Ports ι υ := {
-  lookup := λ i => src[i] <|> dst.lookup i,
-  finite := by
-    suffices h : { i | (λ j => src[j] <|> dst.lookup j) i ≠ none } ⊆ ↑(src.ids ∪ dst.ids)
-      from Set.finite.subset (Finset.finite_to_set (src.ids ∪ dst.ids)) h
-    simp [Set.subset_def]
-    intro x h
-    simp [Finmap.idsDef]
-    byContra hc
-    rw [←and_iff_not_or_not] at hc
-    rw [hc.right, Option.orelse_none, lookupNoneGetNone hc.left] at h
-    contradiction
-} 
 
 -- The (finite) set of IDs for which a given port-assignment contains non-absent values.
 noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=

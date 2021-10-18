@@ -7,15 +7,15 @@ variable {ι υ} [ID ι] [Value υ] {σ : Reactor ι υ}
 -- A precedence graph contains a path from one reaction to another,
 -- if there is a sequence of edges that connects them.
 inductive hasPathFromTo (π : PrecGraph σ) : ι → ι → Prop
-  | direct {rcn₁ rcn₂} : ({src := rcn₁, dst := rcn₂} ∈ π.edges) → hasPathFromTo π rcn₁ rcn₂
+  | direct {rcn₁ rcn₂} : ⟨rcn₁, rcn₂⟩ ∈ π.edges → hasPathFromTo π rcn₁ rcn₂
   | transitive {rcn₁ rcn₂ rcn₃} : hasPathFromTo π rcn₁ rcn₂ → hasPathFromTo π rcn₂ rcn₃ → hasPathFromTo π rcn₁ rcn₃
 
-notation r "~" π "~>" s => hasPathFromTo π r s
+notation r:max "~[" π "]~>" s:max => hasPathFromTo π r s
 
-def isAcyclic (π : PrecGraph σ) : Prop := ∀ rcn, ¬(rcn ~π~> rcn)
+def isAcyclic (π : PrecGraph σ) : Prop := ∀ rcn, ¬(rcn ~[π]~> rcn)
 
-theorem eqEdgesEqPaths {π₁ π₂ : PrecGraph σ} {rcn₁ rcn₂ : ι} (hₑ : π₁.edges = π₂.edges) (hₚ : rcn₁ ~π₁~> rcn₂) : 
-  rcn₁ ~π₂~> rcn₂ := by
+theorem eqEdgesEqPaths {π₁ π₂ : PrecGraph σ} {rcn₁ rcn₂ : ι} (hₑ : π₁.edges = π₂.edges) (hₚ : rcn₁ ~[π₁]~> rcn₂) : 
+  rcn₁ ~[π₂]~> rcn₂ := by
   induction hₚ with
   | direct h => 
     simp only [hₑ] at h
@@ -39,7 +39,7 @@ theorem eqEdgesAcyclic {π₁ π₂ : PrecGraph σ} (hₑ : π₁.edges = π₂.
 protected structure indep (π : PrecGraph σ) (rcn₁ rcn₂ : ι) : Prop where
   mem₁  : rcn₁ ∈ π.rcns.ids
   mem₂  : rcn₂ ∈ π.rcns.ids
-  path₁ : ¬(rcn₁ ~π~> rcn₂)
-  path₂ : ¬(rcn₂ ~π~> rcn₁)
+  path₁ : ¬(rcn₁ ~[π]~> rcn₂)
+  path₂ : ¬(rcn₂ ~[π]~> rcn₁)
 
 end PrecGraph
