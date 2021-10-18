@@ -62,6 +62,14 @@ where
 notation σ:max " *[" c "]"  => Reactor.objFor σ c
 notation σ:max " *[" c "] " i:max => Reactor.objFor σ c i
 
+-- An extension on `objFor` for retrieving multiple objects at once.
+noncomputable def objsFor (σ : Reactor ι υ) (cmp : Cmp) (is: Finset ι) : Finset (cmp.type ι υ) :=
+  let description := { o : cmp.type ι υ | ∃ i ∈ is, σ *[cmp] i = o }
+  let finite: description.finite := sorry
+  finite.toFinset
+
+notation σ:max " *[" c "] " is:max => Reactor.objsFor σ c is
+
 -- A proposition stating that a given port (identified by `i`) has the given role `r`
 -- within the context of a given reactor.
 def portHasRole (σ : Reactor ι υ) (r : Ports.Role) (i : ι) : Prop :=

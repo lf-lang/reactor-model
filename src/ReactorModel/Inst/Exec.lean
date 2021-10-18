@@ -9,35 +9,51 @@ variable {ι υ} [ID ι] [Value υ]
 
 -- The parameter `orig` is the ID of the reaction from which this change was initiated.
 -- This is required to ensure that mutations stay within their reactor.
-def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Prop
+def applicationOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Prop
   | Change.port i v =>  σ₁ -[Cmp.prt, i := v]→ σ₂ -- Port propagation isn't necessary/possible, because we're using relay reactions. 
   
   | Change.state i v => σ₁ -[Cmp.stv, i := v]→ σ₂
 
   -- "Connecting" means inserting a relay reaction.
-  -- 
+  -- A mutation can only connect ports that are in its input- and output-dependencies, 
+  -- as well as ports that belong to one of its children.
+  --
   -- The objects and IDs used below correspond to this illustration:
-  -- The outer box is a reactor, the boxes within the colons are nested reactors
-  -- and the box connecting them is the relay reaction.
-  --     __________________________________________________
-  --    |iₚ/p₁  :   _______                 _______    :   |
-  --    |       :  |i₁     |               |     i₂|   :   |
-  --    |       :  |    src|>---        ---|>dst   |   :   |
-  --    |       :  |_______|   |        |  |_______|   :   |
-  --    |       :              |        |              :   |
-  --    |       ...............|........|...............   |
-  --    |                      |  ____  |                  |
-  --    |                      --|i   |--                  |
-  --    |                        |____|                    |
-  --    |__________________________________________________|
-  --  
+  -- The outer box is a reactor and the boxes within the colons are nested reactors.
+  -- The mutation (m) that triggered this change lives in the outer reactor.
+  -- The relay reaction (i) that will be created lives in the same reactor.
+  -- The src and dst ports can have multiple possible positions, and hence appear
+  -- multiple times in the illustration.
+  --     ______________________________________________
+  --    |iₚ/p₁  :   _______             _______    :   |
+  --    |       :  |       |           |       |   :   |
+  --    |>src   :  |    src|>          |>dst   |   :   |
+  --    |       :  |_______|           |_______|   :   |
+  --    |       :                                  :   |
+  --    |       ....................................   |
+  --    |   ______            ____                     |
+  --    |  |orig/m|     ...--|i   |--...               |>dst
+  --    |  |______|          |____|                    |
+  --    |______________________________________________|
+  --
+  -- NOTE: 
+  -- We need to ensure that the added connection does not lead to input ports having more than one incoming connection.
+  -- This is a good example of the conflict of where to place constraints:
+  -- 1) `Reactor`s can have the constraint that input ports have to be uniquely connected.
+  -- 2) Execution can add a constraint ensuring that new connections maintain input port connection uniqueness.
+  -- The first option is probably necessary anyway to ensure that reactors are well-formed before execution.
+  -- The second option is then redundant, as the `applicationOfChange` relation with `connect` as change, will only
+  -- be satisfiable if the input port connection uniqueness is maintained (because otherwise `σ₂` could not exist).
+  --
+  -- TODO: Check that the precendence graph of `σ₁` and `σ₂` are the same? (Marten's Thesis, Algorithm 7, Line 20)
   | Change.connect src dst =>
-    ∃ (iₚ i₁ i₂ i : ι) (p₁ p₂ : Reactor ι υ), 
-      σ₁ *[Cmp.rtr] iₚ = p₁ ∧
-      σ₁ & i₁ = iₚ ∧                                         -- We don't need specify that i₁ and i₂ identify a reactor,
-      σ₁ & i₂ = iₚ ∧                                         -- because the next two lines implicitly require this.
-      σ₁ & src = i₁ ∧                                        -- We don't need to check whether src and dst are out- and input ports respectively,
-      σ₁ & dst = i₂ ∧                                        -- because the relay reaction below can only become part of σ₂ if that is the case.
+    ∃ (iₚ i : ι) (m : Reaction ι υ) (p₁ p₂ : Reactor ι υ), 
+      σ₁ *[Cmp.rtr] iₚ = p₁ ∧                               
+      σ₁ & orig = iₚ ∧
+      p₁.rcns orig = m ∧
+      let mChildPorts : Ports.Role → Finset ι := λ r => (σ₁ *[Cmp.rtr] m.children).bUnion (λ rtr => (rtr.ports' r).ids) -- TODO: Factor this into a definition of its own.
+      src ∈ (m.deps Role.in  ∪ mChildPorts Role.out) ∧       -- The src port must be a dependency of m, or an output-port of one of its children.
+      dst ∈ (m.deps Role.out ∪ mChildPorts Role.in) ∧        -- The dst port must be an antidependency of m, or an input-port of one of its children.
       (i ∉ p₁.rcns.ids) ∧                                    -- Checks that i is an ununsed ID in p₁'s set of reactions, so no overriding occurs. 
       p₂.rcns = p₁.rcns.update' i (Reaction.relay src dst) ∧ -- Inserts the required relay reaction.
       p₂.prios = p₁.prios.withIncomparable i ∧               -- Sets the priority of the relay reaction to *.
@@ -46,31 +62,36 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
 
   -- "Disconnecting" means checking whether src and dst are connected by a relay reaction,
   -- and if so removing that reaction.
+  -- A mutation can only disconnect ports that are in its input- and output-dependencies, 
+  -- as well as ports that belong to one of its children.
   -- 
   -- The objects and IDs used below correspond to this illustration:
-  -- The outer box is a reactor, the boxes within the colons are nested reactors
-  -- and the box connecting them is the relay reaction.
-  --     __________________________________________________
-  --    |iₚ/p₁  :   _______                 _______    :   |
-  --    |       :  |i₁     |               |     i₂|   :   |
-  --    |       :  |    src|>---        ---|>dst   |   :   |
-  --    |       :  |_______|   |        |  |_______|   :   |
-  --    |       :              |        |              :   |
-  --    |       ...............|........|...............   |
-  --    |                      |  ____  |                  |
-  --    |                      --|iᵣ  |--                  |
-  --    |                        |____|                    |
-  --    |__________________________________________________|
-  --  
+  -- The outer box is a reactor, the boxes within the colons are nested reactors.
+  -- The mutation (m) that triggered this change lives in the outer reactor.
+  -- The relay reaction (iᵣ) that will be removed lives in the same reactor.
+  -- The src and dst ports can have multiple possible positions, and hence appear
+  -- multiple times in the illustration.
+  --     ______________________________________________
+  --    |iₚ/p₁  :   _______             _______    :   |
+  --    |       :  |       |           |       |   :   |
+  --    |>src   :  |    src|>          |>dst   |   :   |
+  --    |       :  |_______|           |_______|   :   |
+  --    |       :                                  :   |
+  --    |       ....................................   |
+  --    |   ______            ____                     |
+  --    |  |orig/m|     ...--|iᵣ  |--...               |>dst
+  --    |  |______|          |____|                    |
+  --    |______________________________________________|
   | Change.disconnect src dst =>
-    ∃ (iₚ i₁ i₂ iᵣ : ι) (p₁ p₂ : Reactor ι υ), 
+    ∃ (iₚ iᵣ : ι) (m : Reaction ι υ) (p₁ p₂ : Reactor ι υ), 
       σ₁ *[Cmp.rtr] iₚ = p₁ ∧
-      σ₁ & i₁ = iₚ ∧                               -- We don't need specify that i₁ and i₂ identify a reactor, 
-      σ₁ & i₂ = iₚ ∧                               -- because the next two lines implicitly require this.
-      σ₁ & src = i₁ ∧                              -- We don't need to check whether src and dst are out- and input ports respectively,
-      σ₁ & dst = i₂ ∧                              -- because the relay reaction below can only be part of σ₁ if that is the case.
-      σ₁.rcns iᵣ = some (Reaction.relay src dst) ∧ -- Makes sure there is a relay reaction from src to dst.
-      p₂.rcns = p₁.rcns.update iᵣ none ∧           -- Removes the relay reaction.
+      σ₁ & orig = iₚ ∧
+      p₁.rcns orig = m ∧
+      let mChildPorts : Ports.Role → Finset ι := λ r => (σ₁ *[Cmp.rtr] m.children).bUnion (λ rtr => (rtr.ports' r).ids) -- TODO: Factor this into a definition of its own.
+      src ∈ (m.deps Role.in  ∪ mChildPorts Role.out) ∧ -- The src port must be a dependency of m, or an output-port of one of its children.
+      dst ∈ (m.deps Role.out ∪ mChildPorts Role.in) ∧  -- The dst port must be an antidependency of m, or an input-port of one of its children.
+      σ₁.rcns iᵣ = some (Reaction.relay src dst) ∧     -- Makes sure there is a relay reaction from src to dst.
+      p₂.rcns = p₁.rcns.update iᵣ none ∧               -- Removes the relay reaction.
       p₂.prios = p₁.prios ∧ p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.nest = p₁.nest ∧ 
       σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
 
@@ -88,6 +109,9 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
   --    |   |______|           |
   --    |______________________|
   --  
+  -- TODO: Make sure that all reactions in the new reactor that are triggered by the startup-trigger
+  --       run during the current logical time. But only after all mutations of orig's parent have
+  --       been executed.
   | Change.create rtr i =>
     ∃ (iₚ : ι) (p₁ p₂ : Reactor ι υ) (m : Reaction ι υ) (hₘ : m.isMut),
       σ₁ *[Cmp.rtr] iₚ = p₁ ∧
@@ -100,9 +124,10 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
       p₂.ports = p₁.ports ∧ p₂.roles = p₁.roles ∧ p₂.state = p₁.state ∧ p₂.prios = p₁.prios ∧ 
       σ₁ -[Cmp.rtr, iₚ := p₂]→ σ₂
 
-  -- Deletion takes place in the time-world.
-  -- Hence, here we only make sure that the conditions for deletion are met:
+  -- Deletion takes place mainly in the time-world.
+  -- Hence, here we make sure that the conditions for deletion are met:
   -- The deleted reactor has to be nested in the reactor whose mutation triggered the deletion.
+  -- Also, deletion propagates down the entire hierarchy of reactors nested in the deletion target.
   --
   -- The objects and IDs used below correspond to this illustration:
   -- The outer box is a reactor, the box within the colons is the new reactor
@@ -118,19 +143,24 @@ def appOfChange (σ₁ σ₂ : Reactor ι υ) (orig : ι) : Change ι υ → Pro
   --    |   |_____|           |
   --    |_____________________|
   --  
+  -- TODO: "Mark" i for deletion.
+  --       Call DELETE (recursivley) on all nested reactors of d.
+  --       Trigger all required shutdown reactions at the current time step.
+  --       In the time-world, once the current instantaneous execution has completed,
+  --       delete the reactor and remove all of its port-connections.
   | Change.delete i =>
-    ∃ (iₚ : ι) (p : Reactor ι υ),
+    ∃ (iₚ : ι) (p d : Reactor ι υ),
       σ₁ *[Cmp.rtr] iₚ = p ∧
       σ₁ & orig = iₚ ∧
-      i ∈ p.nest.ids
+      p.nest i = d
 
-notation σ₁:max " -[" c ", " orig "]→ " σ₂:max => appOfChange σ₁ σ₂ orig c
+notation σ₁:max " -[" c ", " orig "]→ " σ₂:max => applicationOfChange σ₁ σ₂ orig c
 
-def appOfOutput (σ₁ σ₂ : Reactor ι υ) (orig : ι) : List (Change ι υ) → Prop
+def applicationOfOutput (σ₁ σ₂ : Reactor ι υ) (orig : ι) : List (Change ι υ) → Prop
   | [] => σ₁ = σ₂
-  | hd::tl => ∃ σₘ, (σ₁ -[hd, orig]→ σₘ) ∧ (appOfOutput σₘ σ₂ orig tl)
+  | hd::tl => ∃ σₘ, (σ₁ -[hd, orig]→ σₘ) ∧ (applicationOfOutput σₘ σ₂ orig tl)
 
-notation σ₁:max " -[" o ", " orig "]→ " σ₂:max => appOfOutput σ₁ σ₂ orig o
+notation σ₁:max " -[" o ", " orig "]→ " σ₂:max => applicationOfOutput σ₁ σ₂ orig o
 
 def execOfRcn (σ₁ σ₂ : Reactor ι υ) (i : ι) : Prop :=
   ∃ (iₚ : ι) (ctx : Reactor ι υ) (rcn : Reaction ι υ),

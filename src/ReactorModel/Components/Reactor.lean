@@ -53,7 +53,6 @@ structure uniqueIDs (rtr : Raw.Reactor ι υ) : Prop where
 
 structure rcnIsWF (rcn : Raw.Reaction ι υ) : Prop where
   triggersSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
-  inDepOnly :   ∀ p, rcn.body p = rcn.body (p % rcn.deps Role.in)    
   outDepOnly :  ∀ i s o (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
   normNoChild : rcn.isNorm → rcn.children = ∅
 

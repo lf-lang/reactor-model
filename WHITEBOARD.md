@@ -34,16 +34,3 @@
 ## Federated Execution
 
 Formalize time precedence graphs (Lamport clock relation). 
-
-## Next Meeting
-
-* Using reactions'/mutations' API methods as part of the model worked really nicely.
-
-* There are some setters which only work if certain proofs are given as parameters. 
-  Those setters should still integrate nicely into relation-based definitions,
-  as those definitions easily allow us to require the necessary proof.
-  E.g:
-  def relation (a b : Thing) : Prop := Exists proof, a.change proof = b
-    
-* Where do we place constraints? In the objects or in the execution?
-  
