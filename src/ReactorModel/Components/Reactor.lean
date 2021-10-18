@@ -18,10 +18,6 @@ def List.isRtrIDPathFor (i : ι) (ctx : Raw.Reactor ι υ) : List ι → Prop
 
 notation p " *ᵣ[" r "] " i => List.isRtrIDPathFor i r p
 
--- The set of (defined) port IDs contained in a given reactor's nested network.
-noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Set ι :=
-  {i | ∃ j x, rtr.nest.rtrs j = some x ∧ i ∈ (x.ports r).ids}
-
 /-
 To define properties of reactors recursively, we need the concept of containment.
 That is, that a reactor is contained in a different reactor.
@@ -29,15 +25,36 @@ We do this as a transitive closure of a direct containment relation.
 Thus, we first define what it means for a (raw) reactor to be contained directly
 in a different reactor.
 -/
-def containedDirectlyIn (rtr rtr' : Raw.Reactor ι υ) : Prop :=
+def Raw.isContainedDirectlyIn (rtr rtr' : Raw.Reactor ι υ) : Prop :=
  ∃ i, rtr'.nest.rtrs i = some rtr
 
 /-
 This direct containment we can then extend through a
-reflexive, transitive closure, as an inductively defined proposition:
--/
-def containedIn := Relations.multi containedDirectlyIn
+reflexive, transitive closure, as an inductively defined proposition.
 
+We need to be explicit about the variables ι and υ and their instances here,
+so that the typechecker can get things through the `multi` closure from Relations.
+-/
+def Raw.isContainedIn := Relations.multi (X := Raw.Reactor ι υ) (Raw.isContainedDirectlyIn )
+
+def Raw.isContainedIn_refl (rtr : Raw.Reactor ι υ)  :=
+ @Relations.multi.multi_refl (Raw.isContainedDirectlyIn) rtr --some universes stuff...
+
+-- The set of (defined) port IDs contained in a given reactor's nested network.
+noncomputable def Raw.Reactor.nestedPortIDs (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Set ι :=
+  {i | ∃ j x, rtr.nest.rtrs j = some x ∧ i ∈ (x.ports r).ids}
+/-
+Note that this only defines the PortIDs one 'level' down the chain of reactors. We dissalow that we have e.g.:
+∃ j k x, (rtr.nest.rtrs j).nest.rtrs.k = some x ∧ i ∈ (x.ports r).ids
+
+We should double-check this with the CyPhy paper/Marten's thesis and the LF implementation.
+Alteratively we would write:
+
+  {i | ∃ rtr', Raw.isContainedIn rtr' rtr ∧ i ∈ (rtr'.ports r).ids}
+
+-/
+
+-- We can now proceed to define well-formedness in (raw) reactors. We start by defining the properties of a single reactor
 structure Raw.Reactor.wellFormed' (rtr : Raw.Reactor ι υ) : Prop where
   mutsFinite :      { i | rtr.muts i ≠ none }.finite
   mutsTsSubInDeps : ∀ m i, rtr.muts i = some m → m.triggers ⊆ m.deps Role.in                                     
@@ -77,15 +94,58 @@ This isn't an issue though, because
     E.g. mutations (`muts`) are defined as a `Finmap`, which ensures that each valid mutation-ID refers to a unique `Mutation`.
 -/
 
--- Recursive step for wellFormed'.
-def Raw.Reactor.wellFormed (rtr : Raw.Reactor ι υ) : Prop :=
-  rtr.wellFormed' ∧ (∀ r : Raw.Reactor ι υ, ∃ i, r ∈ rtr.nest.rtrs → r.wellFormed')
+/-
+Having defined well-formedness for a single reactor we proceed to extend this to a full reactor.
+A reactor is well-formed if all the proerties above hold for itself as well as all its contained reactors.
+-/
 
+structure Raw.Reactor.wellFormed (rtr : Raw.Reactor ι υ) : Prop where
+  selfWf : rtr.wellFormed' 
+  containedWF : ∀ r : Raw.Reactor ι υ, Raw.isContainedIn r rtr → r.wellFormed'
+
+/-
+We can now finally define a (proper) Reactor:
+A Reactor is a raw Reactor that is also well-formed.
+We do this using a structure to be able to access the structure and
+their properties separately.
+-/
 structure Reactor (ι υ) [ID ι] [Value υ] where 
   raw : Raw.Reactor ι υ
   wf : raw.wellFormed  
 
 namespace Reactor
+
+/-
+We can also define ('lift') the containement relation for these 'proper' reactors:
+-/
+def isContainedDirectlyIn (rtr rtr' : Reactor ι υ) : Prop :=
+ Raw.isContainedDirectlyIn rtr.raw rtr'.raw
+
+def isContainedIn {ι υ : Type} {inst₁ : ID ι} {inst₂ : Value υ} := Relations.multi (@isContainedDirectlyIn ι υ inst₁ inst₂)
+/-
+The main property of reactors is that a contained reactor is also well-formed.
+-/
+lemma Raw.isContainedDirectlyInPreservesWF (rtr rtr' : Raw.Reactor ι υ) : 
+  Raw.isContainedDirectlyIn rtr' rtr ∧ rtr.wellFormed → rtr'.wellFormed := by
+  intros Hdisj
+  have Hcontwf := Hdisj.2.containedWF 
+  have Hdirectly := Hdisj.1 -- can I do this with a pattern directly at intros?
+  have Hrefl := (Relations.multi.multi_refl Raw.isContainedDirectlyIn rtr')
+  have Hcont : Relations.multi.multi_step Raw.isContainedDirectlyIn rtr rtr' rtr' (Hdisj.1) 
+     
+
+
+
+theorem Raw.isContainedInPreservesWF (rtr rtr' : Raw.Reactor ι υ) : 
+  Raw.isContainedIn rtr' rtr ∧ rtr.wellFormed → rtr'.wellFormed := by
+  intros Hdisj
+  have Hcont := Hdisj.1
+  have Hrwf := Hdisj.2 --can I do this with a pattern directly at intros?
+  induction Hcont with
+  | multi_refl => assumption
+  | multi_step => 
+    
+
 
 -- These are the "tivial" accessors on `Reactor` - i.e. those that don't (barely) involve 
 -- the constraints given by `Reactor.wf`. The non-trivial accessors are defined in the files
@@ -93,7 +153,7 @@ namespace Reactor
 
 def ports (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports
 def state (rtr : Reactor ι υ) : StateVars ι υ          := rtr.raw.state
-def rcns  (rtr : Reactor ι υ) : ι ▸ Reaction ι υ       := {lookup := rtr.raw.rcns, finite := rtr.wf.rcnsFinite}
+def rcns  (rtr : Reactor ι υ) : ι ▸ Reaction ι υ       := {lookup := rtr.raw.rcns, finite := rtr.wf.selfWf.rcnsFinite} 
 def prios (rtr : Reactor ι υ) : PartialOrder ι         := rtr.raw.prios
 
 end Reactor

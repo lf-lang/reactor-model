@@ -8,3 +8,4 @@ import ReactorModel.Components.Network
 import ReactorModel.Components.Raw
 import ReactorModel.Components.Reaction
 import ReactorModel.Components.Reactor
+import ReactorModel.Components.ReactorProps

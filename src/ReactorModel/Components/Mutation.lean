@@ -17,7 +17,7 @@ variable {ι υ}
 -- A non-`Raw` accessor for a `Reactor`'s mutations.
 -- This uses the constraints given by `Reactor.wf` in order to convert `Raw.Mutation`s to `Mutation`s.
 def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Mutation ι υ :=
-  let raw : Finmap ι (Raw.Mutation ι υ) := {lookup := rtr.raw.muts, finite := rtr.wf.mutsFinite}
+  let raw : Finmap ι (Raw.Mutation ι υ) := {lookup := rtr.raw.muts, finite := rtr.wf.selfWf.mutsFinite}
   raw.map (λ m => {
       deps := m.deps,
       triggers := m.triggers,
