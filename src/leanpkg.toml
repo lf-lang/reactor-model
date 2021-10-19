@@ -1,9 +1,9 @@
 [package]
 name = "reactor-model"
 version = "0.1"
-lean_version = "leanprover/lean4:nightly-2021-08-25"
+lean_version = "leanprover/lean4:nightly-2021-10-18"
 
 [dependencies]
-mathlib4 = { git = "https://github.com/leanprover-community/mathlib4", rev = "7ac569847b94980d3d668ae6079131f5cd2fe559" }
+mathlib4 = { git = "https://github.com/leanprover-community/mathlib4", rev = "c33b823e24ba6307f7a2cdaf1cead76a7029a14d" }
 
 

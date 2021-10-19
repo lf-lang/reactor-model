@@ -19,15 +19,30 @@ variable {ι υ}
 -- A non-`Raw` accessor for a `Reactor`'s mutations.
 -- This uses the constraints given by `Reactor.wf` in order to convert `Raw.Reaction`s to `Reaction`s.
 def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
-  let raw : Finmap ι (Raw.Reaction ι υ) := {lookup := rtr.raw.rcns, finite := rtr.wf.self.rcnsFinite}
-  raw.map (λ rcn => {
+  let raw : Finmap ι (Raw.Reaction ι υ) := {lookup := rtr.raw.rcns, finite := rtr.wf.direct.rcnsFinite}
+  raw.map' (λ rcn h => {
       deps := rcn.deps,
       triggers := rcn.triggers,
       children := rcn.children,
-      body := (λ p s => (rcn.body p s).map (λ c => sorry)),
+      body := (λ p s => (rcn.body p s).map (λ c => 
+        sorry
+      )),
       tsSubInDeps := sorry,
-      outDepOnly := sorry,
-      normNoChild := sorry
+      outDepOnly := by
+        intro h'
+        have hw := (rtr.wf.direct.rcnsWF (Finmap.values_def.mp h)).outDepOnly
+        intro s o v ho
+        sorry
+      ,
+      normNoChild := by
+        intro h'
+        have hw := (rtr.wf.direct.rcnsWF (Finmap.values_def.mp h)).normNoChild
+        simp at h'
+        simp [Raw.Reaction.isNorm] at hw
+        suffices hg : ∀ i s c, c ∈ Raw.Reaction.body rcn i s → ¬Raw.Change.mutates c from hw hg
+        intro i s c hc
+        sorry
+        -- exact h' i s c hc
     }
   )
 
@@ -116,7 +131,7 @@ noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) (h : rc
 def triggersOn (rcn : Reaction ι υ) (p : Ports ι υ) : Prop :=
   ∃ (t : ι) (v : υ), t ∈ rcn.triggers ∧ p[t] = some v
 
-theorem eqInputEqTriggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} (h : p₁ =[rcn.deps Role.in] p₂) :
+theorem eq_input_eq_triggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} (h : p₁ =[rcn.deps Role.in] p₂) :
   rcn.triggersOn p₁ ↔ rcn.triggersOn p₂ := by
   simp [triggersOn, Ports.eqAt] at h ⊢
   split
@@ -128,8 +143,7 @@ theorem eqInputEqTriggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} (h 
       exists r
       exists v
       have hₜ := Finset.mem_of_subset rcn.tsSubInDeps r
-      have h := eqLookupEqGet (h t hₜ)
-      simp [←h', h]
+      simp [←h', (h t hₜ)]
   }
 
 end Reaction

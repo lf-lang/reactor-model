@@ -77,7 +77,7 @@ namespace Raw.Reactor
 structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
-  rcnsWF :          ∀ rcn i, rtr.rcns i = some rcn → rcn.wellFormed
+  rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   wfRoles :         rtr.roles.ids = rtr.ports.ids
   wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
@@ -137,8 +137,8 @@ def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
 -- 1. We turn `rtr.raw.nest` into a finmap that has raw reactors as values.
 -- 2. We map on that finmap to get a finmap that returns "proper" reactors.
 def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := 
-  let finmap : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.wf.direct.nestFiniteRtrs }
-  finmap.map' (λ r h => {
+  let raw : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.wf.direct.nestFiniteRtrs }
+  raw.map' (λ r h => {
     raw := r, 
     wf := by
       have hm := Finmap.values_def.mp h
