@@ -3,7 +3,7 @@ import ReactorModel.Mathlib
 -- The class of types that can be used as identifiers for components in a reactor.
 -- 
 -- IDs tend to require a "context" in order to associate them to actual objects. 
--- This context is usually a (top-level) reactor, which is then identified by the `root` value.
+-- This context is usually a (top-level) reactor which is then identified by the `root` value.
 class ID (α) where
   root : α
   decEq : DecidableEq α
@@ -13,6 +13,7 @@ notation "⊤" => ID.root
 instance ID.DecidableEq {ι} [ID ι] : DecidableEq ι := ID.decEq
 
 -- The class of types that can be used as values in a reactor.
+-- Any such type must contain an "absent" value.
 class Value (α) where
   absent : α
   decEq : DecidableEq α
@@ -23,11 +24,25 @@ instance Value.DecidableEq {υ} [Value υ] : DecidableEq υ := Value.decEq
 
 variable (ι υ) [ID ι] [Value υ]
 
+-- An instance of `StateVars` is grouping of state variables.
+-- That is, a finite map of identifiers to values.
+--
+-- This type serves no other purpose than making explicit what the
+-- underlying finmap means. That is, it is more explicit to pass an
+-- instance of `StateVars ι υ` than just `ι ▸ υ`.
 abbrev StateVars := ι ▸ υ
 
 instance : Inhabited (StateVars ι υ) where
   default := (Inhabited.default : Finmap _ _)
 
+-- An instance of `Ports` is grouping of ports.
+-- That is, a finite map of identifiers to values.
+--
+-- The main purpose of this type is to make explicit what the
+-- underlying finmap means. That is, it is more explicit to pass an
+-- instance of `Ports ι υ` than just `ι ▸ υ`.
+-- Additionally, we define specific accessors on this type (below),
+-- which are only relevant for ports.
 def Ports := ι ▸ υ
 
 instance : Inhabited (Ports ι υ) where
@@ -40,10 +55,14 @@ variable {ι υ}
 -- Port roles are used to differentiate between input and output ports.
 -- This is useful for avoiding duplication of definitions that are fundamentally the same 
 -- and only differ by the kinds of ports that are referenced/affected.
+--
+-- E.g. a reaction defines its dependencies as a map `Ports.Role → Finset ι`,
+-- instead of two separate fields, each of type `Finset ι`.
 inductive Role 
   | «in» 
   | out
 
+-- Role equality is decidable.
 instance : DecidableEq Role := λ r₁ r₂ =>
   match r₁, r₂ with
   | Role.in,  Role.in =>  Decidable.isTrue rfl 
@@ -51,12 +70,17 @@ instance : DecidableEq Role := λ r₁ r₂ =>
   | Role.in,  Role.out => Decidable.isFalse (by simp)
   | Role.out, Role.in =>  Decidable.isFalse (by simp)
 
-@[reducible]
-def Role.opposite : Role → Role 
+-- When writing functions that are generic over a port's role,
+-- it is sometimes necessary to talk about the "opposite" role.
+--
+-- E.g. when connecting ports, it might be possible to connect an
+-- input to an output port, as well as an output port to an input port.
+-- This can be defined generically by using the concept of an opposite role.
+abbrev Role.opposite : Role → Role 
   | Role.in => Role.out
   | Role.out => Role.in
 
--- A lookup method for ports, where the absent value is treated as the absence of a value.
+-- A lookup method for ports where the absent value is treated as the absence of a value.
 --
 -- Since ports are just finmaps, they inherit its `lookup` function.
 -- As a result, if a given port `i` contains the absent value (`⊥`), then `p.lookup i = some ⊥`.
@@ -67,26 +91,31 @@ def Role.opposite : Role → Role
 -- 
 -- The `get` function provides this case separation by mapping `some ⊥` to `none`.
 -- That is, if `p.get i = some v`, we know `v ≠ ⊥`.
+--
+-- The notation used for `p.get i` is `p[i]`.
 def get (p : Ports ι υ) (i : ι) : Option υ := 
   p.lookup i >>= (λ v => if v = ⊥ then none else v)
 
 notation p:max "[" i "]" => get p i
 
-theorem eqLookupEqGet {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁.lookup i = p₂.lookup i) :
+theorem eq_lookup_eq_get {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁.lookup i = p₂.lookup i) :
   p₁[i] = p₂[i] := by
   simp [get, bind, h]
 
-theorem lookupNoneGetNone {p : Ports ι υ} {i : ι} (h : p.lookup i = none) : p[i] = none := by
+theorem lookup_none_get_none {p : Ports ι υ} {i : ι} (h : p.lookup i = none) : p[i] = none := by
   simp [get, h]
 
-theorem lookupAbsentAtNone {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥) :
+theorem lookup_absent_at_none {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥) :
   p[i] = none := by
   simp [get, bind, Option.bind, h]
 
--- Two port-assignments are `eqAt` IDs `is`, if their values correspond for all of the given IDs.
-@[reducible]
+-- Two port-assignments are `eqAt` (equal at) a given set of IDs,
+-- if their values correspond for all of those IDs.
+-- Note, we only require equality up to `get`, not to `lookup`.
+--
+-- The notation used for `eqAt is p₁ p₂` is `p₁ =[is] p₂`.
 def eqAt (is : Finset ι) (p₁ p₂ : Ports ι υ) : Prop := 
-  ∀ i ∈ is, p₁.lookup i = p₂.lookup i
+  ∀ i ∈ is, p₁[i] = p₂[i]
 
 notation p:max " =[" i "] " q:max => eqAt i p q
 
@@ -123,13 +152,13 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
     split
     case right => exact h
     case left =>
-      rw [Finmap.idsDef]
+      rw [Finmap.ids_def]
       simp [get, Option.ne_none_iff_exists] at h
       obtain ⟨_, ⟨_, ⟨h, _⟩⟩⟩ := h
       simp [Option.ne_none_iff_exists, h]
   finite.toFinset
 
-theorem inhabitedIDsNone {p : Ports ι υ} {i : ι} (h : p[i] = none) : i ∉ p.inhabitedIDs := by
+theorem inhabited_ids_none {p : Ports ι υ} {i : ι} (h : p[i] = none) : i ∉ p.inhabitedIDs := by
   simp only [inhabitedIDs, Set.finite.mem_to_finset, setOf]
   simp [h, Mem.mem, Set.mem]
 

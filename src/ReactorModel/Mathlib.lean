@@ -7,6 +7,5 @@ import ReactorModel.Mathlib.List
 import ReactorModel.Mathlib.Multiset
 import ReactorModel.Mathlib.Option
 import ReactorModel.Mathlib.PartialOrder
-import ReactorModel.Mathlib.Relation
 import ReactorModel.Mathlib.Set
 import ReactorModel.Mathlib.Tactics
