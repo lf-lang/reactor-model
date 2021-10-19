@@ -38,15 +38,13 @@ inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
     (nest : ι → Option (Reactor ι υ))
     (prios : PartialOrder ι)
 
+-- This is just a sanity check, to make sure that the above definition of reactors
+-- actually allows them to be constructed.
+deriving Inhabited
+
 end
 
 variable {ι υ} [ID ι] [Value υ]
-
--- This is just a sanity check, to make sure that the above definition of reactors
--- actually allows them to be constructed.
-open Inhabited in
-instance : Inhabited (Reactor ι υ) where
-  default := Reactor.mk default default default default default default
 
 namespace Change 
 

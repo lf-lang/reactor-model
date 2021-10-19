@@ -66,7 +66,6 @@ structure Raw.Reaction.wellFormed (rcn : Raw.Reaction ι υ) : Prop where
   triggersSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
   outDepOnly :        ∀ i s {o} (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
   normNoChild :       rcn.isNorm → rcn.children = ∅
-  -- wfCreatedRtrs : 
 
 namespace Raw.Reactor
 
@@ -85,7 +84,7 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   wfMutChildren :   ∀ m i, rtr.rcns i = some m → m.isMut → ↑m.children ⊆ { i | rtr.nest i ≠ none }
   mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
   mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁)
-  uniqueIDs :       uniqueIDs rtr  
+  uniqueIDs :       uniqueIDs rtr 
 
 -- To define properties of reactors recursively, we need a concept of containment.
 -- That is, that a reactor is contained in a different reactor.
@@ -93,14 +92,21 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
 -- Thus, we first define what it means for a (raw) reactor to be contained directly
 -- in a different reactor. Then define a transitive step on the direct containment.
 inductive isStrictlyContainedIn : (Raw.Reactor ι υ) → (Raw.Reactor ι υ) → Prop 
-  | direct {child parent : Raw.Reactor ι υ} : (∃ i, parent.nest i = child) → isStrictlyContainedIn child parent
-  | trans {r₁ r₂ r₃ : Raw.Reactor ι υ} : (isStrictlyContainedIn r₁ r₂) → (isStrictlyContainedIn r₂ r₃) → (isStrictlyContainedIn r₁ r₃)
+  | direct {child parent i} : (parent.nest i = some child) → isStrictlyContainedIn child parent
+  | trans {r₁ r₂ r₃} : (isStrictlyContainedIn r₁ r₂) → (isStrictlyContainedIn r₂ r₃) → (isStrictlyContainedIn r₁ r₃)
 
--- Having defined well-formedness for a single reactor we proceed to extend this to a full reactor.
--- A reactor is well-formed if all the proerties above hold for itself as well as all its contained reactors.
+-- TODO: Document this.
+inductive isCreatableBy : (Raw.Reactor ι υ) → (Raw.Reactor ι υ) → Prop 
+  | direct {child parent rcn p s i iᵣ} : (parent.rcns i = some rcn) → (Change.create child iᵣ ∈ rcn.body p s) → isCreatableBy child parent
+  | trans {r₁ r₂ r₃} : (isCreatableBy r₁ r₂) → (isCreatableBy r₂ r₃) → (isCreatableBy r₁ r₃)
+
+-- Having defined well-formedness for a single reactor we proceed to extend this to a full reactor
+-- hierarchy. A reactor is well-formed if all the properties above hold for itself as well as all
+-- its contained and creatable reactors. 
 structure wellFormed (σ : Raw.Reactor ι υ) : Prop where
   direct : σ.directlyWellFormed 
   contained : ∀ {rtr : Raw.Reactor ι υ}, rtr.isStrictlyContainedIn σ → rtr.directlyWellFormed
+  creatable : ∀ {rtr : Raw.Reactor ι υ}, rtr.isCreatableBy σ → rtr.directlyWellFormed
 
 end Raw.Reactor
 
@@ -119,7 +125,11 @@ theorem Raw.Reactor.isStrictlyContainedIn_preserves_wf
   {rtr rtr' : Raw.Reactor ι υ} (hc : rtr'.isStrictlyContainedIn rtr) (hw : rtr.wellFormed) :
   rtr'.wellFormed := {
     direct := hw.contained hc,
-    contained := λ hr => hw.contained (isStrictlyContainedIn.trans hr hc) 
+    contained := λ hr => hw.contained (isStrictlyContainedIn.trans hr hc)
+    creatable := λ hr => by
+      -- Perhaps you need a theorem isCreatableBy_preserves_wf
+      -- and do some kind of mutual induction thing.
+      sorry
   }
 
 -- Lifted versions of the "tivial" accessors on `Reactor` - i.e. those that don't
@@ -142,7 +152,7 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
   raw.map' (λ r h => {
     raw := r, 
     wf := by
-      have hm := Finmap.values_def.mp h
+      have ⟨_, hm⟩ := Finmap.values_def.mp h
       have h' := Raw.Reactor.isStrictlyContainedIn.direct hm
       exact Raw.Reactor.isStrictlyContainedIn_preserves_wf h' rtr.wf
   })
