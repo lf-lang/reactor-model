@@ -1,16 +1,16 @@
 import ReactorModel.Mathlib.List
 
-def Multiset.{u} (α : Type u) : Type u := Quotient (List.isSetoid α)
+def Multiset.{u} (α : Type u) : Type u := Quotient ⟨List.Perm (α := α), List.Perm.Equivalence⟩
 
 instance : Coe (List α) (Multiset α) := ⟨Quotient.mk⟩
 
 namespace Multiset
 
-def nodup (s : Multiset α) : Prop := Quot.liftOn s List.nodup (λ _ _ p => propext p.nodupIff)
+def nodup (s : Multiset α) : Prop := Quot.liftOn s List.nodup (λ _ _ p => propext p.nodup_iff)
 
-def mem (a : α) (s : Multiset α) : Prop := Quot.liftOn s (λ l => a ∈ l) (λ l₁ l₂ (e : l₁ ~ l₂) => propext e.memIff)
+def mem (a : α) (s : Multiset α) : Prop := Quot.liftOn s (λ l => a ∈ l) (λ l₁ l₂ (e : l₁ ~ l₂) => propext e.mem_iff)
 
-def nodupkeys {β : α → Type _} (s : Multiset (Sigma β)) : Prop := Quot.liftOn s List.nodupkeys (λ s t p => propext $ List.permNodupkeys p)
+def nodupkeys {β : α → Type _} (s : Multiset (Sigma β)) : Prop := Quot.liftOn s List.nodupkeys (λ s t p => propext $ List.perm_nodup_keys p)
 
 def map (f : α → β) (s : Multiset α) : Multiset β := sorry
 

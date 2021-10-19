@@ -50,10 +50,9 @@ noncomputable def values (f : α ▸ β) : Finset β :=
     simp at *
     obtain ⟨b, ⟨a, ha⟩, hb⟩ := h
     exists a
-    rw [ids_def]
-    split
-    simp [ha]
-    simp [ha, hb]
+    apply And.intro
+    case left => simp [ids_def, ha]
+    case right => simp [ha, hb]
   finite.toFinset
 
 theorem values_def {f : α ▸ β} {v : β} : v ∈ f.values ↔ (∃ i, f i = some v) := by

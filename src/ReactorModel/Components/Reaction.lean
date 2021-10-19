@@ -134,8 +134,8 @@ def triggersOn (rcn : Reaction ι υ) (p : Ports ι υ) : Prop :=
 theorem eq_input_eq_triggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} (h : p₁ =[rcn.deps Role.in] p₂) :
   rcn.triggersOn p₁ ↔ rcn.triggersOn p₂ := by
   simp [triggersOn, Ports.eqAt] at h ⊢
-  split
-  allGoals {
+  apply Iff.intro
+  all_goals {
     intro hₑ
     match hₑ with
     | ⟨t, r, ⟨v, h'⟩⟩ =>

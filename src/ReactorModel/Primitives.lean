@@ -61,14 +61,7 @@ variable {ι υ}
 inductive Role 
   | «in» 
   | out
-
--- Role equality is decidable.
-instance : DecidableEq Role := λ r₁ r₂ =>
-  match r₁, r₂ with
-  | Role.in,  Role.in =>  Decidable.isTrue rfl 
-  | Role.out, Role.out => Decidable.isTrue rfl
-  | Role.in,  Role.out => Decidable.isFalse (by simp)
-  | Role.out, Role.in =>  Decidable.isFalse (by simp)
+deriving DecidableEq
 
 -- When writing functions that are generic over a port's role,
 -- it is sometimes necessary to talk about the "opposite" role.
@@ -123,10 +116,7 @@ notation p:max " =[" i "] " q:max => eqAt i p q
 instance eqAt.Setoid (is : Finset ι) : Setoid (Ports ι υ) := { 
   r := eqAt is,
   iseqv := { 
-    refl := by
-      simp only [eqAt]
-      intro x i hi
-      rfl
+    refl := by simp [eqAt]
     symm := by
       simp only [eqAt]
       intro x y h i hi
@@ -149,7 +139,7 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
     simp [Set.subset_def]
     intro x h
     simp at *
-    split
+    apply And.intro
     case right => exact h
     case left =>
       rw [Finmap.ids_def]

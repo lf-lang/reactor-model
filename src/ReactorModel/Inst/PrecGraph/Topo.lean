@@ -16,17 +16,14 @@ namespace Topo
 
 -- Removing an element from a topological ordering does not break the property of it being a topological ordering.
 theorem eraseIsTopo {t : List ι} {π : PrecGraph σ} (rcn : ι) (h : t.isTopoOver π) :
-  (t.erase rcn).isTopoOver π := by
-  split
-  case nodup => 
-    exact List.nodup_erase_of_nodup _ h.nodup
-  case mem => 
-    intro _ hₓ
-    exact h.mem (List.mem_of_mem_erase hₓ)
-  case order =>
-    intro x x' hₓ hₓ' hₚ
-    have hᵢ := h.order (List.mem_of_mem_erase hₓ) (List.mem_of_mem_erase hₓ') hₚ
-    exact List.index_of_erase_lt hᵢ hₓ hₓ' h.nodup
+  (t.erase rcn).isTopoOver π := {
+    nodup := List.nodup_erase_of_nodup _ h.nodup,
+    mem := λ hₓ => h.mem (List.mem_of_mem_erase hₓ),
+    order := by
+      intro x x' hₓ hₓ' hₚ
+      have hᵢ := h.order (List.mem_of_mem_erase hₓ) (List.mem_of_mem_erase hₓ') hₚ
+      exact List.index_of_erase_lt hᵢ hₓ hₓ' h.nodup
+  }
 
 -- If a list is a topological ordering for some graph, then so is its tail.
 theorem consIsTopo {hd : ι} {tl : List ι} {π : PrecGraph σ} (h : (hd :: tl).isTopoOver π) :
@@ -60,36 +57,28 @@ protected structure indep (rcn : ι) (t : List ι) (π : PrecGraph σ) : Prop wh
 
 -- The head of a topological ordering is always independent.
 theorem indepHead (hd : ι) (tl : List ι) {π : PrecGraph σ} (h : (hd :: tl).isTopoOver π) :
-  Topo.indep hd (hd :: tl) π := by
-  split
-  case mem =>
-    exact h.mem (List.mem_cons_self hd tl)
-  case path =>
-    intros x hₓ
-    byContra hc
-    have hᵢ := h.order hₓ (List.mem_cons_self hd tl) hc
-    rw [List.index_of_cons_self hd tl] at hᵢ
-    exact Nat.not_lt_zero _ hᵢ
+  Topo.indep hd (hd :: tl) π := {
+    mem := h.mem (List.mem_cons_self hd tl),
+    path := by
+      intros x hₓ
+      byContra hc
+      have hᵢ := h.order hₓ (List.mem_cons_self hd tl) hc
+      rw [List.index_of_cons_self hd tl] at hᵢ
+      exact Nat.not_lt_zero _ hᵢ
+  }
 
 -- If an element is independent in a list, then it is also independent in its tail.
 theorem indepCons {rcn hd : ι} {tl : List ι} {π : PrecGraph σ} (h : Topo.indep rcn (hd :: tl) π) :
-  Topo.indep rcn tl π := by
-  split
-  case mem =>
-    exact h.mem
-  case path => 
-    intros x hₓ
-    exact h.path x (List.mem_cons_of_mem _ hₓ)
+  Topo.indep rcn tl π := {
+    mem := h.mem,
+    path := λ x hₓ => h.path x (List.mem_cons_of_mem _ hₓ)
+  }
 
 -- If an element is independent in a list, then if is also independent in a permutation of that list.
 theorem indepPerm {rcn : ι} {t t' : List ι} {π : PrecGraph σ} (hₚ : t ~ t') (hᵢ : Topo.indep rcn t π) :
-  Topo.indep rcn t' π := by 
-  split
-  case mem =>
-    exact hᵢ.mem
-  case path => 
-    intros x hₓ
-    have hₘ := (List.perm.mem_iff hₚ).mpr hₓ
-    exact hᵢ.path x hₘ
+  Topo.indep rcn t' π := {
+    mem := hᵢ.mem,
+    path := λ x hₓ => hᵢ.path x ((List.perm.mem_iff hₚ).mpr hₓ)
+  }
 
 end Topo

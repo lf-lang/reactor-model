@@ -3,3 +3,4 @@
 /_target
 /leanpkg.path
 /src/build
+/src/lean_packages
