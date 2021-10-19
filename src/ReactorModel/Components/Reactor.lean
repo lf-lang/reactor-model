@@ -127,7 +127,8 @@ noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := r
 
 end Reactor
 
-theorem Raw.Reactor.isContainedInPreservesWF (rtr rtr' : Raw.Reactor ι υ) (hc : rtr'.isContainedIn rtr) (hw : rtr.wellFormed) :
+theorem Raw.Reactor.isContainedInPreservesWF
+  (rtr rtr' : Raw.Reactor ι υ) (hc : rtr'.isContainedIn rtr) (hw : rtr.wellFormed) :
   rtr'.wellFormed := by
   split
   case self => exact hw.contained hc
