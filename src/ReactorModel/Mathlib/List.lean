@@ -90,4 +90,6 @@ def lookup' (a : α) : List (Sigma β) → Option (β a)
 
 theorem permLookup (a : α) {l₁ l₂ : List (Sigma β)} (nd₁ : l₁.nodupkeys) (nd₂ : l₂.nodupkeys) (p : l₁ ~ l₂) : lookup' a l₁ = lookup' a l₂ := sorry
 
+def attach (l : List α) : List {x // x ∈ l} := sorry
+
 end List

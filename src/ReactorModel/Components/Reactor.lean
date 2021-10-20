@@ -86,27 +86,24 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁)
   uniqueIDs :       uniqueIDs rtr 
 
+-- TODO: Fix docs.
+-- 
 -- To define properties of reactors recursively, we need a concept of containment.
 -- That is, that a reactor is contained in a different reactor.
 -- We do this as a transitive closure of a direct containment relation.
 -- Thus, we first define what it means for a (raw) reactor to be contained directly
 -- in a different reactor. Then define a transitive step on the direct containment.
-inductive isStrictlyContainedIn : (Raw.Reactor ι υ) → (Raw.Reactor ι υ) → Prop 
-  | direct {child parent i} : (parent.nest i = some child) → isStrictlyContainedIn child parent
-  | trans {r₁ r₂ r₃} : (isStrictlyContainedIn r₁ r₂) → (isStrictlyContainedIn r₂ r₃) → (isStrictlyContainedIn r₁ r₃)
-
--- TODO: Document this.
-inductive isCreatableBy : (Raw.Reactor ι υ) → (Raw.Reactor ι υ) → Prop 
-  | direct {child parent rcn p s i iᵣ} : (parent.rcns i = some rcn) → (Change.create child iᵣ ∈ rcn.body p s) → isCreatableBy child parent
-  | trans {r₁ r₂ r₃} : (isCreatableBy r₁ r₂) → (isCreatableBy r₂ r₃) → (isCreatableBy r₁ r₃)
+inductive isAncestorOf : (Raw.Reactor ι υ) → (Raw.Reactor ι υ) → Prop 
+  | nested {parent child i} : (parent.nest i = some child) → isAncestorOf parent child
+  | creatable {old new rcn p s i iᵣ} : (old.rcns i = some rcn) → (Change.create new iᵣ ∈ rcn.body p s) → isAncestorOf old new
+  | trans {r₁ r₂ r₃} : (isAncestorOf r₁ r₂) → (isAncestorOf r₂ r₃) → (isAncestorOf r₁ r₃)
 
 -- Having defined well-formedness for a single reactor we proceed to extend this to a full reactor
 -- hierarchy. A reactor is well-formed if all the properties above hold for itself as well as all
 -- its contained and creatable reactors. 
 structure wellFormed (σ : Raw.Reactor ι υ) : Prop where
   direct : σ.directlyWellFormed 
-  contained : ∀ {rtr : Raw.Reactor ι υ}, rtr.isStrictlyContainedIn σ → rtr.directlyWellFormed
-  creatable : ∀ {rtr : Raw.Reactor ι υ}, rtr.isCreatableBy σ → rtr.directlyWellFormed
+  offspring : ∀ {rtr : Raw.Reactor ι υ}, σ.isAncestorOf rtr → rtr.directlyWellFormed
 
 end Raw.Reactor
 
@@ -117,19 +114,15 @@ structure Reactor (ι υ) [ID ι] [Value υ] where
   raw : Raw.Reactor ι υ
   wf : raw.wellFormed  
 
--- The containement relation lifted for "proper" reactors.
-def Reactor.isStrictlyContainedIn : (Reactor ι υ) → (Reactor ι υ) → Prop := 
-  λ child parent => child.raw.isStrictlyContainedIn parent.raw
+-- The ancestor relation lifted for "proper" reactors.
+def Reactor.isAncestorOf (rtr₁ rtr₂ : Reactor ι υ) : Prop := 
+  rtr₁.raw.isAncestorOf rtr₂.raw
 
-theorem Raw.Reactor.isStrictlyContainedIn_preserves_wf
-  {rtr rtr' : Raw.Reactor ι υ} (hc : rtr'.isStrictlyContainedIn rtr) (hw : rtr.wellFormed) :
-  rtr'.wellFormed := {
-    direct := hw.contained hc,
-    contained := λ hr => hw.contained (isStrictlyContainedIn.trans hr hc)
-    creatable := λ hr => by
-      -- Perhaps you need a theorem isCreatableBy_preserves_wf
-      -- and do some kind of mutual induction thing.
-      sorry
+theorem Raw.Reactor.isAncestorOf_preserves_wf
+  {rtr₁ rtr₂ : Raw.Reactor ι υ} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
+  rtr₂.wellFormed := {
+    direct := hw.offspring ha,
+    offspring := λ hr => hw.offspring (isAncestorOf.trans ha hr)
   }
 
 -- Lifted versions of the "tivial" accessors on `Reactor` - i.e. those that don't
@@ -153,8 +146,8 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
     raw := r, 
     wf := by
       have ⟨_, hm⟩ := Finmap.values_def.mp h
-      have h' := Raw.Reactor.isStrictlyContainedIn.direct hm
-      exact Raw.Reactor.isStrictlyContainedIn_preserves_wf h' rtr.wf
+      have h' := Raw.Reactor.isAncestorOf.nested hm
+      exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.wf
   })
 
 -- An accessor for ports, that allows us to separate them by port role.

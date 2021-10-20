@@ -16,38 +16,6 @@ structure Reaction where
 
 variable {ι υ}
 
--- A non-`Raw` accessor for a `Reactor`'s mutations.
--- This uses the constraints given by `Reactor.wf` in order to convert `Raw.Reaction`s to `Reaction`s.
-def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
-  let raw : Finmap ι (Raw.Reaction ι υ) := {lookup := rtr.raw.rcns, finite := rtr.wf.direct.rcnsFinite}
-  raw.map' (λ rcn h => {
-      deps := rcn.deps,
-      triggers := rcn.triggers,
-      children := rcn.children,
-      body := (λ p s => (rcn.body p s).map (λ c => 
-        sorry
-      )),
-      tsSubInDeps := sorry,
-      outDepOnly := by
-        intro h'
-        have hw := (rtr.wf.direct.rcnsWF (Finmap.values_def.mp h)).outDepOnly
-        intro s o v ho
-        sorry
-      ,
-      normNoChild := by
-        intro h'
-        have hw := (rtr.wf.direct.rcnsWF (Finmap.values_def.mp h)).normNoChild
-        simp at h'
-        simp [Raw.Reaction.isNorm] at hw
-        suffices hg : ∀ i s c, c ∈ Raw.Reaction.body rcn i s → ¬Raw.Change.mutates c from hw hg
-        intro i s c hc
-        sorry
-        -- exact h' i s c hc
-    }
-  )
-
-variable {ι υ}
-
 namespace Reaction
 
 -- A coercion so that reactions can be called directly as functions.
@@ -59,6 +27,9 @@ def isNorm (rcn : Reaction ι υ) : Prop :=
   ∀ i s c, c ∈ (rcn i s) → ¬c.mutates
 
 def isMut (rcn : Reaction ι υ) : Prop := ¬rcn.isNorm
+
+theorem norm_no_child' (rcn : Reaction ι υ) : rcn.isNorm → rcn.children = ∅ := 
+  rcn.normNoChild
 
 -- A relay reaction that connects a `src` port with a `dst` port.
 def relay (src dst : ι) : Reaction ι υ := {
@@ -147,6 +118,55 @@ theorem eq_input_eq_triggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} 
   }
 
 end Reaction
+
+-- A non-`Raw` accessor for a `Reactor`'s mutations.
+-- This uses the constraints given by `Reactor.wf` in order to convert `Raw.Reaction`s to `Reaction`s.
+def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.wf.direct.rcnsFinite }
+  raw.map' (λ rcn h => 
+    let h := Finmap.values_def.mp h
+    -- noNormChild and outDepOnly also need to convert Raw.Change to Change,
+    -- so factor out the approach from body.
+    {
+      deps := rcn.deps,
+      triggers := rcn.triggers,
+      children := rcn.children,
+      body := (λ p s =>
+        let changes := rcn.body p s
+        changes.attach.map (λ c =>
+          match hm:c.val with 
+          | Raw.Change.port target value  => Change.port target value  
+          | Raw.Change.state target value => Change.state target value 
+          | Raw.Change.connect src dst    => Change.connect src dst    
+          | Raw.Change.disconnect src dst => Change.disconnect src dst 
+          | Raw.Change.delete rtrID       => Change.delete rtrID
+          | Raw.Change.create cr id       => 
+            let hw : cr.wellFormed := (by
+              have hc := c.property
+              rw [hm] at hc
+              have ha := Raw.Reactor.isAncestorOf.creatable h.choose_spec hc
+              exact Raw.Reactor.isAncestorOf_preserves_wf ha rtr.wf
+            )
+            Change.create { raw := cr, wf := hw } id
+        )
+      ),
+      tsSubInDeps := sorry,
+      outDepOnly := by
+        intro p s _ v ho hc
+        have hw := (rtr.wf.direct.rcnsWF h).outDepOnly p s v ho
+        -- show that hw and hc are contradictory
+        sorry
+      ,
+      normNoChild := by
+        intro h'
+        have hw := (rtr.wf.direct.rcnsWF h).normNoChild
+        simp at h'
+        simp [Raw.Reaction.isNorm] at hw
+        suffices hg : ∀ i s c, c ∈ Raw.Reaction.body rcn i s → ¬Raw.Change.mutates c from hw hg
+        intro i s c hc hm
+        exact h' i s c hc
+    }
+  )
 
 noncomputable def Reactor.norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isNorm)
