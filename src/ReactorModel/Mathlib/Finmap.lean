@@ -126,4 +126,12 @@ noncomputable def restrict (f : α ▸ β) (as : Finset α) : Finmap α β :=
 -- TODO: Come up with a better notation for this.
 notation f:50 " % " as:50 => restrict f as
 
+-- This relation is true if two given finmaps are defined on the same IDs,
+-- and each pair of values for a given ID fulfills a relation `r`.
+--
+-- Note, the name `forall₂` is chosen to match the analogous relation on `List`.
+structure forall₂ (r : β → γ → Prop) (f₁ : α ▸ β) (f₂ : α ▸ γ) : Prop where
+  eqIDs : f₁.ids = f₂.ids
+  rel : ∀ a (b : β) (c : γ), (f₁ a = b) → (f₂ a = c) → r b c
+
 end Finmap
