@@ -22,6 +22,12 @@ variable {ι υ}
 
 namespace Reactor
 
+-- A lifted version of `Raw.Reactor.isRtrIDPathFor`.
+def isRtrIDPathFor (i : ι) (σ : Reactor ι υ) (c : Cmp) (p : List ι) : Prop :=
+  p ~ᵣ[σ.raw, c] i
+
+notation p:max " ~[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
+
 -- This function returns (if possible) the ID of the reactor that contains
 -- the component identified by a given ID `i` in the context of reactor `σ`.
 -- The *kind* of component addressed by `i` is not required, as all IDs in a
@@ -31,8 +37,16 @@ namespace Reactor
 -- If `σ.containerOf i = some x`, then:
 -- * `σ` is the "context" (top-level) reactor.
 -- * `x` is the ID of a reactor which contains a reaction identified by `i`.
-def containerOf (σ : Reactor ι υ) (i : ι) : Option ι := 
-  sorry
+--
+-- Explanation:
+-- We use the concept of reactor-ID-paths (cf. `isRtrIDPathFor`) to "find"
+-- the path of reactor-IDs that leads us through `σ` to reach `i`.
+-- If such a path exists we return the ID of the last reactor in that path,
+-- because by definition of reactor-ID-paths, *that* is reactor that contains
+-- `i`. If the ID-path is empty, `i` must live in `σ` itself, so we return the
+-- top-level reactor-ID `⊤`. If no path could be found, we return `none`.
+noncomputable def containerOf (σ : Reactor ι υ) (i : ι) : Option ι := 
+  if h : ∃ p c, p ~[σ, c] i then h.choose.getLastD ⊤ else none
 
 -- This notation is chosen to be akin to the address notation in C,
 -- because you get back a component's container's *identifier*, not the object.

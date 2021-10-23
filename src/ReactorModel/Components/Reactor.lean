@@ -37,7 +37,7 @@ def isRtrIDPathFor (i : ι) (σ : Raw.Reactor ι υ) : Cmp → List ι → Prop
   | Cmp.prt,   [] => i ∈ σ.ports.ids 
   | Cmp.stv,   [] => i ∈ σ.state.ids 
 
-notation p:max " ~[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
+notation p:max " ~ᵣ[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
 
 -- The `uniqueIDs` proposition states that all components in a given (raw) reactor
 -- that are identifiable by IDs (`ι`) have unique IDs.
@@ -55,8 +55,8 @@ notation p:max " ~[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
 -- that identifies an object of some component type `c`, then path `p` can't also lead
 -- an ID `i` that identifies some other component type.
 structure uniqueIDs (σ : Raw.Reactor ι υ) : Prop where
-  external : ∀ {i c p₁ p₂}, (p₁ ~[σ, c] i) → (p₂ ~[σ, c] i) → p₁ = p₂  
-  internal : ∀ {i p c₁ c₂}, (p ~[σ, c₁] i) → (p ~[σ, c₂] i) → c₁ = c₂ 
+  external : ∀ {i c p₁ p₂}, (p₁ ~ᵣ[σ, c] i) → (p₂ ~ᵣ[σ, c] i) → p₁ = p₂  
+  internal : ∀ {i p c₁ c₂}, (p ~ᵣ[σ, c₁] i) → (p ~ᵣ[σ, c₂] i) → c₁ = c₂ 
 
 end Raw.Reactor
 
