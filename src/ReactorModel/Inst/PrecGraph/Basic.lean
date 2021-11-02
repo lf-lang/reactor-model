@@ -55,4 +55,4 @@ structure PrecGraph (σ : Reactor ι υ) where
   edges : Finset (ι × ι)
   wf : edges = { e : ι × ι | e.fst <[σ] e.snd }
 
-def PrecGraph.rcns {σ : Reactor ι υ} (π : PrecGraph σ) : ι ▸ Reaction ι υ := σ *[Cmp.rcn]
+noncomputable def PrecGraph.rcns {σ : Reactor ι υ} (π : PrecGraph σ) : ι ▸ Reaction ι υ := σ *[Cmp.rcn]

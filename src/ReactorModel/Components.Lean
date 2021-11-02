@@ -3,6 +3,7 @@
 
 import ReactorModel.Components.Accessors
 import ReactorModel.Components.Change
+import ReactorModel.Components.Lift
 import ReactorModel.Components.Raw
 import ReactorModel.Components.Reaction
 import ReactorModel.Components.Reactor

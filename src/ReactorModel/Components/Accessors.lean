@@ -1,7 +1,20 @@
-import ReactorModel.Components.Reaction
+import ReactorModel.Components.Lift
 
 open Classical
 open Ports
+
+variable {ι υ} [ID ι] [Value υ]
+
+-- A non-`Raw` accessor for a `Reactor`'s mutations.
+def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.wf.direct.rcnsFinite }
+  raw.map' $ λ rcn h => Reaction.fromRaw rtr.wf (Finmap.values_def.mp h)
+
+noncomputable def Reactor.norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  rtr.rcns.filter' (Reaction.isNorm)
+
+noncomputable def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  rtr.rcns.filter' (Reaction.isMut)  
 
 -- `ι` and `υ` live in the same universe:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Stuck.20at.20solving.20universe.20constraint/near/253232009
