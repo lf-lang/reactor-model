@@ -44,9 +44,11 @@ deriving Inhabited
 
 end
 
+end Raw
+
 variable {ι υ} [ID ι] [Value υ]
 
-namespace Change 
+namespace Raw.Change 
 
 -- Cf. `Change.mutates`.
 def mutates : Raw.Change ι υ → Bool 
@@ -57,9 +59,9 @@ def mutates : Raw.Change ι υ → Bool
   | create _ _     => true
   | delete _       => true
 
-end Change
+end Raw.Change
 
-namespace Reaction
+namespace Raw.Reaction
 
 -- These definitions give us the projections that would usually be generated for a structure.
 def deps :     Raw.Reaction ι υ → (Ports.Role → Finset ι)                             | mk d _ _ _ => d
@@ -74,9 +76,9 @@ def isNorm (rcn : Raw.Reaction ι υ) : Prop :=
 -- Cf. `Reaction.isMut`.
 def isMut (rcn : Raw.Reaction ι υ) : Prop := ¬rcn.isNorm
 
-end Reaction
+end Raw.Reaction
 
-namespace Reactor
+namespace Raw.Reactor
 
 -- These definitions give us the projections that would usually be generated for a structure.
 def ports : Raw.Reactor ι υ → Ports ι υ                       | mk p _ _ _ _ _ => p
@@ -90,6 +92,4 @@ def prios : Raw.Reactor ι υ → PartialOrder ι                  | mk _ _ _ _ 
 noncomputable def ports' (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Ports ι υ := 
   rtr.ports.filter (λ i => rtr.roles i = r)
 
-end Reactor
-
-end Raw
+end Raw.Reactor
