@@ -18,15 +18,27 @@ abbrev Cmp.type : Cmp → Type _
   | prt => υ
   | stv => υ
 
+-- Associates each type of component with the finmap in which it can be
+-- found inside of a reactor.
+-- We use this in `objFor` to generically resolve the lookup for *some*
+-- component and *some* ID.
+abbrev Cmp.accessor : (cmp : Cmp) → Reactor ι υ → (ι ▸ cmp.type ι υ)
+  | Cmp.rtr => Reactor.nest
+  | Cmp.rcn => Reactor.rcns
+  | Cmp.prt => Reactor.ports -- TODO: Should this be a `lookup` or a `get`?
+  | Cmp.stv => Reactor.state
+
 variable {ι υ}
 
 namespace Reactor
 
--- A lifted version of `Raw.Reactor.isRtrIDPathFor`.
-def isRtrIDPathFor (i : ι) (σ : Reactor ι υ) (c : Cmp) (p : List ι) : Prop :=
-  p ~ᵣ[σ.raw, c] i
+structure IDPath (σ : Reactor ι υ) (i : ι) (cmp : Cmp) where
+  path : List ι
+  wf : path ~ᵣ[σ.raw, cmp] i
 
-notation p:max " ~[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
+-- Returns the reactor that matches the last ID in the ID-path.
+def IDPath.resolve {σ i cmp} (p : IDPath (ι := ι) (υ := υ) σ i cmp) : Reactor ι υ :=
+  sorry
 
 -- This function returns (if possible) the ID of the reactor that contains
 -- the component identified by a given ID `i` in the context of reactor `σ`.
@@ -45,8 +57,16 @@ notation p:max " ~[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
 -- because by definition of reactor-ID-paths, *that* is reactor that contains
 -- `i`. If the ID-path is empty, `i` must live in `σ` itself, so we return the
 -- top-level reactor-ID `⊤`. If no path could be found, we return `none`.
+--
+-- Note that since a `Reactor` ensures ID-uniqueness (via `wf.direct.uniqueIDs`),
+-- the choice of path reactor-ID-path `h.choose` is always unique.
+-- That is, we could define `containerOf` as a relation and prove that it is
+-- functional by using `wf.direct.uniqueIDs`. But defining it directly as a
+-- function using the axiom of choice seems good enough.
 noncomputable def containerOf (σ : Reactor ι υ) (i : ι) : Option ι := 
-  if h : ∃ p c, p ~[σ, c] i then h.choose.getLastD ⊤ else none
+  if h : ∃ (cmp : Cmp), Nonempty (IDPath σ i cmp) 
+  then (Classical.choice h.choose_spec).path.getLastD ⊤ 
+  else none
 
 -- This notation is chosen to be akin to the address notation in C,
 -- because you get back a component's container's *identifier*, not the object.
@@ -61,15 +81,13 @@ notation σ:max " & " i:max => Reactor.containerOf σ i
 -- * `σ` is the "context" (top-level) reactor.
 -- * `i` is interpreted as being an ID that refers to a reaction (because of `Cmp.rcn`).
 -- * `x` is the `Reaction` identified by `i`.
-def objFor (σ : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) := 
-  sorry 
-where 
-  directObj (σ : Reactor ι υ) (cmp : Cmp) (i : ι) : Option (cmp.type ι υ) := 
-    match cmp with
-    | Cmp.rtr => σ.nest i
-    | Cmp.rcn => σ.rcns i
-    | Cmp.prt => σ.ports.lookup i -- TODO: Should this be a `lookup` or a `get`?
-    | Cmp.stv => σ.state i
+noncomputable def objFor (σ : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) := {
+  lookup := λ i => 
+    if h : Nonempty (IDPath σ i cmp) 
+    then cmp.accessor (ι := ι) (υ := υ) (Classical.choice h).resolve i
+    else none,
+  finite := sorry
+} 
 
 -- This notation is chosen to be akin to the dereference notation in C,
 -- because you get back a component *object*.

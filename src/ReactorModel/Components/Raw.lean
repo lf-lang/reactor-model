@@ -79,12 +79,12 @@ end Reaction
 namespace Reactor
 
 -- These definitions give us the projections that would usually be generated for a structure.
-def ports : Raw.Reactor ι υ → Ports ι υ                   | mk p _ _ _ _ _ => p
-def roles : Raw.Reactor ι υ → (ι ▸ Ports.Role)            | mk _ r _ _ _ _ => r
-def state : Raw.Reactor ι υ → StateVars ι υ               | mk _ _ s _ _ _ => s 
+def ports : Raw.Reactor ι υ → Ports ι υ                       | mk p _ _ _ _ _ => p
+def roles : Raw.Reactor ι υ → (ι ▸ Ports.Role)                | mk _ r _ _ _ _ => r
+def state : Raw.Reactor ι υ → StateVars ι υ                   | mk _ _ s _ _ _ => s 
 def rcns :  Raw.Reactor ι υ → (ι → Option (Raw.Reaction ι υ)) | mk _ _ _ r _ _ => r
 def nest :  Raw.Reactor ι υ → (ι → Option (Raw.Reactor ι υ))  | mk _ _ _ _ n _ => n
-def prios : Raw.Reactor ι υ → PartialOrder ι              | mk _ _ _ _ _ p => p 
+def prios : Raw.Reactor ι υ → PartialOrder ι                  | mk _ _ _ _ _ p => p 
 
 -- An accessor for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Ports ι υ := 

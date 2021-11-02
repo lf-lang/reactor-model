@@ -14,6 +14,14 @@ variable {ι υ}
 
 namespace Change
 
+def mutates : Change ι υ → Bool 
+  | port _ _       => false
+  | state _ _      => false
+  | connect _ _    => true
+  | disconnect _ _ => true
+  | create _ _     => true
+  | delete _       => true
+
 -- If we have a well-formed raw reactor `rtr` which contains a raw reaction `rcn`
 -- which can produce a raw change `c`, then we can convert that raw change to a
 -- "proper" change.
@@ -41,14 +49,6 @@ def fromRaw
           exact Raw.Reactor.isAncestorOf_preserves_wf ha hw
       } id
 
-def mutates : Change ι υ → Bool 
-  | port _ _       => false
-  | state _ _      => false
-  | connect _ _    => true
-  | disconnect _ _ => true
-  | create _ _     => true
-  | delete _       => true
-
 -- If a given `Change.port i v` was obtained from a raw change via
 -- `fromRaw`, then that original raw change was a `Raw.Change.port i v`.
 -- That is, `fromRaw` maintains the kind of change.
@@ -56,6 +56,8 @@ def mutates : Change ι υ → Bool
 -- Note, this proof could be generalized to all kinds of changes,
 -- but it's only needed for `Reactor.rcns` > `outDepOnly` so we
 -- only show it for `Change.port`.
+--
+-- TODO: This might be a direct consequence of `rawEquiv`.
 theorem fromRaw_same_change_port 
   {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
   {rcn : Raw.Reaction ι υ} {hr : ∃ i, rtr.rcns i = rcn}
@@ -74,6 +76,8 @@ theorem fromRaw_same_change_port
 -- raw change via `fromRaw`, then that original raw change must also
 -- have been mutating.
 -- That is, `fromRaw` maintains "mutatingness".
+--
+-- TODO: This might be a trivial consequence of `rawEquiv`.
 theorem fromRaw_same_mutates 
   {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
   {rcn : Raw.Reaction ι υ} {hr : ∃ i, rtr.rcns i = rcn}
@@ -89,9 +93,14 @@ theorem fromRaw_same_mutates
 -- changes to be "equivalent" (they contain the same data).
 -- This notion of equivalence is then used in `Change.fromRaw_equiv_to_raw` to
 -- prove that `Change.fromRaw` produces only equivalent changes.
-def rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop := 
-  sorry
-
+inductive rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop
+  | port       {t v} :    (c = Change.port t v)       → (raw = Raw.Change.port t v)                         → rawEquiv c raw
+  | state      {t v} :    (c = Change.state t v)      → (raw = Raw.Change.state t v)                        → rawEquiv c raw
+  | connect    {s d} :    (c = Change.connect s d)    → (raw = Raw.Change.connect s d)                      → rawEquiv c raw
+  | disconnect {s d} :    (c = Change.disconnect s d) → (raw = Raw.Change.disconnect s d)                   → rawEquiv c raw
+  | create     {r r' i} : (c = Change.create r i)     → (raw = Raw.Change.create r' i)    → (r.rawEquiv r') → rawEquiv c raw
+  | delete     {i}   :    (c = Change.delete i)       → (raw = Raw.Change.delete i)                         → rawEquiv c raw
+  
 theorem fromRaw_equiv_to_raw (c : Change ι υ) {rtr rcn raw p s hw hr hc} :
   c = @Change.fromRaw _ _ _ _ rtr hw rcn hr raw p s hc → c.rawEquiv raw :=
   sorry

@@ -31,11 +31,11 @@ namespace Raw.Reactor
 -- The notation `p ~[σ, cmp] i` is used to express that list `p` forms a path
 -- through `σ` that reaches component `i` of component type `cmp`.
 def isRtrIDPathFor (i : ι) (σ : Raw.Reactor ι υ) : Cmp → List ι → Prop
-  | cmp, hd :: tl => ∃ σ', (σ.nest hd = some σ') ∧ (isRtrIDPathFor i σ' cmp tl)
-  | Cmp.rtr,   [] => ∃ v, σ.nest i = some v 
-  | Cmp.rcn,   [] => ∃ v, σ.rcns i = some v
-  | Cmp.prt,   [] => i ∈ σ.ports.ids 
-  | Cmp.stv,   [] => i ∈ σ.state.ids 
+  | cmp, hd::tl => ∃ σ', (σ.nest hd = some σ') ∧ (isRtrIDPathFor i σ' cmp tl)
+  | Cmp.rtr, [] => ∃ v, σ.nest i = some v 
+  | Cmp.rcn, [] => ∃ v, σ.rcns i = some v
+  | Cmp.prt, [] => i ∈ σ.ports.ids 
+  | Cmp.stv, [] => i ∈ σ.state.ids 
 
 notation p:max " ~ᵣ[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
 
@@ -55,8 +55,8 @@ notation p:max " ~ᵣ[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
 -- that identifies an object of some component type `c`, then path `p` can't also lead
 -- an ID `i` that identifies some other component type.
 structure uniqueIDs (σ : Raw.Reactor ι υ) : Prop where
-  external : ∀ {i c p₁ p₂}, (p₁ ~ᵣ[σ, c] i) → (p₂ ~ᵣ[σ, c] i) → p₁ = p₂  
-  internal : ∀ {i p c₁ c₂}, (p ~ᵣ[σ, c₁] i) → (p ~ᵣ[σ, c₂] i) → c₁ = c₂ 
+  external : ∀ {i c p₁ p₂}, (p₁ ~ᵣ[σ,  c] i) → (p₂ ~ᵣ[σ,  c] i) → p₁ = p₂  
+  internal : ∀ {i p c₁ c₂}, (p  ~ᵣ[σ, c₁] i) → (p  ~ᵣ[σ, c₂] i) → c₁ = c₂ 
 
 end Raw.Reactor
 
@@ -152,6 +152,9 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
 
 -- An accessor for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
+
+def rawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop :=
+  rtr.raw = raw
 
 end Reactor
 
