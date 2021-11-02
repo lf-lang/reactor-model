@@ -101,7 +101,7 @@ inductive rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop
   | create     {r r' i} : (c = Change.create r i)     → (raw = Raw.Change.create r' i)    → (r.rawEquiv r') → rawEquiv c raw
   | delete     {i}   :    (c = Change.delete i)       → (raw = Raw.Change.delete i)                         → rawEquiv c raw
   
-theorem fromRaw_equiv_to_raw (c : Change ι υ) {rtr rcn raw p s hw hr hc} :
+theorem fromRaw_rawEquiv (c : Change ι υ) {rtr rcn raw p s hw hr hc} :
   c = @Change.fromRaw _ _ _ _ rtr hw rcn hr raw p s hc → c.rawEquiv raw :=
   sorry
 

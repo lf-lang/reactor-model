@@ -100,63 +100,83 @@ noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) (h : rc
 
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction ι υ) (p : Ports ι υ) : Prop :=
-  ∃ (t : ι) (v : υ), t ∈ rcn.triggers ∧ p[t] = some v
+  ∃ t, t ∈ rcn.triggers ∧ p[t] ≠ none
 
+-- TODO: Shorten this proof when the `all_goals` tactic is more stable.
 theorem eq_input_eq_triggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} (h : p₁ =[rcn.deps Role.in] p₂) :
   rcn.triggersOn p₁ ↔ rcn.triggersOn p₂ := by
   simp [triggersOn, Ports.eqAt] at h ⊢
   apply Iff.intro
-  all_goals {
-    intro hₑ
-    match hₑ with
-    | ⟨t, r, ⟨v, h'⟩⟩ =>
-      exists t
-      exists r
-      exists v
-      have hₜ := Finset.mem_of_subset rcn.tsSubInDeps r
-      simp [←h', (h t hₜ)]
-  }
+  case mp =>
+    intro ⟨t, ⟨hm, hn⟩⟩
+    exists t
+    exists hm
+    have ht := h _ $ Finset.subset_iff.mp rcn.tsSubInDeps hm
+    simp [ht] at hn
+    assumption
+  case mpr =>
+    intro ⟨t, ⟨hm, hn⟩⟩
+    exists t
+    exists hm
+    have ht := h _ $ Finset.subset_iff.mp rcn.tsSubInDeps hm
+    simp [←ht] at hn
+    assumption
+
+def fromRaw (raw : Raw.Reaction ι υ) (h : False) : Reaction ι υ := {
+  deps := raw.deps,
+  triggers := raw.triggers,
+  children := raw.children,
+  body := (λ p s => (raw.body p s).attach.map (λ c => Change.fromRaw rtr.wf h c.property)),
+  tsSubInDeps := (rtr.wf.direct.rcnsWF h).tsSubInDeps,
+  outDepOnly := by
+    intro p s _ v ho hc
+    simp [List.mem_map] at hc
+    obtain ⟨c, hc, he⟩ := hc
+    have hw := (rtr.wf.direct.rcnsWF h).outDepOnly p s v ho
+    have hp := Change.fromRaw_same_change_port he
+    simp at hp
+    rw [hp] at hc
+    contradiction
+  ,
+  normNoChild := by
+    intro ha
+    have hw := (rtr.wf.direct.rcnsWF h).normNoChild
+    simp at ha
+    simp [Raw.Reaction.isNorm] at hw
+    suffices hg : ∀ i s c, c ∈ rcn.body i s → ¬c.mutates from hw hg
+    intro i s c hc
+    have ha := ha i s (Change.fromRaw rtr.wf h hc)
+    simp only [List.mem_map] at ha
+    have ha := ha (by
+      let a : { x // x ∈ rcn.body i s } := ⟨c, hc⟩
+      exists a
+      simp [List.mem_attach]
+    )
+    exact (mt Change.fromRaw_same_mutates) ha
+}
+
+-- To ensure that `fromRaw` performs a sensible transformation from a raw
+-- to a "proper" reaction, we define what it means for a raw and a "proper"
+-- reaction to be "equivalent" (they contain the same data).
+-- This notion of equivalence is then used in `fromRaw_rawEquiv` to
+-- prove that `fromRaw` produces only equivalent reactions.
+structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
+  deps :     rcn.deps = raw.deps
+  triggers : rcn.triggers = raw.triggers
+  children : rcn.children = raw.children
+  body :     ∀ p s, List.forall₂ Change.rawEquiv (rcn.body p s) (raw.body p s)
+
+theorem fromRaw_rawEquiv (rtr : Reactor ι υ) : False :=
+  sorry
 
 end Reaction
 
 -- A non-`Raw` accessor for a `Reactor`'s mutations.
--- This uses the constraints given by `Reactor.wf` in order to convert `Raw.Reaction`s to `Reaction`s.
 def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.wf.direct.rcnsFinite }
   raw.map' (λ rcn h => 
     let h := (Finmap.values_def.mp h)
-    {
-      deps := rcn.deps,
-      triggers := rcn.triggers,
-      children := rcn.children,
-      body := (λ p s => (rcn.body p s).attach.map (λ c => Change.fromRaw rtr.wf h c.property)),
-      tsSubInDeps := (rtr.wf.direct.rcnsWF h).tsSubInDeps,
-      outDepOnly := by
-        intro p s _ v ho hc
-        simp [List.mem_map] at hc
-        obtain ⟨c, hc, he⟩ := hc
-        have hw := (rtr.wf.direct.rcnsWF h).outDepOnly p s v ho
-        have hp := Change.fromRaw_same_change_port he
-        simp at hp
-        rw [hp] at hc
-        contradiction
-      ,
-      normNoChild := by
-        intro ha
-        have hw := (rtr.wf.direct.rcnsWF h).normNoChild
-        simp at ha
-        simp [Raw.Reaction.isNorm] at hw
-        suffices hg : ∀ i s c, c ∈ rcn.body i s → ¬c.mutates from hw hg
-        intro i s c hc
-        have ha := ha i s (Change.fromRaw rtr.wf h hc)
-        simp only [List.mem_map] at ha
-        have ha := ha (by
-          let a : { x // x ∈ rcn.body i s } := ⟨c, hc⟩
-          exists a
-          simp [List.mem_attach]
-        )
-        exact (mt Change.fromRaw_same_mutates) ha
-    }
+    Reaction.fromRaw rcn sorry
   )
 
 noncomputable def Reactor.norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
@@ -164,24 +184,3 @@ noncomputable def Reactor.norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
 
 noncomputable def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isMut)  
-
--- To ensure that `Reactor.rcns` performs a sensible transformation from
--- raw to "proper" reactions, we define what it means for a raw and a "proper"
--- reaction to be "equivalent" (they contain the same data).
--- This notion of equivalence is then used in `Reactor.rcns_equiv_to_raw` to
--- prove that `Reactor.rcns` produces only equivalent reactions.
-structure Reaction.rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
-  deps :     rcn.deps = raw.deps
-  triggers : rcn.triggers = raw.triggers
-  children : rcn.children = raw.children
-  body :     ∀ p s, List.forall₂ Change.rawEquiv (rcn.body p s) (raw.body p s)
-
--- TODO: Can this be stated in a nicer way?
---       We're trying to express that for all i, rtr.rcns has a value
---       for i iff rtr.raw.rcns has a value for i, and those values are
---       rawEquiv.
-theorem Reactor.rcns_equiv_to_raw (rtr : Reactor ι υ) :
-  ∀ i, 
-    (∃ raw, rtr.raw.rcns i = some raw → ∃ rcn, rtr.rcns i = some rcn ∧ rcn.rawEquiv raw) ∧  
-    (∃ rcn, rtr.rcns i = some rcn → ∃ raw, rtr.raw.rcns i = some raw ∧ rcn.rawEquiv raw) :=
-  sorry
