@@ -103,36 +103,11 @@ theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw p s hw hr hc} :
         simp [fromRaw] at h
         exact Reactor.fromRaw_rawEquiv h.left
     all_goals { simp [fromRaw] at h }
-  
--- If a given `Change.port i v` was obtained from a raw change via
--- `fromRaw`, then that original raw change was a `Raw.Change.port i v`.
--- That is, `fromRaw` maintains the kind of change.
---
--- Note, this proof could be generalized to all kinds of changes,
--- but it's only needed for `Reactor.rcns` > `outDepOnly` so we
--- only show it for `Change.port`.
---
--- TODO: This should be a direct consequence of `rawEquiv`.
-theorem fromRaw_same_change_port 
-  {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
-  {rcn : Raw.Reaction ι υ} {hr : ∃ i, rtr.rcns i = rcn}
-  {c : Raw.Change ι υ} {p s} {hc : c ∈ Raw.Reaction.body rcn p s} 
-  {i : ι} {v : υ} :
-  Change.port i v = Change.fromRaw hw hr hc → c = Raw.Change.port i v := by
-  intro h
-  simp only [fromRaw] at h
-  cases c
-  case port =>
-    simp at h
-    simp [h]
-  all_goals { simp at h }
 
 -- If a given mutating change (cf. `mutates`) was obtained from a
 -- raw change via `fromRaw`, then that original raw change must also
 -- have been mutating.
 -- That is, `fromRaw` maintains "mutatingness".
---
--- TODO: This might be a trivial consequence of `rawEquiv`.
 theorem fromRaw_same_mutates 
   {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
   {rcn : Raw.Reaction ι υ} {hr : ∃ i, rtr.rcns i = rcn}
@@ -158,10 +133,12 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
     simp [List.mem_map] at hc
     obtain ⟨c, hc, he⟩ := hc
     have hw := (hw.direct.rcnsWF hr).outDepOnly p s v ho
-    have hp := Change.fromRaw_same_change_port he
-    rw [hp] at hc
-    contradiction
-  ,
+    cases Change.fromRaw_rawEquiv he
+    case port hp he' =>
+      injection hp with ht hv
+      rw [he', ←ht, ←hv] at hc
+      contradiction
+    all_goals { contradiction },
   normNoChild := by
     intro ha
     have hn := (hw.direct.rcnsWF hr).normNoChild
