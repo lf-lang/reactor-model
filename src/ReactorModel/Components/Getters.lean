@@ -1,6 +1,6 @@
 import ReactorModel.Components.Lift
 
-open Classical
+open Classical 
 
 variable {ι υ} [ID ι] [Value υ]
 

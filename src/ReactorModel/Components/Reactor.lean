@@ -153,9 +153,6 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
 -- An accessor for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
 
-def rawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop :=
-  rtr.raw = raw
-
 end Reactor
 
 -- TODO: Lift the `wellFormed` properties (as new theorems) to not be about `Raw` components anymore.

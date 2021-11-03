@@ -2,6 +2,20 @@ import ReactorModel.Components.Reaction
 
 variable {ι υ} [ID ι] [Value υ]
 
+namespace Reactor 
+
+def fromRaw {raw : Raw.Reactor ι υ} (h : raw.wellFormed) : Reactor ι υ :=
+  { raw := raw, wf := h }
+
+def rawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop :=
+  rtr.raw = raw
+
+theorem fromRaw_rawEquiv {rtr : Reactor ι υ} {raw h} : 
+  rtr = Reactor.fromRaw (raw := raw) h → rtr.rawEquiv raw :=
+  λ h => by simp [fromRaw, rawEquiv, h]
+
+end Reactor
+
 namespace Change
 
 -- If we have a well-formed raw reactor `rtr` which contains a raw reaction `rcn`
@@ -23,14 +37,73 @@ def fromRaw
     | Raw.Change.disconnect src dst => Change.disconnect src dst 
     | Raw.Change.delete rtrID       => Change.delete rtrID
     | Raw.Change.create cr id => 
-      Change.create { 
-        raw := cr, 
-        wf := by 
+      let cr' := Reactor.fromRaw (by
           rw [hm] at hc
           have ha := Raw.Reactor.isAncestorOf.creatable hr.choose_spec hc
           exact Raw.Reactor.isAncestorOf_preserves_wf ha hw
-      } id
+      )
+      Change.create cr' id
 
+-- To ensure that `Change.fromRaw` performs a sensible transformation from
+-- raw to "proper" changes, we define what it means for a raw and a "proper"
+-- changes to be "equivalent" (they contain the same data).
+-- This notion of equivalence is then used in `Change.fromRaw_equiv_to_raw` to
+-- prove that `Change.fromRaw` produces only equivalent changes.
+inductive rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop
+  | port       {t v} :    (c = Change.port t v)       → (raw = Raw.Change.port t v)                         → rawEquiv c raw
+  | state      {t v} :    (c = Change.state t v)      → (raw = Raw.Change.state t v)                        → rawEquiv c raw
+  | connect    {s d} :    (c = Change.connect s d)    → (raw = Raw.Change.connect s d)                      → rawEquiv c raw
+  | disconnect {s d} :    (c = Change.disconnect s d) → (raw = Raw.Change.disconnect s d)                   → rawEquiv c raw
+  | create     {r r' i} : (c = Change.create r i)     → (raw = Raw.Change.create r' i)    → (r.rawEquiv r') → rawEquiv c raw
+  | delete     {i}   :    (c = Change.delete i)       → (raw = Raw.Change.delete i)                         → rawEquiv c raw
+
+theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw p s hw hr hc} :
+  c = @Change.fromRaw _ _ _ _ rtr hw rcn hr raw p s hc → c.rawEquiv raw := by
+  intro h
+  cases raw
+  case port t v =>
+    cases c
+    case port =>
+      apply rawEquiv.port (t := t) (v := v)
+      all_goals { simp [fromRaw, h] }
+    all_goals { simp [fromRaw] at h }
+  case state t v =>
+    cases c
+    case state =>
+      apply rawEquiv.state (t := t) (v := v)
+      all_goals { simp [fromRaw, h] }
+    all_goals { simp [fromRaw] at h }
+  case connect s d =>
+    cases c
+    case connect =>
+      apply rawEquiv.connect (s := s) (d := d)
+      all_goals { simp [fromRaw, h] }
+    all_goals { simp [fromRaw] at h }
+  case disconnect s d =>
+    cases c
+    case disconnect =>
+      apply rawEquiv.disconnect (s := s) (d := d)
+      all_goals { simp [fromRaw, h] }
+    all_goals { simp [fromRaw] at h }
+  case delete i =>
+    cases c
+    case delete =>
+      apply rawEquiv.delete (i := i)
+      all_goals { simp [fromRaw, h] }
+    all_goals { simp [fromRaw] at h }
+  case create r' i' =>
+    cases c
+    case create r i =>
+      apply rawEquiv.create (r := r) (r' := r') (i := i)
+      simp
+      focus
+        simp [fromRaw] at h
+        simp [h]
+      focus
+        simp [fromRaw] at h
+        exact Reactor.fromRaw_rawEquiv h.left
+    all_goals { simp [fromRaw] at h }
+  
 -- If a given `Change.port i v` was obtained from a raw change via
 -- `fromRaw`, then that original raw change was a `Raw.Change.port i v`.
 -- That is, `fromRaw` maintains the kind of change.
@@ -39,7 +112,7 @@ def fromRaw
 -- but it's only needed for `Reactor.rcns` > `outDepOnly` so we
 -- only show it for `Change.port`.
 --
--- TODO: This might be a direct consequence of `rawEquiv`.
+-- TODO: This should be a direct consequence of `rawEquiv`.
 theorem fromRaw_same_change_port 
   {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
   {rcn : Raw.Reaction ι υ} {hr : ∃ i, rtr.rcns i = rcn}
@@ -70,23 +143,6 @@ theorem fromRaw_same_mutates
   cases c
   all_goals { simp; assumption }
 
--- To ensure that `Change.fromRaw` performs a sensible transformation from
--- raw to "proper" changes, we define what it means for a raw and a "proper"
--- changes to be "equivalent" (they contain the same data).
--- This notion of equivalence is then used in `Change.fromRaw_equiv_to_raw` to
--- prove that `Change.fromRaw` produces only equivalent changes.
-inductive rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop
-  | port       {t v} :    (c = Change.port t v)       → (raw = Raw.Change.port t v)                         → rawEquiv c raw
-  | state      {t v} :    (c = Change.state t v)      → (raw = Raw.Change.state t v)                        → rawEquiv c raw
-  | connect    {s d} :    (c = Change.connect s d)    → (raw = Raw.Change.connect s d)                      → rawEquiv c raw
-  | disconnect {s d} :    (c = Change.disconnect s d) → (raw = Raw.Change.disconnect s d)                   → rawEquiv c raw
-  | create     {r r' i} : (c = Change.create r i)     → (raw = Raw.Change.create r' i)    → (r.rawEquiv r') → rawEquiv c raw
-  | delete     {i}   :    (c = Change.delete i)       → (raw = Raw.Change.delete i)                         → rawEquiv c raw
-  
-theorem fromRaw_rawEquiv (c : Change ι υ) {rtr rcn raw p s hw hr hc} :
-  c = @Change.fromRaw _ _ _ _ rtr hw rcn hr raw p s hc → c.rawEquiv raw :=
-  sorry
-
 end Change
 
 namespace Reaction
@@ -103,7 +159,6 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
     obtain ⟨c, hc, he⟩ := hc
     have hw := (hw.direct.rcnsWF hr).outDepOnly p s v ho
     have hp := Change.fromRaw_same_change_port he
-    simp at hp
     rw [hp] at hc
     contradiction
   ,
@@ -136,7 +191,15 @@ structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
   body :     ∀ p s, List.forall₂ Change.rawEquiv (rcn.body p s) (raw.body p s)
 
 theorem fromRaw_rawEquiv (rcn : Reaction ι υ) {rtr raw hw hr} :
-  rcn = @Reaction.fromRaw _ _ _ _ rtr hw raw hr → rcn.rawEquiv raw :=
-  sorry
+  rcn = @Reaction.fromRaw _ _ _ _ rtr hw raw hr → rcn.rawEquiv raw := 
+  λ h => {
+    deps := by simp [h, fromRaw],
+    triggers := by simp [h, fromRaw],
+    children := by simp [h, fromRaw],
+    body := by
+      intro p s
+      -- induction on (rcn p s) and (raw.body p s)?
+      sorry
+  }
 
 end Reaction
