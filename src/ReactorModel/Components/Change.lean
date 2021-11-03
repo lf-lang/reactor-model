@@ -1,4 +1,4 @@
-import ReactorModel.Components.Reactor
+import ReactorModel.Components.Reactor.Basic
 
 variable (ι υ) [ID ι] [Value υ]
 

@@ -1,5 +1,4 @@
 import ReactorModel.Components.Raw
-import ReactorModel.Mathlib
 
 open Ports
 
@@ -8,7 +7,7 @@ open Ports
 inductive Cmp
   | rtr
   | rcn
-  | prt
+  | prt 
   | stv -- State variable
 
 variable {ι υ} [ID ι] [Value υ]
@@ -30,14 +29,14 @@ namespace Raw.Reactor
 --
 -- The notation `p ~[σ, cmp] i` is used to express that list `p` forms a path
 -- through `σ` that reaches component `i` of component type `cmp`.
-def isRtrIDPathFor (i : ι) (σ : Raw.Reactor ι υ) : Cmp → List ι → Prop
-  | cmp, hd::tl => ∃ σ', (σ.nest hd = some σ') ∧ (isRtrIDPathFor i σ' cmp tl)
+def rtrIDPath (i : ι) (σ : Raw.Reactor ι υ) : Cmp → List ι → Prop
+  | cmp, hd::tl => ∃ σ', (σ.nest hd = some σ') ∧ (rtrIDPath i σ' cmp tl)
   | Cmp.rtr, [] => ∃ v, σ.nest i = some v 
   | Cmp.rcn, [] => ∃ v, σ.rcns i = some v
   | Cmp.prt, [] => i ∈ σ.ports.ids 
   | Cmp.stv, [] => i ∈ σ.state.ids 
 
-notation p:max " ~ᵣ[" r:max ", " c:max "] " i => isRtrIDPathFor i r c p
+notation p:max " ~ᵣ[" r:max ", " c:max "] " i => rtrIDPath i r c p
 
 -- The `uniqueIDs` proposition states that all components in a given (raw) reactor
 -- that are identifiable by IDs (`ι`) have unique IDs.
@@ -75,19 +74,17 @@ namespace Raw.Reactor
 --
 -- Since these constraints are still a WIP, we won't comment on them further yet.
 structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
+  uniqueIDs :       uniqueIDs rtr
+  rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
-  rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   wfRoles :         rtr.roles.ids = rtr.ports.ids
   wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
   wfMutChildren :   ∀ m i, rtr.rcns i = some m → m.isMut → ↑m.children ⊆ { i | rtr.nest i ≠ none }
   mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
-  mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁)
-  uniqueIDs :       uniqueIDs rtr 
+  mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) 
 
--- TODO: Fix docs.
--- 
 -- To define properties of reactors recursively, we need a concept of containment.
 -- That is, that a reactor is contained in a different reactor.
 -- We do this as a transitive closure of a direct containment relation.
@@ -114,45 +111,9 @@ structure Reactor (ι υ) [ID ι] [Value υ] where
   raw : Raw.Reactor ι υ
   wf : raw.wellFormed  
 
--- The ancestor relation lifted for "proper" reactors.
-def Reactor.isAncestorOf (rtr₁ rtr₂ : Reactor ι υ) : Prop := 
-  rtr₁.raw.isAncestorOf rtr₂.raw
-
 theorem Raw.Reactor.isAncestorOf_preserves_wf
   {rtr₁ rtr₂ : Raw.Reactor ι υ} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
   rtr₂.wellFormed := {
     direct := hw.offspring ha,
     offspring := λ hr => hw.offspring (isAncestorOf.trans ha hr)
   }
-
--- Lifted versions of the "tivial" accessors on `Reactor` - i.e. those that don't
--- (or only barely) involve the constraints given by `Reactor.wf`.
--- The only non-trivial accessor is `rcns` defined in Components/Reaction.lean.
-namespace Reactor
-
-def ports (rtr : Reactor ι υ) : Ports ι υ       := rtr.raw.ports
-def roles (rtr : Reactor ι υ) : ι ▸ Ports.Role  := rtr.raw.roles
-def state (rtr : Reactor ι υ) : StateVars ι υ   := rtr.raw.state
-def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
-
--- The `nest` accessor lifted to return a finmap of "proper" reactors.
--- 
--- We're doing two lifting steps at once here:
--- 1. We turn `rtr.raw.nest` into a finmap that has raw reactors as values.
--- 2. We map on that finmap to get a finmap that returns "proper" reactors.
-def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := 
-  let raw : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.wf.direct.nestFiniteRtrs }
-  raw.map' (λ r h => {
-    raw := r, 
-    wf := by
-      have ⟨_, hm⟩ := Finmap.values_def.mp h
-      have h' := Raw.Reactor.isAncestorOf.nested hm
-      exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.wf
-  })
-
--- An accessor for ports, that allows us to separate them by port role.
-noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
-
-end Reactor
-
--- TODO: Lift the `wellFormed` properties (as new theorems) to not be about `Raw` components anymore.

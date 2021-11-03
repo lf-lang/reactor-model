@@ -1,4 +1,4 @@
-import ReactorModel.Components.Getters
+import ReactorModel.Components.Reactor.Getters
 
 open Ports
 

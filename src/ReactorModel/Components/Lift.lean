@@ -104,10 +104,7 @@ theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw p s hw hr hc} :
         exact Reactor.fromRaw_rawEquiv h.left
     all_goals { simp [fromRaw] at h }
 
--- If a given mutating change (cf. `mutates`) was obtained from a
--- raw change via `fromRaw`, then that original raw change must also
--- have been mutating.
--- That is, `fromRaw` maintains "mutatingness".
+-- TODO: Integrate this into `Reaction.fromRaw` directly.
 theorem fromRaw_same_mutates 
   {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
   {rcn : Raw.Reaction ι υ} {hr : ∃ i, rtr.rcns i = rcn}

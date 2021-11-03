@@ -4,16 +4,45 @@ open Classical
 
 variable {ι υ} [ID ι] [Value υ]
 
+-- Lifted versions of the "tivial" accessors on `Reactor` - i.e. those that don't
+-- (or only barely) involve the constraints given by `Reactor.wf`.
+-- The only non-trivial accessor is `rcns` defined in Components/Reaction.lean.
+namespace Reactor
+
+def ports (rtr : Reactor ι υ) : Ports ι υ       := rtr.raw.ports
+def roles (rtr : Reactor ι υ) : ι ▸ Ports.Role  := rtr.raw.roles
+def state (rtr : Reactor ι υ) : StateVars ι υ   := rtr.raw.state
+def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
+
+-- The `nest` accessor lifted to return a finmap of "proper" reactors.
+-- 
+-- We're doing two lifting steps at once here:
+-- 1. We turn `rtr.raw.nest` into a finmap that has raw reactors as values.
+-- 2. We map on that finmap to get a finmap that returns "proper" reactors.
+def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := 
+  let raw : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.wf.direct.nestFiniteRtrs }
+  raw.map' (λ _ h => Reactor.fromRaw (by
+      have ⟨_, hm⟩ := Finmap.values_def.mp h
+      have h' := Raw.Reactor.isAncestorOf.nested hm
+      exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.wf
+    )
+  )
+
+-- An accessor for ports, that allows us to separate them by port role.
+noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
+
 -- A non-`Raw` accessor for a `Reactor`'s mutations.
-def Reactor.rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.wf.direct.rcnsFinite }
   raw.map' $ λ rcn h => Reaction.fromRaw rtr.wf (Finmap.values_def.mp h)
 
-noncomputable def Reactor.norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isNorm)
 
-noncomputable def Reactor.muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+noncomputable def muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isMut)  
+
+end Reactor
 
 -- `ι` and `υ` live in the same universe:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Stuck.20at.20solving.20universe.20constraint/near/253232009

@@ -1,0 +1,7 @@
+-- This file will contain theorems proving the WF-properties of `Reactor`
+-- for "proper"-land.
+-- Note, we only need to lift those properties which are "about" reactors,
+-- i.e. those which would be part of the reactor-type, if we could define 
+-- it as a structure.
+-- The other properties are all present in the redefinitions of and change,
+-- reaction.
