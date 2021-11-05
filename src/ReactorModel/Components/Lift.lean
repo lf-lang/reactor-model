@@ -5,7 +5,9 @@ variable {ι υ} [ID ι] [Value υ]
 namespace Reactor 
 
 def fromRaw {raw : Raw.Reactor ι υ} (h : raw.wellFormed) : Reactor ι υ :=
-  { raw := raw, wf := h }
+  { raw := raw, rawWF := h }
+
+/-def toRaw {rtr : Reactor ι υ} : Raw.Reactor ι υ := rtr.raw-/
 
 def rawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop :=
   rtr.raw = raw
@@ -13,6 +15,9 @@ def rawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop :=
 theorem fromRaw_rawEquiv {rtr : Reactor ι υ} {raw h} : 
   rtr = Reactor.fromRaw (raw := raw) h → rtr.rawEquiv raw :=
   λ h => by simp [fromRaw, rawEquiv, h]
+
+/-theorem toRaw_rawEquiv (rtr : Reactor ι υ) : rtr.rawEquiv rtr.toRaw := by 
+  simp [toRaw, rawEquiv]-/
 
 end Reactor
 
@@ -43,6 +48,14 @@ def fromRaw
           exact Raw.Reactor.isAncestorOf_preserves_wf ha hw
       )
       Change.create cr' id
+
+/-def toRaw : Change ι υ → Raw.Change ι υ
+    | Change.port target value  => Raw.Change.port target value  
+    | Change.state target value => Raw.Change.state target value 
+    | Change.connect src dst    => Raw.Change.connect src dst    
+    | Change.disconnect src dst => Raw.Change.disconnect src dst 
+    | Change.create cr id       => Raw.Change.create cr.toRaw id    
+    | Change.delete rtrID       => Raw.Change.delete rtrID   -/
 
 -- To ensure that `Change.fromRaw` performs a sensible transformation from
 -- raw to "proper" changes, we define what it means for a raw and a "proper"
@@ -104,6 +117,9 @@ theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw p s hw hr hc} :
         exact Reactor.fromRaw_rawEquiv h.left
     all_goals { simp [fromRaw] at h }
 
+/-theorem toRaw_rawEquiv (c : Change ι υ) : c.rawEquiv c.toRaw := by 
+  sorry-/
+
 -- TODO: Integrate this into `Reaction.fromRaw` directly.
 theorem fromRaw_same_mutates 
   {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
@@ -153,6 +169,13 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
     exact (mt Change.fromRaw_same_mutates) ha
 }
 
+/-def toRaw {rcn : Reaction ι υ} : Raw.Reaction ι υ := 
+  Raw.Reaction.mk
+    rcn.deps
+    rcn.triggers
+    rcn.children
+    (λ p s => (rcn p s).map Change.toRaw)-/
+
 -- To ensure that `fromRaw` performs a sensible transformation from a raw
 -- to a "proper" reaction, we define what it means for a raw and a "proper"
 -- reaction to be "equivalent" (they contain the same data).
@@ -175,5 +198,8 @@ theorem fromRaw_rawEquiv (rcn : Reaction ι υ) {rtr raw hw hr} :
       -- induction on (rcn p s) and (raw.body p s)?
       sorry
   }
+
+/-theorem toRaw_rawEquiv (rcn : Reaction ι υ) : rcn.rawEquiv rcn.toRaw := by 
+  sorry-/
 
 end Reaction

@@ -2,7 +2,8 @@
 -- instead of listing the specific imports required.
 
 import ReactorModel.Components.Reactor.Basic
-import ReactorModel.Components.Reactor.Getters
+import ReactorModel.Components.Reactor.Hierarchy
+import ReactorModel.Components.Reactor.Projections
 import ReactorModel.Components.Reactor.Properties
 import ReactorModel.Components.Change
 import ReactorModel.Components.Lift

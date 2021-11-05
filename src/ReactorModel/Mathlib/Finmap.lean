@@ -39,6 +39,9 @@ noncomputable def ids (f : α ▸ β) : Finset α :=
 theorem ids_def {f : α ▸ β} {i : α} : i ∈ f.ids ↔ f i ≠ none := by
   simp [ids, Set.finite.mem_to_finset, Set.mem_set_of_eq]
 
+noncomputable def lookup' (f : α ▸ β) {i : α} (h : i ∈ f.ids) : β :=
+   Exists.choose $ Option.ne_none_iff_exists.mp $ ids_def.mp h
+   
 -- The (finite) set of values for which there exist inputs that map to them.
 noncomputable def values (f : α ▸ β) : Finset β :=
   let description := { v | ∃ i, f i = v }
@@ -118,6 +121,10 @@ noncomputable def filter' (f : α ▸ β) (p : β → Prop) : Finmap α β := {
   finite := sorry
 }
 
+theorem filter'_mem_id {f : α ▸ β} {p : β → Prop} {i : α} : 
+  i ∈ (f.filter' p).ids ↔ ∃ b : β, f i = b ∧ p b :=
+  sorry 
+
 -- The finmap that containts only those entries from `f`, whose identifiers
 -- are in a given set `as`.
 noncomputable def restrict (f : α ▸ β) (as : Finset α) : Finmap α β :=
@@ -133,5 +140,9 @@ notation f:50 " % " as:50 => restrict f as
 structure forall₂ (r : β → γ → Prop) (f₁ : α ▸ β) (f₂ : α ▸ γ) : Prop where
   eqIDs : f₁.ids = f₂.ids
   rel : ∀ a (b : β) (c : γ), (f₁ a = b) → (f₂ a = c) → r b c
+
+structure forall₂' (r : β → γ → Prop) (f₁ : α ▸ β) (f₂ : α → Option γ) : Prop where
+  eqIDs : ∀ a, a ∈ f₁.ids ↔ f₂ a ≠ none
+  rel : ∀ {a} {b : β} {c : γ}, (f₁ a = b) → (f₂ a = c) → r b c
 
 end Finmap

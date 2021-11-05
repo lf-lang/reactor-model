@@ -1,0 +1,69 @@
+import ReactorModel.Components.Lift
+
+variable {ι υ} [ID ι] [Value υ]
+
+namespace Reactor
+
+def ports (rtr : Reactor ι υ) : Ports ι υ       := rtr.raw.ports
+def roles (rtr : Reactor ι υ) : ι ▸ Ports.Role  := rtr.raw.roles
+def state (rtr : Reactor ι υ) : StateVars ι υ   := rtr.raw.state
+def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
+
+-- The `nest` accessor lifted to return a finmap of "proper" reactors.
+-- 
+-- We're doing two lifting steps at once here:
+-- 1. We turn `rtr.raw.nest` into a finmap that has raw reactors as values.
+-- 2. We map on that finmap to get a finmap that returns "proper" reactors.
+def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := 
+  let raw : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFiniteRtrs }
+  raw.map' (λ _ h => Reactor.fromRaw (by
+      have ⟨_, hm⟩ := Finmap.values_def.mp h
+      have h' := Raw.Reactor.isAncestorOf.nested hm
+      exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.rawWF
+    )
+  )
+
+theorem nest_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.rawEquiv rtr.nest rtr.raw.nest := {
+  eqIDs := sorry,
+  rel := sorry,
+}
+
+theorem nest_rawEquiv' {rtr rtr' : Reactor ι υ} {i} (h : rtr.nest i = rtr') : rtr.raw.nest i = rtr'.raw := by
+  obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
+  have hm : i ∈ rtr.nest.ids := by
+    simp only [Finmap.ids_def, Option.ne_none_iff_exists]
+    exact ⟨rtr', Eq.symm h⟩
+  obtain ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
+  have he := hv h (Eq.symm hx)
+  simp only [rawEquiv] at he
+  simp [←hx, he]
+
+-- The `rcns` accessor lifted to return a finmap of "proper" reactions.
+-- 
+-- We're doing two lifting steps at once here:
+-- 1. We turn `rtr.raw.rcns` into a finmap that has raw reactions as values.
+-- 2. We map on that finmap to get a finmap that returns "proper" reactions.
+def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.rawWF.direct.rcnsFinite }
+  raw.map' $ λ rcn h => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
+  
+theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEquiv rtr.rcns rtr.raw.rcns := {
+  eqIDs := sorry,
+  rel := sorry,
+}
+
+-- An accessor for ports, that allows us to separate them by port role.
+noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
+
+noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  rtr.rcns.filter' (Reaction.isNorm)
+
+noncomputable def muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
+  rtr.rcns.filter' (Reaction.isMut)  
+
+noncomputable def nestedPorts (rtr : Reactor ι υ) (r : Ports.Role) : Finset ι :=
+  let description := {i | ∃ n ∈ rtr.nest.values, i ∈ (n.ports' r).ids}
+  let finite : description.finite := sorry
+  finite.toFinset
+
+end Reactor

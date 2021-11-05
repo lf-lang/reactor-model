@@ -19,24 +19,20 @@ namespace Raw.Reactor
 -- identifies all of the nested (raw) reactors required to reach a given
 -- component (of a given component type) identified by identifier `i`.
 -- 
--- We use this relation to ensure ID-uniqueness in reactors (cf. `uniqueIDs` below).
+-- We use this relation in `IDPath` to ensure ID-uniqueness in reactors
+-- (cf. `uniqueIDs` below).
 --
 -- Technicalities:
 -- If a reactor-ID-path `p` for a given ID `i` is a finite sequence of reactor-IDs `r₁, ..., rₙ`,
 -- then `r₁` identifies some reactor `x₁` in the nested network of `σ`, and all other `rₘ` in the
 -- sequence identify a reactor in the nested network of `xₘ₋₁`, and `xₙ` contains some component
 -- identified by `i` (a port, state variable, reaction, or nested reactor).
---
--- The notation `p ~[σ, cmp] i` is used to express that list `p` forms a path
--- through `σ` that reaches component `i` of component type `cmp`.
-def rtrIDPath (i : ι) (σ : Raw.Reactor ι υ) : Cmp → List ι → Prop
-  | cmp, hd::tl => ∃ σ', (σ.nest hd = some σ') ∧ (rtrIDPath i σ' cmp tl)
-  | Cmp.rtr, [] => ∃ v, σ.nest i = some v 
-  | Cmp.rcn, [] => ∃ v, σ.rcns i = some v
-  | Cmp.prt, [] => i ∈ σ.ports.ids 
-  | Cmp.stv, [] => i ∈ σ.state.ids 
-
-notation p:max " ~ᵣ[" r:max ", " c:max "] " i => rtrIDPath i r c p
+inductive IDPath : Raw.Reactor ι υ → ι → Cmp → Type _ 
+  | rtr σ i : σ.nest i ≠ none → IDPath σ i Cmp.rtr
+  | rcn σ i : σ.rcns i ≠ none → IDPath σ i Cmp.rcn
+  | prt σ i : i ∈ σ.ports.ids → IDPath σ i Cmp.prt
+  | stv σ i : i ∈ σ.state.ids → IDPath σ i Cmp.stv
+  | nest (σ : Raw.Reactor ι υ) {σ'} (cmp i i') : (IDPath σ' i cmp) → (σ.nest i' = some σ') → IDPath σ i cmp
 
 -- The `uniqueIDs` proposition states that all components in a given (raw) reactor
 -- that are identifiable by IDs (`ι`) have unique IDs.
@@ -53,9 +49,9 @@ notation p:max " ~ᵣ[" r:max ", " c:max "] " i => rtrIDPath i r c p
 -- This is achieved by stating that if a reactor-ID-path `p` leads to an identifier `i` 
 -- that identifies an object of some component type `c`, then path `p` can't also lead
 -- an ID `i` that identifies some other component type.
-structure uniqueIDs (σ : Raw.Reactor ι υ) : Prop where
-  external : ∀ {i c p₁ p₂}, (p₁ ~ᵣ[σ,  c] i) → (p₂ ~ᵣ[σ,  c] i) → p₁ = p₂  
-  internal : ∀ {i p c₁ c₂}, (p  ~ᵣ[σ, c₁] i) → (p  ~ᵣ[σ, c₂] i) → c₁ = c₂ 
+structure idUniqueness (σ : Raw.Reactor ι υ) : Prop where
+  external : ∀ {i cmp} (p₁ p₂ : IDPath σ i cmp), p₁ = p₂
+  internal : ∀ {i cmp₁ cmp₂} (p₁ : IDPath σ i cmp₁) (p₂ : IDPath σ i cmp₂), cmp₁ = cmp₂ 
 
 end Raw.Reactor
 
@@ -74,15 +70,14 @@ namespace Raw.Reactor
 --
 -- Since these constraints are still a WIP, we won't comment on them further yet.
 structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
-  uniqueIDs :       uniqueIDs rtr
+  uniqueIDs :       idUniqueness rtr
   rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
   wfRoles :         rtr.roles.ids = rtr.ports.ids
   wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
-  wfMutChildren :   ∀ m i, rtr.rcns i = some m → m.isMut → ↑m.children ⊆ { i | rtr.nest i ≠ none }
-  mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iᵣ = some n → rtr.rcns i = some m → n.isNorm → m.isMut → rtr.prios.lt iₘ iₙ
+  mutsBeforeNorms : ∀ iₙ iₘ, (∃ n, rtr.rcns iₙ = some n ∧ n.isNorm) → (∃ m, rtr.rcns iₘ = some m ∧ m.isMut) → rtr.prios.lt iₘ iₙ
   mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) 
 
 -- To define properties of reactors recursively, we need a concept of containment.
@@ -109,7 +104,7 @@ end Raw.Reactor
 -- the well-formedness properties separately.
 structure Reactor (ι υ) [ID ι] [Value υ] where 
   raw : Raw.Reactor ι υ
-  wf : raw.wellFormed  
+  rawWF : raw.wellFormed  
 
 theorem Raw.Reactor.isAncestorOf_preserves_wf
   {rtr₁ rtr₂ : Raw.Reactor ι υ} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
