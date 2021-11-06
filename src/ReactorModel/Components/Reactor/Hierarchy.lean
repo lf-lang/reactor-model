@@ -32,9 +32,17 @@ variable {ι υ}
 
 namespace Reactor
 
--- Returns the reactor that matches the last ID in the ID-path.
-def IDPath.resolve {σ : Reactor ι υ} {i cmp} (p : IDPath σ i cmp) : Reactor ι υ :=
-  sorry
+-- Returns the reactor that matches the last ID in the ID-path (along with the ID).
+def IDPath.last {σ : Reactor ι υ} {i cmp} : IDPath σ i cmp → (ι × Reactor ι υ)
+  | rtr _ => (⊤, σ)
+  | rcn _ => (⊤, σ)
+  | prt _ => (⊤, σ)
+  | stv _ => (⊤, σ)
+  | nest _ σ' _ _ i' (rtr _ ) _ => (i', σ')
+  | nest _ σ' _ _ i' (rcn _ ) _ => (i', σ')
+  | nest _ σ' _ _ i' (prt _ ) _ => (i', σ')
+  | nest _ σ' _ _ i' (stv _ ) _ => (i', σ')
+  | nest _ _ _ _ _ p _ => last p
 
 -- This function returns (if possible) the ID of the reactor that contains
 -- the component identified by a given ID `i` in the context of reactor `σ`.
@@ -61,7 +69,7 @@ def IDPath.resolve {σ : Reactor ι υ} {i cmp} (p : IDPath σ i cmp) : Reactor 
 -- function using the axiom of choice seems good enough.
 noncomputable def containerOf (σ : Reactor ι υ) (i : ι) : Option ι := 
   if h : ∃ (cmp : Cmp), Nonempty (IDPath σ i cmp) 
-  then (Classical.choice h.choose_spec).path.getLastD ⊤ 
+  then (Classical.choice h.choose_spec).last.fst
   else none
 
 -- This notation is chosen to be akin to the address notation in C,
@@ -80,7 +88,7 @@ notation σ:max " & " i:max => Reactor.containerOf σ i
 noncomputable def objFor (σ : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) := {
   lookup := λ i => 
     if h : Nonempty (IDPath σ i cmp) 
-    then cmp.accessor (ι := ι) (υ := υ) (Classical.choice h).resolve i
+    then cmp.accessor (ι := ι) (υ := υ) (Classical.choice h).last.snd i
     else none,
   finite := sorry
 } 

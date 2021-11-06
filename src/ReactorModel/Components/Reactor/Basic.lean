@@ -102,6 +102,7 @@ end Raw.Reactor
 -- A `Reactor` is a raw reactor that is also well-formed.
 -- We do this using a structure to be able to access the structure and 
 -- the well-formedness properties separately.
+@[ext]
 structure Reactor (ι υ) [ID ι] [Value υ] where 
   raw : Raw.Reactor ι υ
   rawWF : raw.wellFormed  

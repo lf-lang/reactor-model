@@ -38,7 +38,7 @@ inductive IDPath : Reactor ι υ → ι → Cmp → Type _
   | rcn {σ i} : i ∈ σ.rcns.ids  → IDPath σ i Cmp.rcn
   | prt {σ i} : i ∈ σ.ports.ids → IDPath σ i Cmp.prt
   | stv {σ i} : i ∈ σ.state.ids → IDPath σ i Cmp.stv
-  | nest {σ σ' : Reactor ι υ} {cmp i} (i') : (IDPath σ' i cmp) → (σ.nest i' = some σ') → IDPath σ i cmp
+  | nest (σ σ' : Reactor ι υ) (cmp i i') : (IDPath σ' i cmp) → (σ.nest i' = some σ') → IDPath σ i cmp
 
 structure idUniqueness (σ : Reactor ι υ) : Prop where
   external : ∀ {i cmp} (p₁ p₂ : IDPath σ i cmp), p₁ = p₂
@@ -49,16 +49,26 @@ private def IDPath.toRaw {σ : Reactor ι υ} {i} : {cmp : Cmp} → (IDPath σ i
   | Cmp.stv, IDPath.stv h => Raw.Reactor.IDPath.stv σ.raw i h
   | Cmp.rcn, IDPath.rcn h => Raw.Reactor.IDPath.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
   | Cmp.rtr, IDPath.rtr h => Raw.Reactor.IDPath.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
-  | cmp, IDPath.nest i' p hn => Raw.Reactor.IDPath.nest σ.raw cmp i i' (toRaw p) (nest_rawEquiv' hn)
+  | cmp, IDPath.nest _ _ _ _ i' p hn => Raw.Reactor.IDPath.nest σ.raw cmp i i' (toRaw p) (nest_rawEquiv' hn)
 
 private theorem IDPath.eq_if_toRaw_eq {σ : Reactor ι υ} {i cmp} {p₁ p₂ : IDPath σ i cmp} (h : p₁.toRaw = p₂.toRaw) : p₁ = p₂ := by
-  induction p₁ <;> cases p₂ <;> simp [toRaw] at *
-  case nest.nest i₁ p₁ he₁ σ' i₂ he₂ p₂ hi =>
-    sorry
+  induction p₁ 
+  case nest σ₁ σ₂ cmp i₁ i₂ p hn hi =>
+    cases p₂ 
+    case nest σ' i' hn' p' =>
+      cases cmp 
+      all_goals {
+        simp [toRaw] at h
+        have hσ : σ₂ = σ' := by ext; exact h.left
+        -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/HEq
+        sorry
+      }
+    all_goals { simp [toRaw] at * }
+  all_goals { cases p₂ <;> simp [toRaw] at * }
 
 theorem uniqueIDs (σ : Reactor ι υ) : idUniqueness σ := {
   external := λ p₁ p₂ => IDPath.eq_if_toRaw_eq (σ.rawWF.direct.uniqueIDs.external p₁.toRaw p₂.toRaw)
   internal := λ p₁ p₂ => σ.rawWF.direct.uniqueIDs.internal p₁.toRaw p₂.toRaw
 }
-
+  
 end Reactor
