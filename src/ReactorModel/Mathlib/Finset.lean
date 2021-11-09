@@ -62,6 +62,8 @@ theorem inter_subset_right (s₁ s₂ : Finset α) [DecidableEq α] : s₁ ∩ s
 
 @[simp] theorem mem_union {a : α} {s₁ s₂ : Finset α} : a ∈ s₁ ∪ s₂ ↔ a ∈ s₁ ∨ a ∈ s₂ := sorry
 
+@[simp] theorem mem_bUnion {s : Finset α} {t : α → Finset β} {b : β} [DecidableEq β] : b ∈ s.bUnion t ↔ ∃ a ∈ s, b ∈ t a := sorry
+
 instance : Sdiff (Finset α) := sorry
 
 end Finset

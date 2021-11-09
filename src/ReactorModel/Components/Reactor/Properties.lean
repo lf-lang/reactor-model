@@ -8,17 +8,24 @@ import ReactorModel.Components.Reactor.Projections
 -- The other properties are all present in the redefinitions of and change,
 -- reaction.
 
+open Ports
+
 variable {ι υ} [ID ι] [Value υ]
 
 namespace Reactor
 
 theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.rawWF.direct.wfRoles
 
-theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (h : n ∈ rtr.norms.values) : n.deps r ⊆ (rtr.ports' r).ids ∪ (rtr.nestedPorts r.opposite) := sorry
+theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (h : n ∈ rtr.norms.values) : 
+  n.deps r ⊆ (rtr.ports' r).ids ∪ (rtr.nestedPortIDs r.opposite) :=
+  sorry
 
-theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
+theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : 
+  (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := 
+  sorry
 
-theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rtr.norms.ids) (hm : iₘ ∈ rtr.muts.ids) : rtr.prios.lt iₘ iₙ := by
+theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rtr.norms.ids) (hm : iₘ ∈ rtr.muts.ids) : 
+  rtr.prios.lt iₘ iₙ := by
   have hw := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
   suffices hg : (∃ n, rtr.raw.rcns iₙ = some n ∧ n.isNorm) ∧ (∃ m, rtr.raw.rcns iₘ = some m ∧ m.isMut) from hw hg.left hg.right
   clear hw

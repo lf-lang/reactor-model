@@ -82,9 +82,13 @@ noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
 noncomputable def muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isMut)  
 
-noncomputable def nestedPorts (rtr : Reactor ι υ) (r : Ports.Role) : Finset ι :=
+noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Ports.Role) : Finset ι :=
   let description := {i | ∃ n ∈ rtr.nest.values, i ∈ (n.ports' r).ids}
-  let finite : description.finite := sorry
+  let finite : description.finite := by
+    let f : Finset ι := rtr.nest.values.bUnion (λ n => (n.ports' r).ids)
+    suffices h : description ⊆ ↑f 
+      from Set.finite.subset (Finset.finite_to_set _) h
+    simp [Set.subset_def]
   finite.toFinset
 
 end Reactor
