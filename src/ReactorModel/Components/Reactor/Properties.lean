@@ -56,13 +56,14 @@ private theorem IDPath.eq_if_toRaw_eq {σ : Reactor ι υ} {i cmp} {p₁ p₂ : 
   case nest σ₁ σ₂ cmp i₁ i₂ p hn hi =>
     cases p₂ 
     case nest σ' i' hn' p' =>
-      cases cmp 
-      all_goals {
+      cases cmp <;> (
         simp [toRaw] at h
         have hσ : σ₂ = σ' := by ext; exact h.left
-        -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/HEq
-        sorry
-      }
+        subst hσ
+        simp [h.right.left]
+        suffices hg : p.toRaw = p'.toRaw from hi hg
+        exact eq_of_heq h.right.right
+      )
     all_goals { simp [toRaw] at * }
   all_goals { cases p₂ <;> simp [toRaw] at * }
 
