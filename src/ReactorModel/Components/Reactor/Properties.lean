@@ -16,7 +16,7 @@ theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.raw
 
 theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (h : n ∈ rtr.norms.values) : n.deps r ⊆ (rtr.ports' r).ids ∪ (rtr.nestedPorts r.opposite) := sorry
 
--- theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
+theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
 
 theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rtr.norms.ids) (hm : iₘ ∈ rtr.muts.ids) : rtr.prios.lt iₘ iₙ := by
   have hw := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
@@ -38,7 +38,7 @@ inductive IDPath : Reactor ι υ → ι → Cmp → Type _
   | rcn {σ i} : i ∈ σ.rcns.ids  → IDPath σ i Cmp.rcn
   | prt {σ i} : i ∈ σ.ports.ids → IDPath σ i Cmp.prt
   | stv {σ i} : i ∈ σ.state.ids → IDPath σ i Cmp.stv
-  | nest (σ σ' : Reactor ι υ) (cmp i i') : (IDPath σ' i cmp) → (σ.nest i' = some σ') → IDPath σ i cmp
+  | nest {σ : Reactor ι υ} σ' {cmp i} i' : (IDPath σ' i cmp) → (σ.nest i' = some σ') → IDPath σ i cmp
 
 structure idUniqueness (σ : Reactor ι υ) : Prop where
   external : ∀ {i cmp} (p₁ p₂ : IDPath σ i cmp), p₁ = p₂
@@ -49,7 +49,7 @@ private def IDPath.toRaw {σ : Reactor ι υ} {i} : {cmp : Cmp} → (IDPath σ i
   | Cmp.stv, IDPath.stv h => Raw.Reactor.IDPath.stv σ.raw i h
   | Cmp.rcn, IDPath.rcn h => Raw.Reactor.IDPath.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
   | Cmp.rtr, IDPath.rtr h => Raw.Reactor.IDPath.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
-  | cmp, IDPath.nest _ _ _ _ i' p hn => Raw.Reactor.IDPath.nest σ.raw cmp i i' (toRaw p) (nest_rawEquiv' hn)
+  | cmp, IDPath.nest _ i' p hn => Raw.Reactor.IDPath.nest σ.raw cmp i i' (toRaw p) (nest_rawEquiv' hn)
 
 private theorem IDPath.eq_if_toRaw_eq {σ : Reactor ι υ} {i cmp} {p₁ p₂ : IDPath σ i cmp} (h : p₁.toRaw = p₂.toRaw) : p₁ = p₂ := by
   induction p₁ 

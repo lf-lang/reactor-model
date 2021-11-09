@@ -24,8 +24,24 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
   )
 
 theorem nest_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.rawEquiv rtr.nest rtr.raw.nest := {
-  eqIDs := sorry,
-  rel := sorry,
+  eqIDs := by
+    intro i
+    apply Iff.intro <;> intro h
+    case mp =>
+      simp only [nest, Finmap.map'_mem_id] at h
+      exact Finmap.ids_def.mp h
+    case mpr =>
+      simp only [nest, Finmap.map'_mem_id]
+      exact Finmap.ids_def.mpr h,
+  rel := by
+    intro i r r' hr hr'
+    simp only [rawEquiv]
+    simp [nest] at hr
+    obtain ⟨m, hm, ⟨h₁, h₂⟩⟩ := Finmap.map'_def hr
+    simp [←h₂, fromRaw]
+    simp at h₁
+    simp [h₁] at hr'
+    exact hr',
 }
 
 theorem nest_rawEquiv' {rtr rtr' : Reactor ι υ} {i} (h : rtr.nest i = rtr') : rtr.raw.nest i = rtr'.raw := by
