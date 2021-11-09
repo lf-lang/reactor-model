@@ -151,4 +151,12 @@ structure forall₂' (r : β → γ → Prop) (f₁ : α ▸ β) (f₂ : α → 
   eqIDs : ∀ a, a ∈ f₁.ids ↔ f₂ a ≠ none
   rel : ∀ {a} {b : β} {c : γ}, (f₁ a = b) → (f₂ a = c) → r b c
 
+theorem forall₂_map' (f : α ▸ β) {g : (b : β) → (b ∈ f.values) → γ} {r : β → γ → Prop} (h : ∀ b hb, r b (g b hb)) :
+  forall₂ r f (f.map' g) :=
+  sorry
+
+theorem forall₂_to_forall₂' {r : β → γ → Prop} {f₁ : α ▸ β} {f₂ : α ▸ γ} (h : forall₂ r f₁ f₂) :
+  forall₂' r f₁ f₂.lookup :=
+  sorry
+
 end Finmap

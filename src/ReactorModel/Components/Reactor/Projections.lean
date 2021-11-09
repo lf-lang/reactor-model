@@ -26,22 +26,16 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
 theorem nest_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.rawEquiv rtr.nest rtr.raw.nest := {
   eqIDs := by
     intro i
-    apply Iff.intro <;> intro h
-    case mp =>
-      simp only [nest, Finmap.map'_mem_id] at h
-      exact Finmap.ids_def.mp h
-    case mpr =>
-      simp only [nest, Finmap.map'_mem_id]
-      exact Finmap.ids_def.mpr h,
+    simp only [nest, Finmap.map'_mem_id]
+    exact Finmap.ids_def,
   rel := by
     intro i r r' hr hr'
-    simp only [rawEquiv]
     simp [nest] at hr
     obtain ⟨m, hm, ⟨h₁, h₂⟩⟩ := Finmap.map'_def hr
-    simp [←h₂, fromRaw]
+    have h := fromRaw_rawEquiv (Eq.symm h₂)
     simp at h₁
     simp [h₁] at hr'
-    exact hr',
+    simp [←hr', h]
 }
 
 theorem nest_rawEquiv' {rtr rtr' : Reactor ι υ} {i} (h : rtr.nest i = rtr') : rtr.raw.nest i = rtr'.raw := by
@@ -63,9 +57,20 @@ def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.rawWF.direct.rcnsFinite }
   raw.map' $ λ rcn h => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
   
+-- TODO: Show this and `nest_rawEquiv` using `Finmap.forall₂'_map'`.
 theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEquiv rtr.rcns rtr.raw.rcns := {
-  eqIDs := sorry,
-  rel := sorry,
+  eqIDs := by
+    intro i
+    simp only [rcns, Finmap.map'_mem_id]
+    exact Finmap.ids_def
+  rel := by
+    intro i r r' hr hr'
+    simp [rcns] at hr
+    obtain ⟨m, hm, ⟨h₁, h₂⟩⟩ := Finmap.map'_def hr
+    have h := Reaction.fromRaw_rawEquiv (Eq.symm h₂)
+    simp at h₁
+    simp [h₁] at hr'
+    simp [←hr', h]
 }
 
 -- An accessor for ports, that allows us to separate them by port role.
