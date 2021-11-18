@@ -40,43 +40,32 @@ theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rt
 
 theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ rtr.muts.ids) (h₂ : i₂ ∈ rtr.muts.ids) : (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) := sorry 
 
-inductive IDPath : Reactor ι υ → ι → Cmp → Type _ 
-  | rtr {σ i} : i ∈ σ.nest.ids  → IDPath σ i Cmp.rtr
-  | rcn {σ i} : i ∈ σ.rcns.ids  → IDPath σ i Cmp.rcn
-  | prt {σ i} : i ∈ σ.ports.ids → IDPath σ i Cmp.prt
-  | stv {σ i} : i ∈ σ.state.ids → IDPath σ i Cmp.stv
-  | nest {σ : Reactor ι υ} σ' {cmp i} i' : (IDPath σ' i cmp) → (σ.nest i' = some σ') → IDPath σ i cmp
+inductive IDPath : Reactor ι υ → ι → Type _ 
+  | rtr {σ i} : i ∈ σ.nest.ids  → IDPath σ i
+  | rcn {σ i} : i ∈ σ.rcns.ids  → IDPath σ i
+  | prt {σ i} : i ∈ σ.ports.ids → IDPath σ i
+  | stv {σ i} : i ∈ σ.state.ids → IDPath σ i
+  | nest {σ : Reactor ι υ} σ' {i} i' : (IDPath σ' i) → (σ.nest i' = some σ') → IDPath σ i
 
-structure idUniqueness (σ : Reactor ι υ) : Prop where
-  external : ∀ {i cmp} (p₁ p₂ : IDPath σ i cmp), p₁ = p₂
-  internal : ∀ {i cmp₁ cmp₂} (p₁ : IDPath σ i cmp₁) (p₂ : IDPath σ i cmp₂), cmp₁ = cmp₂ 
+private def IDPath.toRaw {σ : Reactor ι υ} {i} : (IDPath σ i) → Raw.Reactor.IDPath σ.raw i
+  | IDPath.prt h => Raw.Reactor.IDPath.prt σ.raw i h
+  | IDPath.stv h => Raw.Reactor.IDPath.stv σ.raw i h
+  | IDPath.rcn h => Raw.Reactor.IDPath.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
+  | IDPath.rtr h => Raw.Reactor.IDPath.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
+  | IDPath.nest _ i' p hn => Raw.Reactor.IDPath.nest σ.raw i i' (toRaw p) (nest_rawEquiv' hn)
 
-private def IDPath.toRaw {σ : Reactor ι υ} {i} : {cmp : Cmp} → (IDPath σ i cmp) → Raw.Reactor.IDPath σ.raw i cmp
-  | Cmp.prt, IDPath.prt h => Raw.Reactor.IDPath.prt σ.raw i h
-  | Cmp.stv, IDPath.stv h => Raw.Reactor.IDPath.stv σ.raw i h
-  | Cmp.rcn, IDPath.rcn h => Raw.Reactor.IDPath.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
-  | Cmp.rtr, IDPath.rtr h => Raw.Reactor.IDPath.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
-  | cmp, IDPath.nest _ i' p hn => Raw.Reactor.IDPath.nest σ.raw cmp i i' (toRaw p) (nest_rawEquiv' hn)
-
-private theorem IDPath.eq_if_toRaw_eq {σ : Reactor ι υ} {i cmp} {p₁ p₂ : IDPath σ i cmp} (h : p₁.toRaw = p₂.toRaw) : p₁ = p₂ := by
-  induction p₁ 
-  case nest σ₁ σ₂ cmp i₁ i₂ p hn hi =>
+theorem uniqueIDs {σ : Reactor ι υ} {i} (p₁ p₂ : IDPath σ i) : p₁ = p₂ := by
+  have h := σ.rawWF.direct.uniqueIDs p₁.toRaw p₂.toRaw
+  induction p₁
+  case nest _ σ₂ _ _ _ _ hi =>
     cases p₂ 
-    case nest σ' i' hn' p' =>
-      cases cmp <;> (
-        simp [toRaw] at h
-        have hσ : σ₂ = σ' := by ext; exact h.left
-        subst hσ
-        simp [h.right.left]
-        suffices hg : p.toRaw = p'.toRaw from hi hg
-        exact eq_of_heq h.right.right
-      )
-    all_goals { simp [toRaw] at * }
-  all_goals { cases p₂ <;> simp [toRaw] at * }
-
-theorem uniqueIDs (σ : Reactor ι υ) : idUniqueness σ := {
-  external := λ p₁ p₂ => IDPath.eq_if_toRaw_eq (σ.rawWF.direct.uniqueIDs.external p₁.toRaw p₂.toRaw)
-  internal := λ p₁ p₂ => σ.rawWF.direct.uniqueIDs.internal p₁.toRaw p₂.toRaw
-}
+    case nest σ' _ _ _ =>
+      simp [IDPath.toRaw] at h
+      have hσ : σ₂ = σ' := by ext; exact h.left
+      subst hσ
+      simp [h.right.left]
+      exact hi _ $ eq_of_heq h.right.right
+    all_goals { contradiction }
+  all_goals { cases p₂ <;> simp [IDPath.toRaw] at * }
   
 end Reactor

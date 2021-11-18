@@ -92,6 +92,8 @@ theorem permLookup (a : α) {l₁ l₂ : List (Sigma β)} (nd₁ : l₁.nodupkey
 
 def attach (l : List α) : List {x // x ∈ l} := sorry
 
+@[simp] lemma attach_eq_nil (l : List α) : l.attach = [] ↔ l = [] := sorry
+
 @[simp] theorem mem_attach (l : List α) : ∀ x, x ∈ l.attach := sorry
 
 inductive forall₂ (R : α → β → Prop) : List α → List β → Prop

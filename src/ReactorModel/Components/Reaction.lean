@@ -5,6 +5,7 @@ open Classical
 
 variable (ι υ) [ID ι] [Value υ]
 
+@[ext]
 structure Reaction where
   deps :        Ports.Role → Finset ι 
   triggers :    Finset ι

@@ -172,8 +172,31 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
     children := by simp [h, fromRaw],
     body := by
       intro p s
-      -- induction on (rcn p s) and (raw.body p s)?
-      sorry
+      simp [fromRaw] at h
+      simp [Reaction.ext_iff] at h
+      have h := h.right.right.right
+      have h : rcn.body p s = (raw.body p s).attach.map (λ c => Change.fromRaw hw hr _) := by rw [h]
+      generalize hl : rcn p s = l
+      rw [hl] at h
+      induction l
+      case nil =>
+        have h := List.map_eq_nil.mp (Eq.symm h)
+        simp at h
+        rw [h]
+        exact List.forall₂.nil
+      case cons hd tl hi =>
+        -- somethings weird with hi here  
+        cases hc : List.attach (raw.body p s)
+        case nil =>
+          rw [hc, List.map_nil] at h
+          contradiction
+        case cons hd' tl' =>
+          simp [hc] at h
+          cases hc' : raw.body p s
+          case nil =>
+            simp [hc'] at hc
+            sorry
+          sorry
   }
 
 end Reaction

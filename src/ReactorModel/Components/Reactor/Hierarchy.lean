@@ -38,11 +38,11 @@ def IDPath.last {σ : Reactor ι υ} {i cmp} : IDPath σ i cmp → (ι × Reacto
   | rcn _ => (⊤, σ)
   | prt _ => (⊤, σ)
   | stv _ => (⊤, σ)
-  | nest _ σ' _ _ i' (rtr _ ) _ => (i', σ')
-  | nest _ σ' _ _ i' (rcn _ ) _ => (i', σ')
-  | nest _ σ' _ _ i' (prt _ ) _ => (i', σ')
-  | nest _ σ' _ _ i' (stv _ ) _ => (i', σ')
-  | nest _ _ _ _ _ p _ => last p
+  | nest σ' i' (rtr _ ) _ => (i', σ')
+  | nest σ' i' (rcn _ ) _ => (i', σ')
+  | nest σ' i' (prt _ ) _ => (i', σ')
+  | nest σ' i' (stv _ ) _ => (i', σ')
+  | nest _ _ p _ => last p
 
 -- This function returns (if possible) the ID of the reactor that contains
 -- the component identified by a given ID `i` in the context of reactor `σ`.

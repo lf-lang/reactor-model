@@ -27,31 +27,12 @@ namespace Raw.Reactor
 -- then `r₁` identifies some reactor `x₁` in the nested network of `σ`, and all other `rₘ` in the
 -- sequence identify a reactor in the nested network of `xₘ₋₁`, and `xₙ` contains some component
 -- identified by `i` (a port, state variable, reaction, or nested reactor).
-inductive IDPath : Raw.Reactor ι υ → ι → Cmp → Type _ 
-  | rtr σ i : σ.nest i ≠ none → IDPath σ i Cmp.rtr
-  | rcn σ i : σ.rcns i ≠ none → IDPath σ i Cmp.rcn
-  | prt σ i : i ∈ σ.ports.ids → IDPath σ i Cmp.prt
-  | stv σ i : i ∈ σ.state.ids → IDPath σ i Cmp.stv
-  | nest (σ : Raw.Reactor ι υ) {σ'} (cmp i i') : (IDPath σ' i cmp) → (σ.nest i' = some σ') → IDPath σ i cmp
-
--- The `uniqueIDs` proposition states that all components in a given (raw) reactor
--- that are identifiable by IDs (`ι`) have unique IDs.
---
--- The `external` proposition ensures ID-uniqueness within *one class of components*
--- (same component type), but between *different reactors*. That is, no two distinct
--- objects of the same component type can have the same ID.
--- This is achieved by stating that if there are two reactor-ID-paths that lead to
--- the same identifier, then those paths must be the same. 
---
--- The `internal` proposition ensures ID-uniqueness within *one reactor*, but between
--- *different types of components*. That is, no two distinct objects in a reactor can
--- have the same ID.
--- This is achieved by stating that if a reactor-ID-path `p` leads to an identifier `i` 
--- that identifies an object of some component type `c`, then path `p` can't also lead
--- an ID `i` that identifies some other component type.
-structure idUniqueness (σ : Raw.Reactor ι υ) : Prop where
-  external : ∀ {i cmp} (p₁ p₂ : IDPath σ i cmp), p₁ = p₂
-  internal : ∀ {i cmp₁ cmp₂} (p₁ : IDPath σ i cmp₁) (p₂ : IDPath σ i cmp₂), cmp₁ = cmp₂ 
+inductive IDPath : Raw.Reactor ι υ → ι → Type _ 
+  | rtr σ i : σ.nest i ≠ none → IDPath σ i
+  | rcn σ i : σ.rcns i ≠ none → IDPath σ i
+  | prt σ i : i ∈ σ.ports.ids → IDPath σ i
+  | stv σ i : i ∈ σ.state.ids → IDPath σ i
+  | nest (σ : Raw.Reactor ι υ) {σ'} (i i') : (IDPath σ' i) → (σ.nest i' = some σ') → IDPath σ i
 
 end Raw.Reactor
 
@@ -70,7 +51,7 @@ namespace Raw.Reactor
 --
 -- Since these constraints are still a WIP, we won't comment on them further yet.
 structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
-  uniqueIDs :       idUniqueness rtr
+  uniqueIDs :       ∀ p₁ p₂ : IDPath rtr i, p₁ = p₂ 
   rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
