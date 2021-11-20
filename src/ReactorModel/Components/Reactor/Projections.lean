@@ -73,6 +73,16 @@ theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEqui
     simp [←hr', h]
 }
 
+theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) : 
+  ∃ raw, rtr.raw.rcns i = some raw := by
+  have h' := Option.ne_none_iff_exists.mpr ⟨rcn, Eq.symm h⟩
+  simp only [rcns, ←Finmap.ids_def, Finmap.map'_mem_ids] at h'
+  have he := rcns_rawEquiv rtr
+  have hi := (he.eqIDs _).mp h'
+  simp only [Finmap.ids_def, Option.ne_none_iff_exists] at h'
+  obtain ⟨raw, hr⟩ := h'
+  exact ⟨raw, Eq.symm hr⟩
+
 -- An accessor for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
 

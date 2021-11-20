@@ -58,7 +58,7 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   wfRoles :         rtr.roles.ids = rtr.ports.ids
   wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
-  mutsBeforeNorms : ∀ iₙ iₘ, (∃ n, rtr.rcns iₙ = some n ∧ n.isNorm) → (∃ m, rtr.rcns iₘ = some m ∧ m.isMut) → rtr.prios.lt iₘ iₙ
+  mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iₙ = some n → n.isNorm → rtr.rcns iₘ = some m → m.isMut → rtr.prios.lt iₘ iₙ
   mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) 
 
 -- To define properties of reactors recursively, we need a concept of containment.
@@ -88,8 +88,7 @@ structure Reactor (ι υ) [ID ι] [Value υ] where
   raw : Raw.Reactor ι υ
   rawWF : raw.wellFormed  
 
-theorem Raw.Reactor.isAncestorOf_preserves_wf
-  {rtr₁ rtr₂ : Raw.Reactor ι υ} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
+theorem Raw.Reactor.isAncestorOf_preserves_wf {rtr₁ rtr₂ : Raw.Reactor ι υ} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
   rtr₂.wellFormed := {
     direct := hw.offspring ha,
     offspring := λ hr => hw.offspring (isAncestorOf.trans ha hr)

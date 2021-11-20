@@ -21,44 +21,42 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (
   sorry
 
 theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : 
-  (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := 
-  sorry
+  (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
+  simp only [muts, Finmap.filter'_mem_values] at h
+  obtain ⟨i, h, hm⟩ := h
+  obtain ⟨mr, hr⟩ := rcns_has_raw h
+  have he := rcns_rawEquiv rtr
+  have hq := he.rel h hr
+  have hrm := (Reaction.rawEquiv_isMut_iff hq).mp hm
+  have hw := rtr.rawWF.direct.wfMutDeps mr i hr hrm
+  obtain ⟨h₁, h₂⟩ := hw
+  sorry  
 
 theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rtr.norms.ids) (hm : iₘ ∈ rtr.muts.ids) : 
   rtr.prios.lt iₘ iₙ := by
-  have hw := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
-  suffices hg : (∃ n, rtr.raw.rcns iₙ = some n ∧ n.isNorm) ∧ (∃ m, rtr.raw.rcns iₘ = some m ∧ m.isMut) from hw hg.left hg.right
-  clear hw
-  -- simp [Finmap.ids_def] at hn hm 
-  apply And.intro
-  case left =>
-    simp [norms, Finmap.filter'_mem_ids] at hn
-    obtain ⟨n, ⟨hl, hn⟩⟩ := hn
-    sorry
-  sorry
-    -- Perhaps the whole toRaw thing is stupid, as you'd still need to prove `Raw.Reactor.rcns rtr.raw iₙ = some n` for that reaction n.
+  have h := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
+  simp only [muts, norms, Finmap.filter'_mem_ids] at hn hm
+  obtain ⟨hr₁, hm₁⟩ := hn.choose_spec
+  obtain ⟨hr₂, hm₂⟩ := hm.choose_spec
+  have hi₁ := (rcns_has_raw hr₁).choose_spec
+  have hi₂ := (rcns_has_raw hr₂).choose_spec
+  have he := rcns_rawEquiv rtr
+  have hmr₁ := (Reaction.rawEquiv_isNorm_iff $ he.rel hr₁ hi₁).mp hm₁
+  have hmr₂ := (Reaction.rawEquiv_isMut_iff  $ he.rel hr₂ hi₂).mp hm₂
+  exact h _ _ hi₁ hmr₁ hi₂ hmr₂
 
-theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ rtr.muts.ids) (h₂ : i₂ ∈ rtr.muts.ids) : (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) := by
+theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ rtr.muts.ids) (h₂ : i₂ ∈ rtr.muts.ids) : 
+  (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) := by
   have h := rtr.rawWF.direct.mutsLinearOrder i₁ i₂
   simp only [muts, Finmap.filter'_mem_ids] at h₁ h₂
-  obtain ⟨m₁, hr₁, hm₁⟩ := h₁
-  obtain ⟨m₂, hr₂, hm₂⟩ := h₂
-  have hr₁ := Option.ne_none_iff_exists.mpr ⟨m₁, Eq.symm hr₁⟩
-  have hr₂ := Option.ne_none_iff_exists.mpr ⟨m₂, Eq.symm hr₂⟩
-  simp only [rcns, ←Finmap.ids_def, Finmap.map'_mem_ids] at hr₁ hr₂
+  obtain ⟨hr₁, hm₁⟩ := h₁.choose_spec
+  obtain ⟨hr₂, hm₂⟩ := h₂.choose_spec
+  have hi₁ := (rcns_has_raw hr₁).choose_spec
+  have hi₂ := (rcns_has_raw hr₂).choose_spec
   have he := rcns_rawEquiv rtr
-  have hi₁ := (he.eqIDs _).mp hr₁
-  have hi₂ := (he.eqIDs _).mp hr₂
-  clear hr₁ hr₂ h₁ h₂
-  simp only [Finmap.ids_def, Option.ne_none_iff_exists] at hi₁ hi₂
-  obtain ⟨mr₁, hi₁⟩ := hi₁
-  obtain ⟨mr₂, hi₂⟩ := hi₂
-  have h := h _ _ (Eq.symm hi₁) (Eq.symm hi₂)
-  have hre₁ := he.rel hr₁ (Eq.symm hi₁)
-  have hre₂ := he.rel hr₂ (Eq.symm hi₂)
-  have hmr₁ := Reaction.rawEquiv_isMut_iff hre₁ hm₁
-  have hmr₂ := Reaction.rawEquiv_isMut_iff hre₂ hm₂
-  exact h hmr₁ hmr₂
+  have hmr₁ := (Reaction.rawEquiv_isMut_iff $ he.rel hr₁ hi₁).mp hm₁
+  have hmr₂ := (Reaction.rawEquiv_isMut_iff $ he.rel hr₂ hi₂).mp hm₂
+  exact h _ _ hi₁ hi₂ hmr₁ hmr₂
 
 inductive IDPath : Reactor ι υ → ι → Type _ 
   | rtr {σ i} : i ∈ σ.nest.ids  → IDPath σ i

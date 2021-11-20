@@ -201,7 +201,8 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
   }
 
 theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
-  rcn.isMut → raw.isMut := by
+  rcn.isMut ↔ raw.isMut := by
+  apply Iff.intro
   intro hm
   simp [Raw.Reaction.isMut, Raw.Reaction.isNorm]
   simp [isMut, isNorm] at hm
@@ -219,5 +220,16 @@ theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
     have H := Change.rawEquiv_mutates_iff hc
     sorry
     -- somehow l₁ and l₂ and hence a b are disconnected from h₁ and h₂
+  sorry
+
+open Classical
+
+theorem rawEquiv_isNorm_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
+  rcn.isNorm ↔ raw.isNorm := by
+  have he := rawEquiv_isMut_iff h
+  simp only [isMut, Raw.Reaction.isMut] at he
+  have he := not_iff_not_of_iff he
+  simp at he
+  exact he
 
 end Reaction
