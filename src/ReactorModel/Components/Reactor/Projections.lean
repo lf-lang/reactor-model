@@ -51,7 +51,15 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ 
     simp only [rawEquiv] at he
     simp [←hx, he]
   case mpr =>
-    sorry
+    intro h
+    obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
+    have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, Eq.symm h⟩)
+    obtain ⟨x, hx⟩ := Option.ne_none_iff_exists.mp (Finmap.ids_def.mp hi)
+    have he := hv (Eq.symm hx) h
+    simp only [rawEquiv] at he
+    simp [←hx]
+    apply Reactor.ext
+    exact he    
 
 -- The `rcns` accessor lifted to return a finmap of "proper" reactions.
 -- 
