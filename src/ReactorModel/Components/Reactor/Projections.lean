@@ -38,15 +38,20 @@ theorem nest_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.rawEquiv
     simp [←hr', h]
 }
 
-theorem nest_rawEquiv' {rtr rtr' : Reactor ι υ} {i} (h : rtr.nest i = rtr') : rtr.raw.nest i = rtr'.raw := by
-  obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
-  have hm : i ∈ rtr.nest.ids := by
-    simp only [Finmap.ids_def, Option.ne_none_iff_exists]
-    exact ⟨rtr', Eq.symm h⟩
-  obtain ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
-  have he := hv h (Eq.symm hx)
-  simp only [rawEquiv] at he
-  simp [←hx, he]
+theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ rtr.raw.nest i = rtr'.raw := by
+  apply Iff.intro
+  case mp =>
+    intro h
+    obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
+    have hm : i ∈ rtr.nest.ids := by
+      simp only [Finmap.ids_def, Option.ne_none_iff_exists]
+      exact ⟨rtr', Eq.symm h⟩
+    obtain ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
+    have he := hv h (Eq.symm hx)
+    simp only [rawEquiv] at he
+    simp [←hx, he]
+  case mpr =>
+    sorry
 
 -- The `rcns` accessor lifted to return a finmap of "proper" reactions.
 -- 
@@ -84,7 +89,8 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   exact ⟨raw, Eq.symm hr⟩
 
 -- An accessor for ports, that allows us to separate them by port role.
-noncomputable def ports' (rtr : Reactor ι υ) : Ports.Role → Ports ι υ := rtr.raw.ports'
+noncomputable def ports' (rtr : Reactor ι υ) (r : Ports.Role) : Ports ι υ := 
+  rtr.ports.filter (λ i => rtr.roles i = r)
 
 noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isNorm)

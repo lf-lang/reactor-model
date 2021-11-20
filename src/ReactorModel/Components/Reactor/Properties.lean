@@ -17,9 +17,35 @@ namespace Reactor
 theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.rawWF.direct.wfRoles
 
 theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (h : n ∈ rtr.norms.values) : 
-  n.deps r ⊆ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite :=
-  sorry
-
+  n.deps r ⊆ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite := by
+  simp only [Finset.subset_iff, Finset.mem_union]
+  intro j hj
+  simp only [norms, Finmap.filter'_mem_values] at h
+  obtain ⟨i, h, hn⟩ := h
+  obtain ⟨nr, hr⟩ := rcns_has_raw h
+  have he := rcns_rawEquiv rtr
+  have hnr := (Reaction.rawEquiv_isNorm_iff $ he.rel h hr).mp hn
+  have hw := rtr.rawWF.direct.wfNormDeps nr i r hr
+  simp [Set.subset_def, Set.mem_union] at hw
+  rw [(he.rel h hr).deps] at hj
+  cases (hw hnr j hj)
+  case inl hw => exact Or.inl hw
+  case inr hw =>
+    apply Or.inr
+    obtain ⟨i', ri', h₁, h₂⟩ := hw
+    simp [nestedPortIDs, Set.finite.mem_to_finset]
+    have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
+    let rip := Reactor.fromRaw ri' hrip
+    exists rip
+    apply And.intro
+    case h.left =>
+      simp [Finmap.values_def]
+      exists i'
+      exact nest_mem_raw_iff.mpr h₁
+    case h.right =>
+      simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
+      exact h₂
+  
 theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : 
   (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
   simp only [muts, Finmap.filter'_mem_values] at h
@@ -88,11 +114,11 @@ def Lineage.last {σ : Reactor ι υ} {i} : Lineage σ i → (ι × Reactor ι �
 -- TODO: Merge this into the proof of `uniqueIDs`.
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Unfold.20where
 private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
-    | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
-    | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
-    | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
-    | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
-    | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_rawEquiv' hn)
+  | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
+  | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
+  | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
+  | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
+  | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_mem_raw_iff.mp hn)
 
 theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw

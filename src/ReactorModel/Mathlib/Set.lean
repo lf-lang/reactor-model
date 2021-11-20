@@ -36,6 +36,8 @@ theorem finite.subset {s : Set α} : finite s → ∀ {t : Set α}, t ⊆ s → 
 
 theorem subset_def {s t : Set α} : (s ⊆ t) = ∀ x, x ∈ s → x ∈ t := sorry
 
+theorem mem_union (x : α) (a b : Set α) : x ∈ a ∪ b ↔ x ∈ a ∨ x ∈ b := sorry
+
 end Set
 
 theorem Finset.finite_to_set (s : Finset α) : Set.finite (↑s : Set α) := sorry
