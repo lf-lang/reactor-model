@@ -51,14 +51,13 @@ variable {ι υ} [ID ι] [Value υ]
 namespace Raw.Change 
 
 -- Cf. `Change.mutates`.
-def mutates : Raw.Change ι υ → Bool 
-  | port _ _       => false
-  | state _ _      => false
-  | connect _ _    => true
-  | disconnect _ _ => true
-  | create _ _     => true
-  | delete _       => true
-
+def mutates : Raw.Change ι υ → Prop
+  | port _ _       => False
+  | state _ _      => False
+  | connect _ _    => True
+  | disconnect _ _ => True
+  | create _ _     => True
+  | delete _       => True
 end Raw.Change
 
 namespace Raw.Reaction

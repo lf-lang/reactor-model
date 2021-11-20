@@ -103,7 +103,7 @@ def map' (f : α ▸ β) (g : (b : β) → (b ∈ f.values) → γ) : Finmap α 
   finite := sorry
 }
 
-theorem map'_mem_id {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i} : i ∈ (f.map' g).ids ↔ i ∈ f.ids :=
+theorem map'_mem_ids {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i} : i ∈ (f.map' g).ids ↔ i ∈ f.ids :=
   sorry
 
 theorem map'_def {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i v} (h : (f.map' g) i = some v) : ∃ m hm, f i = some m ∧ g m hm = v :=
@@ -127,7 +127,7 @@ noncomputable def filter' (f : α ▸ β) (p : β → Prop) : Finmap α β := {
   finite := sorry
 }
 
-theorem filter'_mem_id {f : α ▸ β} {p : β → Prop} {i : α} : 
+theorem filter'_mem_ids {f : α ▸ β} {p : β → Prop} {i : α} : 
   i ∈ (f.filter' p).ids ↔ ∃ b : β, f i = b ∧ p b :=
   sorry 
 

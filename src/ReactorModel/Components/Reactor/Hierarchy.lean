@@ -32,18 +32,6 @@ variable {ι υ}
 
 namespace Reactor
 
--- Returns the reactor that matches the last ID in the ID-path (along with the ID).
-def IDPath.last {σ : Reactor ι υ} {i cmp} : IDPath σ i cmp → (ι × Reactor ι υ)
-  | rtr _ => (⊤, σ)
-  | rcn _ => (⊤, σ)
-  | prt _ => (⊤, σ)
-  | stv _ => (⊤, σ)
-  | nest σ' i' (rtr _ ) _ => (i', σ')
-  | nest σ' i' (rcn _ ) _ => (i', σ')
-  | nest σ' i' (prt _ ) _ => (i', σ')
-  | nest σ' i' (stv _ ) _ => (i', σ')
-  | nest _ _ p _ => last p
-
 -- This function returns (if possible) the ID of the reactor that contains
 -- the component identified by a given ID `i` in the context of reactor `σ`.
 -- The *kind* of component addressed by `i` is not required, as all IDs in a
@@ -67,14 +55,12 @@ def IDPath.last {σ : Reactor ι υ} {i cmp} : IDPath σ i cmp → (ι × Reacto
 -- That is, we could define `containerOf` as a relation and prove that it is
 -- functional by using `wf.direct.uniqueIDs`. But defining it directly as a
 -- function using the axiom of choice seems good enough.
-noncomputable def containerOf (σ : Reactor ι υ) (i : ι) : Option ι := 
-  if h : ∃ (cmp : Cmp), Nonempty (IDPath σ i cmp) 
-  then (Classical.choice h.choose_spec).last.fst
-  else none
+def containerOf (σ : Reactor ι υ) (i r : ι) : Prop := 
+  ∃ p : IDPath σ i, p.last.fst = r 
 
 -- This notation is chosen to be akin to the address notation in C,
 -- because you get back a component's container's *identifier*, not the object.
-notation σ:max " & " i:max => Reactor.containerOf σ i
+notation σ:max " &[" r "] " i:max => Reactor.containerOf σ i r
 
 -- This function returns (if possible) the object identified by a given ID `i` 
 -- in the context of reactor `σ`. The *kind* of component addressed by `i` is
@@ -85,22 +71,17 @@ notation σ:max " & " i:max => Reactor.containerOf σ i
 -- * `σ` is the "context" (top-level) reactor.
 -- * `i` is interpreted as being an ID that refers to a reaction (because of `Cmp.rcn`).
 -- * `x` is the `Reaction` identified by `i`.
-noncomputable def objFor (σ : Reactor ι υ) (cmp : Cmp) : ι ▸ (cmp.type ι υ) := {
-  lookup := λ i => 
-    if h : Nonempty (IDPath σ i cmp) 
-    then cmp.accessor (ι := ι) (υ := υ) (Classical.choice h).last.snd i
-    else none,
-  finite := sorry
-} 
+def objFor (σ : Reactor ι υ) (cmp : Cmp) (i : ι) (c : cmp.type ι υ) : Prop := 
+  ∃ p : IDPath σ i, (cmp.accessor (ι := ι) (υ := υ) p.last.snd) i = c
 
 -- This notation is chosen to be akin to the dereference notation in C,
 -- because you get back a component *object*.
-notation σ:max " *[" c "]"  => Reactor.objFor σ c
-notation σ:max " *[" c "] " i:max => Reactor.objFor σ c i
+notation σ:max " *[" cmp ", " i "] " c:max => Reactor.objFor σ cmp i c
 
+/-
 -- An extension on `objFor` for retrieving multiple objects at once.
 noncomputable def objsFor (σ : Reactor ι υ) (cmp : Cmp) (is: Finset ι) : Finset (cmp.type ι υ) :=
-  let description := { o : cmp.type ι υ | ∃ i ∈ is, σ *[cmp] i = o }
+  let description := { o : cmp.type ι υ | ∃ i ∈ is, σ *[cmp, i] o }
   let finite: description.finite := sorry
   finite.toFinset
 
@@ -110,5 +91,6 @@ notation σ:max " *[" c "] " is:max => Reactor.objsFor σ c is
 -- within the context of a given reactor.
 def portHasRole (σ : Reactor ι υ) (r : Ports.Role) (i : ι) : Prop :=
   ∃ (rcn : Reaction ι υ) (iᵣ : ι), σ *[Cmp.rcn] iᵣ = rcn ∧ i ∈ rcn.deps r 
+-/
 
 end Reactor

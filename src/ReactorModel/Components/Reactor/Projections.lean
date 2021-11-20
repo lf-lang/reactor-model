@@ -26,7 +26,7 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
 theorem nest_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.rawEquiv rtr.nest rtr.raw.nest := {
   eqIDs := by
     intro i
-    simp only [nest, Finmap.map'_mem_id]
+    simp only [nest, Finmap.map'_mem_ids]
     exact Finmap.ids_def,
   rel := by
     intro i r r' hr hr'
@@ -61,7 +61,7 @@ def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
 theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEquiv rtr.rcns rtr.raw.rcns := {
   eqIDs := by
     intro i
-    simp only [rcns, Finmap.map'_mem_id]
+    simp only [rcns, Finmap.map'_mem_ids]
     exact Finmap.ids_def
   rel := by
     intro i r r' hr hr'

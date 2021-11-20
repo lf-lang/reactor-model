@@ -104,16 +104,16 @@ theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw p s hw hr hc} :
         exact Reactor.fromRaw_rawEquiv h.left
     all_goals { simp [fromRaw] at h }
 
--- TODO: Integrate this into `Reaction.fromRaw` directly.
-theorem fromRaw_same_mutates 
-  {rtr : Raw.Reactor ι υ} {hw : rtr.wellFormed}
-  {rcn : Raw.Reaction ι υ} {hr : ∃ i, rtr.rcns i = rcn}
-  {c : Raw.Change ι υ} {p s} {hc : c ∈ Raw.Reaction.body rcn p s} :
-  c.mutates → (Change.fromRaw hw hr hc).mutates := by
-  intro h
-  simp only [fromRaw]
-  cases c
-  all_goals { simp; assumption }
+theorem rawEquiv_mutates_iff {c : Change ι υ} {raw : Raw.Change ι υ} (h : c.rawEquiv raw) :
+  c.mutates ↔ raw.mutates := by
+  simp [mutates, Raw.Change.mutates]
+  cases h
+  case port h₁ h₂ =>       simp [h₁, h₂]
+  case state h₁ h₂ =>      simp [h₁, h₂]
+  case connect h₁ h₂ =>    simp [h₁, h₂]
+  case disconnect h₁ h₂ => simp [h₁, h₂]
+  case delete h₁ h₂ =>     simp [h₁, h₂]
+  case create h₁ h₂ _ =>   simp [h₁, h₂]
 
 end Change
 
@@ -150,7 +150,8 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
       exists a
       simp [List.mem_attach]
     )
-    exact (mt Change.fromRaw_same_mutates) ha
+    have h := Change.fromRaw_rawEquiv (Eq.refl $ Change.fromRaw hw hr hc)
+    exact mt (Change.rawEquiv_mutates_iff h).mpr ha
 }
 
 -- To ensure that `fromRaw` performs a sensible transformation from a raw
@@ -185,7 +186,7 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
         rw [h]
         exact List.forall₂.nil
       case cons hd tl hi =>
-        -- somethings weird with hi here  
+        -- something's weird with hi here  
         cases hc : List.attach (raw.body p s)
         case nil =>
           rw [hc, List.map_nil] at h
@@ -198,5 +199,25 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
             sorry
           sorry
   }
+
+theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
+  rcn.isMut → raw.isMut := by
+  intro hm
+  simp [Raw.Reaction.isMut, Raw.Reaction.isNorm]
+  simp [isMut, isNorm] at hm
+  obtain ⟨p, s, c, h₁, h₂⟩ := hm
+  exists p
+  exists s
+  have h := h.body p s
+  rw [List.forall₂_iff] at h
+  cases h
+  case inl h =>
+    rw [h.left] at h₁
+    contradiction
+  case inr h =>
+    obtain ⟨a, b, l₁, l₂, hc, hl, hw₁, hw₂⟩ := h
+    have H := Change.rawEquiv_mutates_iff hc
+    sorry
+    -- somehow l₁ and l₂ and hence a b are disconnected from h₁ and h₂
 
 end Reaction
