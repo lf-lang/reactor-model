@@ -85,27 +85,28 @@ def Lineage.last {σ : Reactor ι υ} {i} : Lineage σ i → (ι × Reactor ι �
   | nest σ' i' (stv _ ) _ => (i', σ')
   | nest _ _ l _ => last l
 
+-- TODO: Merge this into the proof of `uniqueIDs`.
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Unfold.20where
-theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
-  have h := σ.rawWF.direct.uniqueIDs (toRaw l₁) (toRaw l₂)
-  induction l₁
-  case nest _ σ₂ _ _ _ _ hi =>
-    cases l₂ 
-    case nest σ' _ _ _ =>
-      simp [toRaw] at h
-      have hσ : σ₂ = σ' := by ext; exact h.left
-      subst hσ
-      simp [h.right.left]
-      exact hi _ $ eq_of_heq h.right.right
-    all_goals { contradiction }
-  all_goals { cases l₂ <;> simp [toRaw] at * }
-where
-  toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
+private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
     | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
     | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
     | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
     | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
     | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_rawEquiv' hn)
+
+theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
+  have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
+  induction l₁
+  case nest _ σ₂ _ _ _ _ hi =>
+    cases l₂ 
+    case nest σ' _ _ _ =>
+      simp [Lineage.toRaw] at h
+      have hσ : σ₂ = σ' := by ext; exact h.left
+      subst hσ
+      simp [h.right.left]
+      exact hi _ $ eq_of_heq h.right.right
+    all_goals { contradiction }
+  all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
 
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Name.20structure.20constructor
 -- TODO: Figure out how to make a "proper" constructor for `Reactor`.
