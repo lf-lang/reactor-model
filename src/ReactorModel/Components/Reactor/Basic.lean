@@ -2,14 +2,6 @@ import ReactorModel.Components.Raw
 
 open Ports
 
--- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
--- These are used heavily for accessing objects in a reactor (cf. Components/Accessors.lean).
-inductive Cmp
-  | rtr
-  | rcn
-  | prt 
-  | stv -- State variable
-
 variable {ι υ} [ID ι] [Value υ]
 
 namespace Raw.Reactor
@@ -27,12 +19,12 @@ namespace Raw.Reactor
 -- then `r₁` identifies some reactor `x₁` in the nested network of `σ`, and all other `rₘ` in the
 -- sequence identify a reactor in the nested network of `xₘ₋₁`, and `xₙ` contains some component
 -- identified by `i` (a port, state variable, reaction, or nested reactor).
-inductive IDPath : Raw.Reactor ι υ → ι → Type _ 
-  | rtr σ i : σ.nest i ≠ none → IDPath σ i
-  | rcn σ i : σ.rcns i ≠ none → IDPath σ i
-  | prt σ i : i ∈ σ.ports.ids → IDPath σ i
-  | stv σ i : i ∈ σ.state.ids → IDPath σ i
-  | nest (σ : Raw.Reactor ι υ) {σ'} (i i') : (IDPath σ' i) → (σ.nest i' = some σ') → IDPath σ i
+inductive Lineage : Raw.Reactor ι υ → ι → Type _ 
+  | rtr σ i : σ.nest i ≠ none → Lineage σ i
+  | rcn σ i : σ.rcns i ≠ none → Lineage σ i
+  | prt σ i : i ∈ σ.ports.ids → Lineage σ i
+  | stv σ i : i ∈ σ.state.ids → Lineage σ i
+  | nest (σ : Raw.Reactor ι υ) {σ'} (i i') : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
 end Raw.Reactor
 
@@ -51,7 +43,7 @@ namespace Raw.Reactor
 --
 -- Since these constraints are still a WIP, we won't comment on them further yet.
 structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
-  uniqueIDs :       ∀ p₁ p₂ : IDPath rtr i, p₁ = p₂ 
+  uniqueIDs :       ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
   rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
@@ -84,9 +76,10 @@ end Raw.Reactor
 -- We do this using a structure to be able to access the structure and 
 -- the well-formedness properties separately.
 @[ext]
-structure Reactor (ι υ) [ID ι] [Value υ] where 
-  raw : Raw.Reactor ι υ
-  rawWF : raw.wellFormed  
+structure Reactor (ι υ) [ID ι] [Value υ] where
+  fromRaw ::
+    raw : Raw.Reactor ι υ
+    rawWF : raw.wellFormed  
 
 theorem Raw.Reactor.isAncestorOf_preserves_wf {rtr₁ rtr₂ : Raw.Reactor ι υ} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
   rtr₂.wellFormed := {

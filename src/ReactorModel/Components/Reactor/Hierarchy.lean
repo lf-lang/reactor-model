@@ -2,33 +2,51 @@ import ReactorModel.Components.Reactor.Properties
 
 open Classical 
 
--- TODO: Is this still necessary?
 -- `ι` and `υ` live in the same universe:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Stuck.20at.20solving.20universe.20constraint/near/253232009
 variable (ι υ : Type u) [ID ι] [Value υ]
+
+-- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
+-- These are used heavily for accessing objects in a reactor (cf. Components/Accessors.lean).
+inductive Cmp
+  | rtr
+  | rcn
+  | prt 
+  | stv -- State variable
+
+namespace Cmp 
 
 -- The *type* corresponding to the component labeled by a given `Cmp`.
 -- 
 -- Note that the types for `prt` and `stv` are just `υ`, 
 -- because IDs don't refer to entire instances of `Ports` or `StateVars`,
 -- but rather the single values within them.
-abbrev Cmp.type : Cmp → Type _
+def type : Cmp → Type _
   | rtr => Reactor ι υ
   | rcn => Reaction ι υ
   | prt => υ
   | stv => υ
 
+variable {ι υ}
+
 -- Associates each type of component with the finmap in which it can be
 -- found inside of a reactor.
 -- We use this in `objFor` to generically resolve the lookup for *some*
 -- component and *some* ID.
-abbrev Cmp.accessor : (cmp : Cmp) → Reactor ι υ → (ι ▸ cmp.type ι υ)
+def accessor : (cmp : Cmp) → Reactor ι υ → (ι ▸ cmp.type ι υ)
   | Cmp.rtr => Reactor.nest
   | Cmp.rcn => Reactor.rcns
   | Cmp.prt => Reactor.ports -- TODO: Should this be a `lookup` or a `get`?
   | Cmp.stv => Reactor.state
 
-variable {ι υ}
+def fromIDPath {σ : Reactor ι υ} {i} : Reactor.IDPath σ i → Cmp
+  | Reactor.IDPath.rtr _ => Cmp.rtr
+  | Reactor.IDPath.rcn _ => Cmp.rcn
+  | Reactor.IDPath.prt _ => Cmp.prt
+  | Reactor.IDPath.stv _ => Cmp.stv
+  | Reactor.IDPath.nest _ _ p _ => fromIDPath p
+
+end Cmp
 
 namespace Reactor
 

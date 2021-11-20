@@ -4,8 +4,7 @@ variable {ι υ} [ID ι] [Value υ]
 
 namespace Reactor 
 
-def fromRaw {raw : Raw.Reactor ι υ} (h : raw.wellFormed) : Reactor ι υ :=
-  { raw := raw, rawWF := h }
+-- `Reactor.fromRaw` is already defined as the name of `Reactor`'s constructor.
 
 def rawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop :=
   rtr.raw = raw
@@ -37,7 +36,7 @@ def fromRaw
     | Raw.Change.disconnect src dst => Change.disconnect src dst 
     | Raw.Change.delete rtrID       => Change.delete rtrID
     | Raw.Change.create cr id => 
-      let cr' := Reactor.fromRaw (by
+      let cr' := Reactor.fromRaw _ (by
           rw [hm] at hc
           have ha := Raw.Reactor.isAncestorOf.creatable hr.choose_spec hc
           exact Raw.Reactor.isAncestorOf_preserves_wf ha hw
@@ -221,8 +220,6 @@ theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
     sorry
     -- somehow l₁ and l₂ and hence a b are disconnected from h₁ and h₂
   sorry
-
-open Classical
 
 theorem rawEquiv_isNorm_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
   rcn.isNorm ↔ raw.isNorm := by

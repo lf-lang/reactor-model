@@ -16,7 +16,7 @@ def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
 -- 2. We map on that finmap to get a finmap that returns "proper" reactors.
 def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := 
   let raw : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFiniteRtrs }
-  raw.map' (λ _ h => Reactor.fromRaw (by
+  raw.map' (λ _ h => Reactor.fromRaw _ (by
       have ⟨_, hm⟩ := Finmap.values_def.mp h
       have h' := Raw.Reactor.isAncestorOf.nested hm
       exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.rawWF
@@ -55,7 +55,7 @@ theorem nest_rawEquiv' {rtr rtr' : Reactor ι υ} {i} (h : rtr.nest i = rtr') : 
 -- 2. We map on that finmap to get a finmap that returns "proper" reactions.
 def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.rawWF.direct.rcnsFinite }
-  raw.map' $ λ rcn h => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
+  raw.map' $ λ _ h => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
   
 -- TODO: Show this and `nest_rawEquiv` using `Finmap.forall₂'_map'`.
 theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEquiv rtr.rcns rtr.raw.rcns := {
