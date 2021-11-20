@@ -16,6 +16,8 @@ namespace Reactor
 
 theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.rawWF.direct.wfRoles
 
+-- TODO: Factor out the overlap between the proofs of wfNormDeps and wfMutDeps?
+
 theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (h : n ∈ rtr.norms.values) : 
   n.deps r ⊆ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite := by
   simp only [Finset.subset_iff, Finset.mem_union]
@@ -59,12 +61,32 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h
   clear hw
   apply And.intro
   case left =>
-    clear h₂
-    sorry
+    rw [hq.deps]
+    simp [ports', ports, roles, Raw.Reactor.ports'] at h₁ ⊢
+    exact h₁
   case right =>
     clear h₁
-    simp at h₂
-    sorry  
+    simp [Set.subset_def, Set.mem_union] at h₂
+    simp [Finset.subset_iff]  
+    rw [hq.deps]
+    intro j hj
+    cases (h₂ j hj)
+    case inl h => exact Or.inl h
+    case inr h =>
+      apply Or.inr
+      obtain ⟨i', ri', h₁, h₂⟩ := h
+      simp [nestedPortIDs, Set.finite.mem_to_finset]
+      have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
+      let rip := Reactor.fromRaw ri' hrip
+      exists rip
+      apply And.intro
+      case h.left =>
+        simp [Finmap.values_def]
+        exists i'
+        exact nest_mem_raw_iff.mpr h₁
+      case h.right =>
+        simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
+        exact h₂
 
 theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rtr.norms.ids) (hm : iₘ ∈ rtr.muts.ids) : 
   rtr.prios.lt iₘ iₙ := by
