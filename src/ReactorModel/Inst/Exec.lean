@@ -1,7 +1,6 @@
 import ReactorModel.Inst.PrecGraph
 
-open Reactor
-open Ports
+open Reactor Ports
 
 namespace Inst
 

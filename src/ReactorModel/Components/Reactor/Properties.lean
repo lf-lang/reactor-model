@@ -1,23 +1,23 @@
 import ReactorModel.Components.Reactor.Projections
 
--- This file will contain theorems proving the WF-properties of `Reactor`
--- for "proper"-land.
--- Note, we only need to lift those properties which are "about" reactors
--- and IDs, i.e. those which would be part of the reactor-type, if we
--- could define it as a structure.
--- The other properties are all present in the redefinitions of and change,
--- reaction.
-
 open Ports
 
 variable {ι υ} [ID ι] [Value υ]
 
 namespace Reactor
 
+-- The `roles` map associates each port (ID) in a reactor with a role (input or output).
+-- These mappings should exist only for *those* ports with are actually part of the reactor,
+-- which is enforced by this constraint.
 theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.rawWF.direct.wfRoles
 
--- TODO: Factor out the overlap between the proofs of wfNormDeps and wfMutDeps?
+-- TODO: Factor out the overlap between the proofs of `wfNormDeps` and `wfMutDeps`?
 
+-- This constraint constrains the anti/-dependencies of `rtr`'s normal reactions, such that:
+-- 1. their dependencies can only be input ports of `rtr` or output ports of reactors
+--    nested directly in `rtr`
+-- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
+--    nested directly in `rtr`
 theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (h : n ∈ rtr.norms.values) : 
   n.deps r ⊆ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite := by
   simp only [Finset.subset_iff, Finset.mem_union]
@@ -47,7 +47,11 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (
     case h.right =>
       simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
       exact h₂
-  
+
+-- This constraint constrains the anti/-dependencies of `rtr`'s mutations, such that:
+-- 1. their dependencies can only be input ports of `rtr`
+-- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
+--    nested directly in `rtr`
 theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : 
   (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
   simp only [muts, Finmap.filter'_mem_values] at h
@@ -88,6 +92,7 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h
         simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
         exact h₂
 
+-- This constraint forces the priorities of mutations in a reactor to be greater than any of its normal reactions.
 theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rtr.norms.ids) (hm : iₘ ∈ rtr.muts.ids) : 
   rtr.prios.lt iₘ iₙ := by
   have h := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
@@ -101,6 +106,8 @@ theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rt
   have hmr₂ := (Reaction.rawEquiv_isMut_iff  $ he.rel hr₂ hi₂).mp hm₂
   exact h _ _ hi₁ hmr₁ hi₂ hmr₂
 
+-- This constraint forces the priorities of all mutations in a reactor to be comparable,
+-- i.e. they form a linear order.
 theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ rtr.muts.ids) (h₂ : i₂ ∈ rtr.muts.ids) : 
   rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁ := by
   have h := rtr.rawWF.direct.mutsLinearOrder i₁ i₂
@@ -114,24 +121,26 @@ theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ 
   have hmr₂ := (Reaction.rawEquiv_isMut_iff $ he.rel hr₂ hi₂).mp hm₂
   exact h _ _ hi₁ hi₂ hmr₁ hmr₂
 
+-- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
+-- structure that traces a path through the nested reactors of `σ` that lead
+-- to the component identified by `i`.
+-- 
+-- A `Lineage` captures two important aspects:
+-- 
+-- 1. The non-recursive constructors (`rtr`, `rcn`, `prt` and `stv`) tell us
+-- what kind of component is identified by `i`.
+-- 2. The recursive `nest` constructor captures all of the reactors `σ'` that
+-- need to be traversed from the root reactor `σ` to arrive at the immediate
+-- parent of `i`.
+--
+-- We use this structure to define ID-uniqueness (`uniqueIDs`) in reactors as
+-- well as hierarchy accessors in Components>Reactor>Hierarchy.lean.
 inductive Lineage : Reactor ι υ → ι → Type _ 
   | rtr {σ i} : i ∈ σ.nest.ids  → Lineage σ i
   | rcn {σ i} : i ∈ σ.rcns.ids  → Lineage σ i
   | prt {σ i} : i ∈ σ.ports.ids → Lineage σ i
   | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
   | nest {σ : Reactor ι υ} σ' {i} i' : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
-
--- Returns the reactor that matches the last ID in the ID-path (along with the ID).
-def Lineage.last {σ : Reactor ι υ} {i} : Lineage σ i → (ι × Reactor ι υ)
-  | rtr _ => (⊤, σ)
-  | rcn _ => (⊤, σ)
-  | prt _ => (⊤, σ)
-  | stv _ => (⊤, σ)
-  | nest σ' i' (rtr _ ) _ => (i', σ')
-  | nest σ' i' (rcn _ ) _ => (i', σ')
-  | nest σ' i' (prt _ ) _ => (i', σ')
-  | nest σ' i' (stv _ ) _ => (i', σ')
-  | nest _ _ l _ => last l
 
 -- TODO: Merge this into the proof of `uniqueIDs`.
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Unfold.20where
@@ -142,6 +151,10 @@ private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reac
   | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
   | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_mem_raw_iff.mp hn)
 
+-- Any component in a reactor that is addressable by an ID has a unique ID.
+-- We define this property in terms of `Lineage`s, since a components is
+-- addressable by an ID in a reactor iff it has a lineage in that reactor
+-- (by construction of `Lineage`).
 theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
   induction l₁

@@ -4,16 +4,17 @@ variable {ι υ} [ID ι] [Value υ]
 
 namespace Reactor
 
+-- Lifted versions of the trivially liftable projections of `Raw.Reactor`.
 def ports (rtr : Reactor ι υ) : Ports ι υ       := rtr.raw.ports
 def roles (rtr : Reactor ι υ) : ι ▸ Ports.Role  := rtr.raw.roles
 def state (rtr : Reactor ι υ) : StateVars ι υ   := rtr.raw.state
 def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
 
--- The `nest` accessor lifted to return a finmap of "proper" reactors.
+-- The `nest` projection lifted to return a finmap of "proper" reactors.
 -- 
 -- We're doing two lifting steps at once here:
 -- 1. We turn `rtr.raw.nest` into a finmap that has raw reactors as values.
--- 2. We map on that finmap to get a finmap that returns "proper" reactors.
+-- 2. We map on that finmapto get a finmap that returns "proper" reactors (using `Reactor.fromRaw`).
 def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := 
   let raw : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFiniteRtrs }
   raw.map' (λ _ h => Reactor.fromRaw _ (by
@@ -61,11 +62,11 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ 
     apply Reactor.ext
     exact he    
 
--- The `rcns` accessor lifted to return a finmap of "proper" reactions.
+-- The `rcns` projection lifted to return a finmap of "proper" reactions.
 -- 
 -- We're doing two lifting steps at once here:
 -- 1. We turn `rtr.raw.rcns` into a finmap that has raw reactions as values.
--- 2. We map on that finmap to get a finmap that returns "proper" reactions.
+-- 2. We map on that finmap to get a finmap that returns "proper" reactions (using `Reaction.fromRaw`).
 def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.rawWF.direct.rcnsFinite }
   raw.map' $ λ _ h => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
@@ -96,16 +97,24 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   obtain ⟨raw, hr⟩ := h'
   exact ⟨raw, Eq.symm hr⟩
 
--- An accessor for ports, that allows us to separate them by port role.
+-- A projection for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Reactor ι υ) (r : Ports.Role) : Ports ι υ := 
   rtr.ports.filter (λ i => rtr.roles i = r)
 
+-- A direct projection to a reactor's normal reactions.
 noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isNorm)
 
+-- A direct projection to a reactor's mutations.
 noncomputable def muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isMut)  
 
+-- The set of all IDs that identify (input and output) ports of
+-- reactors immediately (and not transitively) nested in a given reactor.
+-- In other words, all port IDs appearing "one layer down".
+-- 
+-- This property is quite specific, but is required to nicely state properties
+-- like `Reactor.wfNormDeps`.
 noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Ports.Role) : Finset ι :=
   let description := {i | ∃ n ∈ rtr.nest.values, i ∈ (n.ports' r).ids}
   let finite : description.finite := by

@@ -1,30 +1,33 @@
 import ReactorModel.Mathlib
 
+-- TODO: Should `ID` and `Value` drop `decEq`, since we can just `open Classical`?
+
 -- The class of types that can be used as identifiers for components in a reactor.
 -- 
 -- IDs tend to require a "context" in order to associate them to actual objects. 
--- This context is usually a (top-level) reactor which is then identified by the `root` value.
+-- This context is usually a (top-level) reactor which is then identified by the `root` ID.
 class ID (α) where
+  [decEq : DecidableEq α]
   root : α
-  decEq : DecidableEq α
+
+-- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Class.20.22inheritance.22
+attribute [instance] ID.decEq
 
 notation "⊤" => ID.root
-
-instance ID.DecidableEq {ι} [ID ι] : DecidableEq ι := ID.decEq
 
 -- The class of types that can be used as values in a reactor.
 -- Any such type must contain an "absent" value.
 class Value (α) where
+  [decEq : DecidableEq α]
   absent : α
-  decEq : DecidableEq α
+
+attribute [instance] Value.decEq
 
 notation "⊥" => Value.absent
 
-instance Value.DecidableEq {υ} [Value υ] : DecidableEq υ := Value.decEq
-
 variable (ι υ) [ID ι] [Value υ]
 
--- An instance of `StateVars` is grouping of state variables.
+-- An instance of `StateVars` is a grouping of state variables.
 -- That is, a finite map of identifiers to values.
 --
 -- This type serves no other purpose than making explicit what the
@@ -32,17 +35,14 @@ variable (ι υ) [ID ι] [Value υ]
 -- instance of `StateVars ι υ` than just `ι ▸ υ`.
 abbrev StateVars := ι ▸ υ
 
-instance : Inhabited (StateVars ι υ) where
-  default := (Inhabited.default : Finmap _ _)
-
--- An instance of `Ports` is grouping of ports.
+-- An instance of `Ports` is a grouping of ports.
 -- That is, a finite map of identifiers to values.
 --
 -- The main purpose of this type is to make explicit what the
 -- underlying finmap means. That is, it is more explicit to pass an
 -- instance of `Ports ι υ` than just `ι ▸ υ`.
 -- Additionally, we define specific accessors on this type (below),
--- which are only relevant for ports.
+-- which are only relevant for ports (but not for finmaps in general).
 def Ports := ι ▸ υ
 
 instance : Inhabited (Ports ι υ) where
@@ -53,8 +53,8 @@ namespace Ports
 variable {ι υ}
 
 -- Port roles are used to differentiate between input and output ports.
--- This is useful for avoiding duplication of definitions that are fundamentally the same 
--- and only differ by the kinds of ports that are referenced/affected.
+-- This is useful for avoiding duplication of definitions that are fundamentally 
+-- the same and only differ by the kinds of ports that are referenced/affected.
 --
 -- E.g. a reaction defines its dependencies as a map `Ports.Role → Finset ι`,
 -- instead of two separate fields, each of type `Finset ι`.
@@ -95,16 +95,19 @@ theorem eq_lookup_eq_get {p₁ p₂ : Ports ι υ} {i : ι} (h : p₁.lookup i =
   p₁[i] = p₂[i] := by
   simp [get, bind, h]
 
-theorem lookup_none_get_none {p : Ports ι υ} {i : ι} (h : p.lookup i = none) : p[i] = none := by
+theorem lookup_none_get_none {p : Ports ι υ} {i : ι} (h : p.lookup i = none) : 
+  p[i] = none := by
   simp [get, h]
 
-theorem lookup_absent_at_none {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥) :
+theorem lookup_absent_get_none {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥) :
   p[i] = none := by
   simp [get, bind, Option.bind, h]
 
+-- TODO: Remove `eqAt` and `inhabitedIDs` if they're not used.
+
 -- Two port-assignments are `eqAt` (equal at) a given set of IDs,
--- if their values correspond for all of those IDs.
--- Note, we only require equality up to `get`, not to `lookup`.
+-- if their values correspond for all those IDs.
+-- Note, we only require equality up to `get`, not `lookup`.
 --
 -- The notation used for `eqAt is p₁ p₂` is `p₁ =[is] p₂`.
 def eqAt (is : Finset ι) (p₁ p₂ : Ports ι υ) : Prop := 
@@ -147,9 +150,5 @@ noncomputable def inhabitedIDs (p : Ports ι υ) : Finset ι :=
       obtain ⟨_, ⟨_, ⟨h, _⟩⟩⟩ := h
       simp [Option.ne_none_iff_exists, h]
   finite.toFinset
-
-theorem inhabited_ids_none {p : Ports ι υ} {i : ι} (h : p[i] = none) : i ∉ p.inhabitedIDs := by
-  simp only [inhabitedIDs, Set.finite.mem_to_finset, setOf]
-  simp [h, Mem.mem, Set.mem]
 
 end Ports

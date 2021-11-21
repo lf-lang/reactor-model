@@ -7,7 +7,6 @@ open Classical
 variable (ι υ : Type u) [ID ι] [Value υ]
 
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
--- These are used heavily for accessing objects in a reactor (cf. Components/Accessors.lean).
 inductive Cmp
   | rtr
   | rcn
@@ -39,16 +38,28 @@ def accessor : (cmp : Cmp) → Reactor ι υ → (ι ▸ cmp.type ι υ)
   | Cmp.prt => Reactor.ports -- TODO: Should this be a `lookup` or a `get`?
   | Cmp.stv => Reactor.state
 
-def fromIDPath {σ : Reactor ι υ} {i} : Reactor.IDPath σ i → Cmp
-  | Reactor.IDPath.rtr _ => Cmp.rtr
-  | Reactor.IDPath.rcn _ => Cmp.rcn
-  | Reactor.IDPath.prt _ => Cmp.prt
-  | Reactor.IDPath.stv _ => Cmp.stv
-  | Reactor.IDPath.nest _ _ p _ => fromIDPath p
+def fromLineage {σ : Reactor ι υ} {i} : Reactor.Lineage σ i → Cmp
+  | Reactor.Lineage.rtr _ => Cmp.rtr
+  | Reactor.Lineage.rcn _ => Cmp.rcn
+  | Reactor.Lineage.prt _ => Cmp.prt
+  | Reactor.Lineage.stv _ => Cmp.stv
+  | Reactor.Lineage.nest _ _ p _ => fromLineage p
 
 end Cmp
 
 namespace Reactor
+
+-- Returns the reactor that matches the last ID in the ID-path (along with the ID).
+def Lineage.last {σ : Reactor ι υ} {i} : Lineage σ i → (ι × Reactor ι υ)
+  | rtr _ => (⊤, σ)
+  | rcn _ => (⊤, σ)
+  | prt _ => (⊤, σ)
+  | stv _ => (⊤, σ)
+  | nest σ' i' (rtr _ ) _ => (i', σ')
+  | nest σ' i' (rcn _ ) _ => (i', σ')
+  | nest σ' i' (prt _ ) _ => (i', σ')
+  | nest σ' i' (stv _ ) _ => (i', σ')
+  | nest _ _ l _ => last l
 
 -- This function returns (if possible) the ID of the reactor that contains
 -- the component identified by a given ID `i` in the context of reactor `σ`.
@@ -74,7 +85,7 @@ namespace Reactor
 -- functional by using `wf.direct.uniqueIDs`. But defining it directly as a
 -- function using the axiom of choice seems good enough.
 def containerOf (σ : Reactor ι υ) (i r : ι) : Prop := 
-  ∃ p : IDPath σ i, p.last.fst = r 
+  ∃ l : Lineage σ i, l.last.fst = r 
 
 -- This notation is chosen to be akin to the address notation in C,
 -- because you get back a component's container's *identifier*, not the object.
@@ -90,7 +101,7 @@ notation σ:max " &[" r "] " i:max => Reactor.containerOf σ i r
 -- * `i` is interpreted as being an ID that refers to a reaction (because of `Cmp.rcn`).
 -- * `x` is the `Reaction` identified by `i`.
 def objFor (σ : Reactor ι υ) (cmp : Cmp) (i : ι) (c : cmp.type ι υ) : Prop := 
-  ∃ p : IDPath σ i, (cmp.accessor (ι := ι) (υ := υ) p.last.snd) i = c
+  ∃ l : Lineage σ i, (cmp.accessor (ι := ι) (υ := υ) l.last.snd) i = c
 
 -- This notation is chosen to be akin to the dereference notation in C,
 -- because you get back a component *object*.

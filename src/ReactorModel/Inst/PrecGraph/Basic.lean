@@ -1,7 +1,6 @@
 import ReactorModel.Components
 
-open Ports 
-open Classical
+open Ports Classical
 
 variable {ι υ} [ID ι] [Value υ]
 

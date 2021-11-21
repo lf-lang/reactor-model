@@ -4,14 +4,20 @@ open Ports
 
 namespace Raw
 
--- This block basically just serves the purpose of defining `Raw.Reactor`.
+-- This block mainly serves the purpose of defining `Raw.Reactor`.
 -- We later define an extension of `Raw.Reactor` called `Reactor`, which adds
 -- all of the necessary constraints on it subcomponents.
--- Those subcomponents are then (re-)defined as well,
--- by using the definition of `Reactor`.
+-- Those subcomponents are then (re-)defined as well, by using the definition
+-- of `Reactor`.
 --
 -- For more information on the use case of each component, cf. the definitions
 -- of their non-`Raw` counterparts.
+--
+-- Side note:
+-- The type class instances required by all types are named (`i` and `v`). This 
+-- is necessary as Lean requires all type-level parameters of mutually inductive
+-- definitions to have the same name. (So the `ι` and `υ` parameters also need to have
+-- the same name across all definitions.)
 mutual 
 
 protected inductive Change (ι υ) [i : ID ι] [v : Value υ]
@@ -38,7 +44,7 @@ protected inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
     (nest : ι → Option (Raw.Reactor ι υ))
     (prios : PartialOrder ι)
 
--- This is just a sanity check, to make sure that the above definition of reactors
+-- This is a sanity check, to make sure that the above definition of reactors
 -- actually allows them to be constructed.
 deriving Inhabited
 
@@ -46,19 +52,21 @@ end
 
 end Raw
 
+-- We add some basic necessities for raw components, so that they are more 
+-- comfortable to work with in the process of defining "proper" components.
+-- We try to limit these conveniences though, as they are superfluous as soon
+-- as we have "proper" components.
+
 variable {ι υ} [ID ι] [Value υ]
 
-namespace Raw.Change 
-
 -- Cf. `Change.mutates`.
-def mutates : Raw.Change ι υ → Prop
+def Raw.Change.mutates : Raw.Change ι υ → Prop
   | port _ _       => False
   | state _ _      => False
   | connect _ _    => True
   | disconnect _ _ => True
   | create _ _     => True
   | delete _       => True
-end Raw.Change
 
 namespace Raw.Reaction
 
@@ -73,7 +81,8 @@ def isNorm (rcn : Raw.Reaction ι υ) : Prop :=
   ∀ i s c, c ∈ (rcn.body i s) → ¬c.mutates
 
 -- Cf. `Reaction.isMut`.
-def isMut (rcn : Raw.Reaction ι υ) : Prop := ¬rcn.isNorm
+def isMut (rcn : Raw.Reaction ι υ) : Prop :=
+  ¬rcn.isNorm
 
 end Raw.Reaction
 
@@ -87,7 +96,7 @@ def rcns :  Raw.Reactor ι υ → (ι → Option (Raw.Reaction ι υ)) | mk _ _ 
 def nest :  Raw.Reactor ι υ → (ι → Option (Raw.Reactor ι υ))  | mk _ _ _ _ n _ => n
 def prios : Raw.Reactor ι υ → PartialOrder ι                  | mk _ _ _ _ _ p => p 
 
--- An accessor for ports, that allows us to separate them by port role.
+-- Cf. `Reactor.ports'`.
 noncomputable def ports' (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Ports ι υ := 
   rtr.ports.filter (λ i => rtr.roles i = r)
 

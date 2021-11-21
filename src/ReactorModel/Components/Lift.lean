@@ -44,9 +44,9 @@ def fromRaw
       Change.create cr' id
 
 -- To ensure that `Change.fromRaw` performs a sensible transformation from
--- raw to "proper" changes, we define what it means for a raw and a "proper"
+-- raw to "proper" changes, we define what it means for raw and "proper"
 -- changes to be "equivalent" (they contain the same data).
--- This notion of equivalence is then used in `Change.fromRaw_equiv_to_raw` to
+-- This notion of equivalence is then used in `Change.fromRaw_rawEquiv` to
 -- prove that `Change.fromRaw` produces only equivalent changes.
 inductive rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop
   | port       {t v} :    (c = Change.port t v)       → (raw = Raw.Change.port t v)                         → rawEquiv c raw
@@ -118,6 +118,10 @@ end Change
 
 namespace Reaction
 
+-- If we have a well-formed raw reactor `rtr` which contains a raw reaction `rcn`,
+-- then we can convert that raw reaction to a "proper" reaction.
+-- In the process we map all raw changes producable by the raw reaction to "proper"
+-- changes (using `Change.fromRaw`).
 def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction ι υ} (hr : ∃ i, rtr.rcns i = raw) : Reaction ι υ := {
   deps := raw.deps,
   triggers := raw.triggers,
@@ -154,8 +158,8 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
 }
 
 -- To ensure that `fromRaw` performs a sensible transformation from a raw
--- to a "proper" reaction, we define what it means for a raw and a "proper"
--- reaction to be "equivalent" (they contain the same data).
+-- to a "proper" reaction, we define what it means for raw and "proper"
+-- reactions to be "equivalent" (they contain the same data).
 -- This notion of equivalence is then used in `fromRaw_rawEquiv` to
 -- prove that `fromRaw` produces only equivalent reactions.
 structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=

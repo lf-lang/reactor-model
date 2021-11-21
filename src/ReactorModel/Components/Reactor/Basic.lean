@@ -4,32 +4,17 @@ open Ports
 
 variable {ι υ} [ID ι] [Value υ]
 
-namespace Raw.Reactor
-
--- This relation expresses whether a given list of identifiers forms a path
--- that starts at the given top-level (raw) reactor (`σ`) and successively
--- identifies all of the nested (raw) reactors required to reach a given
--- component (of a given component type) identified by identifier `i`.
--- 
--- We use this relation in `IDPath` to ensure ID-uniqueness in reactors
--- (cf. `uniqueIDs` below).
---
--- Technicalities:
--- If a reactor-ID-path `p` for a given ID `i` is a finite sequence of reactor-IDs `r₁, ..., rₙ`,
--- then `r₁` identifies some reactor `x₁` in the nested network of `σ`, and all other `rₘ` in the
--- sequence identify a reactor in the nested network of `xₘ₋₁`, and `xₙ` contains some component
--- identified by `i` (a port, state variable, reaction, or nested reactor).
-inductive Lineage : Raw.Reactor ι υ → ι → Type _ 
+-- Cf. `Reactor.Lineage`.
+inductive Raw.Reactor.Lineage : Raw.Reactor ι υ → ι → Type _ 
   | rtr σ i : σ.nest i ≠ none → Lineage σ i
   | rcn σ i : σ.rcns i ≠ none → Lineage σ i
   | prt σ i : i ∈ σ.ports.ids → Lineage σ i
   | stv σ i : i ∈ σ.state.ids → Lineage σ i
   | nest (σ : Raw.Reactor ι υ) {σ'} (i i') : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
-end Raw.Reactor
-
 -- These are the constraints required for a "proper" reaction.
--- For more information cf. `Reaction`.
+-- They are used in `Reaction.fromRaw` to lift a `Raw.Reaction` to a
+-- "proper" `Reaction`.
 structure Raw.Reaction.wellFormed (rcn : Raw.Reaction ι υ) : Prop where
   tsSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
   outDepOnly :  ∀ i s {o} (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
@@ -39,9 +24,24 @@ namespace Raw.Reactor
 
 -- These are the (almost all of the) constraints required for a "proper" reactor.
 -- These constraints only directly constrain the given reactor, and don't apply
--- to the nested reactors (this is done in `wellFormed` below).
+-- to the reactors nested in it or created by it (via a mutation). 
+-- The latter cases are covered in `wellFormed` below.
 --
--- Since these constraints are still a WIP, we won't comment on them further yet.
+-- The constraints can be separated into three different categories
+-- 1. Reaction constraints (`rcnsWF`)
+-- 2. ID constraints (`uniqueIDs`)
+-- 3. Reactor constraints (all others)
+--
+-- Note that some constraints are quite complicated in their type.
+-- This is because they're defined over `Raw` components for which
+-- we don't (want to) declare many conveniences. Categories 2 and 3
+-- are lifted in Components>Reactor>Properties.lean, which will "clean
+-- up" their types as well.
+-- 
+-- These constraints play an important role in limiting the behavior of
+-- reactors and are thus partially responsible for its determinism. They
+-- are therefore subject to change, as the need for different/more
+-- constraints may arise.
 structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   uniqueIDs :       ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
   rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
@@ -54,18 +54,24 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) 
 
 -- To define properties of reactors recursively, we need a concept of containment.
--- That is, that a reactor is contained in a different reactor.
--- We do this as a transitive closure of a direct containment relation.
--- Thus, we first define what it means for a (raw) reactor to be contained directly
--- in a different reactor. Then define a transitive step on the direct containment.
+-- Containment in a reactor can come in two flavors: 
+--
+-- 1. `nested`: `r₁` contains `r₂` directly as nested reactor
+-- 2. `creatable`: there exists a reaction (which must be a mutation) in `r₁` which
+--    can produce a `Raw.Change.create` which contains `r₂`
+--
+-- The `isAncestorOf` relation forms the transitive closure over the previous cases.
 inductive isAncestorOf : (Raw.Reactor ι υ) → (Raw.Reactor ι υ) → Prop 
   | nested {parent child i} : (parent.nest i = some child) → isAncestorOf parent child
   | creatable {old new rcn p s i iᵣ} : (old.rcns i = some rcn) → (Change.create new iᵣ ∈ rcn.body p s) → isAncestorOf old new
   | trans {r₁ r₂ r₃} : (isAncestorOf r₁ r₂) → (isAncestorOf r₂ r₃) → (isAncestorOf r₁ r₃)
 
--- Having defined well-formedness for a single reactor we proceed to extend this to a full reactor
--- hierarchy. A reactor is well-formed if all the properties above hold for itself as well as all
--- its contained and creatable reactors. 
+-- This property ensures "properness" of a reactor in two steps:
+-- 
+-- 1. `direct` ensures that the given reactor satisfies all constraints
+--    required for a "proper" reactor.
+-- 2. `offspring` ensures that all nested and creatable reactors also satisfy `directlyWellFormed`.
+--    The `isAncestorOf` relation formalizes the notion of (transitive) nesting and "creatability".
 structure wellFormed (σ : Raw.Reactor ι υ) : Prop where
   direct : σ.directlyWellFormed 
   offspring : ∀ {rtr : Raw.Reactor ι υ}, σ.isAncestorOf rtr → rtr.directlyWellFormed
@@ -73,8 +79,10 @@ structure wellFormed (σ : Raw.Reactor ι υ) : Prop where
 end Raw.Reactor
 
 -- A `Reactor` is a raw reactor that is also well-formed.
--- We do this using a structure to be able to access the structure and 
--- the well-formedness properties separately.
+--
+-- Side note: 
+-- The `fromRaw ::` names the constructor of `Reactor`. We do
+-- this so that we can later define a "proper" constructor called `mk`.
 @[ext]
 structure Reactor (ι υ) [ID ι] [Value υ] where
   fromRaw ::
