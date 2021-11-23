@@ -73,6 +73,8 @@ abbrev Role.opposite : Role → Role
   | Role.in => Role.out
   | Role.out => Role.in
 
+-- TODO: Remove `get`, `eqAt` and `inhabitedIDs` if they remain unused.
+
 -- A lookup method for ports where the absent value is treated as the absence of a value.
 --
 -- Since ports are just finmaps, they inherit its `lookup` function.
@@ -102,8 +104,6 @@ theorem lookup_none_get_none {p : Ports ι υ} {i : ι} (h : p.lookup i = none) 
 theorem lookup_absent_get_none {p : Ports ι υ} {i : ι} (h : p.lookup i = some ⊥) :
   p[i] = none := by
   simp [get, bind, Option.bind, h]
-
--- TODO: Remove `eqAt` and `inhabitedIDs` if they're not used.
 
 -- Two port-assignments are `eqAt` (equal at) a given set of IDs,
 -- if their values correspond for all those IDs.

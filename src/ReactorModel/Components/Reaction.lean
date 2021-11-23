@@ -96,5 +96,54 @@ def relay (src dst : ι) : Reaction ι υ := {
       contradiction
   normNoChild := by simp
 }
+
+-- TODO: Docs
+
+noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} : Reaction ι υ := 
+  let deps' := Function.update rcn.deps Role.in is
+  {
+    deps := deps',
+    triggers := rcn.triggers ∩ (deps' Role.in), 
+    children := rcn.children,
+    body := rcn.body,
+    tsSubInDeps := Finset.inter_subset_right _ _,
+    outDepOnly := λ i s _ v h' => rcn.outDepOnly i s v h',
+    normNoChild := rcn.normNoChild
+  }
+
+noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ i s {o} (v : υ), (o ∉ is) → (Change.port o v) ∉ rcn i s) : Reaction ι υ := 
+  let deps' := Function.update rcn.deps Role.out is
+  {
+    deps := deps',
+    triggers := rcn.triggers ∩ (deps' Role.in), 
+    children := rcn.children,
+    body := rcn.body,
+    tsSubInDeps := Finset.inter_subset_right _ _,
+    outDepOnly := λ i s _ v h' => h i s v h',
+    normNoChild := rcn.normNoChild
+  } 
+
+noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is ⊆ rcn.deps Role.in) : Reaction ι υ := {
+  deps := rcn.deps,
+  triggers := is, 
+  children := rcn.children,
+  body := rcn.body,
+  tsSubInDeps := h,
+  outDepOnly := rcn.outDepOnly,
+  normNoChild := rcn.normNoChild
+}
+
+noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) (h : rcn.isMut) : Reaction ι υ := {
+  deps := rcn.deps,
+  triggers := rcn.triggers, 
+  children := is,
+  body := rcn.body,
+  tsSubInDeps := rcn.tsSubInDeps,
+  outDepOnly := rcn.outDepOnly,
+  normNoChild := by
+    simp only [isMut, isNorm] at h
+    intro h'
+    contradiction
+}
     
 end Reaction

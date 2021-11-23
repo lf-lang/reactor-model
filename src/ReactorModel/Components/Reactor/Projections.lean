@@ -71,7 +71,7 @@ def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.rawWF.direct.rcnsFinite }
   raw.map' $ λ _ h => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
   
--- TODO: Show this and `nest_rawEquiv` using `Finmap.forall₂'_map'`.
+-- TODO (maybe): Show this and `nest_rawEquiv` using `Finmap.forall₂'_map'`.
 theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEquiv rtr.rcns rtr.raw.rcns := {
   eqIDs := by
     intro i

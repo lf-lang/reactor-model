@@ -140,9 +140,6 @@ theorem filter'_mem_values {f : α ▸ β} {p : β → Prop} {b : β} :
 noncomputable def restrict (f : α ▸ β) (as : Finset α) : Finmap α β :=
   f.filter (λ a => a ∈ as)
 
--- TODO: Come up with a better notation for this.
-notation f:50 " % " as:50 => restrict f as
-
 -- This relation is true if two given finmaps are defined on the same IDs,
 -- and each pair of values for a given ID fulfills a relation `r`.
 --

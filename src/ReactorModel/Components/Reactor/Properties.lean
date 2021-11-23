@@ -11,7 +11,7 @@ namespace Reactor
 -- which is enforced by this constraint.
 theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.rawWF.direct.wfRoles
 
--- TODO: Factor out the overlap between the proofs of `wfNormDeps` and `wfMutDeps`?
+-- TODO (maybe): Factor out the overlap between the proofs of `wfNormDeps` and `wfMutDeps`.
 
 -- This constraint constrains the anti/-dependencies of `rtr`'s normal reactions, such that:
 -- 1. their dependencies can only be input ports of `rtr` or output ports of reactors
@@ -142,7 +142,7 @@ inductive Lineage : Reactor ι υ → ι → Type _
   | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
   | nest {σ : Reactor ι υ} σ' {i} i' : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
--- TODO: Merge this into the proof of `uniqueIDs`.
+-- TODO (maybe): Merge this into the proof of `uniqueIDs` if possible.
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Unfold.20where
 private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
   | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
@@ -150,6 +150,9 @@ private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reac
   | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
   | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
   | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_mem_raw_iff.mp hn)
+
+-- TODO: Make sure the top-level ID `⊤` remains unused.
+--       Perhaps this can be done by: `∀ l : Lineage σ i, i ≠ ⊤` or `Lineage σ ⊤ → False`.
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.
 -- We define this property in terms of `Lineage`s, since a components is
@@ -168,9 +171,5 @@ theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l
       exact hi _ $ eq_of_heq h.right.right
     all_goals { contradiction }
   all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
-
--- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Name.20structure.20constructor
--- TODO: Figure out how to make a "proper" constructor for `Reactor`.
---       This isn't trivial, as the properties above use constructs like `ports'`.  
 
 end Reactor
