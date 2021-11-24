@@ -12,7 +12,6 @@ inductive Cmp
   | rcn -- Reactions
   | prt -- Ports
   | stv -- State variables
-deriving Inhabited
 
 namespace Cmp 
 
@@ -148,9 +147,40 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   exact h₂
 
 theorem objFor_ext {σ₁ σ₂ : Reactor ι υ} (cmp : Cmp) (h : ∀ i o, (σ₁ *[cmp, i]= o) ↔ (σ₂ *[cmp, i]= o)) :
-  cmp.accessor σ₁ = cmp.accessor σ₂ :=
-  sorry
+  cmp.accessor σ₁ = cmp.accessor σ₂ := by
+  ext
+  intro i
+  have h := h i
+  cases h₁ : cmp.accessor σ₁ i <;> cases h₂ : cmp.accessor σ₂ i
+  case h.none.none => simp
+  case h.none.some o =>
+    exfalso
+    have h := (h o).mp
+    simp only [objFor] at h
+    cases cmp
+    case h.rtr =>
+      have H : ∃ l : Lineage σ₁ i, (Cmp.rtr.accessor (l.directParent).snd) i = some o := sorry
+      obtain ⟨l, hl⟩ := h H
+      sorry
+    sorry
+    sorry
+    sorry
+  case h.some.none o =>
+    sorry
+  case h.some.some o₁ o₂ =>
+    have h₁ := h o₁
+    have h₂ := h o₂
+    byCases h : σ₁ *[cmp, i]= o₁ <;> byCases h' : σ₁ *[cmp, i]= o₂
+    <;> sorry
+    -- have H := objFor_unique_obj h₁.mp h₂.mp -- (σ *[cmp, i]= o₁) → (σ *[cmp, i]= o₂) → o₁ = o₂
 
+-- WARNING: 
+-- This proposition is not as expected.
+-- Say you change a port of a reactor 3 levels deep.
+-- Then `target` requires that value to be set as such in `σ₂`.
+-- But `eqCmps` requires accessing the parent reactor to remain the same.
+-- This is obviously in conflict.
+-- 
 -- The `update` relation relates two reactors `σ₁` and `σ₂` such that they are related 
 -- if `σ₂` is equal to `σ₁` in all ways except that the object identified by `i` (of 
 -- component type `cmp`) must have value `v` in `σ₂`.
@@ -163,86 +193,37 @@ structure update (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) (v : cmp.typ
   
 notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update σ₁ σ₂ cmp i v
 
--- TODO: Factor out the pattern in this proof (https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Split.20And.20repeatedly). 
 -- The `update` relation is functional.
 theorem update_unique {σ σ₁ σ₂  : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
   (σ -[cmp, i := v]→ σ₁) → (σ -[cmp, i := v]→ σ₂) → σ₁ = σ₂ := by
-  intro ⟨hc₁, hi₁, hp₁, hr₁, ht₁⟩ ⟨hc₂, hi₂, hp₂, hr₂, ht₂⟩
+  intro h₁ h₂
   ext
-  simp [←hp₁, hp₂, ←hr₁, hr₂]
-  clear hp₁ hp₂
-  apply And.intro
-  case a.left => 
-    apply objFor_ext Cmp.prt
-    intro j o
-    byCases h : Cmp.prt = cmp
+  simp [←h₁.eqPrios, h₂.eqPrios, ←h₁.eqRoles, h₂.eqRoles]
+  refine ⟨?ports, ?state, ?reactions, ?reactors⟩
+  case ports =>     exact aux Cmp.prt h₁ h₂
+  case state =>     exact aux Cmp.stv h₁ h₂
+  case reactions => exact aux Cmp.rcn h₁ h₂
+  case reactors =>  exact aux Cmp.rtr h₁ h₂
+where 
+  aux {σ σ₁ σ₂  : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ}  (cmp' : Cmp) (h₁ : σ -[cmp, i := v]→ σ₁) (h₂ : σ -[cmp, i := v]→ σ₂) : 
+  cmp'.accessor σ₁ = cmp'.accessor σ₂ := by
+  obtain ⟨hc₁, hi₁, _, _, ht₁⟩ := h₁
+  obtain ⟨hc₂, hi₂, _, _, ht₂⟩ := h₂
+  apply objFor_ext cmp'
+  intro j o
+  byCases h : cmp' = cmp
+  case inl =>
+    subst h
+    byCases h' : j = i
     case inl =>
-      subst h
-      byCases h' : j = i
-      case inl =>
-        simp [←h'] at ht₁ ht₂
-        byCases h'' : o = v
-        case inl => simp [h'', iff_of_true ht₁ ht₂]
-        case inr =>
-          exact Iff.intro 
-            (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₁⟩)
-            (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₂⟩)
-      case inr => simp [←(hi₁ j h'), hi₂ j h']  
-    case inr => simp [←(hc₁ Cmp.prt h), hc₂ Cmp.prt h]
-  case a.right => 
-    apply And.intro
-    case left =>
-      apply objFor_ext Cmp.stv
-      intro j o
-      byCases h : Cmp.stv = cmp
-      case inl =>
-        subst h
-        byCases h' : j = i
-        case inl =>
-          simp [←h'] at ht₁ ht₂
-          byCases h'' : o = v
-          case inl => simp [h'', iff_of_true ht₁ ht₂]
-          case inr =>
-            exact Iff.intro 
-              (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₁⟩)
-              (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₂⟩)
-        case inr => simp [←(hi₁ j h'), hi₂ j h']  
-      case inr => simp [←(hc₁ Cmp.stv h), hc₂ Cmp.stv h]
-    case right =>
-      apply And.intro
-      case left =>
-        apply objFor_ext Cmp.rcn
-        intro j o
-        byCases h : Cmp.rcn = cmp
-        case inl =>
-          subst h
-          byCases h' : j = i
-          case inl =>
-            simp [←h'] at ht₁ ht₂
-            byCases h'' : o = v
-            case inl => simp [h'', iff_of_true ht₁ ht₂]
-            case inr =>
-              exact Iff.intro 
-                (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₁⟩)
-                (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₂⟩)
-          case inr => simp [←(hi₁ j h'), hi₂ j h']  
-        case inr => simp [←(hc₁ Cmp.rcn h), hc₂ Cmp.rcn h]
-      case right =>
-        apply objFor_ext Cmp.rtr
-        intro j o
-        byCases h : Cmp.rtr = cmp
-        case inl =>
-          subst h
-          byCases h' : j = i
-          case inl =>
-            simp [←h'] at ht₁ ht₂
-            byCases h'' : o = v
-            case inl => simp [h'', iff_of_true ht₁ ht₂]
-            case inr =>
-              exact Iff.intro 
-                (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₁⟩)
-                (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₂⟩)
-          case inr => simp [←(hi₁ j h'), hi₂ j h']  
-        case inr => simp [←(hc₁ Cmp.rtr h), hc₂ Cmp.rtr h]
+      simp [←h'] at ht₁ ht₂
+      byCases h'' : o = v
+      case inl => simp [h'', iff_of_true ht₁ ht₂]
+      case inr =>
+        exact Iff.intro
+          (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₁⟩)
+          (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₂⟩)
+    case inr => simp [←(hi₁ j h'), hi₂ j h']
+  case inr => simp [←(hc₁ cmp' h), hc₂ cmp' h]
 
 end Reactor
