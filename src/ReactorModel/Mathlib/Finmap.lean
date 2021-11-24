@@ -11,6 +11,7 @@ open Classical
 
 -- A partial map defined for only finitely many inputs.
 -- This is akin to what is sometimes called a hashmap/dictionary/associative array.
+@[ext]
 structure Finmap (α β) where
   lookup : α → Option β 
   finite : { a | lookup a ≠ none }.finite
@@ -93,21 +94,36 @@ def map (f : α ▸ β) (g : β → γ) : Finmap α γ := {
     simp [ids_def, Option.ne_none_iff_exists, hb]
 }
 
--- Sometimes when using `map`, it is useful to have a proof that each of the
--- mapped values are actually part of the finmap. In this case `map'` can be used.
-def map' (f : α ▸ β) (g : (b : β) → (b ∈ f.values) → γ) : Finmap α γ := {
+theorem map_mem_ids {f : α ▸ β} {g : β → γ} {i} : i ∈ (f.map g).ids ↔ i ∈ f.ids :=
+  sorry
+
+theorem map_def {f : α ▸ β} {g : β → γ} {i v} (h : (f.map g) i = some v) : ∃ m, f i = some m ∧ g m = v :=
+  sorry
+
+def attach (f : α ▸ β) : Finmap α { b // b ∈ f.values } := {
   lookup := λ a =>
     match h:(f a) with
     | none => none
-    | some b => g b (values_def.mpr ⟨a, h⟩),
+    | some b => some ⟨b, (values_def.mpr ⟨a, h⟩)⟩,
   finite := sorry
 }
 
-theorem map'_mem_ids {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i} : i ∈ (f.map' g).ids ↔ i ∈ f.ids :=
+theorem attach_mem_ids {f : α ▸ β} {i} : i ∈ f.attach.ids ↔ i ∈ f.ids :=
+  sorry
+
+theorem attach_def {f : α ▸ β} {i} {b : β} {hb} (h : f.attach i = some ⟨b, hb⟩) : f i = b :=
+  sorry
+
+
+/-theorem map'_mem_ids {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i} : i ∈ (f.map' g).ids ↔ i ∈ f.ids :=
   sorry
 
 theorem map'_def {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i v} (h : (f.map' g) i = some v) : ∃ m hm, f i = some m ∧ g m hm = v :=
   sorry
+
+theorem map'_eq_iff {f₁ f₂ : α ▸ β} {g₁ : (b : β) → (b ∈ f₁.values) → γ} {g₂ : (b : β) → (b ∈ f₂.values) → γ} (h : ∀ b h₁ h₂, g₁ b h₁ = g₂ b h₂) : f₁.map' g₁ = f₂.map' g₂ ↔ f₁ = f₂ :=
+  sorry
+-/
 
 -- The finmap that contains only those entries from `f`, whose identifiers
 -- satisfy the given predicate `p`.
@@ -151,13 +167,5 @@ structure forall₂ (r : β → γ → Prop) (f₁ : α ▸ β) (f₂ : α ▸ �
 structure forall₂' (r : β → γ → Prop) (f₁ : α ▸ β) (f₂ : α → Option γ) : Prop where
   eqIDs : ∀ a, a ∈ f₁.ids ↔ f₂ a ≠ none
   rel : ∀ {a} {b : β} {c : γ}, (f₁ a = b) → (f₂ a = c) → r b c
-
-theorem forall₂_map' (f : α ▸ β) {g : (b : β) → (b ∈ f.values) → γ} {r : β → γ → Prop} (h : ∀ b hb, r b (g b hb)) :
-  forall₂ r f (f.map' g) :=
-  sorry
-
-theorem forall₂_to_forall₂' {r : β → γ → Prop} {f₁ : α ▸ β} {f₂ : α ▸ γ} (h : forall₂ r f₁ f₂) :
-  forall₂' r f₁ f₂.lookup :=
-  sorry
 
 end Finmap

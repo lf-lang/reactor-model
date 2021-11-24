@@ -100,4 +100,32 @@ def prios : Raw.Reactor ι υ → PartialOrder ι                  | mk _ _ _ _ 
 noncomputable def ports' (rtr : Raw.Reactor ι υ) (r : Ports.Role) : Ports ι υ := 
   rtr.ports.filter (λ i => rtr.roles i = r)
 
+-- An extensionality theorem for `Raw.Reactor`.
+theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} : 
+  rtr₁ = rtr₂ ↔ 
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧
+  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios := by
+  apply Iff.intro
+  case mp =>
+    intro h
+    cases rtr₁
+    cases rtr₂
+    simp [h]
+  case mpr =>
+    intro h
+    simp [ports, roles, state, rcns, nest, prios] at h
+    cases rtr₁
+    cases rtr₂
+    simp [h]
+
+-- We need this additional theorem as the `ext` attribute can only be used on theorems proving an equality.
+@[ext]
+theorem ext {rtr₁ rtr₂ : Raw.Reactor ι υ} :
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧ 
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧ 
+  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios → 
+  rtr₁ = rtr₂ :=
+  λ h => ext_iff.mpr h  
+
 end Raw.Reactor

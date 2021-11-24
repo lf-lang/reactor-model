@@ -17,7 +17,7 @@ def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
 -- 2. We map on that finmapto get a finmap that returns "proper" reactors (using `Reactor.fromRaw`).
 def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ := 
   let raw : Finmap ι (Raw.Reactor ι υ) := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFiniteRtrs }
-  raw.map' (λ _ h => Reactor.fromRaw _ (by
+  raw.attach.map (λ ⟨_, h⟩ => Reactor.fromRaw _ (by
       have ⟨_, hm⟩ := Finmap.values_def.mp h
       have h' := Raw.Reactor.isAncestorOf.nested hm
       exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.rawWF
@@ -27,14 +27,16 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
 theorem nest_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.rawEquiv rtr.nest rtr.raw.nest := {
   eqIDs := by
     intro i
-    simp only [nest, Finmap.map'_mem_ids]
+    simp only [nest, Finmap.map_mem_ids, Finmap.attach_mem_ids]
     exact Finmap.ids_def,
   rel := by
     intro i r r' hr hr'
-    simp [nest] at hr
-    obtain ⟨m, hm, ⟨h₁, h₂⟩⟩ := Finmap.map'_def hr
+    simp only [nest] at hr
+    obtain ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
+    simp at h₂
     have h := fromRaw_rawEquiv (Eq.symm h₂)
-    simp at h₁
+    have h₁ := Finmap.attach_def h₁
+    simp at h h₁
     simp [h₁] at hr'
     simp [←hr', h]
 }
@@ -59,8 +61,7 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ 
     have he := hv (Eq.symm hx) h
     simp only [rawEquiv] at he
     simp [←hx]
-    apply Reactor.ext
-    exact he    
+    exact Reactor.raw_ext_iff.mpr he     
 
 -- The `rcns` projection lifted to return a finmap of "proper" reactions.
 -- 
@@ -69,19 +70,19 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ 
 -- 2. We map on that finmap to get a finmap that returns "proper" reactions (using `Reaction.fromRaw`).
 def rcns (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   let raw : Finmap ι (Raw.Reaction ι υ) := { lookup := rtr.raw.rcns, finite := rtr.rawWF.direct.rcnsFinite }
-  raw.map' $ λ _ h => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
+  raw.attach.map $ λ ⟨_, h⟩ => Reaction.fromRaw rtr.rawWF (Finmap.values_def.mp h)
   
--- TODO (maybe): Show this and `nest_rawEquiv` using `Finmap.forall₂'_map'`.
 theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEquiv rtr.rcns rtr.raw.rcns := {
   eqIDs := by
     intro i
-    simp only [rcns, Finmap.map'_mem_ids]
+    simp only [rcns, Finmap.map_mem_ids, Finmap.attach_mem_ids]
     exact Finmap.ids_def
   rel := by
     intro i r r' hr hr'
     simp [rcns] at hr
-    obtain ⟨m, hm, ⟨h₁, h₂⟩⟩ := Finmap.map'_def hr
+    obtain ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
     have h := Reaction.fromRaw_rawEquiv (Eq.symm h₂)
+    have h₁ := Finmap.attach_def h₁
     simp at h₁
     simp [h₁] at hr'
     simp [←hr', h]
@@ -90,7 +91,7 @@ theorem rcns_rawEquiv (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.rawEqui
 theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) : 
   ∃ raw, rtr.raw.rcns i = some raw := by
   have h' := Option.ne_none_iff_exists.mpr ⟨rcn, Eq.symm h⟩
-  simp only [rcns, ←Finmap.ids_def, Finmap.map'_mem_ids] at h'
+  simp only [rcns, ←Finmap.ids_def, Finmap.map_mem_ids, Finmap.attach_mem_ids] at h'
   have he := rcns_rawEquiv rtr
   have hi := (he.eqIDs _).mp h'
   simp only [Finmap.ids_def, Option.ne_none_iff_exists] at h'
@@ -123,5 +124,25 @@ noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Ports.Role) : Finset 
       from Set.finite.subset (Finset.finite_to_set _) h
     simp [Set.subset_def]
   finite.toFinset
+
+theorem ext_iff {rtr₁ rtr₂ : Reactor ι υ} : 
+  rtr₁ = rtr₂ ↔ 
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧
+  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios := by
+  apply Iff.intro
+  case mp =>
+    intro h
+    simp [ports, roles, state, prios, raw_ext_iff.mp h]
+    apply And.intro <;> (ext; simp [h])
+  case mpr =>
+    intro h
+    apply raw_ext_iff.mpr
+    ext
+    simp [ports, roles, state, prios] at h
+    simp [h]
+    obtain ⟨_, _, _, h₁, h₂, _⟩ := h
+    apply And.intro <;>
+      sorry
 
 end Reactor

@@ -81,13 +81,22 @@ end Raw.Reactor
 -- A `Reactor` is a raw reactor that is also well-formed.
 --
 -- Side note: 
--- The `fromRaw ::` names the constructor of `Reactor`. We do
--- this so that we can later define a "proper" constructor called `mk`.
-@[ext]
+-- The `fromRaw ::` names the constructor of `Reactor`.
 structure Reactor (ι υ) [ID ι] [Value υ] where
   fromRaw ::
     raw : Raw.Reactor ι υ
     rawWF : raw.wellFormed  
+
+-- An raw-based extensionality theorem for `Reactor`.
+-- We also define a proper extensionality theorem called `ext_iff`.
+theorem Reactor.raw_ext_iff {rtr₁ rtr₂ : Reactor ι υ} : rtr₁ = rtr₂ ↔ rtr₁.raw = rtr₂.raw := by
+  apply Iff.intro <;> (
+    intro h
+    cases rtr₁
+    cases rtr₂
+    simp at h
+    simp [h]
+  )
 
 theorem Raw.Reactor.isAncestorOf_preserves_wf {rtr₁ rtr₂ : Raw.Reactor ι υ} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
   rtr₂.wellFormed := {

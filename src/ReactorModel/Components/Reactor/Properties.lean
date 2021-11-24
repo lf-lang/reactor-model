@@ -165,7 +165,7 @@ theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l
     cases l₂ 
     case nest σ' _ _ _ =>
       simp [Lineage.toRaw] at h
-      have hσ : σ₂ = σ' := by ext; exact h.left
+      have hσ : σ₂ = σ' := by apply Reactor.raw_ext_iff.mpr; exact h.left
       subst hσ
       simp [h.right.left]
       exact hi _ $ eq_of_heq h.right.right
