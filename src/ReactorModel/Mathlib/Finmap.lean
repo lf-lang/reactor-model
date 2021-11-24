@@ -11,7 +11,6 @@ open Classical
 
 -- A partial map defined for only finitely many inputs.
 -- This is akin to what is sometimes called a hashmap/dictionary/associative array.
-@[ext]
 structure Finmap (α β) where
   lookup : α → Option β 
   finite : { a | lookup a ≠ none }.finite
@@ -30,6 +29,13 @@ instance : EmptyCollection (α ▸ β) where
 
 instance : Inhabited (Finmap α β) where
   default := ∅
+
+theorem ext_iff (f₁ f₂ : α ▸ β) : f₁ = f₂ ↔ ∀ i, f₁ i = f₂ i :=
+  sorry
+
+@[ext]
+theorem ext (f₁ f₂ : α ▸ β) (h : ∀ i, f₁ i = f₂ i) : f₁ = f₂ :=
+  (ext_iff _ _).mpr h
 
 -- The (finite) set of inputs for which a given finmap has an associated value.
 noncomputable def ids (f : α ▸ β) : Finset α :=
@@ -83,7 +89,7 @@ noncomputable def update' (f : α ▸ β) (a : α) (b : β) : α ▸ β := f.upd
 
 -- The finmap that combines a given finmap `f` with a function `g`
 -- by mapping all (defined) values in `f` through `g`. 
-def map (f : α ▸ β) (g : β → γ) : Finmap α γ := {
+def map (f : α ▸ β) (g : β → γ) : α ▸ γ := {
   lookup := λ a => (f a) >>= (some ∘ g),
   finite := by
     suffices h : { a | (λ i => (f i) >>= (some ∘ g)) a ≠ none } ⊆ ↑f.ids
@@ -100,7 +106,7 @@ theorem map_mem_ids {f : α ▸ β} {g : β → γ} {i} : i ∈ (f.map g).ids �
 theorem map_def {f : α ▸ β} {g : β → γ} {i v} (h : (f.map g) i = some v) : ∃ m, f i = some m ∧ g m = v :=
   sorry
 
-def attach (f : α ▸ β) : Finmap α { b // b ∈ f.values } := {
+def attach (f : α ▸ β) : α ▸ { b // b ∈ f.values } := {
   lookup := λ a =>
     match h:(f a) with
     | none => none
@@ -114,27 +120,16 @@ theorem attach_mem_ids {f : α ▸ β} {i} : i ∈ f.attach.ids ↔ i ∈ f.ids 
 theorem attach_def {f : α ▸ β} {i} {b : β} {hb} (h : f.attach i = some ⟨b, hb⟩) : f i = b :=
   sorry
 
-
-/-theorem map'_mem_ids {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i} : i ∈ (f.map' g).ids ↔ i ∈ f.ids :=
-  sorry
-
-theorem map'_def {f : α ▸ β} {g : (b : β) → (b ∈ f.values) → γ} {i v} (h : (f.map' g) i = some v) : ∃ m hm, f i = some m ∧ g m hm = v :=
-  sorry
-
-theorem map'_eq_iff {f₁ f₂ : α ▸ β} {g₁ : (b : β) → (b ∈ f₁.values) → γ} {g₂ : (b : β) → (b ∈ f₂.values) → γ} (h : ∀ b h₁ h₂, g₁ b h₁ = g₂ b h₂) : f₁.map' g₁ = f₂.map' g₂ ↔ f₁ = f₂ :=
-  sorry
--/
-
 -- The finmap that contains only those entries from `f`, whose identifiers
 -- satisfy the given predicate `p`.
-noncomputable def filter (f : α ▸ β) (p : α → Prop) : Finmap α β := {
+noncomputable def filter (f : α ▸ β) (p : α → Prop) : α ▸ β := {
   lookup := λ a => if p a then f a else none,
   finite := sorry
 }
 
 -- The finmap that contains only those entries from `f`, whose values
 -- satisfy the given predicate `p`.
-noncomputable def filter' (f : α ▸ β) (p : β → Prop) : Finmap α β := {
+noncomputable def filter' (f : α ▸ β) (p : β → Prop) : α ▸ β := {
   lookup := (λ a => 
     match f a with
     | some b => if p b then b else none
@@ -153,7 +148,7 @@ theorem filter'_mem_values {f : α ▸ β} {p : β → Prop} {b : β} :
 
 -- The finmap that containts only those entries from `f`, whose identifiers
 -- are in a given set `as`.
-noncomputable def restrict (f : α ▸ β) (as : Finset α) : Finmap α β :=
+noncomputable def restrict (f : α ▸ β) (as : Finset α) : α ▸ β :=
   f.filter (λ a => a ∈ as)
 
 -- This relation is true if two given finmaps are defined on the same IDs,

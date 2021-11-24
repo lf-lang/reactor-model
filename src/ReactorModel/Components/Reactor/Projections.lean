@@ -142,7 +142,16 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor ι υ} :
     simp [ports, roles, state, prios] at h
     simp [h]
     obtain ⟨_, _, _, h₁, h₂, _⟩ := h
+    clear h
     apply And.intro <;>
-      sorry
+    sorry
+
+@[ext]
+theorem ext {rtr₁ rtr₂ : Reactor ι υ} : 
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧
+  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios →
+  rtr₁ = rtr₂ :=
+  λ h => ext_iff.mpr h
 
 end Reactor
