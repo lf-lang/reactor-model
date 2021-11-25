@@ -1,9 +1,8 @@
 import ReactorModel.Components.Change
 
-open Ports
-open Classical
+open Ports Classical
 
-variable (ι υ) [ID ι] [Value υ]
+variable (ι υ : Type _) [Value υ]
 
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
@@ -78,7 +77,7 @@ theorem eq_input_eq_triggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} 
 -- reactors' ports by creating a reaction that declares these ports and only these
 -- ports as dependency and antidependency respectively, and does nothing but relay the
 -- value from its input to its output.
-def relay (src dst : ι) : Reaction ι υ := {
+noncomputable def relay (src dst : ι) : Reaction ι υ := {
   deps := λ r => match r with | Role.in => Finset.singleton src | Role.out => Finset.singleton dst,
   triggers := Finset.singleton src,
   children := ∅,

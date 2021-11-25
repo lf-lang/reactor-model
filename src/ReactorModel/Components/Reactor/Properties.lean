@@ -2,7 +2,7 @@ import ReactorModel.Components.Reactor.Projections
 
 open Ports
 
-variable {ι υ} [ID ι] [Value υ]
+variable {ι υ} [Value υ]
 
 namespace Reactor
 
@@ -150,9 +150,6 @@ private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reac
   | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
   | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
   | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_mem_raw_iff.mp hn)
-
--- TODO: Make sure the top-level ID `⊤` remains unused.
---       Perhaps this can be done by: `∀ l : Lineage σ i, i ≠ ⊤` or `Lineage σ ⊤ → False`.
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.
 -- We define this property in terms of `Lineage`s, since a components is

@@ -1,6 +1,6 @@
 import ReactorModel.Components.Reactor.Basic
 
-variable (ι υ) [ID ι] [Value υ]
+variable (ι υ) [Value υ]
 
 -- In the semi-formal definition of the Reactor model, reactions' bodies are defined
 -- as "opaque code" that has access to a set of APIs for settings ports' values, 
@@ -36,7 +36,7 @@ def mutates : Change ι υ → Prop
   | delete _       => True
 
 -- It is decidable whether a change mutates.
-instance : DecidablePred (@mutates ι υ _ _) := λ c =>
+instance : DecidablePred (@mutates ι υ _) := λ c =>
   match c with
   | port _ _       => isFalse (by simp [mutates])
   | state _ _      => isFalse (by simp [mutates])

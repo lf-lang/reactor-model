@@ -2,7 +2,7 @@ import ReactorModel.Components.Raw
 
 open Ports
 
-variable {ι υ} [ID ι] [Value υ]
+variable {ι υ} [Value υ]
 
 -- Cf. `Reactor.Lineage`.
 inductive Raw.Reactor.Lineage : Raw.Reactor ι υ → ι → Type _ 
@@ -82,7 +82,7 @@ end Raw.Reactor
 --
 -- Side note: 
 -- The `fromRaw ::` names the constructor of `Reactor`.
-structure Reactor (ι υ) [ID ι] [Value υ] where
+structure Reactor (ι υ) [Value υ] where
   fromRaw ::
     raw : Raw.Reactor ι υ
     rawWF : raw.wellFormed  

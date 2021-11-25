@@ -1,31 +1,15 @@
 import ReactorModel.Mathlib
 
--- TODO: Should `ID` and `Value` drop `decEq`, since we can just `open Classical`?
-
--- The class of types that can be used as identifiers for components in a reactor.
--- 
--- IDs tend to require a "context" in order to associate them to actual objects. 
--- This context is usually a (top-level) reactor which is then identified by the `root` ID.
-class ID (α) where
-  [decEq : DecidableEq α]
-  root : α
-
--- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Class.20.22inheritance.22
-attribute [instance] ID.decEq
-
-notation "⊤" => ID.root
+open Classical
 
 -- The class of types that can be used as values in a reactor.
 -- Any such type must contain an "absent" value.
 class Value (α) where
-  [decEq : DecidableEq α]
   absent : α
-
-attribute [instance] Value.decEq
 
 notation "⊥" => Value.absent
 
-variable (ι υ) [ID ι] [Value υ]
+variable (ι υ) [Value υ]
 
 -- An instance of `StateVars` is a grouping of state variables.
 -- That is, a finite map of identifiers to values.
@@ -88,7 +72,7 @@ abbrev Role.opposite : Role → Role
 -- That is, if `p.get i = some v`, we know `v ≠ ⊥`.
 --
 -- The notation used for `p.get i` is `p[i]`.
-def get (p : Ports ι υ) (i : ι) : Option υ := 
+noncomputable def get (p : Ports ι υ) (i : ι) : Option υ := 
   p.lookup i >>= (λ v => if v = ⊥ then none else v)
 
 notation p:max "[" i "]" => get p i

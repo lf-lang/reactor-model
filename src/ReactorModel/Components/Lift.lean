@@ -1,6 +1,6 @@
 import ReactorModel.Components.Reaction
 
-variable {ι υ} [ID ι] [Value υ]
+variable {ι υ} [Value υ]
 
 namespace Reactor 
 
@@ -57,7 +57,7 @@ inductive rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop
   | delete     {i}   :    (c = Change.delete i)       → (raw = Raw.Change.delete i)                         → rawEquiv c raw
 
 theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw p s hw hr hc} :
-  c = @Change.fromRaw _ _ _ _ rtr hw rcn hr raw p s hc → c.rawEquiv raw := by
+  c = @Change.fromRaw _ _ _ rtr hw rcn hr raw p s hc → c.rawEquiv raw := by
   intro h
   cases raw
   case port t v =>
@@ -169,7 +169,7 @@ structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
   body :     ∀ p s, List.forall₂ Change.rawEquiv (rcn.body p s) (raw.body p s)
 
 theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
-  rcn = @Reaction.fromRaw _ _ _ _ rtr hw raw hr → rcn.rawEquiv raw := 
+  rcn = @Reaction.fromRaw _ _ _ rtr hw raw hr → rcn.rawEquiv raw := 
   λ h => {
     deps := by simp [h, fromRaw],
     triggers := by simp [h, fromRaw],

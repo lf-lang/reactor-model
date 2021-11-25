@@ -4,7 +4,7 @@ open Classical
 
 -- Note that `ι` and `υ` live in the same universe:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Stuck.20at.20solving.20universe.20constraint/near/253232009
-variable (ι υ : Type u) [ID ι] [Value υ]
+variable (ι υ : Type u) [Value υ]
 
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
 inductive Cmp
@@ -42,12 +42,15 @@ variable {ι υ}
 
 namespace Reactor
 
+-- TODO: Docs
+--       Mention that we do the whole Option ι so that ⊤ can never appear inside a reactor.
+--       Its more like a label.
+notation "⊤" => none
+
 -- The "direct parent" in a lineage is the reactor which contains the target of the lineage.
 -- This function returns that reactor along with its ID.
---
--- Note:
--- When the target lives in the top-level reactor the special ID `⊤` is returned.
-def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (ι × Reactor ι υ)
+-- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
+def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι × Reactor ι υ)
   | rtr _ => (⊤, σ)
   | rcn _ => (⊤, σ)
   | prt _ => (⊤, σ)
@@ -68,15 +71,21 @@ def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (ι × Reac
 -- We use the concept of lineages to "find" the path of reactor-IDs that leads
 -- us through `σ` to `i`. If such a lineage exists we check whether `c` is the ID
 -- of the last reactor in that path, because by construction (of lineages) *that* 
--- is the reactor that contains `i`. 
-def containerOf (σ : Reactor ι υ) (i c : ι) : Prop := 
+-- is the reactor that contains `i`.
+-- Note that while `c` *can* be the top-level ID `⊤`, `i` can't.
+-- We need to restrict `i` in this way, because `Lineage`s are only defined over
+-- non-optional IDs. In practice, this isn't really a restriction though, because
+-- we could easily extend the definition of `containerOf` to check whether `i = ⊤`
+-- and yield `False` in that case (as the top-level reactor will never have a
+-- parent container).
+def containerOf (σ : Reactor ι υ) (i : ι) (c : Option ι) : Prop := 
   ∃ l : Lineage σ i, (l.directParent).fst = c 
 
 -- This notation is chosen to be akin to the address notation in C.
 notation σ:max " &[" i "]= " c:max => Reactor.containerOf σ i c
 
 -- In the `containerOf` relation, any given ID can have at most one parent (`containerOf` is functional).
-theorem containerOf_unique {σ : Reactor ι υ} {i c₁ c₂ : ι} :
+theorem containerOf_unique {σ : Reactor ι υ} {i : ι} {c₁ c₂ : Option ι} :
   σ &[i]= c₁ → σ &[i]= c₂ → c₁ = c₂ := by
   intro h₁ h₂
   obtain ⟨l₁, h₁⟩ := h₁

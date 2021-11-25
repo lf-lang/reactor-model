@@ -20,7 +20,7 @@ namespace Raw
 -- the same name across all definitions.)
 mutual 
 
-protected inductive Change (ι υ) [i : ID ι] [v : Value υ]
+protected inductive Change (ι υ) [v : Value υ]
   | port (target : ι) (value : υ)
   | state (target : ι) (value : υ)
   | connect (src : ι) (dst : ι)
@@ -28,14 +28,14 @@ protected inductive Change (ι υ) [i : ID ι] [v : Value υ]
   | create (rtr : Raw.Reactor ι υ) (id : ι)
   | delete (rtrID : ι)
 
-protected inductive Reaction (ι υ) [i : ID ι] [v : Value υ]
+protected inductive Reaction (ι υ) [v : Value υ]
   | mk 
     (deps : Ports.Role → Finset ι) 
     (triggers : Finset ι)
     (children : Finset ι)
     (body : Ports ι υ → StateVars ι υ → List (Raw.Change ι υ))
 
-protected inductive Reactor (ι υ) [i : ID ι] [v : Value υ]
+protected inductive Reactor (ι υ) [v : Value υ]
   | mk 
     (ports : Ports ι υ) 
     (roles : ι ▸ Ports.Role)
@@ -57,7 +57,7 @@ end Raw
 -- We try to limit these conveniences though, as they are superfluous as soon
 -- as we have "proper" components.
 
-variable {ι υ} [ID ι] [Value υ]
+variable {ι υ} [Value υ]
 
 -- Cf. `Change.mutates`.
 def Raw.Change.mutates : Raw.Change ι υ → Prop
