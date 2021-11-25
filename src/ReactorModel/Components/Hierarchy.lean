@@ -2,6 +2,9 @@ import ReactorModel.Components.Reactor.Properties
 
 open Classical 
 
+-- TODO: Redoc
+-- TODO: Better notation for cmp.accessor σ, e.g. σ[cmp]
+
 -- Note that `ι` and `υ` live in the same universe:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Stuck.20at.20solving.20universe.20constraint/near/253232009
 variable (ι υ : Type u) [Value υ]
@@ -155,6 +158,7 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   simp [h₁] at h₂
   exact h₂
 
+-- TODO: Is this theorem true? And do we even need it now that `update` has been redefined?
 theorem objFor_ext {σ₁ σ₂ : Reactor ι υ} (cmp : Cmp) (h : ∀ i o, (σ₁ *[cmp, i]= o) ↔ (σ₂ *[cmp, i]= o)) :
   cmp.accessor σ₁ = cmp.accessor σ₂ := by
   ext
@@ -183,29 +187,31 @@ theorem objFor_ext {σ₁ σ₂ : Reactor ι υ} (cmp : Cmp) (h : ∀ i o, (σ�
     <;> sorry
     -- have H := objFor_unique_obj h₁.mp h₂.mp -- (σ *[cmp, i]= o₁) → (σ *[cmp, i]= o₂) → o₁ = o₂
 
--- WARNING: 
--- This proposition is not as expected.
--- Say you change a port of a reactor 3 levels deep.
--- Then `target` requires that value to be set as such in `σ₂`.
--- But `eqCmps` requires accessing the parent reactor to remain the same.
--- This is obviously in conflict.
--- 
--- The `update` relation relates two reactors `σ₁` and `σ₂` such that they are related 
--- if `σ₂` is equal to `σ₁` in all ways except that the object identified by `i` (of 
--- component type `cmp`) must have value `v` in `σ₂`.
-structure update (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) (v : cmp.type ι υ) : Prop :=
-  eqCmps  : ∀ cmp', cmp' ≠ cmp → (σ₁.objFor cmp' = σ₂.objFor cmp')
-  eqIDs   : ∀ i', i' ≠ i → (σ₁.objFor cmp i' = σ₂.objFor cmp i')
-  eqPrios : σ₁.prios = σ₂.prios
-  eqRoles : σ₁.roles = σ₂.roles
-  target  : σ₂ *[cmp, i]= v
-  
-notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update σ₁ σ₂ cmp i v
+-- TODO: Does this somehow allow ID-renaming or other reshuffling of data?
+inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
+  | top {i σ₁ σ₂} : 
+    (∀ cmp' i', (cmp' ≠ cmp ∨ i' ≠ i) → cmp'.accessor σ₁ i' = cmp'.accessor σ₂ i') → 
+    (σ₁.prios = σ₂.prios) → 
+    (σ₁.roles = σ₂.roles) → 
+    (cmp.accessor σ₂ i = v) → 
+    update cmp v i σ₁ σ₂
+  | nested {i} {σ₁ σ₂} {j} {rtr₁ rtr₂} :
+    (∀ cmp', cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂) → 
+    (σ₁.prios = σ₂.prios) → 
+    (σ₁.roles = σ₂.roles) → 
+    (σ₁.nest j = some rtr₁) →
+    (σ₂.nest j = some rtr₂) →
+    (∀ j', j' ≠ j → σ₁.nest j' = σ₂.nest j') →
+    (update cmp v i rtr₁ rtr₂) →
+    update cmp v i σ₁ σ₂
+
+notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update cmp v i σ₁ σ₂
 
 -- The `update` relation is functional.
 theorem update_unique {σ σ₁ σ₂  : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
   (σ -[cmp, i := v]→ σ₁) → (σ -[cmp, i := v]→ σ₂) → σ₁ = σ₂ := by
-  intro h₁ h₂
+  sorry
+  /-intro h₁ h₂
   ext
   simp [←h₁.eqPrios, h₂.eqPrios, ←h₁.eqRoles, h₂.eqRoles]
   refine ⟨?ports, ?state, ?reactions, ?reactors⟩
@@ -233,6 +239,6 @@ where
           (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₁⟩)
           (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₂⟩)
     case inr => simp [←(hi₁ j h'), hi₂ j h']
-  case inr => simp [←(hc₁ cmp' h), hc₂ cmp' h]
+  case inr => simp [←(hc₁ cmp' h), hc₂ cmp' h]-/
 
 end Reactor
