@@ -12,6 +12,8 @@ def roles (rtr : Reactor ι υ) : ι ▸ Ports.Role  := rtr.raw.roles
 def state (rtr : Reactor ι υ) : StateVars ι υ   := rtr.raw.state
 def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
 
+def isAncestorOf (rtr1 : Reactor ι υ) (rtr2 : Reactor ι υ) : Prop := rtr1.raw.isAncestorOf rtr2.raw
+
 -- The `nest` projection lifted to return a finmap of "proper" reactors.
 -- 
 -- We're doing two lifting steps at once here:

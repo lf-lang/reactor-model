@@ -6,8 +6,10 @@ open Classical
 -- Any such type must contain an "absent" value.
 class Value (α) where
   absent : α
+  unit : α
 
 notation "⊥" => Value.absent
+notation "⊤" => Value.unit
 
 variable (ι υ) [Value υ]
 
