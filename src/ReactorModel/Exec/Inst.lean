@@ -24,18 +24,16 @@ variable {ι υ} [Value υ]
 -- Executing a reaction yields a series of changes.
 -- def executeChanges (s : State) (r : Reaction) :=
  
-inductive instantaneousStep (r : Reactor ι υ) (s s' : @State ι υ) : Prop 
+inductive instantaneousStep (r : Reactor ι υ) (s s' : State ι υ) : Prop 
  | changeMe
 
 -- We add a notation to write an instantaneous step.
-notation "[" s:max "⇓ᵢ" s':max "]" r:max => instantaneousStep r s s'
+notation "[" s " ⇓ᵢ " s' "]" r:max => instantaneousStep r s s'
 -- | execPortChange (port i v : @Change ι υ) (Hss' : s'.ports  = s.ports.update i v)
 -- | execChangeListHead ((c :: rest) : List (@Change ι υ)) (smid : @State ι υ)
 --                  (Hhead : executeStep r s smid)
 --
 -- | execChangeListEmpty ([] : List (@Change ι υ)) (Hhead : executeStep r s smid)
 --
-
-
 
 end Inst

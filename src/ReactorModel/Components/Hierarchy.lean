@@ -205,12 +205,35 @@ inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Rea
     (update cmp v i rtr₁ rtr₂) →
     update cmp v i σ₁ σ₂
 
-notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update cmp v i σ₁ σ₂
+notation σ₁:max " -[" cmp ", " i ":=" v "]→ " σ₂:max => Reactor.update cmp v i σ₁ σ₂
 
 -- The `update` relation is functional.
 theorem update_unique {σ σ₁ σ₂  : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
-  (σ -[cmp, i := v]→ σ₁) → (σ -[cmp, i := v]→ σ₂) → σ₁ = σ₂ := by
-  sorry
+  (σ -[cmp, i:=v]→ σ₁) → (σ -[cmp, i:=v]→ σ₂) → σ₁ = σ₂ := by
+  intro h₁ h₂
+  induction h₁
+  case top i σ σ₁ hc hp hr ht =>
+    cases h₂
+    case top σ' i' ht' hp' hr' hc' =>
+      ext
+      simp [←hp, hp', ←hr, hr']
+      refine ⟨?ports, ?state, ?reactions, ?reactors⟩
+      case ports =>
+        have HC := hc Cmp.prt i'
+        -- Basically the same as commented proof below (for all Cmp kinds).
+        sorry
+      all_goals { sorry }
+    case nested i' j rtr₁ rtr₂ hu hr₁ hr₂ hc' hp' hr' hne =>
+      exfalso
+      sorry
+      -- If we update i at the top level for σ₁ and at a nested
+      -- level at σ₂, then σ₁ and σ₂ have i appearing at different
+      -- levels. Since IDs are unique, one of the updates can't
+      -- actually have happened, as σ can only have i at either the
+      -- top level or a nested level, but not both.
+  case nested =>
+    sorry
+
   /-intro h₁ h₂
   ext
   simp [←h₁.eqPrios, h₂.eqPrios, ←h₁.eqRoles, h₂.eqRoles]
