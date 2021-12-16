@@ -4,10 +4,10 @@ def Time :=  Nat
   deriving Ord, DecidableEq, LE, LT
 
 -- These should be derivable automatically, shouldn't they?
-instance Time.decLe (n m : @& Time) : Decidable (LE.le n m) :=
+instance Time.decLe (n m : Time) : Decidable (LE.le n m) :=
   dite (Eq (Nat.ble n m) true) (fun h => isTrue (Nat.le_of_ble_eq_true h)) (fun h => isFalse (Nat.not_le_of_not_ble_eq_true h))
 
-instance Time.decLt (n m : @& Time) : Decidable (LT.lt n m) :=
+instance Time.decLt (n m : Time) : Decidable (LT.lt n m) :=
   decLe (Nat.succ n) m
  
 structure Tag where 
