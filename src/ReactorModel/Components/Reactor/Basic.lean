@@ -1,6 +1,6 @@
 import ReactorModel.Components.Raw
 
-open Ports
+open Port
 
 variable {ι υ} [Value υ]
 
@@ -9,6 +9,7 @@ inductive Raw.Reactor.Lineage : Raw.Reactor ι υ → ι → Type _
   | rtr σ i : σ.nest i ≠ none → Lineage σ i
   | rcn σ i : σ.rcns i ≠ none → Lineage σ i
   | prt σ i : i ∈ σ.ports.ids → Lineage σ i
+  | act σ i : i ∈ σ.acts.ids  → Lineage σ i
   | stv σ i : i ∈ σ.state.ids → Lineage σ i
   | nest (σ : Raw.Reactor ι υ) {σ'} (i i') : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
@@ -17,7 +18,8 @@ inductive Raw.Reactor.Lineage : Raw.Reactor ι υ → ι → Type _
 -- "proper" `Reaction`.
 structure Raw.Reaction.wellFormed (rcn : Raw.Reaction ι υ) : Prop where
   tsSubInDeps : rcn.triggers ⊆ rcn.deps Role.in                                     
-  outDepOnly :  ∀ i s {o} (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ (rcn.body i s)
+  prtOutDepOnly :  ∀ i {o} (v : υ), (o ∉ rcn.deps Role.out) → (Change.port o v) ∉ rcn.body i
+  actOutDepOnly :  ∀ i {o} t (v : υ), (o ∉ rcn.deps Role.out) → (Change.action o t v) ∉ rcn.body i
   normNoChild : rcn.isNorm → rcn.children = ∅
 
 namespace Raw.Reactor
@@ -48,7 +50,7 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
   wfRoles :         rtr.roles.ids = rtr.ports.ids
-  wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
+  wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
   mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iₙ = some n → n.isNorm → rtr.rcns iₘ = some m → m.isMut → rtr.prios.lt iₘ iₙ
   mutsLinearOrder : ∀ i₁ i₂ m₁ m₂, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → (rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁) 
@@ -63,7 +65,7 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
 -- The `isAncestorOf` relation forms the transitive closure over the previous cases.
 inductive isAncestorOf : (Raw.Reactor ι υ) → (Raw.Reactor ι υ) → Prop 
   | nested {parent child i} : (parent.nest i = some child) → isAncestorOf parent child
-  | creatable {old new rcn p s i iᵣ} : (old.rcns i = some rcn) → (Change.create new iᵣ ∈ rcn.body p s) → isAncestorOf old new
+  | creatable {old new rcn inp i iᵣ} : (old.rcns i = some rcn) → (Change.create new iᵣ ∈ rcn.body inp) → isAncestorOf old new
   | trans {r₁ r₂ r₃} : (isAncestorOf r₁ r₂) → (isAncestorOf r₂ r₃) → (isAncestorOf r₁ r₃)
 
 -- This property ensures "properness" of a reactor in two steps:

@@ -17,7 +17,7 @@ structure Finmap (α β) where
 
 namespace Finmap
 
-infix:50 " ▸ " => (λ a b => Finmap a b)
+infixr:50 " ▸ " => (λ a b => Finmap a b)
 
 -- A coercion so that finmaps can be called directly as functions.
 instance : CoeFun (α ▸ β) (λ _ => α → Option β) where

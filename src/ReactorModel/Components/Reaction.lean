@@ -1,8 +1,10 @@
 import ReactorModel.Components.Change
 
-open Ports Classical
+open Port Classical
 
 variable (ι υ : Type _) [Value υ]
+
+open Reaction
 
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
@@ -26,26 +28,27 @@ variable (ι υ : Type _) [Value υ]
 -- of `Reaction` yet, as this would be circular).
 @[ext]
 structure Reaction where
-  deps :        Ports.Role → Finset ι 
-  triggers :    Finset ι
-  children :    Finset ι
-  body :        Ports ι υ → StateVars ι υ → List (Change ι υ)
-  tsSubInDeps : triggers ⊆ deps Role.in
-  outDepOnly :  ∀ p s {o} (v : υ), (o ∉ deps Role.out) → (Change.port o v) ∉ (body p s)
-  normNoChild : (∀ i s c, c ∈ (body i s) → ¬c.mutates) → children = ∅
-
+  deps :          Port.Role → Finset ι 
+  triggers :      Finset ι
+  children :      Finset ι
+  body :          Input ι υ → List (Change ι υ)
+  tsSubInDeps :   triggers ⊆ deps Role.in
+  prtOutDepOnly : ∀ i {o} (v : υ),     (o ∉ deps Role.out) → Change.port o v ∉ body i
+  actOutDepOnly : ∀ i {o} (t) (v : υ), (o ∉ deps Role.out) → Change.action o t v ∉ body i
+  normNoChild :   (∀ i c, (c ∈ body i) → ¬c.mutates) → children = ∅
+  
 variable {ι υ}
 
 namespace Reaction
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
-instance : CoeFun (Reaction ι υ) (λ _ => Ports ι υ → StateVars ι υ → (List (Change ι υ))) where
+instance : CoeFun (Reaction ι υ) (λ _ => Input ι υ → (List (Change ι υ))) where
   coe rcn := rcn.body
 
 -- A reaction is normal ("norm") if its body produces no mutating changes.
 def isNorm (rcn : Reaction ι υ) : Prop :=
-  ∀ i s c, c ∈ (rcn i s) → ¬c.mutates
+  ∀ i c, (c ∈ rcn i) → ¬c.mutates
 
 -- A reaction is a mutation if it is not "normal", i.e. it does produce
 -- mutating changes for some input.
@@ -56,13 +59,13 @@ theorem norm_no_child' (rcn : Reaction ι υ) : rcn.isNorm → rcn.children = �
   rcn.normNoChild
 
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
-def triggersOn (rcn : Reaction ι υ) (p : Ports ι υ) : Prop :=
-  ∃ t, t ∈ rcn.triggers ∧ p[t] ≠ none
+def triggersOn (rcn : Reaction ι υ) (i : Input ι υ) : Prop :=
+  ∃ t, t ∈ rcn.triggers ∧ i.ports[t] ≠ none
 
 -- TODO: Remove this if it is not used.
-theorem eq_input_eq_triggering {rcn : Reaction ι υ} {p₁ p₂ : Ports ι υ} (h : p₁ =[rcn.deps Role.in] p₂) :
-  rcn.triggersOn p₁ ↔ rcn.triggersOn p₂ := by
-  simp [triggersOn, Ports.eqAt] at h ⊢
+theorem eq_input_eq_triggering {rcn : Reaction ι υ} {i₁ i₂ : Input ι υ} (h : i₁.ports =[rcn.deps Role.in] i₂.ports) :
+  rcn.triggersOn i₁ ↔ rcn.triggersOn i₂ := by
+  simp [triggersOn, Finmap.eqAt] at h ⊢
   apply Iff.intro <;> (
     intro ⟨t, ⟨hm, hn⟩⟩
     exists t
@@ -81,18 +84,18 @@ noncomputable def relay (src dst : ι) : Reaction ι υ := {
   deps := λ r => match r with | Role.in => Finset.singleton src | Role.out => Finset.singleton dst,
   triggers := Finset.singleton src,
   children := ∅,
-  body := λ p _ => match p[src] with | none => [] | some v => [Change.port dst v],
+  body := λ i => i.ports[src].elim [] ([Change.port dst ·]),
   tsSubInDeps := by simp,
-  outDepOnly := by
-    intro p _ o v h hc
-    simp at *
-    cases hs : p[src]
-    case none => simp [hs] at *
+  prtOutDepOnly := by
+    intro i o v h hc
+    cases hs : i.ports[src] <;> simp [Option.elim, hs] at *
     case some v' =>
-      simp [hs] at *
       rw [Finset.not_mem_singleton] at h
       have hc' := hc.left
       contradiction
+  actOutDepOnly := by
+    intro i
+    cases hs : i.ports[src] <;> simp [Option.elim, hs]
   normNoChild := by simp
 }
 
@@ -106,11 +109,15 @@ noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} : Reactio
     children := rcn.children,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
-    outDepOnly := λ i s _ v h' => rcn.outDepOnly i s v h',
+    prtOutDepOnly := rcn.prtOutDepOnly,
+    actOutDepOnly := rcn.actOutDepOnly,
     normNoChild := rcn.normNoChild
   }
 
-noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀ i s {o} (v : υ), (o ∉ is) → (Change.port o v) ∉ rcn i s) : Reaction ι υ := 
+noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} 
+  (hp : ∀ i {o} (v : υ), (o ∉ is) → (Change.port o v) ∉ rcn i) 
+  (ha : ∀ i {o} t (v : υ), (o ∉ is) → (Change.action o t v) ∉ rcn i) 
+  : Reaction ι υ := 
   let deps' := Function.update rcn.deps Role.out is
   {
     deps := deps',
@@ -118,7 +125,8 @@ noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι} (h : ∀
     children := rcn.children,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
-    outDepOnly := λ i s _ v h' => h i s v h',
+    prtOutDepOnly := λ i _ v h' => hp i v h',
+    actOutDepOnly := λ i _ v h' => ha i v h',
     normNoChild := rcn.normNoChild
   } 
 
@@ -128,7 +136,8 @@ noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is
   children := rcn.children,
   body := rcn.body,
   tsSubInDeps := h,
-  outDepOnly := rcn.outDepOnly,
+  prtOutDepOnly := rcn.prtOutDepOnly,
+  actOutDepOnly := rcn.actOutDepOnly,
   normNoChild := rcn.normNoChild
 }
 
@@ -138,7 +147,8 @@ noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) (h : rc
   children := is,
   body := rcn.body,
   tsSubInDeps := rcn.tsSubInDeps,
-  outDepOnly := rcn.outDepOnly,
+  prtOutDepOnly := rcn.prtOutDepOnly,
+  actOutDepOnly := rcn.actOutDepOnly,
   normNoChild := by
     simp only [isMut, isNorm] at h
     intro h'

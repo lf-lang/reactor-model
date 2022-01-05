@@ -7,12 +7,11 @@ variable {ι υ} [Value υ]
 namespace Reactor
 
 -- Lifted versions of the trivially liftable projections of `Raw.Reactor`.
-def ports (rtr : Reactor ι υ) : Ports ι υ       := rtr.raw.ports
-def roles (rtr : Reactor ι υ) : ι ▸ Ports.Role  := rtr.raw.roles
-def state (rtr : Reactor ι υ) : StateVars ι υ   := rtr.raw.state
-def prios (rtr : Reactor ι υ) : PartialOrder ι  := rtr.raw.prios
-
-def isAncestorOf (rtr1 : Reactor ι υ) (rtr2 : Reactor ι υ) : Prop := rtr1.raw.isAncestorOf rtr2.raw
+def ports (rtr : Reactor ι υ) : ι ▸ υ          := rtr.raw.ports
+def roles (rtr : Reactor ι υ) : ι ▸ Port.Role := rtr.raw.roles
+def acts  (rtr : Reactor ι υ) : ι ▸ Time ▸ υ   := rtr.raw.acts
+def state (rtr : Reactor ι υ) : ι ▸ υ          := rtr.raw.state
+def prios (rtr : Reactor ι υ) : PartialOrder ι := rtr.raw.prios
 
 -- The `nest` projection lifted to return a finmap of "proper" reactors.
 -- 
@@ -103,7 +102,7 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   exact ⟨raw, Eq.symm hr⟩
 
 -- A projection for ports, that allows us to separate them by port role.
-noncomputable def ports' (rtr : Reactor ι υ) (r : Ports.Role) : Ports ι υ := 
+noncomputable def ports' (rtr : Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
   rtr.ports.filter (λ i => rtr.roles i = r)
 
 -- A direct projection to a reactor's normal reactions.
@@ -120,7 +119,7 @@ noncomputable def muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
 -- 
 -- This property is quite specific, but is required to nicely state properties
 -- like `Reactor.wfNormDeps`.
-noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Ports.Role) : Finset ι :=
+noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Port.Role) : Finset ι :=
   let description := {i | ∃ n ∈ rtr.nest.values, i ∈ (n.ports' r).ids}
   let finite : description.finite := by
     let f : Finset ι := rtr.nest.values.bUnion (λ n => (n.ports' r).ids)

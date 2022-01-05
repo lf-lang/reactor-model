@@ -1,10 +1,7 @@
 -- This file defines the timed execution of reactors,
 -- i.e. the aspects of the execution of reactors where time
 -- is involved.
-import ReactorModel.Components
 import ReactorModel.Exec.State
-
-open Reactor Ports Classical State Time
 
 namespace Timed
 

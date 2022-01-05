@@ -1,9 +1,5 @@
 -- This file defines an operational semantics for 
 -- the execution of reactors.
-import ReactorModel.Components
-import ReactorModel.Exec.State
-
-
 -- The idea behind execution is the following:
 -- We have different types of execution steps:
 --  * instantaneousStep (no time-change)
@@ -11,8 +7,6 @@ import ReactorModel.Exec.Inst
 --  * timedStep (changing the time of the model)
 import ReactorModel.Exec.Timed
 --  * executeStep (either of the two)
-
-open Reactor Ports Classical State Inst Timed
 
 -- We define ι and υ as variables to be added implicitly where we use them
 variable {ι υ} [Value υ]

@@ -27,14 +27,15 @@ namespace Change
 def fromRaw
   {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) 
   {rcn : Raw.Reaction ι υ} (hr : ∃ i, rtr.rcns i = rcn) 
-  {raw : Raw.Change ι υ} {p s} (hc : raw ∈ Raw.Reaction.body rcn p s) : 
+  {raw : Raw.Change ι υ} {i} (hc : raw ∈ rcn.body i) : 
   Change ι υ :=
   match hm:raw with 
-    | Raw.Change.port target value  => Change.port target value  
-    | Raw.Change.state target value => Change.state target value 
-    | Raw.Change.connect src dst    => Change.connect src dst    
-    | Raw.Change.disconnect src dst => Change.disconnect src dst 
-    | Raw.Change.delete rtrID       => Change.delete rtrID
+    | Raw.Change.port target value        => Change.port target value  
+    | Raw.Change.state target value       => Change.state target value 
+    | Raw.Change.action target time value => Change.action target time value 
+    | Raw.Change.connect src dst          => Change.connect src dst    
+    | Raw.Change.disconnect src dst       => Change.disconnect src dst 
+    | Raw.Change.delete rtrID             => Change.delete rtrID
     | Raw.Change.create cr id => 
       let cr' := Reactor.fromRaw _ (by
           rw [hm] at hc
@@ -48,71 +49,30 @@ def fromRaw
 -- changes to be "equivalent" (they contain the same data).
 -- This notion of equivalence is then used in `Change.fromRaw_rawEquiv` to
 -- prove that `Change.fromRaw` produces only equivalent changes.
-inductive rawEquiv (c : Change ι υ) (raw : Raw.Change ι υ) : Prop
-  | port       {t v} :    (c = Change.port t v)       → (raw = Raw.Change.port t v)                         → rawEquiv c raw
-  | state      {t v} :    (c = Change.state t v)      → (raw = Raw.Change.state t v)                        → rawEquiv c raw
-  | connect    {s d} :    (c = Change.connect s d)    → (raw = Raw.Change.connect s d)                      → rawEquiv c raw
-  | disconnect {s d} :    (c = Change.disconnect s d) → (raw = Raw.Change.disconnect s d)                   → rawEquiv c raw
-  | create     {r r' i} : (c = Change.create r i)     → (raw = Raw.Change.create r' i)    → (r.rawEquiv r') → rawEquiv c raw
-  | delete     {i}   :    (c = Change.delete i)       → (raw = Raw.Change.delete i)                         → rawEquiv c raw
+inductive rawEquiv : Change ι υ → Raw.Change ι υ → Prop
+  | port       {t v} :                      rawEquiv (Change.port t v) (Raw.Change.port t v)
+  | state      {t v} :                      rawEquiv (Change.state t v) (Raw.Change.state t v)
+  | action     {t tm v} :                   rawEquiv (Change.action t tm v) (Raw.Change.action t tm v)
+  | connect    {s d} :                      rawEquiv (Change.connect s d) (Raw.Change.connect s d)
+  | disconnect {s d} :                      rawEquiv (Change.disconnect s d) (Raw.Change.disconnect s d)
+  | create     {r r' i} : (r.rawEquiv r') → rawEquiv (Change.create r i) (Raw.Change.create r' i)
+  | delete     {i} :                        rawEquiv (Change.delete i) (Raw.Change.delete i)
 
-theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw p s hw hr hc} :
-  c = @Change.fromRaw _ _ _ rtr hw rcn hr raw p s hc → c.rawEquiv raw := by
+theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw i hw hr hc} :
+  c = @Change.fromRaw _ _ _ rtr hw rcn hr raw i hc → c.rawEquiv raw := by
   intro h
-  cases raw
-  case port t v =>
-    cases c
-    case port =>
-      apply rawEquiv.port (t := t) (v := v)
-      all_goals { simp [fromRaw, h] }
-    all_goals { simp [fromRaw] at h }
-  case state t v =>
-    cases c
-    case state =>
-      apply rawEquiv.state (t := t) (v := v)
-      all_goals { simp [fromRaw, h] }
-    all_goals { simp [fromRaw] at h }
-  case connect s d =>
-    cases c
-    case connect =>
-      apply rawEquiv.connect (s := s) (d := d)
-      all_goals { simp [fromRaw, h] }
-    all_goals { simp [fromRaw] at h }
-  case disconnect s d =>
-    cases c
-    case disconnect =>
-      apply rawEquiv.disconnect (s := s) (d := d)
-      all_goals { simp [fromRaw, h] }
-    all_goals { simp [fromRaw] at h }
-  case delete i =>
-    cases c
-    case delete =>
-      apply rawEquiv.delete (i := i)
-      all_goals { simp [fromRaw, h] }
-    all_goals { simp [fromRaw] at h }
-  case create r' i' =>
-    cases c
-    case create r i =>
-      apply rawEquiv.create (r := r) (r' := r') (i := i)
-      simp
-      focus
-        simp [fromRaw] at h
-        simp [h]
-      focus
-        simp [fromRaw] at h
-        exact Reactor.fromRaw_rawEquiv h.left
-    all_goals { simp [fromRaw] at h }
+  cases raw <;> cases c <;> simp [fromRaw] at h
+  case port.port =>             simp [h, rawEquiv.port]
+  case state.state =>           simp [h, rawEquiv.state]
+  case action.action =>         simp [h, rawEquiv.action]
+  case connect.connect =>       simp [h, rawEquiv.connect]
+  case disconnect.disconnect => simp [h, rawEquiv.disconnect]
+  case delete.delete =>         simp [h, rawEquiv.delete]
+  case create.create r i => rw [h.right]; exact rawEquiv.create $ Reactor.fromRaw_rawEquiv h.left
 
 theorem rawEquiv_mutates_iff {c : Change ι υ} {raw : Raw.Change ι υ} (h : c.rawEquiv raw) :
   c.mutates ↔ raw.mutates := by
-  simp [mutates, Raw.Change.mutates]
-  cases h
-  case port h₁ h₂ =>       simp [h₁, h₂]
-  case state h₁ h₂ =>      simp [h₁, h₂]
-  case connect h₁ h₂ =>    simp [h₁, h₂]
-  case disconnect h₁ h₂ => simp [h₁, h₂]
-  case delete h₁ h₂ =>     simp [h₁, h₂]
-  case create h₁ h₂ _ =>   simp [h₁, h₂]
+  cases h <;> simp [mutates, Raw.Change.mutates]
 
 end Change
 
@@ -126,30 +86,33 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
   deps := raw.deps,
   triggers := raw.triggers,
   children := raw.children,
-  body := (λ p s => (raw.body p s).attach.map (λ c => Change.fromRaw hw hr c.property)),
+  body := (λ i => (raw.body i).attach.map (λ c => Change.fromRaw hw hr c.property)),
   tsSubInDeps := (hw.direct.rcnsWF hr).tsSubInDeps,
-  outDepOnly := by
-    intro p s _ v ho hc
+  prtOutDepOnly := by
+    intro i _ v ho hc
     simp [List.mem_map] at hc
-    obtain ⟨c, hc, he⟩ := hc
-    have hw := (hw.direct.rcnsWF hr).outDepOnly p s v ho
+    have hw := (hw.direct.rcnsWF hr).prtOutDepOnly i v ho
+    obtain ⟨_, _, he⟩ := hc
     cases Change.fromRaw_rawEquiv he
-    case port hp he' =>
-      injection hp with ht hv
-      rw [he', ←ht, ←hv] at hc
-      contradiction
-    all_goals { contradiction },
+    contradiction,
+  actOutDepOnly := by
+    intro i _ t v ho hc
+    simp [List.mem_map] at hc
+    have hw := (hw.direct.rcnsWF hr).actOutDepOnly i t v ho
+    obtain ⟨_, _, he⟩ := hc
+    cases Change.fromRaw_rawEquiv he
+    contradiction,
   normNoChild := by
     intro ha
     have hn := (hw.direct.rcnsWF hr).normNoChild
     simp at ha
     simp [Raw.Reaction.isNorm] at hw
-    suffices hg : ∀ i s c, c ∈ raw.body i s → ¬c.mutates from hn hg
-    intro i s c hc
-    have ha := ha i s (Change.fromRaw hw hr hc)
+    suffices hg : ∀ i c, c ∈ raw.body i → ¬c.mutates from hn hg
+    intro i c hc
+    have ha := ha i (Change.fromRaw hw hr hc)
     simp only [List.mem_map] at ha
     have ha := ha (by
-      let a : { x // x ∈ raw.body i s } := ⟨c, hc⟩
+      let a : { x // x ∈ raw.body i } := ⟨c, hc⟩
       exists a
       simp [List.mem_attach]
     )
@@ -166,7 +129,7 @@ structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
   deps :     rcn.deps = raw.deps
   triggers : rcn.triggers = raw.triggers
   children : rcn.children = raw.children
-  body :     ∀ p s, List.forall₂ Change.rawEquiv (rcn.body p s) (raw.body p s)
+  body :     ∀ i, List.forall₂ Change.rawEquiv (rcn.body i) (raw.body i)
 
 theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
   rcn = @Reaction.fromRaw _ _ _ rtr hw raw hr → rcn.rawEquiv raw := 
@@ -175,12 +138,12 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
     triggers := by simp [h, fromRaw],
     children := by simp [h, fromRaw],
     body := by
-      intro p s
+      intro i
       simp [fromRaw] at h
       simp [Reaction.ext_iff] at h
       have h := h.right.right.right
-      have h : rcn.body p s = (raw.body p s).attach.map (λ c => Change.fromRaw hw hr _) := by rw [h]
-      generalize hl : rcn p s = l
+      have h : rcn.body i = (raw.body i).attach.map (λ c => Change.fromRaw hw hr _) := by rw [h]
+      generalize hl : rcn i = l
       rw [hl] at h
       induction l
       case nil =>
@@ -190,13 +153,13 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
         exact List.forall₂.nil
       case cons hd tl hi =>
         -- something's weird with hi here  
-        cases hc : List.attach (raw.body p s)
+        cases hc : List.attach (raw.body i)
         case nil =>
           rw [hc, List.map_nil] at h
           contradiction
         case cons hd' tl' =>
           simp [hc] at h
-          cases hc' : raw.body p s
+          cases hc' : raw.body i
           case nil =>
             simp [hc'] at hc
             sorry
@@ -209,10 +172,9 @@ theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
   intro hm
   simp [Raw.Reaction.isMut, Raw.Reaction.isNorm]
   simp [isMut, isNorm] at hm
-  obtain ⟨p, s, c, h₁, h₂⟩ := hm
-  exists p
-  exists s
-  have h := h.body p s
+  obtain ⟨i, c, h₁, h₂⟩ := hm
+  exists i
+  have h := h.body i
   rw [List.forall₂_iff] at h
   cases h
   case inl h =>

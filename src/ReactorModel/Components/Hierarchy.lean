@@ -13,7 +13,8 @@ variable (ι υ : Type u) [Value υ]
 inductive Cmp
   | rtr -- Nested reactors
   | rcn -- Reactions
-  | prt -- Ports
+  | prt -- Port
+  | act -- Actions
   | stv -- State variables
 
 namespace Cmp 
@@ -21,11 +22,12 @@ namespace Cmp
 -- The *type* corresponding to the component labeled by a given `Cmp`.
 -- 
 -- Note that the types for `prt` and `stv` are just `υ`, because IDs don't refer to
--- entire instances of `Ports` or `StateVars`, but rather the single values within them.
+-- the entire entire mappinngs, but rather the single values within them.
 abbrev type : Cmp → Type _
   | rtr => Reactor ι υ
   | rcn => Reaction ι υ
   | prt => υ
+  | act => Time ▸ υ
   | stv => υ
 
 variable {ι υ}
@@ -37,6 +39,7 @@ def accessor : (cmp : Cmp) → Reactor ι υ → (ι ▸ cmp.type ι υ)
   | rtr => Reactor.nest
   | rcn => Reactor.rcns
   | prt => Reactor.ports
+  | act => Reactor.acts
   | stv => Reactor.state
 
 end Cmp
@@ -57,6 +60,7 @@ def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι 
   | rtr _ => (⊤, σ)
   | rcn _ => (⊤, σ)
   | prt _ => (⊤, σ)
+  | act _ => (⊤, σ)
   | stv _ => (⊤, σ)
   | nest σ' i' (rtr _) _ => (i', σ')
   | nest σ' i' (rcn _) _ => (i', σ')
@@ -161,32 +165,8 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
 -- TODO: Is this theorem true? And do we even need it now that `update` has been redefined?
 theorem objFor_ext {σ₁ σ₂ : Reactor ι υ} (cmp : Cmp) (h : ∀ i o, (σ₁ *[cmp, i]= o) ↔ (σ₂ *[cmp, i]= o)) :
   cmp.accessor σ₁ = cmp.accessor σ₂ := by
-  ext
-  intro i
-  have h := h i
-  cases h₁ : cmp.accessor σ₁ i <;> cases h₂ : cmp.accessor σ₂ i
-  case h.none.none => simp
-  case h.none.some o =>
-    exfalso
-    have h := (h o).mp
-    simp only [objFor] at h
-    cases cmp
-    case h.rtr =>
-      have H : ∃ l : Lineage σ₁ i, (Cmp.rtr.accessor (l.directParent).snd) i = some o := sorry
-      obtain ⟨l, hl⟩ := h H
-      sorry
-    sorry
-    sorry
-    sorry
-  case h.some.none o =>
-    sorry
-  case h.some.some o₁ o₂ =>
-    have h₁ := h o₁
-    have h₂ := h o₂
-    byCases h : σ₁ *[cmp, i]= o₁ <;> byCases h' : σ₁ *[cmp, i]= o₂
-    <;> sorry
-    -- have H := objFor_unique_obj h₁.mp h₂.mp -- (σ *[cmp, i]= o₁) → (σ *[cmp, i]= o₂) → o₁ = o₂
-
+  sorry
+  
 -- TODO: Does this somehow allow ID-renaming or other reshuffling of data?
 inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
   | top {i σ₁ σ₂} : 

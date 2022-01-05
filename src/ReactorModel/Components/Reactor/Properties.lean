@@ -1,6 +1,6 @@
 import ReactorModel.Components.Reactor.Projections
 
-open Ports
+open Port
 
 variable {ι υ} [Value υ]
 
@@ -18,8 +18,8 @@ theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.raw
 --    nested directly in `rtr`
 -- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
 --    nested directly in `rtr`
-theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (h : n ∈ rtr.norms.values) : 
-  n.deps r ⊆ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite := by
+theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h : n ∈ rtr.norms.values) : 
+  n.deps r ⊆ rtr.acts.ids ∪ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite := by
   simp only [Finset.subset_iff, Finset.mem_union]
   intro j hj
   simp only [norms, Finmap.filter'_mem_values] at h
@@ -52,7 +52,7 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Ports.Role) (
 -- 1. their dependencies can only be input ports of `rtr`
 -- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
 --    nested directly in `rtr`
-theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Ports.Role) (h : m ∈ rtr.muts.values) : 
+theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h : m ∈ rtr.muts.values) : 
   (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
   simp only [muts, Finmap.filter'_mem_values] at h
   obtain ⟨i, h, hm⟩ := h
@@ -139,6 +139,7 @@ inductive Lineage : Reactor ι υ → ι → Type _
   | rtr {σ i} : i ∈ σ.nest.ids  → Lineage σ i
   | rcn {σ i} : i ∈ σ.rcns.ids  → Lineage σ i
   | prt {σ i} : i ∈ σ.ports.ids → Lineage σ i
+  | act {σ i} : i ∈ σ.acts.ids  → Lineage σ i
   | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
   | nest {σ : Reactor ι υ} σ' {i} i' : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
@@ -146,6 +147,7 @@ inductive Lineage : Reactor ι υ → ι → Type _
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Unfold.20where
 private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
   | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
+  | Lineage.act h => Raw.Reactor.Lineage.act σ.raw i h
   | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
   | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
   | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
