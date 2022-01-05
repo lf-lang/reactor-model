@@ -100,6 +100,7 @@ noncomputable def relay (src dst : ι) : Reaction ι υ := {
 }
 
 -- TODO: Docs
+-- Note, these functions will only be relevant for defining mutations' execution.
 
 noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} : Reaction ι υ := 
   let deps' := Function.update rcn.deps Role.in is

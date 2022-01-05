@@ -8,7 +8,7 @@ namespace Reactor
 
 -- Lifted versions of the trivially liftable projections of `Raw.Reactor`.
 def ports (rtr : Reactor ι υ) : ι ▸ υ          := rtr.raw.ports
-def roles (rtr : Reactor ι υ) : ι ▸ Port.Role := rtr.raw.roles
+def roles (rtr : Reactor ι υ) : ι ▸ Port.Role  := rtr.raw.roles
 def acts  (rtr : Reactor ι υ) : ι ▸ Time ▸ υ   := rtr.raw.acts
 def state (rtr : Reactor ι υ) : ι ▸ υ          := rtr.raw.state
 def prios (rtr : Reactor ι υ) : PartialOrder ι := rtr.raw.prios
@@ -101,6 +101,38 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   obtain ⟨raw, hr⟩ := h'
   exact ⟨raw, Eq.symm hr⟩
 
+theorem rcns_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.rcns = rtr₂.rcns) : rtr₁.raw.rcns = rtr₂.raw.rcns := by
+  funext i
+  have h₁ := rcns_rawEquiv rtr₁
+  have h₁₁ := rcns_rawEquiv rtr₁
+  have h₂ := rcns_rawEquiv rtr₂
+  have h₂₂ := rcns_rawEquiv rtr₂
+  cases hc : rtr₁.raw.rcns i
+  case h.none =>
+    rw [h] at h₁
+    have h₁' := mt (h₁.eqIDs i).mp 
+    simp only [Ne.def, not_not] at h₁'
+    have h₂' := mt (h₂.eqIDs i).mpr $ h₁' hc
+    simp only [Ne.def, not_not] at h₂'
+    simp [h₂']
+  case h.some rcn =>
+    rw [←h] at h₂
+    have h₁' := (h₁.eqIDs i).mpr
+    simp only [Option.ne_none_iff_exists] at h₁'
+    have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
+    simp only [Finmap.ids_def, Option.ne_none_iff_exists] at h₁'
+    obtain ⟨x, hx⟩ := h₁'
+    rw [h] at h₁
+    have h₂' := (h₁.eqIDs i).mpr
+    simp only [Option.ne_none_iff_exists] at h₂'
+    have h₂' := h₂' ⟨rcn, Eq.symm hc⟩
+    have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
+    obtain ⟨y, hy⟩ := h₂₂'
+    rw [←hy]
+    have hr₁ := h₁₁.rel (Eq.symm hx) hc
+    have hr₂ := h₂.rel (Eq.symm hx) (Eq.symm hy)
+    simp [Reaction.same_rawEquiv_eq hr₁ hr₂]
+
 -- A projection for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
   rtr.ports.filter (λ i => rtr.roles i = r)
@@ -128,33 +160,35 @@ noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Port.Role) : Finset �
     simp [Set.subset_def]
   finite.toFinset
 
+theorem nest_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.nest = rtr₂.nest) : rtr₁.raw.nest = rtr₂.raw.nest :=
+  sorry
+
 theorem ext_iff {rtr₁ rtr₂ : Reactor ι υ} : 
   rtr₁ = rtr₂ ↔ 
   rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧
-  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧
-  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios := by
+  rtr₁.acts = rtr₂.acts   ∧ rtr₁.state = rtr₂.state ∧ 
+  rtr₁.rcns  = rtr₂.rcns  ∧ rtr₁.nest  = rtr₂.nest  ∧ 
+  rtr₁.prios = rtr₂.prios := by
   apply Iff.intro
   case mp =>
     intro h
-    simp [ports, roles, state, prios, raw_ext_iff.mp h]
-    apply And.intro <;> (sorry)
+    simp [ports, roles, acts, state, prios, raw_ext_iff.mp h]
+    apply And.intro <;> simp only [Finmap.ext, h]
   case mpr =>
     intro h
     apply raw_ext_iff.mpr
     apply Raw.Reactor.ext
-    simp [ports, roles, state, prios] at h
-    simp [h]
-    obtain ⟨_, _, _, h₁, h₂, _⟩ := h
-    clear h
-    apply And.intro <;>
-    sorry
+    simp [ports, roles, acts, state, prios] at h
+    simp only [h]
+    obtain ⟨_, _, _, _, h₁, h₂, _⟩ := h
+    simp [rcns_ext h₁, nest_ext h₂]
 
 @[ext]
 theorem ext {rtr₁ rtr₂ : Reactor ι υ} : 
   rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧
-  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧
-  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios →
-  rtr₁ = rtr₂ :=
+  rtr₁.acts = rtr₂.acts   ∧ rtr₁.state = rtr₂.state ∧ 
+  rtr₁.rcns  = rtr₂.rcns  ∧ rtr₁.nest  = rtr₂.nest  ∧ 
+  rtr₁.prios = rtr₂.prios → rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h
 
 end Reactor

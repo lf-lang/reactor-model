@@ -108,9 +108,8 @@ noncomputable def presentIDs (p : ι ▸ υ) : Finset ι :=
     apply And.intro
     case right => exact h
     case left =>
-      rw [Finmap.ids_def]
-      simp [getValue, Option.ne_none_iff_exists] at h
-      sorry
+      rw [Finmap.ids_def, Ne.def]
+      exact mt lookup_none_getValue_none h  
   finite.toFinset
 
 end Finmap

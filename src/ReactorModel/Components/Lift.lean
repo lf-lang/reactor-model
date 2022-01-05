@@ -131,6 +131,15 @@ structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
   children : rcn.children = raw.children
   body :     ∀ i, List.forall₂ Change.rawEquiv (rcn.body i) (raw.body i)
 
+theorem same_rawEquiv_eq {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι υ} (h₁ : rcn.rawEquiv raw₁) (h₂ : rcn.rawEquiv raw₂) : 
+  raw₁ = raw₂ := by
+  apply Raw.Reaction.ext
+  simp [←h₁.deps, ←h₂.deps, ←h₁.triggers, ←h₂.triggers, ←h₁.children, ←h₂.children]
+  funext i
+  have hb₁ := h₁.body i
+  have hb₂ := h₂.body i
+  sorry
+
 theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
   rcn = @Reaction.fromRaw _ _ _ rtr hw raw hr → rcn.rawEquiv raw := 
   λ h => {
