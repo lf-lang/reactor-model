@@ -61,7 +61,8 @@ theorem eq_lookup_eq_getValue {p₁ p₂ : ι ▸ υ} {i : ι} (h : p₁ i = p�
 
 theorem lookup_none_getValue_none {p : ι ▸ υ} {i : ι} (h : p i = none) : 
   p[i] = none := by
-  simp [getValue, h]
+  simp only [getValue, h]
+  rfl
 
 theorem lookup_absent_getValue_none {p : ι ▸ υ} {i : ι} (h : p i = some ⊥) :
   p[i] = none := by
@@ -109,8 +110,7 @@ noncomputable def presentIDs (p : ι ▸ υ) : Finset ι :=
     case left =>
       rw [Finmap.ids_def]
       simp [getValue, Option.ne_none_iff_exists] at h
-      obtain ⟨_, ⟨_, ⟨h, _⟩⟩⟩ := h
-      simp [Option.ne_none_iff_exists, h]
+      sorry
   finite.toFinset
 
 end Finmap

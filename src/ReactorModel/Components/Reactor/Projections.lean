@@ -137,11 +137,11 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor ι υ} :
   case mp =>
     intro h
     simp [ports, roles, state, prios, raw_ext_iff.mp h]
-    apply And.intro <;> (ext; simp [h])
+    apply And.intro <;> (sorry)
   case mpr =>
     intro h
     apply raw_ext_iff.mpr
-    ext
+    apply Raw.Reactor.ext
     simp [ports, roles, state, prios] at h
     simp [h]
     obtain ⟨_, _, _, h₁, h₂, _⟩ := h

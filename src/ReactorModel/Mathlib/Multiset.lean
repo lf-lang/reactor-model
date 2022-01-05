@@ -6,7 +6,7 @@ instance : Coe (List α) (Multiset α) := ⟨Quotient.mk⟩
 
 namespace Multiset
 
-def nodup (s : Multiset α) : Prop := Quot.liftOn s List.nodup (λ _ _ p => propext p.nodup_iff)
+def nodup (s : Multiset α) : Prop := Quot.liftOn s List.Nodup (λ _ _ p => propext p.nodup_iff)
 
 def mem (a : α) (s : Multiset α) : Prop := Quot.liftOn s (λ l => a ∈ l) (λ l₁ l₂ (e : l₁ ~ l₂) => propext e.mem_iff)
 
@@ -30,6 +30,6 @@ instance : Mem α (Multiset α) := ⟨Multiset.mem⟩
 
 instance : EmptyCollection (Multiset α) := ⟨@List.nil α⟩
 
-theorem nodupEmpty : @nodup α ∅ := List.pairwise.nil
+theorem nodupEmpty : @nodup α ∅ := List.Pairwise.nil
 
 end Multiset

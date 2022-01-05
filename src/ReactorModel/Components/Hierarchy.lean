@@ -195,7 +195,7 @@ theorem update_unique {σ σ₁ σ₂  : Reactor ι υ} {cmp : Cmp} {i : ι} {v 
   case top i σ σ₁ hc hp hr ht =>
     cases h₂
     case top σ' i' ht' hp' hr' hc' =>
-      ext
+      apply Reactor.ext
       simp [←hp, hp', ←hr, hr']
       refine ⟨?ports, ?state, ?reactions, ?reactors⟩
       case ports =>

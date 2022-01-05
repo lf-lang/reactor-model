@@ -10,8 +10,6 @@ def findIndex (p : α → Prop) [DecidablePred p] : List α → Nat
   | []     => 0
   | (a::l) => if p a then 0 else Nat.succ (findIndex p l)
 
-def indexOf [DecidableEq α] (a : α) : List α → Nat := findIndex (Eq a)
-
 theorem index_of_cons_self [DecidableEq α] (a : α) (l : List α) : 
   indexOf a (a::l) = 0 := 
   sorry
@@ -19,23 +17,23 @@ theorem index_of_cons_self [DecidableEq α] (a : α) (l : List α) :
 variable (r : α → α → Prop)
 
 theorem pairwisePWFilter {R : α → α → Prop} [DecidableRel R] : 
-  ∀ (l : List α), pairwise R (pwFilter R l) := 
+  ∀ (l : List α), Pairwise R (pwFilter R l) := 
   sorry
 
-def sorted : List α → Prop := pairwise r
+def sorted : List α → Prop := Pairwise r
 
 theorem nodup_erase_of_nodup [DecidableEq α] (a : α) {l} : 
-  nodup l → nodup (l.erase a) := 
+  Nodup l → Nodup (l.erase a) := 
   sorry
 
 -- From the old "mathlib.lean"
-theorem index_of_erase_lt {α : Type _} [DecidableEq α] {l : List α} {e x x' : α} (h : l.indexOf x < l.indexOf x') (hₘ : x ∈ l.erase e) (hₘ' : x' ∈ l.erase e) (hₙ : l.nodup) :
+theorem index_of_erase_lt {α : Type _} [DecidableEq α] {l : List α} {e x x' : α} (h : l.indexOf x < l.indexOf x') (hₘ : x ∈ l.erase e) (hₘ' : x' ∈ l.erase e) (hₙ : Nodup l) :
   (l.erase e).indexOf x < (l.erase e).indexOf x' := 
   sorry
 
-theorem nodupEraseDup [DecidableEq α] : ∀ l : List α, l.eraseDup.nodup := pairwisePWFilter
+theorem nodupEraseDup [DecidableEq α] : ∀ l : List α, Nodup l.eraseDup := pairwisePWFilter
 
-theorem perm_ext {l₁ l₂ : List α} (d₁ : nodup l₁) (d₂ : nodup l₂) : 
+theorem perm_ext {l₁ l₂ : List α} (d₁ : Nodup l₁) (d₂ : Nodup l₂) : 
   l₁ ~ l₂ ↔ ∀a, a ∈ l₁ ↔ a ∈ l₂ := 
   sorry
 
@@ -60,15 +58,15 @@ theorem Perm.nil_eq {l : List α} (p : [] ~ l) :
 
 theorem Perm.cons_inv {a : α} {l₁ l₂ : List α} : a::l₁ ~ a::l₂ → l₁ ~ l₂ := sorry
 
-theorem Perm.pairwise_iff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y x) : ∀ {l₁ l₂ : List α} (p : l₁ ~ l₂), pairwise R l₁ ↔ pairwise R l₂ := sorry
+theorem Perm.pairwise_iff {R : α → α → Prop} (S : ∀ {x y}, R x y → R y x) : ∀ {l₁ l₂ : List α} (p : l₁ ~ l₂), Pairwise R l₁ ↔ Pairwise R l₂ := sorry
 
-theorem Perm.nodup_iff {l₁ l₂ : List α} : l₁ ~ l₂ → (List.nodup l₁ ↔ List.nodup l₂) := Perm.pairwise_iff Ne.symm
+theorem Perm.nodup_iff {l₁ l₂ : List α} : l₁ ~ l₂ → (Nodup l₁ ↔ Nodup l₂) := Perm.pairwise_iff Ne.symm
 
 theorem Perm.mem_iff {a : α} {l₁ l₂ : List α} (h : l₁ ~ l₂) : a ∈ l₁ ↔ a ∈ l₂ := sorry
 
 def keys {β : α → Type v} : List (Sigma β) → List α := map Sigma.fst
 
-def nodupkeys {β : α → Type v} (l : List (Sigma β)) : Prop := l.keys.nodup
+def nodupkeys {β : α → Type v} (l : List (Sigma β)) : Prop := Nodup l.keys
 
 theorem filterMapConsSome (f : α → Option β) (a : α) (l : List α) {b : β} (h : f a = some b) : filterMap f (a :: l) = b :: filterMap f l := sorry
 

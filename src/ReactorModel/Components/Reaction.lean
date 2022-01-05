@@ -69,7 +69,7 @@ theorem eq_input_eq_triggering {rcn : Reaction ι υ} {i₁ i₂ : Input ι υ} 
   apply Iff.intro <;> (
     intro ⟨t, ⟨hm, hn⟩⟩
     exists t
-    exists hm
+    apply And.intro hm
     have ht := h _ $ Finset.subset_iff.mp rcn.tsSubInDeps hm
     simp [ht] at hn ⊢
     assumption

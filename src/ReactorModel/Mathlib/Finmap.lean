@@ -51,7 +51,7 @@ noncomputable def lookup' (f : α ▸ β) {i : α} (h : i ∈ f.ids) : β :=
    
 -- The (finite) set of values for which there exist inputs that map to them.
 noncomputable def values (f : α ▸ β) : Finset β :=
-  let description := { v | ∃ i, f i = v }
+  let description := { v : β | ∃ i, f i = v }
   let finite : description.finite := by
     let s := f.ids.image f.lookup
     let t := { v | ∃ i, f i = some v }.image Option.some
@@ -94,10 +94,9 @@ def map (f : α ▸ β) (g : β → γ) : α ▸ γ := {
   finite := by
     suffices h : { a | (λ i => (f i) >>= (some ∘ g)) a ≠ none } ⊆ ↑f.ids
       from Set.finite.subset (Finset.finite_to_set _) h
-    simp
     intro x h
-    obtain ⟨_, ⟨_, ⟨hb, _⟩⟩⟩ := h
-    simp [ids_def, Option.ne_none_iff_exists, hb]
+    simp only [ids_def]
+    sorry
 }
 
 theorem map_mem_ids {f : α ▸ β} {g : β → γ} {i} : i ∈ (f.map g).ids ↔ i ∈ f.ids :=

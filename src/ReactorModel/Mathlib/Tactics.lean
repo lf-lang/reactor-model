@@ -1,3 +1,6 @@
+macro "exists " t:term : tactic =>
+  `(apply Exists.intro $t)
+
 macro "unfold " l:many1(ident) : tactic =>
   `(simp only [$l,*])
 
