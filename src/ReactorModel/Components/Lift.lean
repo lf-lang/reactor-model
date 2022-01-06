@@ -9,6 +9,11 @@ namespace Reactor
 def rawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop :=
   rtr.raw = raw
 
+theorem same_rawEquiv_eq {rtr : Reactor ι υ} {raw₁ raw₂ : Raw.Reactor ι υ} (h₁ : rtr.rawEquiv raw₁) (h₂ : rtr.rawEquiv raw₂) : 
+  raw₁ = raw₂ := by
+  simp only [rawEquiv] at h₁ h₂
+  simp [←h₁, ←h₂]
+
 theorem fromRaw_rawEquiv {rtr : Reactor ι υ} {raw h} : 
   rtr = Reactor.fromRaw (raw := raw) h → rtr.rawEquiv raw :=
   λ h => by simp [fromRaw, rawEquiv, h]
@@ -57,6 +62,12 @@ inductive rawEquiv : Change ι υ → Raw.Change ι υ → Prop
   | disconnect {s d} :                      rawEquiv (Change.disconnect s d) (Raw.Change.disconnect s d)
   | create     {r r' i} : (r.rawEquiv r') → rawEquiv (Change.create r i) (Raw.Change.create r' i)
   | delete     {i} :                        rawEquiv (Change.delete i) (Raw.Change.delete i)
+
+theorem same_rawEquiv_eq {c : Change ι υ} {raw₁ raw₂ : Raw.Change ι υ} (h₁ : c.rawEquiv raw₁) (h₂ : c.rawEquiv raw₂) : 
+  raw₁ = raw₂ := by
+  induction h₁ <;> cases h₂
+  case create.create rtr r₁ _ he r₂ he' => simp only [Reactor.same_rawEquiv_eq he he']
+  all_goals { rfl }
 
 theorem fromRaw_rawEquiv {c : Change ι υ} {rtr rcn raw i hw hr hc} :
   c = @Change.fromRaw _ _ _ rtr hw rcn hr raw i hc → c.rawEquiv raw := by
@@ -131,6 +142,7 @@ structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
   children : rcn.children = raw.children
   body :     ∀ i, List.forall₂ Change.rawEquiv (rcn.body i) (raw.body i)
 
+-- OPEN Q : https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
 theorem same_rawEquiv_eq {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι υ} (h₁ : rcn.rawEquiv raw₁) (h₂ : rcn.rawEquiv raw₂) : 
   raw₁ = raw₂ := by
   apply Raw.Reaction.ext
@@ -138,8 +150,23 @@ theorem same_rawEquiv_eq {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι
   funext i
   have hb₁ := h₁.body i
   have hb₂ := h₂.body i
-  sorry
+  generalize hc : rcn.body i = c
+  generalize hr₁ : raw₁.body i = cr₁
+  generalize hr₂ : raw₂.body i = cr₂
+  rw [hc, hr₁] at hb₁
+  rw [hc, hr₂] at hb₂
+  induction hb₁
+  case a.h.nil => cases hb₂; rfl
+  case a.h.cons hd₁ hdr₁ tl₁ tlr₁ hhd₁ htl₁ hi => 
+    cases hb₂
+    case cons hdr₂ tlr₂ hhd₂ htl₂ =>
+      simp
+      apply And.intro
+      case left => exact Change.same_rawEquiv_eq hhd₁ hhd₂
+      case right => 
+        sorry 
 
+-- OPEN Q : https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
 theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
   rcn = @Reaction.fromRaw _ _ _ rtr hw raw hr → rcn.rawEquiv raw := 
   λ h => {
@@ -148,53 +175,37 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
     children := by simp [h, fromRaw],
     body := by
       intro i
-      simp [fromRaw] at h
-      simp [Reaction.ext_iff] at h
-      have h := h.right.right.right
+      simp only [fromRaw] at h
+      simp only [Reaction.ext_iff] at h
+      obtain ⟨_, _, _, h⟩ := h
       have h : rcn.body i = (raw.body i).attach.map (λ c => Change.fromRaw hw hr _) := by rw [h]
       generalize hl : rcn i = l
       rw [hl] at h
       induction l
       case nil =>
-        have h := List.map_eq_nil.mp (Eq.symm h)
-        simp at h
-        rw [h]
-        exact List.forall₂.nil
+        sorry
       case cons hd tl hi =>
-        -- something's weird with hi here  
-        cases hc : List.attach (raw.body i)
-        case nil =>
-          rw [hc, List.map_nil] at h
-          contradiction
-        case cons hd' tl' =>
-          simp [hc] at h
-          cases hc' : raw.body i
-          case nil =>
-            simp [hc'] at hc
-            sorry
-          sorry
+        sorry
   }
 
+-- OPEN Q : https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
 theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
   rcn.isMut ↔ raw.isMut := by
-  apply Iff.intro
-  intro hm
-  simp [Raw.Reaction.isMut, Raw.Reaction.isNorm]
-  simp [isMut, isNorm] at hm
-  obtain ⟨i, c, h₁, h₂⟩ := hm
-  exists i
-  have h := h.body i
-  rw [List.forall₂_iff] at h
-  cases h
-  case inl h =>
-    rw [h.left] at h₁
-    contradiction
-  case inr h =>
-    obtain ⟨a, b, l₁, l₂, hc, hl, hw₁, hw₂⟩ := h
-    have H := Change.rawEquiv_mutates_iff hc
+  apply Iff.intro <;> (
+    intro hm
+    simp [isMut, isNorm, Raw.Reaction.isMut, Raw.Reaction.isNorm] at *
+    obtain ⟨i, c, hc, hm⟩ := hm
+    exists i
+  )
+  case mp =>
+    generalize hcs : rcn.body i = cs 
+    induction cs
+    case nil =>
+      sorry
+    case cons hd tl hi =>
+      sorry
+  case mpr =>
     sorry
-    -- somehow l₁ and l₂ and hence a b are disconnected from h₁ and h₂
-  sorry
 
 theorem rawEquiv_isNorm_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
   rcn.isNorm ↔ raw.isNorm := by

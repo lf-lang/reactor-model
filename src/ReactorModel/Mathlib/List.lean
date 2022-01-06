@@ -99,7 +99,7 @@ inductive forall₂ (R : α → β → Prop) : List α → List β → Prop
   | cons {a b l₁ l₂} : R a b → forall₂ R l₁ l₂ → forall₂ R (a::l₁) (b::l₂)
 
 theorem forall₂_iff {α β} (R : α → β → Prop) (l₁ : List α) (l₂ : List β) :
-  (forall₂ R l₁ l₂) ↔ (l₁ = [] ∧ l₂ = []) ∨ ∃ a b l₁ l₂, R a b ∧ forall₂ R l₁ l₂ ∧ l₁ = a :: l₁ ∧ l₂ = b :: l₂ := 
+  (forall₂ R l₁ l₂) ↔ (l₁ = [] ∧ l₂ = []) ∨ ∃ hd₁ hd₂ tl₁ tl₂, R hd₁ hd₂ ∧ forall₂ R tl₁ tl₂ ∧ l₁ = hd₁ :: tl₁ ∧ l₂ = hd₂ :: tl₂ := 
   sorry
 
 end List
