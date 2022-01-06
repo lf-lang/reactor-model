@@ -51,7 +51,7 @@ namespace Reactor
 -- TODO: Docs
 --       Mention that we do the whole Option ι so that ⊤ can never appear inside a reactor.
 --       Its more like a label.
-notation "⊤" => none
+notation "⊤" => Option.none
 
 -- The "direct parent" in a lineage is the reactor which contains the target of the lineage.
 -- This function returns that reactor along with its ID.
@@ -67,6 +67,33 @@ def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι 
   | nest σ' i' (prt _) _ => (i', σ')
   | nest σ' i' (stv _) _ => (i', σ')
   | nest _  _  l       _ => directParent l -- By case distinction `l` is a `Lineage.nest`.
+
+def Lineage.target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp 
+  | rtr _ => Cmp.rtr
+  | rcn _ => Cmp.rcn
+  | prt _ => Cmp.prt
+  | act _ => Cmp.act
+  | stv _ => Cmp.stv
+  | nest _ _ l _ => target l
+
+def Lineage.fromCmp (σ : Reactor ι υ) (i) : (cmp : Cmp) → (h : i ∈ (cmp.accessor σ).ids) → Lineage σ i
+  | Cmp.rtr, h => Lineage.rtr h
+  | Cmp.rcn, h => Lineage.rcn h
+  | Cmp.prt, h => Lineage.prt h
+  | Cmp.act, h => Lineage.act h
+  | Cmp.stv, h => Lineage.stv h
+
+def Lineage.retarget {σ : Reactor ι υ} {i} (l : Lineage σ i) (cmp : Cmp) (h : i ∈ (cmp.accessor l.directParent.snd).ids) : Lineage σ i :=
+  match l with
+  | nest _ _ l' _ =>
+    sorry -- TODO: This needs to be recursive, digging down to the target, passing along the lineage to that point (auxiliary def for that extra
+          -- parameter) and then attaching the new target.
+  | _ => Lineage.fromCmp σ i cmp h
+
+theorem Lineage.retarget_ne {σ : Reactor ι υ} {i} (l : Lineage σ i) {cmp} (h) :
+  cmp ≠ l.target → l ≠ l.retarget cmp h :=
+  sorry
+
 
 -- The `containerOf` relation is used to determine whether a given ID `c`
 -- identifies a reactor that contains a given object identified by ID `i`.
@@ -136,7 +163,29 @@ notation σ:max " *[" cmp ", " i "]= " o:max => Reactor.objFor σ cmp i o
 -- Cf. `objFor_unique_obj` for further information.
 theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o₁ : cmp₁.type ι υ} {o₂ : cmp₂.type ι υ} :
   (σ *[cmp₁, i]= o₁) → (σ *[cmp₂, i]= o₂) → cmp₁ = cmp₂ := by
-  sorry
+  intro h₁ h₂
+  obtain ⟨l₁, h₁⟩ := h₁
+  obtain ⟨l₂, h₂⟩ := h₂
+  have hu := σ.uniqueIDs l₁ l₂
+  rw [←hu] at h₂
+  by_contra hc
+  have h₁ := Option.ne_none_iff_exists.mpr ⟨o₁, Eq.symm h₁⟩ |> Finmap.ids_def.mpr
+  have h₂ := Option.ne_none_iff_exists.mpr ⟨o₂, Eq.symm h₂⟩ |> Finmap.ids_def.mpr
+  by_cases hc₁ : cmp₁ = l₁.target
+  case neg =>
+    have := Lineage.retarget_ne l₁ h₁ hc₁
+    have := σ.uniqueIDs l₁ $ l₁.retarget cmp₁ h₁
+    contradiction
+  case pos =>
+    by_cases hc₂ : cmp₂ = l₂.target
+    case neg =>
+      have := Lineage.retarget_ne l₂ h₂ hc₂
+      have := σ.uniqueIDs l₂ $ l₂.retarget cmp₂ h₂
+      contradiction
+    case pos =>
+      rw [hu] at hc₁
+      rw [←hc₂] at hc₁
+      contradiction
 
 -- In the `objFor` relation, any given ID can have at most one associated object. 
 --

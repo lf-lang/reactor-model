@@ -65,7 +65,7 @@ inductive rawEquiv : Change ι υ → Raw.Change ι υ → Prop
 
 theorem same_rawEquiv_eq {c : Change ι υ} {raw₁ raw₂ : Raw.Change ι υ} (h₁ : c.rawEquiv raw₁) (h₂ : c.rawEquiv raw₂) : 
   raw₁ = raw₂ := by
-  induction h₁ <;> cases h₂
+  cases h₁ <;> cases h₂
   case create.create rtr r₁ _ he r₂ he' => simp only [Reactor.same_rawEquiv_eq he he']
   all_goals { rfl }
 
