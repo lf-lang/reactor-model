@@ -53,10 +53,12 @@ namespace Reactor
 --       Its more like a label.
 notation "⊤" => Option.none
 
+namespace Lineage
+
 -- The "direct parent" in a lineage is the reactor which contains the target of the lineage.
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
-def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι × Reactor ι υ)
+def directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι × Reactor ι υ)
   | rtr _ => (⊤, σ)
   | rcn _ => (⊤, σ)
   | prt _ => (⊤, σ)
@@ -68,7 +70,11 @@ def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι 
   | nest σ' i' (stv _) _ => (i', σ')
   | nest _  _  l       _ => directParent l -- By case distinction `l` is a `Lineage.nest`.
 
-def Lineage.target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp 
+theorem directParent_nest_eq {σ σ' : Reactor ι υ} {i i'} (l : Lineage σ' i) (h : σ.nest i' = some σ') :
+  l.directParent.snd = (Lineage.nest σ' i' l h).directParent.snd := by
+  cases l <;> simp only [directParent]
+
+def target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp 
   | rtr _ => Cmp.rtr
   | rcn _ => Cmp.rcn
   | prt _ => Cmp.prt
@@ -76,24 +82,37 @@ def Lineage.target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp
   | stv _ => Cmp.stv
   | nest _ _ l _ => target l
 
-def Lineage.fromCmp (σ : Reactor ι υ) (i) : (cmp : Cmp) → (h : i ∈ (cmp.accessor σ).ids) → Lineage σ i
+def fromCmp (σ : Reactor ι υ) (i) : (cmp : Cmp) → (h : i ∈ (cmp.accessor σ).ids) → Lineage σ i
   | Cmp.rtr, h => Lineage.rtr h
   | Cmp.rcn, h => Lineage.rcn h
   | Cmp.prt, h => Lineage.prt h
   | Cmp.act, h => Lineage.act h
   | Cmp.stv, h => Lineage.stv h
 
-def Lineage.retarget {σ : Reactor ι υ} {i} (l : Lineage σ i) (cmp : Cmp) (h : i ∈ (cmp.accessor l.directParent.snd).ids) : Lineage σ i :=
-  match l with
-  | nest _ _ l' _ =>
-    sorry -- TODO: This needs to be recursive, digging down to the target, passing along the lineage to that point (auxiliary def for that extra
-          -- parameter) and then attaching the new target.
-  | _ => Lineage.fromCmp σ i cmp h
+def retarget {σ : Reactor ι υ} {i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (cmp.accessor l.directParent.snd).ids → Lineage σ i
+  | nest σ' i' l' h', cmp, h => Lineage.nest σ' i' (retarget l' cmp h) h'
+  | _, cmp, h => Lineage.fromCmp σ i cmp h
 
-theorem Lineage.retarget_ne {σ : Reactor ι υ} {i} (l : Lineage σ i) {cmp} (h) :
-  cmp ≠ l.target → l ≠ l.retarget cmp h :=
-  sorry
+set_option maxHeartbeats 100000 in
+theorem retarget_target (σ : Reactor ι υ) (i) (l : Lineage σ i) (cmp h) :
+  (l.retarget cmp h).target = cmp := by
+  induction l 
+  case nest _ _ _ _ l' hσ' hi =>  
+    have hp := directParent_nest_eq l' hσ'
+    rw [←hp] at h
+    simp only [←(hi h)]
+    cases cmp <;> (simp only [target]; rfl)
+  all_goals { cases cmp <;> simp only [target, retarget] }
 
+theorem retarget_ne {σ : Reactor ι υ} {i} (l : Lineage σ i) {cmp} (h) :
+  cmp ≠ l.target → l ≠ l.retarget cmp h := by 
+  intro hn hc
+  have h' := Lineage.retarget_target σ i l cmp h
+  rw [←hc] at h'
+  have := Eq.symm h'
+  contradiction
+
+end Lineage
 
 -- The `containerOf` relation is used to determine whether a given ID `c`
 -- identifies a reactor that contains a given object identified by ID `i`.
