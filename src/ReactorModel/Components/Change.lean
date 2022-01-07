@@ -1,4 +1,7 @@
 import ReactorModel.Components.Reactor.Basic
+import ReactorModel.Time 
+
+open Time
 
 variable (ι υ) [Value υ]
 

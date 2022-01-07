@@ -1,6 +1,7 @@
 import ReactorModel.Components.Lift
+import ReactorModel.Time
 
-open Classical
+open Classical Time
 
 variable {ι υ} [Value υ]
 
