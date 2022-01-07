@@ -2,6 +2,7 @@ import Lake
 open Lake DSL
 
 package reactor_model where
+  defaultFacet := PackageFacet.oleans
   dependencies := #[
     {
       name := `mathlib
