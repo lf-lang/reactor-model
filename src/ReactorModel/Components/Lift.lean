@@ -142,7 +142,6 @@ structure rawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
   children : rcn.children = raw.children
   body :     ∀ i, List.forall₂ Change.rawEquiv (rcn.body i) (raw.body i)
 
--- OPEN Q : https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
 theorem same_rawEquiv_eq {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι υ} (h₁ : rcn.rawEquiv raw₁) (h₂ : rcn.rawEquiv raw₂) : 
   raw₁ = raw₂ := by
   apply Raw.Reaction.ext
@@ -155,16 +154,15 @@ theorem same_rawEquiv_eq {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι
   generalize hr₂ : raw₂.body i = cr₂
   rw [hc, hr₁] at hb₁
   rw [hc, hr₂] at hb₂
-  induction hb₁
-  case a.h.nil => cases hb₂; rfl
-  case a.h.cons hd₁ hdr₁ tl₁ tlr₁ hhd₁ htl₁ hi => 
-    cases hb₂
-    case cons hdr₂ tlr₂ hhd₂ htl₂ =>
-      simp
-      apply And.intro
-      case left => exact Change.same_rawEquiv_eq hhd₁ hhd₂
-      case right => 
-        sorry 
+  clear hc hr₁ hr₂  
+  (induction c generalizing cr₁ cr₂)
+  case a.h.nil => cases hb₁; cases hb₂; rfl
+  case a.h.cons hd tl hi => 
+    cases hb₁
+    case cons hd₁ tl₁ hhd₁ htl₁ => 
+      cases hb₂
+      case cons hd₂ tl₂ hhd₂ htl₂ =>
+        simp [Change.same_rawEquiv_eq hhd₁ hhd₂, hi tl₁ htl₁ tl₂ htl₂]
 
 -- OPEN Q : https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
 theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
@@ -177,18 +175,20 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
       intro i
       simp only [fromRaw] at h
       simp only [Reaction.ext_iff] at h
-      obtain ⟨_, _, _, h⟩ := h
-      have h : rcn.body i = (raw.body i).attach.map (λ c => Change.fromRaw hw hr _) := by rw [h]
+      obtain ⟨_, _, _, h⟩ := h  
+      have h : rcn i = (raw.body i).attach.map (λ c => Change.fromRaw hw hr _) := by rw [h]
       generalize hl : rcn i = l
+      generalize hr : Raw.Reaction.body raw i = r
       rw [hl] at h
-      induction l
+      -- rw [hr] at h
+      clear hl hr
+      (induction l generalizing r)
       case nil =>
         sorry
       case cons hd tl hi =>
         sorry
   }
 
--- OPEN Q : https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
 theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
   rcn.isMut ↔ raw.isMut := by
   apply Iff.intro <;> (
@@ -196,16 +196,38 @@ theorem rawEquiv_isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
     simp [isMut, isNorm, Raw.Reaction.isMut, Raw.Reaction.isNorm] at *
     obtain ⟨i, c, hc, hm⟩ := hm
     exists i
+    have hb := h.body i
+    generalize hcs : rcn.body i = cs
+    generalize hrcs : raw.body i = rcs
   )
-  case mp =>
-    generalize hcs : rcn.body i = cs 
-    induction cs
-    case nil =>
-      sorry
-    case cons hd tl hi =>
-      sorry
-  case mpr =>
-    sorry
+  case mp => 
+    rw [hcs] at hb hc
+    rw [hrcs] at hb
+    clear hcs hrcs
+    induction hb
+    case nil => contradiction
+    case cons hd hdr tl tlr he _ hi =>
+      cases List.mem_cons.mp hc
+      case inl hml =>
+        rw [←hml] at he
+        exact ⟨hdr, ⟨by simp, (Change.rawEquiv_mutates_iff he).mp hm⟩⟩
+      case inr hmr => 
+        obtain ⟨x, ⟨hx₁, hx₂⟩⟩ := hi hmr
+        exact ⟨x, ⟨List.mem_cons.mpr $ Or.inr hx₁, hx₂⟩⟩
+  case mpr => 
+    rw [hcs] at hb 
+    rw [hrcs] at hb hc
+    clear hcs hrcs
+    induction hb
+    case nil => contradiction
+    case cons hd hdr tl tlr he _ hi =>
+      cases List.mem_cons.mp hc
+      case inl hml =>
+        rw [←hml] at he
+        exact ⟨hd, ⟨by simp, (Change.rawEquiv_mutates_iff he).mpr hm⟩⟩
+      case inr hmr => 
+        obtain ⟨x, ⟨hx₁, hx₂⟩⟩ := hi hmr
+        exact ⟨x, ⟨List.mem_cons.mpr $ Or.inr hx₁, hx₂⟩⟩
 
 theorem rawEquiv_isNorm_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : rcn.rawEquiv raw) :
   rcn.isNorm ↔ raw.isNorm := by

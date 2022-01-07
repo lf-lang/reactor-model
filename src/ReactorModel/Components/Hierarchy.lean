@@ -70,10 +70,6 @@ def directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι × React
   | nest σ' i' (stv _) _ => (i', σ')
   | nest _  _  l       _ => directParent l -- By case distinction `l` is a `Lineage.nest`.
 
-theorem directParent_nest_eq {σ σ' : Reactor ι υ} {i i'} (l : Lineage σ' i) (h : σ.nest i' = some σ') :
-  l.directParent.snd = (Lineage.nest σ' i' l h).directParent.snd := by
-  cases l <;> simp only [directParent]
-
 def target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp 
   | rtr _ => Cmp.rtr
   | rcn _ => Cmp.rcn
@@ -97,8 +93,9 @@ set_option maxHeartbeats 100000 in
 theorem retarget_target (σ : Reactor ι υ) (i) (l : Lineage σ i) (cmp h) :
   (l.retarget cmp h).target = cmp := by
   induction l 
-  case nest _ _ _ _ l' hσ' hi =>  
-    have hp := directParent_nest_eq l' hσ'
+  case nest σ σ' i i' l' hσ' hi =>  
+    have hp : l'.directParent.snd = (nest σ' i' l' hσ').directParent.snd := 
+      by cases l' <;> simp only [directParent]
     rw [←hp] at h
     simp only [←(hi h)]
     cases cmp <;> (simp only [target]; rfl)
@@ -229,11 +226,6 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   rw [hu] at h₁
   simp [h₁] at h₂
   exact h₂
-
--- TODO: Is this theorem true? And do we even need it now that `update` has been redefined?
-theorem objFor_ext {σ₁ σ₂ : Reactor ι υ} (cmp : Cmp) (h : ∀ i o, (σ₁ *[cmp, i]= o) ↔ (σ₂ *[cmp, i]= o)) :
-  cmp.accessor σ₁ = cmp.accessor σ₂ := by
-  sorry
   
 -- TODO: Does this somehow allow ID-renaming or other reshuffling of data?
 inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
@@ -258,58 +250,6 @@ notation σ₁:max " -[" cmp ", " i ":=" v "]→ " σ₂:max => Reactor.update c
 -- The `update` relation is functional.
 theorem update_unique {σ σ₁ σ₂  : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
   (σ -[cmp, i:=v]→ σ₁) → (σ -[cmp, i:=v]→ σ₂) → σ₁ = σ₂ := by
-  intro h₁ h₂
-  induction h₁
-  case top i σ σ₁ hc hp hr ht =>
-    cases h₂
-    case top σ' i' ht' hp' hr' hc' =>
-      apply Reactor.ext
-      simp [←hp, hp', ←hr, hr']
-      refine ⟨?ports, ?state, ?reactions, ?reactors⟩
-      case ports =>
-        have HC := hc Cmp.prt i'
-        -- Basically the same as commented proof below (for all Cmp kinds).
-        sorry
-      all_goals { sorry }
-    case nested i' j rtr₁ rtr₂ hu hr₁ hr₂ hc' hp' hr' hne =>
-      exfalso
-      sorry
-      -- If we update i at the top level for σ₁ and at a nested
-      -- level at σ₂, then σ₁ and σ₂ have i appearing at different
-      -- levels. Since IDs are unique, one of the updates can't
-      -- actually have happened, as σ can only have i at either the
-      -- top level or a nested level, but not both.
-  case nested =>
-    sorry
-
-  /-intro h₁ h₂
-  ext
-  simp [←h₁.eqPrios, h₂.eqPrios, ←h₁.eqRoles, h₂.eqRoles]
-  refine ⟨?ports, ?state, ?reactions, ?reactors⟩
-  case ports =>     exact aux Cmp.prt h₁ h₂
-  case state =>     exact aux Cmp.stv h₁ h₂
-  case reactions => exact aux Cmp.rcn h₁ h₂
-  case reactors =>  exact aux Cmp.rtr h₁ h₂
-where 
-  aux {σ σ₁ σ₂  : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ}  (cmp' : Cmp) (h₁ : σ -[cmp, i := v]→ σ₁) (h₂ : σ -[cmp, i := v]→ σ₂) : 
-  cmp'.accessor σ₁ = cmp'.accessor σ₂ := by
-  obtain ⟨hc₁, hi₁, _, _, ht₁⟩ := h₁
-  obtain ⟨hc₂, hi₂, _, _, ht₂⟩ := h₂
-  apply objFor_ext cmp'
-  intro j o
-  byCases h : cmp' = cmp
-  case inl =>
-    subst h
-    byCases h' : j = i
-    case inl =>
-      simp [←h'] at ht₁ ht₂
-      byCases h'' : o = v
-      case inl => simp [h'', iff_of_true ht₁ ht₂]
-      case inr =>
-        exact Iff.intro
-          (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₁⟩)
-          (λ h => False.elim $ (not_and_self_iff _).mp ⟨h'', objFor_unique_obj h ht₂⟩)
-    case inr => simp [←(hi₁ j h'), hi₂ j h']
-  case inr => simp [←(hc₁ cmp' h), hc₂ cmp' h]-/
+  sorry
 
 end Reactor
