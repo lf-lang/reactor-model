@@ -101,6 +101,8 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   obtain ⟨raw, hr⟩ := h'
   exact ⟨raw, Eq.symm hr⟩
 
+-- TODO (maybe): Factor out the overlap between the proofs of `rcns_ext` and `nest_ext`.
+
 theorem rcns_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.rcns = rtr₂.rcns) : rtr₁.raw.rcns = rtr₂.raw.rcns := by
   funext i
   have h₁ := rcns_rawEquiv rtr₁
@@ -160,8 +162,37 @@ noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Port.Role) : Finset �
     simp [Set.subset_def]
   finite.toFinset
 
-theorem nest_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.nest = rtr₂.nest) : rtr₁.raw.nest = rtr₂.raw.nest :=
-  sorry
+theorem nest_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.nest = rtr₂.nest) : rtr₁.raw.nest = rtr₂.raw.nest := by
+  funext i
+  have h₁ :=  nest_rawEquiv rtr₁
+  have h₁₁ := nest_rawEquiv rtr₁
+  have h₂ :=  nest_rawEquiv rtr₂
+  have h₂₂ := nest_rawEquiv rtr₂
+  cases hc : rtr₁.raw.nest i
+  case h.none =>
+    rw [h] at h₁
+    have h₁' := mt (h₁.eqIDs i).mp 
+    simp only [Ne.def, not_not] at h₁'
+    have h₂' := mt (h₂.eqIDs i).mpr $ h₁' hc
+    simp only [Ne.def, not_not] at h₂'
+    simp [h₂']
+  case h.some rcn =>
+    rw [←h] at h₂
+    have h₁' := (h₁.eqIDs i).mpr
+    simp only [Option.ne_none_iff_exists] at h₁'
+    have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
+    simp only [Finmap.ids_def, Option.ne_none_iff_exists] at h₁'
+    obtain ⟨x, hx⟩ := h₁'
+    rw [h] at h₁
+    have h₂' := (h₁.eqIDs i).mpr
+    simp only [Option.ne_none_iff_exists] at h₂'
+    have h₂' := h₂' ⟨rcn, Eq.symm hc⟩
+    have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
+    obtain ⟨y, hy⟩ := h₂₂'
+    rw [←hy]
+    have hr₁ := h₁₁.rel (Eq.symm hx) hc
+    have hr₂ := h₂.rel (Eq.symm hx) (Eq.symm hy)
+    simp [Reactor.same_rawEquiv_eq hr₁ hr₂]
 
 theorem ext_iff {rtr₁ rtr₂ : Reactor ι υ} : 
   rtr₁ = rtr₂ ↔ 

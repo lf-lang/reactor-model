@@ -51,12 +51,14 @@ namespace Reactor
 -- TODO: Docs
 --       Mention that we do the whole Option ι so that ⊤ can never appear inside a reactor.
 --       Its more like a label.
-notation "⊤" => none
+notation "⊤" => Option.none
+
+namespace Lineage
 
 -- The "direct parent" in a lineage is the reactor which contains the target of the lineage.
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
-def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι × Reactor ι υ)
+def directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι × Reactor ι υ)
   | rtr _ => (⊤, σ)
   | rcn _ => (⊤, σ)
   | prt _ => (⊤, σ)
@@ -67,6 +69,50 @@ def Lineage.directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι 
   | nest σ' i' (prt _) _ => (i', σ')
   | nest σ' i' (stv _) _ => (i', σ')
   | nest _  _  l       _ => directParent l -- By case distinction `l` is a `Lineage.nest`.
+
+theorem directParent_nest_eq {σ σ' : Reactor ι υ} {i i'} (l : Lineage σ' i) (h : σ.nest i' = some σ') :
+  l.directParent.snd = (Lineage.nest σ' i' l h).directParent.snd := by
+  cases l <;> simp only [directParent]
+
+def target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp 
+  | rtr _ => Cmp.rtr
+  | rcn _ => Cmp.rcn
+  | prt _ => Cmp.prt
+  | act _ => Cmp.act
+  | stv _ => Cmp.stv
+  | nest _ _ l _ => target l
+
+def fromCmp (σ : Reactor ι υ) (i) : (cmp : Cmp) → (h : i ∈ (cmp.accessor σ).ids) → Lineage σ i
+  | Cmp.rtr, h => Lineage.rtr h
+  | Cmp.rcn, h => Lineage.rcn h
+  | Cmp.prt, h => Lineage.prt h
+  | Cmp.act, h => Lineage.act h
+  | Cmp.stv, h => Lineage.stv h
+
+def retarget {σ : Reactor ι υ} {i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (cmp.accessor l.directParent.snd).ids → Lineage σ i
+  | nest σ' i' l' h', cmp, h => Lineage.nest σ' i' (retarget l' cmp h) h'
+  | _, cmp, h => Lineage.fromCmp σ i cmp h
+
+set_option maxHeartbeats 100000 in
+theorem retarget_target (σ : Reactor ι υ) (i) (l : Lineage σ i) (cmp h) :
+  (l.retarget cmp h).target = cmp := by
+  induction l 
+  case nest _ _ _ _ l' hσ' hi =>  
+    have hp := directParent_nest_eq l' hσ'
+    rw [←hp] at h
+    simp only [←(hi h)]
+    cases cmp <;> (simp only [target]; rfl)
+  all_goals { cases cmp <;> simp only [target, retarget] }
+
+theorem retarget_ne {σ : Reactor ι υ} {i} (l : Lineage σ i) {cmp} (h) :
+  cmp ≠ l.target → l ≠ l.retarget cmp h := by 
+  intro hn hc
+  have h' := Lineage.retarget_target σ i l cmp h
+  rw [←hc] at h'
+  have := Eq.symm h'
+  contradiction
+
+end Lineage
 
 -- The `containerOf` relation is used to determine whether a given ID `c`
 -- identifies a reactor that contains a given object identified by ID `i`.
@@ -136,7 +182,29 @@ notation σ:max " *[" cmp ", " i "]= " o:max => Reactor.objFor σ cmp i o
 -- Cf. `objFor_unique_obj` for further information.
 theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o₁ : cmp₁.type ι υ} {o₂ : cmp₂.type ι υ} :
   (σ *[cmp₁, i]= o₁) → (σ *[cmp₂, i]= o₂) → cmp₁ = cmp₂ := by
-  sorry
+  intro h₁ h₂
+  obtain ⟨l₁, h₁⟩ := h₁
+  obtain ⟨l₂, h₂⟩ := h₂
+  have hu := σ.uniqueIDs l₁ l₂
+  rw [←hu] at h₂
+  by_contra hc
+  have h₁ := Option.ne_none_iff_exists.mpr ⟨o₁, Eq.symm h₁⟩ |> Finmap.ids_def.mpr
+  have h₂ := Option.ne_none_iff_exists.mpr ⟨o₂, Eq.symm h₂⟩ |> Finmap.ids_def.mpr
+  by_cases hc₁ : cmp₁ = l₁.target
+  case neg =>
+    have := Lineage.retarget_ne l₁ h₁ hc₁
+    have := σ.uniqueIDs l₁ $ l₁.retarget cmp₁ h₁
+    contradiction
+  case pos =>
+    by_cases hc₂ : cmp₂ = l₂.target
+    case neg =>
+      have := Lineage.retarget_ne l₂ h₂ hc₂
+      have := σ.uniqueIDs l₂ $ l₂.retarget cmp₂ h₂
+      contradiction
+    case pos =>
+      rw [hu] at hc₁
+      rw [←hc₂] at hc₁
+      contradiction
 
 -- In the `objFor` relation, any given ID can have at most one associated object. 
 --
