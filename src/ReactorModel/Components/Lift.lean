@@ -164,7 +164,6 @@ theorem same_rawEquiv_eq {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι
       case cons hd₂ tl₂ hhd₂ htl₂ =>
         simp [Change.same_rawEquiv_eq hhd₁ hhd₂, hi tl₁ htl₁ tl₂ htl₂]
 
--- OPEN Q : https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
 theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
   rcn = @Reaction.fromRaw _ _ _ rtr hw raw hr → rcn.rawEquiv raw := 
   λ h => {
@@ -175,14 +174,20 @@ theorem fromRaw_rawEquiv {rcn : Reaction ι υ} {rtr raw hw hr} :
       intro i
       simp only [fromRaw] at h
       simp only [Reaction.ext_iff] at h
-      obtain ⟨_, _, _, h⟩ := h  
-      have h : rcn i = (raw.body i).attach.map (λ c => Change.fromRaw hw hr _) := by rw [h]
-      generalize hl : rcn i = l
-      generalize hr : Raw.Reaction.body raw i = r
-      rw [hl] at h
-      -- rw [hr] at h
-      clear hl hr
-      (induction l generalizing r)
+      have hb : rcn i = (raw.body i).attach.map (λ _ => Change.fromRaw hw hr _) := by rw [h.right.right.right]
+      clear h
+      generalize hcs : rcn i = cs
+      generalize hrcs : raw.body i = rcs
+      rw [hcs] at hb
+      have H : cs = rcs.attach.map (λ rc => Change.fromRaw (rtr := rtr) hw (rcn := raw) hr (raw := rc.val) (i := i) (by
+        have H := rc.property
+        simp [←hrcs] at H
+        exact H
+      )) := sorry
+      -- clear hcs hrcs 
+      -- TODO: We need to be able to clear these to get a good induction hypothesis.
+      -- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Problem.20with.20induction.20hypothesis
+      (induction cs generalizing rcs)
       case nil =>
         sorry
       case cons hd tl hi =>

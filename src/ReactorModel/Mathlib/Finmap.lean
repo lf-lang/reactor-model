@@ -30,12 +30,12 @@ instance : EmptyCollection (α ▸ β) where
 instance : Inhabited (Finmap α β) where
   default := ∅
 
-theorem ext_iff (f₁ f₂ : α ▸ β) : f₁ = f₂ ↔ ∀ i, f₁ i = f₂ i :=
+theorem ext_iff {f₁ f₂ : α ▸ β} : f₁ = f₂ ↔ ∀ i, f₁ i = f₂ i :=
   sorry
 
 @[ext]
 theorem ext (f₁ f₂ : α ▸ β) (h : ∀ i, f₁ i = f₂ i) : f₁ = f₂ :=
-  (ext_iff _ _).mpr h
+  ext_iff.mpr h
 
 -- The (finite) set of inputs for which a given finmap has an associated value.
 noncomputable def ids (f : α ▸ β) : Finset α :=
