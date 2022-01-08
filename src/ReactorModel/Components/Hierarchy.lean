@@ -227,6 +227,15 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   simp [h₁] at h₂
   exact h₂
 
+-- PROBLEM: If σ₁ doesn't already contain a component identified by i, then
+--          this relation isn't functional!
+--          E.g. if you then state that σ₁ updates to σ₂ by overriding the component
+--          identified by i with v, then if σ₁ didn't contain ainy component identified
+--          by i, then σ₂ can perform this update in an arbitrary (nested) reactor.
+-- SOLUTION: Fix this imprecision by formulating the relation in such a way that, if
+--           σ₁ doesn't contain a component identified by i, then σ₂ must place it at the
+--           top level (i.e. immediately in σ₁). In other words, an update can be nested
+--           only if σ₁ contains an element identified by i.
 inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
   | top {i σ₁ σ₂} : 
     (∀ cmp' i', (cmp' ≠ cmp ∨ i' ≠ i) → cmp'.accessor σ₁ i' = cmp'.accessor σ₂ i') → 
@@ -234,7 +243,8 @@ inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Rea
     (σ₁.roles = σ₂.roles) → 
     (cmp.accessor σ₂ i = v) → 
     update cmp v i σ₁ σ₂
-  | nested {i σ₁ σ₂} {j rtr₁ rtr₂} :
+  | nested {p : ι} {i σ₁ σ₂} {j rtr₁ rtr₂} : -- Note, the face that p is non-optional means that i can't identify a top-level component.
+    (σ₁ &[i]= p) →
     (∀ cmp', cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂) → 
     (σ₁.prios = σ₂.prios) → 
     (σ₁.roles = σ₂.roles) → 
@@ -245,6 +255,23 @@ inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Rea
     update cmp v i σ₁ σ₂
 
 notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update cmp v i σ₁ σ₂
+
+theorem objFor_updated {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
+  (σ₁ -[cmp, i := v]→ σ₂) → σ₂ *[cmp, i]= v := by
+  intro h
+  induction h
+  case top i _ σ₂ _  _ _ h =>
+    simp only [objFor]
+    have h' := Option.ne_none_iff_exists.mpr ⟨v, Eq.symm h⟩ |> Finmap.ids_def.mpr
+    exists Lineage.fromCmp σ₂ i cmp h'
+    cases cmp <;> simp only [Lineage.directParent, h]
+  case nested i _ σ₂ j _ rtr₂ _ _ _ _ _ hn _ _ hi =>
+    simp only [objFor] at *
+    obtain ⟨l, hl⟩ := hi
+    exists Lineage.nest rtr₂ j l hn
+    have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
+      by cases l <;> simp only [Lineage.directParent]
+    simp [←hp, hl]
 
 -- TODO: Find out how to solve some of the auxiliary proofs more concisely.
 
@@ -351,7 +378,7 @@ theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v :
     simp only [hp₁, hr₁] at hp₂ hr₂
     simp only [hp₂, hr₂]
     cases cmp <;> simp only [update_unique_aux₃ hcn₁ hcn₂ hi₁ hi₂]
-  case nested.nested i σ σ₁ j rtr₁ rtr₂ hc₁ hp₁ hr₁ hl₁ hl₂ hj₁ hu₁ hi j' rtr₁' rtr₂' hu₂ hl₁' hl₂' hc₂ hp₂ hr₂ hj₂ => 
+  case nested.nested i σ σ₁ j rtr₁ _ rtr₂ hc₁ hp₁ hr₁ hl₁ hl₂ hj₁ hu₁ hi _ j' rtr₁' rtr₂' hu₂ hl₁' _ hl₂' hc₂ hp₂ hr₂ hj₂ => 
     apply ext
     simp only [hp₁, hr₁] at hp₂ hr₂
     simp only [hp₂, hr₂]
@@ -366,26 +393,12 @@ theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v :
   -- this cant be the case for the same initial reactor σ.
   case top.nested =>
     exfalso
-    sorry
+    obtain ⟨l₂', _⟩ := objFor_updated h
+    let l₂ := Lineage.nest rtr₂ j l₂' hj₂
+    let l₁ := Lineage.fromCmp σ₂' i' cmp $ Option.ne_none_iff_exists.mpr ⟨v, Eq.symm ha⟩ |> Finmap.ids_def.mpr
+    sorry -- I think this isnt the right approach ?
   case nested.top =>
     exfalso
     sorry
-
-theorem objFor_updated {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
-  (σ₁ -[cmp, i := v]→ σ₂) → σ₂ *[cmp, i]= v := by
-  intro h
-  induction h
-  case top i _ σ₂ _  _ _ h =>
-    simp only [objFor]
-    have h' := Option.ne_none_iff_exists.mpr ⟨v, Eq.symm h⟩ |> Finmap.ids_def.mpr
-    exists Lineage.fromCmp σ₂ i cmp h'
-    cases cmp <;> simp only [Lineage.directParent, h]
-  case nested i _ σ₂ j _ rtr₂ _ _ _ _ hn _ _ hi =>
-    simp only [objFor] at *
-    obtain ⟨l, hl⟩ := hi
-    exists Lineage.nest rtr₂ j l hn
-    have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
-      by cases l <;> simp only [Lineage.directParent]
-    simp [←hp, hl]
 
 end Reactor
