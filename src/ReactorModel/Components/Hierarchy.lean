@@ -351,20 +351,15 @@ theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v :
     simp only [hp₁, hr₁] at hp₂ hr₂
     simp only [hp₂, hr₂]
     cases cmp <;> simp only [update_unique_aux₃ hcn₁ hcn₂ hi₁ hi₂]
-  case nested.nested i σ₁' σ₂' j rtr₁ rtr₂ hc₁ hp₁ hr₁ hl₁ hl₂ hj₁ hu₁ hi j' rtr₁' rtr₂' hu₂ hl₁' hl₂' hc₂ hp₂ hr₂ hj₂ => 
+  case nested.nested i σ σ₁ j rtr₁ rtr₂ hc₁ hp₁ hr₁ hl₁ hl₂ hj₁ hu₁ hi j' rtr₁' rtr₂' hu₂ hl₁' hl₂' hc₂ hp₂ hr₂ hj₂ => 
     apply ext
     simp only [hp₁, hr₁] at hp₂ hr₂
     simp only [hp₂, hr₂]
     simp [update_unique_aux₅ hc₁ hc₂]
+    clear hc₁ hc₂ hp₁ hp₂ hr₁ hr₂
     apply Finmap.ext
     intro x
-    -- The cases on h₂ might also have to be an induction.
-    by_cases hc : x = j
-    case pos => 
-      sorry
-    case neg =>
-      have H := hj₁ x hc
-      -- hj₂ uses j' not j
+    sorry 
 
   -- if one is a top and one a nest, then in the top-case the ID i
   -- identifies something at the top level, and in the nest case it doesnt.
@@ -375,5 +370,22 @@ theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v :
   case nested.top =>
     exfalso
     sorry
+
+theorem objFor_updated {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
+  (σ₁ -[cmp, i := v]→ σ₂) → σ₂ *[cmp, i]= v := by
+  intro h
+  induction h
+  case top i _ σ₂ _  _ _ h =>
+    simp only [objFor]
+    have h' := Option.ne_none_iff_exists.mpr ⟨v, Eq.symm h⟩ |> Finmap.ids_def.mpr
+    exists Lineage.fromCmp σ₂ i cmp h'
+    cases cmp <;> simp only [Lineage.directParent, h]
+  case nested i _ σ₂ j _ rtr₂ _ _ _ _ hn _ _ hi =>
+    simp only [objFor] at *
+    obtain ⟨l, hl⟩ := hi
+    exists Lineage.nest rtr₂ j l hn
+    have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
+      by cases l <;> simp only [Lineage.directParent]
+    simp [←hp, hl]
 
 end Reactor
