@@ -18,7 +18,7 @@ variable {ι υ} [Value υ]
 --
 -- E.g. a reaction defines its dependencies as a map `Port.Role → Finset ι`,
 -- instead of two separate fields, each of type `Finset ι`.
-inductive Port.Role 
+inductive Port.Role
   | «in» 
   | out
 deriving DecidableEq

@@ -35,7 +35,7 @@ variable {ι υ}
 -- Associates each type of component with the finmap in which it can be found inside
 -- of a reactor. We use this in `objFor` to generically resolve the lookup for *some*
 -- component and *some* ID.
-def accessor : (cmp : Cmp) → Reactor ι υ → (ι ▸ cmp.type ι υ)
+def accessor : (cmp : Cmp) → Reactor ι υ → ι ▸ cmp.type ι υ
   | rtr => Reactor.nest
   | rcn => Reactor.rcns
   | prt => Reactor.ports
@@ -227,178 +227,131 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   simp [h₁] at h₂
   exact h₂
 
--- PROBLEM: If σ₁ doesn't already contain a component identified by i, then
---          this relation isn't functional!
---          E.g. if you then state that σ₁ updates to σ₂ by overriding the component
---          identified by i with v, then if σ₁ didn't contain ainy component identified
---          by i, then σ₂ can perform this update in an arbitrary (nested) reactor.
--- SOLUTION: Fix this imprecision by formulating the relation in such a way that, if
---           σ₁ doesn't contain a component identified by i, then σ₂ must place it at the
---           top level (i.e. immediately in σ₁). In other words, an update can be nested
---           only if σ₁ contains an element identified by i.
+structure eqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop where
+  otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂
+  otherIDsEq : ∀ {i'}, i' ≠ i → cmp.accessor σ₁ i' = cmp.accessor σ₂ i'
+  priosEq : σ₁.prios = σ₂.prios
+  rolesEq : σ₁.roles = σ₂.roles
+
+notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => eqModID σ₁ σ₂ cmp i
+
+-- TODO: Find out how to solve the case distinction more concisely.
+theorem eqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} 
+  (he₁ : σ %[cmp, i]= σ₁) (he₂ : σ %[cmp, i]= σ₂) :
+  (cmp.accessor σ₁ i = cmp.accessor σ₂ i) → σ₁ = σ₂ := by
+  intro ha
+  apply ext
+  simp only [he₁.priosEq, Eq.symm $ he₂.priosEq, he₁.rolesEq, Eq.symm $ he₂.rolesEq] 
+  have h_aux₁ : cmp.accessor σ₁ = cmp.accessor σ₂ := by
+    apply Finmap.ext
+    intro i'
+    by_cases hc : i' = i
+    case pos => simp only [hc, ha]
+    case neg => simp only [he₁.otherIDsEq hc, Eq.symm $ he₂.otherIDsEq hc]
+  have h_aux₂ : ∀ cmp', cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂ := by
+    intro cmp' hn
+    have h := he₁.otherCmpsEq hn
+    rw [he₂.otherCmpsEq hn] at h
+    exact Eq.symm h
+  cases cmp
+  case a.rtr =>
+    have h₀ := h_aux₁
+    have h₁ := h_aux₂ Cmp.rcn (by intro; contradiction)
+    have h₂ := h_aux₂ Cmp.prt (by intro; contradiction)
+    have h₃ := h_aux₂ Cmp.act (by intro; contradiction)
+    have h₄ := h_aux₂ Cmp.stv (by intro; contradiction)
+    simp only [Cmp.accessor] at h₀ h₁ h₂ h₃ h₄
+    simp [h₀, h₁, h₂, h₃, h₄] 
+  case a.rcn =>
+    have h₀ := h_aux₁
+    have h₁ := h_aux₂ Cmp.rtr (by intro; contradiction)
+    have h₂ := h_aux₂ Cmp.prt (by intro; contradiction)
+    have h₃ := h_aux₂ Cmp.act (by intro; contradiction)
+    have h₄ := h_aux₂ Cmp.stv (by intro; contradiction)
+    simp only [Cmp.accessor] at h₀ h₁ h₂ h₃ h₄
+    simp [h₀, h₁, h₂, h₃, h₄]
+  case a.prt =>
+    have h₀ := h_aux₁
+    have h₁ := h_aux₂ Cmp.rtr (by intro; contradiction)
+    have h₂ := h_aux₂ Cmp.rcn (by intro; contradiction)
+    have h₃ := h_aux₂ Cmp.act (by intro; contradiction)
+    have h₄ := h_aux₂ Cmp.stv (by intro; contradiction)
+    simp only [Cmp.accessor] at h₀ h₁ h₂ h₃ h₄
+    simp [h₀, h₁, h₂, h₃, h₄]
+  case a.act =>
+    have h₀ := h_aux₁
+    have h₁ := h_aux₂ Cmp.rtr (by intro; contradiction)
+    have h₂ := h_aux₂ Cmp.prt (by intro; contradiction)
+    have h₃ := h_aux₂ Cmp.rcn (by intro; contradiction)
+    have h₄ := h_aux₂ Cmp.stv (by intro; contradiction)
+    simp only [Cmp.accessor] at h₀ h₁ h₂ h₃ h₄
+    simp [h₀, h₁, h₂, h₃, h₄]
+  case a.stv =>
+    have h₀ := h_aux₁
+    have h₁ := h_aux₂ Cmp.rtr (by intro; contradiction)
+    have h₂ := h_aux₂ Cmp.prt (by intro; contradiction)
+    have h₃ := h_aux₂ Cmp.rcn (by intro; contradiction)
+    have h₄ := h_aux₂ Cmp.act (by intro; contradiction)
+    simp only [Cmp.accessor] at h₀ h₁ h₂ h₃ h₄
+    simp [h₀, h₁, h₂, h₃, h₄]
+
 inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
-  | top {i σ₁ σ₂} : 
-    (∀ cmp' i', (cmp' ≠ cmp ∨ i' ≠ i) → cmp'.accessor σ₁ i' = cmp'.accessor σ₂ i') → 
-    (σ₁.prios = σ₂.prios) → 
-    (σ₁.roles = σ₂.roles) → 
+  | top {i σ₁ σ₂} :
+    (σ₁ %[cmp, i]= σ₂) →
+    (cmp.accessor σ₁ i ≠ none) → -- This is required so that we know where to actually update i / so that there's at most one possible outcome of an update. 
     (cmp.accessor σ₂ i = v) → 
     update cmp v i σ₁ σ₂
-  | nested {p : ι} {i σ₁ σ₂} {j rtr₁ rtr₂} : -- Note, the face that p is non-optional means that i can't identify a top-level component.
-    (σ₁ &[i]= p) →
-    (∀ cmp', cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂) → 
-    (σ₁.prios = σ₂.prios) → 
-    (σ₁.roles = σ₂.roles) → 
+  | nested {i σ₁ σ₂} {j rtr₁ rtr₂} : 
+    (σ₁ %[Cmp.rtr, j]= σ₂) →
     (σ₁.nest j = some rtr₁) →
     (σ₂.nest j = some rtr₂) →
-    (∀ j', j' ≠ j → σ₁.nest j' = σ₂.nest j') →
     (update cmp v i rtr₁ rtr₂) →
     update cmp v i σ₁ σ₂
 
 notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update cmp v i σ₁ σ₂
 
+theorem update_lineage {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (h : σ₁ -[cmp, i := v]→ σ₂) : Nonempty (Lineage σ₁ i) := by
+  induction h
+  case top i σ₁ _ _ ha _ => exact ⟨Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ha⟩
+  case nested hn _ _ hi => exact ⟨Lineage.nest _ _ (Classical.choice hi) hn⟩
+
+theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
+  (σ -[cmp, i := v]→ σ₁) → (σ -[cmp, i := v]→ σ₂) → σ₁ = σ₂ := by
+  intro h₁ h₂
+  (induction h₁ generalizing σ₂) <;> cases h₂
+  case top.top _ he₁ _ hi₁ _ hi₂ he₂ => 
+    rw [←hi₂] at hi₁
+    exact eqModID.eq_from_eq_val_for_id he₁ he₂ hi₁
+  case nested.nested i σ σ₁ j rtr₁ rtr₂ he₁ hn₁ hn₂ hu₁ hi j' rtr₁' rtr₂' hu₂ hn₁' hn₂' he₂ => 
+    -- prove that rtr₂ = rtr₂'
+    -- then you can use eqModID.eq_from_eq_val_for_id
+    sorry 
+  case top.nested i σ₁ _ _ ht _ _ _ _ hu hn _ _ =>
+    let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ht
+    let l₂ := Lineage.nest _ _ (Classical.choice $ update_lineage hu) hn
+    have hc := σ₁.uniqueIDs l₁ l₂
+    cases cmp <;> contradiction
+  case nested.top i σ₁ _ _ _ _ _ hn _ hu _ ht _ _ =>
+    let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ht
+    let l₂ := Lineage.nest _ _ (Classical.choice $ update_lineage hu) hn
+    have hc := σ₁.uniqueIDs l₁ l₂
+    cases cmp <;> contradiction
+
 theorem objFor_updated {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
   (σ₁ -[cmp, i := v]→ σ₂) → σ₂ *[cmp, i]= v := by
   intro h
   induction h
-  case top i _ σ₂ _  _ _ h =>
+  case top i _ σ₂ _ _ h =>
     simp only [objFor]
     have h' := Option.ne_none_iff_exists.mpr ⟨v, Eq.symm h⟩ |> Finmap.ids_def.mpr
     exists Lineage.fromCmp σ₂ i cmp h'
     cases cmp <;> simp only [Lineage.directParent, h]
-  case nested i _ σ₂ j _ rtr₂ _ _ _ _ _ hn _ _ hi =>
+  case nested i _ σ₂ j _ rtr₂ _ _ hn _ hi =>
     simp only [objFor] at *
     obtain ⟨l, hl⟩ := hi
     exists Lineage.nest rtr₂ j l hn
     have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
       by cases l <;> simp only [Lineage.directParent]
     simp [←hp, hl]
-
--- TODO: Find out how to solve some of the auxiliary proofs more concisely.
-
-private theorem update_unique_aux₁ {σ₁ σ₂ σ₃ : Reactor ι υ} {cmp₁ cmp₂ : Cmp} {i : ι}
-  (h₁ : ∀ cmp' i', (cmp' ≠ cmp₁ ∨ i' ≠ i) → cmp'.accessor σ₁ i' = cmp'.accessor σ₂ i')
-  (h₂ : ∀ cmp' i', (cmp' ≠ cmp₁ ∨ i' ≠ i) → cmp'.accessor σ₁ i' = cmp'.accessor σ₃ i') 
-  (hn : cmp₂ ≠ cmp₁) :
-  cmp₂.accessor σ₂ = cmp₂.accessor σ₃ := by
-  have h₁' : ∀ j, (cmp₂.accessor σ₁) j = (cmp₂.accessor σ₂) j := by intro j; exact h₁ cmp₂ j (Or.inl hn)  
-  have h₂' : ∀ j, (cmp₂.accessor σ₁) j = (cmp₂.accessor σ₃) j := by intro j; exact h₂ cmp₂ j (Or.inl hn)
-  have hf₁ := Finmap.ext_iff.mpr h₁'
-  have hf₂ := Finmap.ext_iff.mpr h₂'
-  simp only [hf₁] at hf₂
-  exact hf₂
-
-private theorem update_unique_aux₂ {σ₁ σ₂ σ₃ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ}
-  (h₁ : ∀ cmp' j, (cmp' ≠ cmp ∨ j ≠ i) → cmp'.accessor σ₁ j = cmp'.accessor σ₂ j)
-  (h₂ : ∀ cmp' j, (cmp' ≠ cmp ∨ j ≠ i) → cmp'.accessor σ₁ j = cmp'.accessor σ₃ j)
-  (hi₁ : cmp.accessor σ₂ i = some v)
-  (hi₂ : cmp.accessor σ₃ i = some v) :
-  cmp.accessor σ₂ = cmp.accessor σ₃ := by
-  apply Finmap.ext
-  intro j
-  by_cases hc : j = i
-  case pos => simp only [hc, hi₁, hi₂]
-  case neg => simp only [h₁ cmp j (Or.inr hc), Eq.symm $ h₂ cmp j (Or.inr hc)]
-
-private theorem update_unique_aux₃ {σ₁ σ₂ σ₃ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ}
-  (h₁ : ∀ cmp' j, (cmp' ≠ cmp ∨ j ≠ i) → cmp'.accessor σ₁ j = cmp'.accessor σ₂ j)
-  (h₂ : ∀ cmp' j, (cmp' ≠ cmp ∨ j ≠ i) → cmp'.accessor σ₁ j = cmp'.accessor σ₃ j)
-  (hi₁ : cmp.accessor σ₂ i = some v)
-  (hi₂ : cmp.accessor σ₃ i = some v) :
-  σ₂.ports = σ₃.ports ∧ σ₂.acts = σ₃.acts ∧ σ₂.state = σ₃.state ∧ σ₂.rcns = σ₃.rcns ∧ σ₂.nest = σ₃.nest := by
-  cases cmp
-  case rtr =>
-    have hu₁ := update_unique_aux₂ h₁ h₂ hi₁ hi₂
-    have hu₂ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rcn ≠ Cmp.rtr)
-    have hu₃ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.prt ≠ Cmp.rtr)
-    have hu₄ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.act ≠ Cmp.rtr)
-    have hu₅ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.stv ≠ Cmp.rtr)
-    simp only [Cmp.accessor] at hu₁ hu₂ hu₃ hu₄ hu₅
-    simp [hu₁, hu₂, hu₃, hu₄, hu₅]
-  case rcn =>
-    have hu₁ := update_unique_aux₂ h₁ h₂ hi₁ hi₂
-    have hu₂ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rtr ≠ Cmp.rcn)
-    have hu₃ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.prt ≠ Cmp.rcn)
-    have hu₄ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.act ≠ Cmp.rcn)
-    have hu₅ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.stv ≠ Cmp.rcn)
-    simp only [Cmp.accessor] at hu₁ hu₂ hu₃ hu₄ hu₅
-    simp [hu₁, hu₂, hu₃, hu₄, hu₅]
-  case prt =>
-    have hu₁ := update_unique_aux₂ h₁ h₂ hi₁ hi₂
-    have hu₂ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rtr ≠ Cmp.prt)
-    have hu₃ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rcn ≠ Cmp.prt)
-    have hu₄ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.act ≠ Cmp.prt)
-    have hu₅ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.stv ≠ Cmp.prt)
-    simp only [Cmp.accessor] at hu₁ hu₂ hu₃ hu₄ hu₅
-    simp [hu₁, hu₂, hu₃, hu₄, hu₅]
-  case act =>
-    have hu₁ := update_unique_aux₂ h₁ h₂ hi₁ hi₂
-    have hu₂ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rtr ≠ Cmp.act)
-    have hu₃ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rcn ≠ Cmp.act)
-    have hu₄ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.prt ≠ Cmp.act)
-    have hu₅ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.stv ≠ Cmp.act)
-    simp only [Cmp.accessor] at hu₁ hu₂ hu₃ hu₄ hu₅
-    simp [hu₁, hu₂, hu₃, hu₄, hu₅]
-  case stv =>
-    have hu₁ := update_unique_aux₂ h₁ h₂ hi₁ hi₂
-    have hu₂ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rtr ≠ Cmp.stv)
-    have hu₃ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.rcn ≠ Cmp.stv)
-    have hu₄ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.prt ≠ Cmp.stv)
-    have hu₅ := update_unique_aux₁ h₁ h₂ (by intro; contradiction : Cmp.act ≠ Cmp.stv)
-    simp only [Cmp.accessor] at hu₁ hu₂ hu₃ hu₄ hu₅
-    simp [hu₁, hu₂, hu₃, hu₄, hu₅]
-
-private theorem update_unique_aux₄ {σ₁ σ₂ σ₃ : Reactor ι υ} {cmp : Cmp} 
-  (h₁ : ∀ cmp', (cmp' ≠ Cmp.rtr) → cmp'.accessor σ₁ = cmp'.accessor σ₂)
-  (h₂ : ∀ cmp', (cmp' ≠ Cmp.rtr) → cmp'.accessor σ₁ = cmp'.accessor σ₃) 
-  (hn : cmp ≠ Cmp.rtr) :
-  cmp.accessor σ₂ = cmp.accessor σ₃ := by
-  have h₁' : cmp.accessor σ₁ = cmp.accessor σ₂ := h₁ cmp hn 
-  have h₂' : cmp.accessor σ₁ = cmp.accessor σ₃ := h₂ cmp hn
-  simp only [h₁'] at h₂'
-  exact h₂'
-
-private theorem update_unique_aux₅ {σ₁ σ₂ σ₃ : Reactor ι υ} 
-  (h₁ : ∀ cmp, (cmp ≠ Cmp.rtr) → cmp.accessor σ₁ = cmp.accessor σ₂)
-  (h₂ : ∀ cmp, (cmp ≠ Cmp.rtr) → cmp.accessor σ₁ = cmp.accessor σ₃) :
-  σ₂.ports = σ₃.ports ∧ σ₂.acts = σ₃.acts ∧ σ₂.state = σ₃.state ∧ σ₂.rcns = σ₃.rcns := by
-  have hu₁ := update_unique_aux₄ h₁ h₂ (by intro; contradiction : Cmp.rcn ≠ Cmp.rtr)
-  have hu₂ := update_unique_aux₄ h₁ h₂ (by intro; contradiction : Cmp.prt ≠ Cmp.rtr)
-  have hu₃ := update_unique_aux₄ h₁ h₂ (by intro; contradiction : Cmp.act ≠ Cmp.rtr)
-  have hu₄ := update_unique_aux₄ h₁ h₂ (by intro; contradiction : Cmp.stv ≠ Cmp.rtr)
-  simp only [Cmp.accessor] at hu₁ hu₂ hu₃ hu₄
-  simp [hu₁, hu₂, hu₃, hu₄]
-
--- The `update` relation is functional.
-theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
-  (σ -[cmp, i := v]→ σ₁) → (σ -[cmp, i := v]→ σ₂) → σ₁ = σ₂ := by
-  intro h₁ h₂
-  (induction h₁ generalizing σ₂) <;> cases h₂
-  case top.top i' σ₁' σ₂' hcn₁ hp₁ hr₁ hi₁ hi₂ hp₂ hr₂ hcn₂ => 
-    apply ext
-    simp only [hp₁, hr₁] at hp₂ hr₂
-    simp only [hp₂, hr₂]
-    cases cmp <;> simp only [update_unique_aux₃ hcn₁ hcn₂ hi₁ hi₂]
-  case nested.nested i σ σ₁ j rtr₁ _ rtr₂ hc₁ hp₁ hr₁ hl₁ hl₂ hj₁ hu₁ hi _ j' rtr₁' rtr₂' hu₂ hl₁' _ hl₂' hc₂ hp₂ hr₂ hj₂ => 
-    apply ext
-    simp only [hp₁, hr₁] at hp₂ hr₂
-    simp only [hp₂, hr₂]
-    simp [update_unique_aux₅ hc₁ hc₂]
-    clear hc₁ hc₂ hp₁ hp₂ hr₁ hr₂
-    apply Finmap.ext
-    intro x
-    sorry 
-
-  -- if one is a top and one a nest, then in the top-case the ID i
-  -- identifies something at the top level, and in the nest case it doesnt.
-  -- this cant be the case for the same initial reactor σ.
-  case top.nested =>
-    exfalso
-    obtain ⟨l₂', _⟩ := objFor_updated h
-    let l₂ := Lineage.nest rtr₂ j l₂' hj₂
-    let l₁ := Lineage.fromCmp σ₂' i' cmp $ Option.ne_none_iff_exists.mpr ⟨v, Eq.symm ha⟩ |> Finmap.ids_def.mpr
-    sorry -- I think this isnt the right approach ?
-  case nested.top =>
-    exfalso
-    sorry
 
 end Reactor
