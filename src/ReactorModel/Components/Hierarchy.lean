@@ -1,6 +1,7 @@
 import ReactorModel.Components.Reactor.Properties
+import ReactorModel.Time
 
-open Classical 
+open Classical Time
 
 -- TODO: Redoc
 -- TODO: Better notation for cmp.accessor σ, e.g. σ[cmp]

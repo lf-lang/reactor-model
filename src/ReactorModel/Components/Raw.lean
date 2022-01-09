@@ -1,7 +1,7 @@
 import ReactorModel.Primitives
 import ReactorModel.Time
 
-open Port
+open Port Time
 
 structure Reaction.Input (ι υ) [Value υ] where
   ports : ι ▸ υ
