@@ -227,6 +227,7 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   simp [h₁] at h₂
   exact h₂
 
+-- Note, this only makes sense when talking about a top-level ID.
 structure eqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop where
   otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂
   otherIDsEq : ∀ {i'}, i' ≠ i → cmp.accessor σ₁ i' = cmp.accessor σ₂ i'
@@ -310,7 +311,7 @@ inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Rea
 
 notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update cmp v i σ₁ σ₂
 
-theorem update_lineage {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (h : σ₁ -[cmp, i := v]→ σ₂) : Nonempty (Lineage σ₁ i) := by
+theorem update_requires_lineage_to_target {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (h : σ₁ -[cmp, i := v]→ σ₂) : Nonempty (Lineage σ₁ i) := by
   induction h
   case top i σ₁ _ _ ha _ => exact ⟨Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ha⟩
   case nested hn _ _ hi => exact ⟨Lineage.nest _ _ (Classical.choice hi) hn⟩
@@ -322,18 +323,25 @@ theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v :
   case top.top _ he₁ _ hi₁ _ hi₂ he₂ => 
     rw [←hi₂] at hi₁
     exact eqModID.eq_from_eq_val_for_id he₁ he₂ hi₁
-  case nested.nested i σ σ₁ j rtr₁ rtr₂ he₁ hn₁ hn₂ hu₁ hi j' rtr₁' rtr₂' hu₂ hn₁' hn₂' he₂ => 
-    -- prove that rtr₂ = rtr₂'
-    -- then you can use eqModID.eq_from_eq_val_for_id
-    sorry 
+  case nested.nested i σ σ₁ j rtr₁ rtr₂ he₁ hn₁ hn₂ hu₁ hi j' rtr₁' rtr₂' hu₂ hn₁' hn₂' he₂ =>     
+    let l₁ := Classical.choice $ update_requires_lineage_to_target hu₁
+    let l₁' := Classical.choice $ update_requires_lineage_to_target hu₂
+    let l₂ := Lineage.nest _ _ l₁ hn₁
+    let l₂' := Lineage.nest _ _ l₁' hn₁'
+    injection σ.uniqueIDs l₂ l₂' with _ hr _ hj
+    rw [←hr] at hu₂
+    have hi' := hi hu₂
+    rw [hi', ←hn₂'] at hn₂
+    rw [hj] at he₁ hn₂
+    exact eqModID.eq_from_eq_val_for_id he₁ he₂ hn₂
   case top.nested i σ₁ _ _ ht _ _ _ _ hu hn _ _ =>
     let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ht
-    let l₂ := Lineage.nest _ _ (Classical.choice $ update_lineage hu) hn
+    let l₂ := Lineage.nest _ _ (Classical.choice $ update_requires_lineage_to_target hu) hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
   case nested.top i σ₁ _ _ _ _ _ hn _ hu _ ht _ _ =>
     let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ht
-    let l₂ := Lineage.nest _ _ (Classical.choice $ update_lineage hu) hn
+    let l₂ := Lineage.nest _ _ (Classical.choice $ update_requires_lineage_to_target hu) hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
 
