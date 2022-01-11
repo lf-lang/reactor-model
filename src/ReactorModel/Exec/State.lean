@@ -2,7 +2,7 @@ import ReactorModel.Time
 import ReactorModel.Components
 import ReactorModel.Mathlib.Finset
 
-open Time
+open Time Classical
 
 variable {ι υ} [Value υ]
 
@@ -15,7 +15,7 @@ variable {ι υ} [Value υ]
 
 structure State (ι υ) [Value υ] where
   executedRcns : Time.Tag ▸ Finset ι
-  wellFormed : ∃ g, executedRcns g ≠ none
+  wellFormed : executedRcns.nonempty
 
 namespace State
 
@@ -37,13 +37,17 @@ noncomputable def tagExecuted (s : State ι υ) (r : Reactor ι υ) (g : Time.Ta
 -- We want to be able to refer to the current time
 -- at which the execution of reactions is happening,
 -- which is the least tag that has not been executed:
-noncomputable def currentTime {s : State ι υ} (r : Reactor ι υ):=
-  let tags := s.executedRcns.ids
-  let unfinished_set := { g ∈ tags | ¬ (tagExecuted s r g) }
-  let unfinished : Finset Time.Tag := { val := sorry, nodup := sorry} -- val should be unfinished_set as multiset
-  unfinished.min'  
+def currentTime {s : State ι υ} (r : Reactor ι υ) : Time.Tag :=
+  let nonexecutedTags := s.executedRcns.ids.filter (¬ s.tagExecuted r ·) 
+  nonexecutedTags.min' sorry 
+    -- WARNING: You can't remove this sorry because you can't prove that nonexecutedTags
+    --          is nonempty, as State.wellFormed isn't strong enough of a condition.
+    --          You also need to ensure that there is some reaction that r  hasn't executed yet.
+    --          You could express this as a part of State.wellFormed, by making the State type dependent over a Reactor.
 
-def executedRcnsVals (s : State ι υ) (g : Time.Tag) (HnotNone : s.executedRcns g ≠ none) :=
-  (s.executedRcns g).iget  
+def executedRcnsVals (s : State ι υ) (g : Time.Tag) (HnotNone : s.executedRcns g ≠ none) : Finset ι :=
+  let he := Option.ne_none_iff_exists.mp HnotNone
+  let hs := Option.isSome_iff_exists.mpr ⟨he.choose, Eq.symm he.choose_spec⟩
+  (s.executedRcns g).get hs
 
 end State

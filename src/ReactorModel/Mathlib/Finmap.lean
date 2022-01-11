@@ -46,6 +46,8 @@ noncomputable def ids (f : α ▸ β) : Finset α :=
 theorem ids_def {f : α ▸ β} {i : α} : i ∈ f.ids ↔ f i ≠ none := by
   simp [ids, Set.finite.mem_to_finset, Set.mem_set_of_eq]
 
+def nonempty (f : α ▸ β) : Prop := ∃ i, f i ≠ none
+
 noncomputable def lookup' (f : α ▸ β) {i : α} (h : i ∈ f.ids) : β :=
    Exists.choose $ Option.ne_none_iff_exists.mp $ ids_def.mp h
    

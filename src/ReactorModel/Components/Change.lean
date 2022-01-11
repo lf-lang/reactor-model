@@ -1,8 +1,6 @@
 import ReactorModel.Components.Reactor.Basic
 import ReactorModel.Time 
 
-open Time
-
 variable (ι υ) [Value υ]
 
 -- In the semi-formal definition of the Reactor model, reactions' bodies are defined

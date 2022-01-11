@@ -19,8 +19,7 @@ instance : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nod
 instance : Inhabited (Finset α) where
   default := ∅
 
-def empty (a : Finset α) : Prop := sorry
-def nonEmpty (a : Finset α) : Prop := sorry
+def nonempty (s : Finset α) : Prop := ∃ x : α, x ∈ s
 
 protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=
   (s.val.bind (λ a => (t a).val)).toFinset
@@ -69,7 +68,7 @@ theorem inter_subset_right (s₁ s₂ : Finset α) [DecidableEq α] : s₁ ∩ s
 
 instance : Sdiff (Finset α) := sorry
 
-def min' [LinearOrder α] (s : Finset α) (H : s.nonEmpty) : α :=
+def min' [LinearOrder α] (s : Finset α) (H : s.nonempty) : α :=
   sorry
 
 def min [LinearOrder α] (s : Finset α)  : Option α :=

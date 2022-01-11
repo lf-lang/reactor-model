@@ -1,7 +1,7 @@
 import ReactorModel.Components.Reactor.Properties
 import ReactorModel.Time
 
-open Classical Time
+open Classical
 
 -- TODO: Redoc
 -- TODO: Better notation for cmp.accessor σ, e.g. σ[cmp]
@@ -49,17 +49,12 @@ variable {ι υ}
 
 namespace Reactor
 
--- TODO: Docs
---       Mention that we do the whole Option ι so that ⊤ can never appear inside a reactor.
---       Its more like a label.
-notation "⊤" => Option.none
-
 namespace Lineage
 
 -- The "direct parent" in a lineage is the reactor which contains the target of the lineage.
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
-def directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Option ι × Reactor ι υ)
+def directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Rooted ι × Reactor ι υ)
   | rtr _ => (⊤, σ)
   | rcn _ => (⊤, σ)
   | prt _ => (⊤, σ)
@@ -129,14 +124,14 @@ end Lineage
 -- we could easily extend the definition of `containerOf` to check whether `i = ⊤`
 -- and yield `False` in that case (as the top-level reactor will never have a
 -- parent container).
-def containerOf (σ : Reactor ι υ) (i : ι) (c : Option ι) : Prop := 
+def containerOf (σ : Reactor ι υ) (i : ι) (c : Rooted ι) : Prop := 
   ∃ l : Lineage σ i, (l.directParent).fst = c 
 
 -- This notation is chosen to be akin to the address notation in C.
 notation σ:max " &[" i "]= " c:max => Reactor.containerOf σ i c
 
 -- In the `containerOf` relation, any given ID can have at most one parent (`containerOf` is functional).
-theorem containerOf_unique {σ : Reactor ι υ} {i : ι} {c₁ c₂ : Option ι} :
+theorem containerOf_unique {σ : Reactor ι υ} {i : ι} {c₁ c₂ : Rooted ι} :
   σ &[i]= c₁ → σ &[i]= c₂ → c₁ = c₂ := by
   intro h₁ h₂
   obtain ⟨l₁, h₁⟩ := h₁
@@ -229,16 +224,16 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   exact h₂
 
 -- Note, this only makes sense when talking about a top-level ID.
-structure eqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop where
+structure EqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop where
   otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂
   otherIDsEq : ∀ {i'}, i' ≠ i → cmp.accessor σ₁ i' = cmp.accessor σ₂ i'
   priosEq : σ₁.prios = σ₂.prios
   rolesEq : σ₁.roles = σ₂.roles
 
-notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => eqModID σ₁ σ₂ cmp i
+notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
 
 -- TODO: Find out how to solve the case distinction more concisely.
-theorem eqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} 
+theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} 
   (he₁ : σ %[cmp, i]= σ₁) (he₂ : σ %[cmp, i]= σ₂) :
   (cmp.accessor σ₁ i = cmp.accessor σ₂ i) → σ₁ = σ₂ := by
   intro ha
@@ -297,36 +292,36 @@ theorem eqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cm
     simp only [Cmp.accessor] at h₀ h₁ h₂ h₃ h₄
     simp [h₀, h₁, h₂, h₃, h₄]
 
-inductive update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
+inductive Update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
   | top {i σ₁ σ₂} :
     (σ₁ %[cmp, i]= σ₂) →
     (cmp.accessor σ₁ i ≠ none) → -- This is required so that we know where to actually update i / so that there's at most one possible outcome of an update. 
     (cmp.accessor σ₂ i = v) → 
-    update cmp v i σ₁ σ₂
+    Update cmp v i σ₁ σ₂
   | nested {i σ₁ σ₂} {j rtr₁ rtr₂} : 
     (σ₁ %[Cmp.rtr, j]= σ₂) →
     (σ₁.nest j = some rtr₁) →
     (σ₂.nest j = some rtr₂) →
-    (update cmp v i rtr₁ rtr₂) →
-    update cmp v i σ₁ σ₂
+    (Update cmp v i rtr₁ rtr₂) →
+    Update cmp v i σ₁ σ₂
 
-notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.update cmp v i σ₁ σ₂
+notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.Update cmp v i σ₁ σ₂
 
-theorem update_requires_lineage_to_target {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (h : σ₁ -[cmp, i := v]→ σ₂) : Nonempty (Lineage σ₁ i) := by
+theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (h : σ₁ -[cmp, i := v]→ σ₂) : Nonempty (Lineage σ₁ i) := by
   induction h
   case top i σ₁ _ _ ha _ => exact ⟨Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ha⟩
   case nested hn _ _ hi => exact ⟨Lineage.nest _ _ (Classical.choice hi) hn⟩
 
-theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
+theorem Update.unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
   (σ -[cmp, i := v]→ σ₁) → (σ -[cmp, i := v]→ σ₂) → σ₁ = σ₂ := by
   intro h₁ h₂
   (induction h₁ generalizing σ₂) <;> cases h₂
   case top.top _ he₁ _ hi₁ _ hi₂ he₂ => 
     rw [←hi₂] at hi₁
-    exact eqModID.eq_from_eq_val_for_id he₁ he₂ hi₁
+    exact EqModID.eq_from_eq_val_for_id he₁ he₂ hi₁
   case nested.nested i σ σ₁ j rtr₁ rtr₂ he₁ hn₁ hn₂ hu₁ hi j' rtr₁' rtr₂' hu₂ hn₁' hn₂' he₂ =>     
-    let l₁ := Classical.choice $ update_requires_lineage_to_target hu₁
-    let l₁' := Classical.choice $ update_requires_lineage_to_target hu₂
+    let l₁ := Classical.choice hu₁.requires_lineage_to_target
+    let l₁' := Classical.choice hu₂.requires_lineage_to_target
     let l₂ := Lineage.nest _ _ l₁ hn₁
     let l₂' := Lineage.nest _ _ l₁' hn₁'
     injection σ.uniqueIDs l₂ l₂' with _ hr _ hj
@@ -334,19 +329,19 @@ theorem update_unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v :
     have hi' := hi hu₂
     rw [hi', ←hn₂'] at hn₂
     rw [hj] at he₁ hn₂
-    exact eqModID.eq_from_eq_val_for_id he₁ he₂ hn₂
+    exact EqModID.eq_from_eq_val_for_id he₁ he₂ hn₂
   case top.nested i σ₁ _ _ ht _ _ _ _ hu hn _ _ =>
     let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ht
-    let l₂ := Lineage.nest _ _ (Classical.choice $ update_requires_lineage_to_target hu) hn
+    let l₂ := Lineage.nest _ _ (Classical.choice hu.requires_lineage_to_target) hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
   case nested.top i σ₁ _ _ _ _ _ hn _ hu _ ht _ _ =>
     let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ht
-    let l₂ := Lineage.nest _ _ (Classical.choice $ update_requires_lineage_to_target hu) hn
+    let l₂ := Lineage.nest _ _ (Classical.choice hu.requires_lineage_to_target) hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
 
-theorem objFor_updated {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
+theorem Update.objFor_same {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
   (σ₁ -[cmp, i := v]→ σ₂) → σ₂ *[cmp, i]= v := by
   intro h
   induction h

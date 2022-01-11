@@ -25,8 +25,8 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h
   simp only [norms, Finmap.filter'_mem_values] at h
   obtain ⟨i, h, hn⟩ := h
   obtain ⟨nr, hr⟩ := rcns_has_raw h
-  have he := rcns_rawEquiv rtr
-  have hnr := (Reaction.rawEquiv_isNorm_iff $ he.rel h hr).mp hn
+  have he := RawEquiv.rcns rtr
+  have hnr := (Reaction.RawEquiv.isNorm_iff $ he.rel h hr).mp hn
   have hw := rtr.rawWF.direct.wfNormDeps nr i r hr
   simp [Set.subset_def, Set.mem_union] at hw
   rw [(he.rel h hr).deps] at hj
@@ -57,9 +57,9 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
   simp only [muts, Finmap.filter'_mem_values] at h
   obtain ⟨i, h, hm⟩ := h
   obtain ⟨mr, hr⟩ := rcns_has_raw h
-  have he := rcns_rawEquiv rtr
+  have he := RawEquiv.rcns rtr
   have hq := he.rel h hr
-  have hrm := (Reaction.rawEquiv_isMut_iff hq).mp hm
+  have hrm := (Reaction.RawEquiv.isMut_iff hq).mp hm
   have hw := rtr.rawWF.direct.wfMutDeps mr i hr hrm
   obtain ⟨h₁, h₂⟩ := hw
   clear hw
@@ -101,9 +101,9 @@ theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rt
   obtain ⟨hr₂, hm₂⟩ := hm.choose_spec
   have hi₁ := (rcns_has_raw hr₁).choose_spec
   have hi₂ := (rcns_has_raw hr₂).choose_spec
-  have he := rcns_rawEquiv rtr
-  have hmr₁ := (Reaction.rawEquiv_isNorm_iff $ he.rel hr₁ hi₁).mp hm₁
-  have hmr₂ := (Reaction.rawEquiv_isMut_iff  $ he.rel hr₂ hi₂).mp hm₂
+  have he := RawEquiv.rcns rtr
+  have hmr₁ := (Reaction.RawEquiv.isNorm_iff $ he.rel hr₁ hi₁).mp hm₁
+  have hmr₂ := (Reaction.RawEquiv.isMut_iff  $ he.rel hr₂ hi₂).mp hm₂
   exact h _ _ hi₁ hmr₁ hi₂ hmr₂
 
 -- This constraint forces the priorities of all mutations in a reactor to be comparable,
@@ -116,9 +116,9 @@ theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ 
   obtain ⟨hr₂, hm₂⟩ := h₂.choose_spec
   have hi₁ := (rcns_has_raw hr₁).choose_spec
   have hi₂ := (rcns_has_raw hr₂).choose_spec
-  have he := rcns_rawEquiv rtr
-  have hmr₁ := (Reaction.rawEquiv_isMut_iff $ he.rel hr₁ hi₁).mp hm₁
-  have hmr₂ := (Reaction.rawEquiv_isMut_iff $ he.rel hr₂ hi₂).mp hm₂
+  have he := RawEquiv.rcns rtr
+  have hmr₁ := (Reaction.RawEquiv.isMut_iff $ he.rel hr₁ hi₁).mp hm₁
+  have hmr₂ := (Reaction.RawEquiv.isMut_iff $ he.rel hr₂ hi₂).mp hm₂
   exact h _ _ hi₁ hi₂ hmr₁ hmr₂
 
 -- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
@@ -149,8 +149,8 @@ private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reac
   | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
   | Lineage.act h => Raw.Reactor.Lineage.act σ.raw i h
   | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
-  | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((rcns_rawEquiv σ).eqIDs i).mp h
-  | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_rawEquiv σ).eqIDs i).mp h
+  | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((RawEquiv.rcns σ).eqIDs i).mp h
+  | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((RawEquiv.nest σ).eqIDs i).mp h
   | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_mem_raw_iff.mp hn)
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.
@@ -170,13 +170,5 @@ theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l
       exact hi _ $ eq_of_heq h.right.right
     all_goals { contradiction }
   all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
-
-noncomputable def isPredecessor {r : Reactor ι υ} (src tgt : ι) : Prop :=
- sorry  
-
-noncomputable def isSuccessor {r : Reactor ι υ} (src tgt : ι) : Prop :=
- sorry  
-noncomputable def predecessors {r : Reactor ι υ} (src : ι ):=
- { tgt ∈ r.rcns.ids | r.isSuccessor src tgt}
 
 end Reactor

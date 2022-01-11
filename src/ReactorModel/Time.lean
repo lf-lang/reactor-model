@@ -1,5 +1,4 @@
 import Mathlib
-namespace Time
 
 def Time := Nat
   deriving LinearOrder, Ord, DecidableEq, Inhabited

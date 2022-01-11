@@ -2,6 +2,17 @@ import ReactorModel.Mathlib
 
 open Classical
 
+-- TODO: Add docs for Rooted.
+
+inductive Rooted (ι)
+  | root
+  | nested (i : ι)
+
+notation "⊤" => Rooted.root
+
+instance : Coe ι (Rooted ι) where
+  coe (i : ι) := Rooted.nested i
+
 -- The class of types that can be used as values in a reactor.
 -- Any such type must contain an "absent" value.
 class Value (α) where
@@ -95,9 +106,14 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (ι ▸ υ) := {
   }
 }
 
+-- An ID "is present" in a port assignment if the port exists and has a non-absent value.
+-- That is, it contains a value that is not `⊥`.
+def isPresent (p : ι ▸ υ) (i : ι) : Prop :=
+  p[i] ≠ none
+
 -- The (finite) set of IDs for which a given port-assignment contains non-absent values.
 noncomputable def presentIDs (p : ι ▸ υ) : Finset ι :=
-  let description : Set ι := { i | p[i] ≠ none }
+  let description : Set ι := { i | p.isPresent i }
   let finite : description.finite := by
     let f : Finset ι := p.ids.filter (λ i => p[i] ≠ none)
     suffices h : description ⊆ ↑f 
@@ -111,8 +127,5 @@ noncomputable def presentIDs (p : ι ▸ υ) : Finset ι :=
       rw [Finmap.ids_def, Ne.def]
       exact mt lookup_none_getValue_none h  
   finite.toFinset
-
-def isPresent {p : ι ▸ υ} (i : ι) : Prop :=
- p[i] ≠ none -- this includes `some ⊥`
 
 end Finmap

@@ -1,8 +1,6 @@
 import ReactorModel.Primitives
 import ReactorModel.Time
 
-open Port Time
-
 structure Reaction.Input (ι υ) [Value υ] where
   ports : ι ▸ υ
   acts : ι ▸ υ
@@ -93,7 +91,6 @@ def isNorm (rcn : Raw.Reaction ι υ) : Prop :=
 def isMut (rcn : Raw.Reaction ι υ) : Prop :=
   ¬rcn.isNorm
 
--- TODO: Remove this once Lean 4 can derive extensionality.
 -- An extensionality theorem for `Raw.Reaction`.
 theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction ι υ} : 
   rcn₁ = rcn₂ ↔ 
@@ -112,7 +109,6 @@ theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction ι υ} :
     cases rcn₂
     simp [h]
 
--- TODO: Remove this once Lean 4 can derive extensionality.
 -- We need this additional theorem as the `ext` attribute can only be used on theorems proving an equality.
 @[ext]
 theorem ext {rcn₁ rcn₂ : Raw.Reaction ι υ} :
