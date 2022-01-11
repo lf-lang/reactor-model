@@ -72,6 +72,8 @@ instance : Sdiff (Finset α) := sorry
 def min' [LinearOrder α] (s : Finset α) (H : s.nonEmpty) : α :=
   sorry
 
+def min [LinearOrder α] (s : Finset α)  : Option α :=
+  sorry
 
 end Finset
 

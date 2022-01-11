@@ -1,5 +1,6 @@
 import ReactorModel.Time
 import ReactorModel.Components
+import ReactorModel.Mathlib.Finset
 
 open Time
 
@@ -14,6 +15,7 @@ variable {ι υ} [Value υ]
 
 structure State (ι υ) [Value υ] where
   executedRcns : Time.Tag ▸ Finset ι
+  wellFormed : ∃ g, executedRcns g ≠ none
 
 namespace State
 
@@ -22,6 +24,7 @@ namespace State
 noncomputable def addTag (s: State ι υ) (g : Time.Tag) 
 (Hempty : s.executedRcns g = none) : State ι υ := {
    executedRcns := s.executedRcns.update g (some ∅)
+   wellFormed := sorry -- executedRcns.g = some ∅
 }
 
 -- A State can contain tags for which all reactions have been executed,
@@ -34,9 +37,13 @@ noncomputable def tagExecuted (s : State ι υ) (r : Reactor ι υ) (g : Time.Ta
 -- We want to be able to refer to the current time
 -- at which the execution of reactions is happening,
 -- which is the least tag that has not been executed:
-noncomputable def currentTime (s : State ι υ) (r : Reactor ι υ):=
+noncomputable def currentTime {s : State ι υ} (r : Reactor ι υ):=
   let tags := s.executedRcns.ids
-  let unfinished := { g ∈ tags | ¬ (tagExecuted s r g) }
-  min unfinished  -- is this wrong? (why does it want instance LE for a *Set*)
+  let unfinished_set := { g ∈ tags | ¬ (tagExecuted s r g) }
+  let unfinished : Finset Time.Tag := { val := sorry, nodup := sorry} -- val should be unfinished_set as multiset
+  unfinished.min'  
+
+def executedRcnsVals (s : State ι υ) (g : Time.Tag) (HnotNone : s.executedRcns g ≠ none) :=
+  (s.executedRcns g).iget  
 
 end State

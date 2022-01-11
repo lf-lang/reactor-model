@@ -112,4 +112,7 @@ noncomputable def presentIDs (p : ι ▸ υ) : Finset ι :=
       exact mt lookup_none_getValue_none h  
   finite.toFinset
 
+def isPresent {p : ι ▸ υ} (i : ι) : Prop :=
+ p[i] ≠ none -- this includes `some ⊥`
+
 end Finmap

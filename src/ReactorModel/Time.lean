@@ -10,7 +10,7 @@ structure Tag where
   t : Time
   microsteps : Nat
 
-instance LE_Tag : LE Tag := sorry
+instance LinearOrder_Tag : LinearOrder Tag := sorry
 
 open Ordering in
 def advance (g : Tag) (t : Time) : Option Tag :=  

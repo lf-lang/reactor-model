@@ -171,4 +171,12 @@ theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l
     all_goals { contradiction }
   all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
 
+noncomputable def isPredecessor {r : Reactor ι υ} (src tgt : ι) : Prop :=
+ sorry  
+
+noncomputable def isSuccessor {r : Reactor ι υ} (src tgt : ι) : Prop :=
+ sorry  
+noncomputable def predecessors {r : Reactor ι υ} (src : ι ):=
+ { tgt ∈ r.rcns.ids | r.isSuccessor src tgt}
+
 end Reactor
