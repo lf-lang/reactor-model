@@ -223,6 +223,9 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   simp [h₁] at h₂
   exact h₂
 
+def containsID (σ : Reactor ι υ) (i : ι) (cmp : Cmp) : Prop := 
+  ∃ v, σ *[cmp, i]= v
+
 -- Note, this only makes sense when talking about a top-level ID.
 structure EqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop where
   otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂

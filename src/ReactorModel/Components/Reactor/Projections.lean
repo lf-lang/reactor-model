@@ -106,8 +106,8 @@ noncomputable def ports' (rtr : Reactor ι υ) (r : Port.Role) : ι ▸ υ :=
 set_option quotPrecheck false in
 notation i₁:max " <[" σ "] " i₂:max => (@LT.lt _ $ @Preorder.toLT _ $ @PartialOrder.toPreorder _ $ Reactor.prios σ) i₁ i₂
 
-def predecessors {σ : Reactor ι υ} (src : ι) : Set ι :=
- { tgt ∈ σ.rcns.ids | src <[σ] tgt}
+def predecessors {σ : Reactor ι υ} (rcn : ι) : Set ι :=
+ { rcn' ∈ σ.rcns.ids | rcn' <[σ] rcn }
 
 -- A direct projection to a reactor's normal reactions.
 noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=

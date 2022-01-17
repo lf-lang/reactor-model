@@ -2,6 +2,14 @@ import ReactorModel.Execution.Context
 
 variable {ι υ} [Value υ]
 
+-- TODO: Come up with something nicer.
+structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor ι υ) where
+  otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
+  priosEq : σ₁.prios = σ₂.prios
+  rolesEq : σ₁.roles = σ₂.roles
+  samePortIDs : ∀ i, σ₁.containsID i Cmp.prt ↔ σ₂.containsID i Cmp.prt
+  clearedIDs : ∀ i, σ₂.containsID i Cmp.prt → σ₂ *[Cmp.prt, i]= ⊥
+
 namespace Execution
 
 inductive ChangeStep (g : Time.Tag) (σ₁ σ₂ : Reactor ι υ) : Change ι υ → Prop 
@@ -21,25 +29,26 @@ inductive ChangeListStep (g : Time.Tag) : Reactor ι υ → Reactor ι υ → Li
 
 notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ σ₂ cs
 
-inductive Step (σ₁ : Reactor ι υ) (ctx₁ : Context ι) (σ₂ : Reactor ι υ) : Context ι → Prop 
-  | execReaction {rcn : Reaction ι υ} {i} : 
-    (σ₁.rcns i = rcn) →
-    (σ₁.predecessors i ⊆ ctx₁.currentExecutedRcns) →
-    (i ∉ ctx₁.currentExecutedRcns) →
-    (rcn.triggersOn $ σ₁.inputForRcn rcn ctx₁.time) →
-    (σ₁ -[rcn $ σ₁.inputForRcn rcn ctx₁.time, ctx₁.time]→* σ₂) →
-    Step σ₁ ctx₁ σ₂ (ctx₁.addCurrentExecuted i)
+inductive Step (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
+  | execReaction {rcn : Reaction ι υ} {i σ'} : 
+    (σ.rcns i = rcn) →
+    (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
+    (i ∉ ctx.currentExecutedRcns) →
+    (rcn.triggersOn $ σ.inputForRcn rcn ctx.time) →
+    (σ -[rcn $ σ.inputForRcn rcn ctx.time, ctx.time]→* σ') →
+    Step σ ctx σ' (ctx.addCurrentExecuted i)
   | skipReaction {rcn : Reaction ι υ} {i} :
-    (σ₁.rcns i = rcn) →
-    (σ₁.predecessors i ⊆ ctx₁.currentExecutedRcns) →
-    (i ∉ ctx₁.currentExecutedRcns) →
-    (¬(rcn.triggersOn $ σ₁.inputForRcn rcn ctx₁.time)) →
-    Step σ₁ ctx₁ σ₂ (ctx₁.addCurrentExecuted i)
-  | advanceTime {g} (hg : ctx₁.time < g) :
-    (g ∈ σ₁.scheduledTags) →
-    (∀ g' ∈ σ₁.scheduledTags, ctx₁.time < g' → g ≤ g') →
-    (ctx₁.currentExecutedRcns = σ₁.rcns.ids) →
-    Step σ₁ ctx₁ σ₂ (ctx₁.advanceTime hg)
+    (σ.rcns i = rcn) →
+    (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
+    (i ∉ ctx.currentExecutedRcns) →
+    (¬(rcn.triggersOn $ σ.inputForRcn rcn ctx.time)) →
+    Step σ ctx σ (ctx.addCurrentExecuted i)
+  | advanceTime {σ' g} (hg : ctx.time < g) :
+    (g ∈ σ.scheduledTags) →
+    (∀ g' ∈ σ.scheduledTags, ctx.time < g' → g ≤ g') →
+    (ctx.currentExecutedRcns = σ.rcns.ids) →
+    (σ.eqWithClearedPorts σ') →
+    Step σ ctx σ' (ctx.advanceTime hg)
 
 notation "(" σ₁ ", " ctx₁ ") ⇓ (" σ₂ ", " ctx₂ ")" => Step σ₁ ctx₁ σ₂ ctx₂
 
