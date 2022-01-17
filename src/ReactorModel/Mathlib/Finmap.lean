@@ -147,6 +147,11 @@ theorem filter'_mem_values {f : α ▸ β} {p : β → Prop} {b : β} :
   b ∈ (f.filter' p).values ↔ ∃ i : α, f i = b ∧ p b :=
   sorry 
 
+def filterMap (f : α ▸ β) (g : β → Option γ) : α ▸ γ := {
+  lookup := λ a => (f a) >>= g,
+  finite := sorry
+}
+
 -- The finmap that containts only those entries from `f`, whose identifiers
 -- are in a given set `as`.
 noncomputable def restrict (f : α ▸ β) (as : Finset α) : α ▸ β :=

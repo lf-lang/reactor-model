@@ -19,6 +19,8 @@ instance : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nod
 instance : Inhabited (Finset α) where
   default := ∅
 
+def insert : Finset α → α → Finset α := sorry
+
 def nonempty (s : Finset α) : Prop := ∃ x : α, x ∈ s
 
 protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=

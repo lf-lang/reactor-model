@@ -60,12 +60,12 @@ theorem norm_no_child' (rcn : Reaction ι υ) : rcn.isNorm → rcn.children = �
 
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction ι υ) (i : Input ι υ) : Prop :=
-  ∃ t, t ∈ rcn.triggers ∧ i.ports[t] ≠ none
+  ∃ t, t ∈ rcn.triggers ∧ i.ports.isPresent t
 
 -- TODO: Remove this if it is not used.
 theorem eq_input_eq_triggering {rcn : Reaction ι υ} {i₁ i₂ : Input ι υ} (h : i₁.ports =[rcn.deps Role.in] i₂.ports) :
   rcn.triggersOn i₁ ↔ rcn.triggersOn i₂ := by
-  simp [triggersOn, Finmap.eqAt] at h ⊢
+  simp [triggersOn, Finmap.eqAt, Finmap.isPresent] at h ⊢
   apply Iff.intro <;> (
     intro ⟨t, ⟨hm, hn⟩⟩
     exists t

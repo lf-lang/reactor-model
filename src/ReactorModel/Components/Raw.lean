@@ -44,7 +44,7 @@ protected inductive Reactor (ι υ) [v : Value υ]
   | mk 
     (ports : ι ▸ υ) 
     (roles : ι ▸ Port.Role)
-    (acts :  ι ▸ Time ▸ υ)
+    (acts :  ι ▸ Time.Tag ▸ υ)
     (state : ι ▸ υ)
     (rcns :  ι → Option (Raw.Reaction ι υ))
     (nest :  ι → Option (Raw.Reactor ι υ))
@@ -123,7 +123,7 @@ namespace Raw.Reactor
 -- These definitions give us the projections that would usually be generated for a structure.
 def ports : Raw.Reactor ι υ → ι ▸ υ                         | mk p _ _ _ _ _ _ => p
 def roles : Raw.Reactor ι υ → ι ▸ Port.Role                 | mk _ r _ _ _ _ _ => r
-def acts :  Raw.Reactor ι υ → ι ▸ Time ▸ υ                  | mk _ _ a _ _ _ _ => a
+def acts :  Raw.Reactor ι υ → ι ▸ Time.Tag ▸ υ              | mk _ _ a _ _ _ _ => a
 def state : Raw.Reactor ι υ → ι ▸ υ                         | mk _ _ _ s _ _ _ => s 
 def rcns :  Raw.Reactor ι υ → ι → Option (Raw.Reaction ι υ) | mk _ _ _ _ r _ _ => r
 def nest :  Raw.Reactor ι υ → ι → Option (Raw.Reactor ι υ)  | mk _ _ _ _ _ n _ => n

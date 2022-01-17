@@ -1,17 +1,17 @@
 import ReactorModel.Components.Lift
 
-open Classical
+open Classical Port
 
 variable {ι υ} [Value υ]
 
 namespace Reactor
 
 -- Lifted versions of the trivially liftable projections of `Raw.Reactor`.
-def ports (rtr : Reactor ι υ) : ι ▸ υ          := rtr.raw.ports
-def roles (rtr : Reactor ι υ) : ι ▸ Port.Role  := rtr.raw.roles
-def acts  (rtr : Reactor ι υ) : ι ▸ Time ▸ υ   := rtr.raw.acts
-def state (rtr : Reactor ι υ) : ι ▸ υ          := rtr.raw.state
-def prios (rtr : Reactor ι υ) : PartialOrder ι := rtr.raw.prios
+def ports (rtr : Reactor ι υ) : ι ▸ υ            := rtr.raw.ports
+def roles (rtr : Reactor ι υ) : ι ▸ Port.Role    := rtr.raw.roles
+def acts  (rtr : Reactor ι υ) : ι ▸ Time.Tag ▸ υ := rtr.raw.acts
+def state (rtr : Reactor ι υ) : ι ▸ υ            := rtr.raw.state
+def prios (rtr : Reactor ι υ) : PartialOrder ι   := rtr.raw.prios
 
 -- The `nest` projection lifted to return a finmap of "proper" reactors.
 -- 
@@ -131,6 +131,15 @@ noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Port.Role) : Finset �
       from Set.finite.subset (Finset.finite_to_set _) h
     simp [Set.subset_def]
   finite.toFinset
+
+noncomputable def inputForRcn (σ : Reactor ι υ) (rcn : Reaction ι υ) (t : Time.Tag) : Reaction.Input ι υ := {
+  ports := σ.ports.restrict $ rcn.deps Role.in,
+  acts := (σ.acts.filterMap (· t)).restrict $ rcn.deps Role.in,
+  state := σ.state
+}
+
+noncomputable def scheduledTags (σ : Reactor ι υ) : Finset Time.Tag := 
+  σ.acts.values.bUnion (·.ids)
 
 -- TODO (maybe): Factor out the overlap between the proofs of `rcns_ext` and `nest_ext`.
 

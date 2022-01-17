@@ -28,7 +28,7 @@ abbrev type : Cmp → Type _
   | rtr => Reactor ι υ
   | rcn => Reaction ι υ
   | prt => υ
-  | act => Time ▸ υ
+  | act => Time.Tag ▸ υ
   | stv => υ
 
 variable {ι υ}
