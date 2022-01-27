@@ -29,20 +29,47 @@ inductive ChangeListStep (g : Time.Tag) : Reactor ι υ → Reactor ι υ → Li
 
 notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ σ₂ cs
 
-inductive Step (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
+-- We separate the execution into two parts, the instantaneous execution which controlls
+-- how reactors execute at a given instant, and the timed execution, which includes the
+-- passing of time
+inductive instantaneousStep (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
   | execReaction {rcn : Reaction ι υ} {i σ'} : 
     (σ.rcns i = rcn) →
     (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
     (i ∉ ctx.currentExecutedRcns) →
     (rcn.triggersOn $ σ.inputForRcn rcn ctx.time) →
     (σ -[rcn $ σ.inputForRcn rcn ctx.time, ctx.time]→* σ') →
-    Step σ ctx σ' (ctx.addCurrentExecuted i)
+    instantaneousStep σ ctx σ' (ctx.addCurrentExecuted i)
   | skipReaction {rcn : Reaction ι υ} {i} :
     (σ.rcns i = rcn) →
     (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
     (i ∉ ctx.currentExecutedRcns) →
     (¬(rcn.triggersOn $ σ.inputForRcn rcn ctx.time)) →
-    Step σ ctx σ (ctx.addCurrentExecuted i)
+    instantaneousStep σ ctx σ (ctx.addCurrentExecuted i)
+
+-- An execution at an instant is a series of steps,
+-- which we model with the transitive, reflexive closure.
+inductive instantaneousExecution (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
+ | refl : instantaneousExecution σ ctx σ ctx
+ | trans {σ₁ σ₂ : Reactor ι υ} {ctx₁ ctx₂ : Context ι} :
+         (σ, ctx) ⇓ᵢ (σ₁, ctx₁) →
+         instantaneousExecution σ₁ ctx₁ σ₂ ctx₂ →
+         instantaneousExecution σ ctx σ₂ ctx₂
+
+notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ (" σ₂ ", " ctx₂ ")" => instantaneousStep σ₁ ctx₁ σ₂ ctx₂
+notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ* (" σ₂ ", " ctx₂ ")" => instantaneousExecution σ₁ ctx₁ σ₂ ctx₂
+
+-- To model when the execution has finished at an instant, we define a property of a reactor being
+-- stuck in that instant: when there is no instanteneous step it can take
+def instantaneousStuck (σ : Reactor ι υ) (ctx : Context ι) : ¬ (∃ σ' ctx' : (σ, ctx) ⇓ᵢ (σ', ctx'))
+
+-- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
+-- steps can be taken, or a time advancement.
+inductive Step (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
+  | instantaneousStep {σ' ctx'} :
+    (σ, ctx) ⇓ᵢ* (σ', ctx') → 
+    instantaneousStuck σ' ctx' →
+    Step σ ctx σ' ctx'
   | advanceTime {σ' g} (hg : ctx.time < g) :
     (g ∈ σ.scheduledTags) →
     (∀ g' ∈ σ.scheduledTags, ctx.time < g' → g ≤ g') →
