@@ -6,6 +6,7 @@ structure Execution.Context (ι) where
   executedRcns : Time.Tag ▸ Finset ι
   nonempty : executedRcns.nonempty
 
+
 namespace Execution.Context
 
 variable {ι υ} [Value υ]
@@ -29,5 +30,11 @@ noncomputable def advanceTime (ctx : Context ι) {g : Time.Tag} (h : ctx.time < 
   executedRcns := ctx.executedRcns.update' g ∅,
   nonempty := sorry
 }
+
+lemma identicalExecuted {ctx₁ ctx₂ : Context ι} : ctx₁.executedRcns = ctx₂.executedRcns → ctx₁ = ctx₂ :=
+sorry
+
+lemma currentIdentical {ctx₁ ctx₂ : Context ι} : ctx₁.currentExecutedRcns = ctx₂.currentExecutedRcns → ctx₁.time = ctx₂.time → ctx₁ = ctx₂ :=
+sorry
 
 end Execution.Context

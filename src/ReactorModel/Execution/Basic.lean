@@ -80,6 +80,22 @@ inductive Step (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Conte
 
 notation "(" σ₁ ", " ctx₁ ") ⇓ (" σ₂ ", " ctx₂ ")" => Step σ₁ ctx₁ σ₂ ctx₂
 
+def sameReactionExecuted
+{σ₁ σ₂ σ₁' σ₂' : Reactor ι υ}
+{ctx₁ ctx₂ ctx₁' ctx₂'  : Context ι} 
+(H1 : (σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁'))
+(H2 : (σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) : Prop :=
+  ∃ i : ι, (i ∉ ctx₁.currentExecutedRcns) ∧ (i ∉ ctx₂.currentExecutedRcns) ∧ 
+  (i ∈ ctx₁'.currentExecutedRcns) ∧ (i ∈ ctx₂'.currentExecutedRcns)
+
+def sameReactionTopologyChanges
+{σ₁ σ₂ σ₁' σ₂' : Reactor ι υ}
+{ctx₁ ctx₂ ctx₁' ctx₂'  : Context ι} 
+(H1 : (σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁'))
+(H2 : (σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) : Prop :=
+  (∀ i : ι, (i ∈ σ₁.rcns.ids ∧ i ∉ σ₁'.rcns.ids) → (i ∈ σ₂.rcns.ids ∧ i ∉ σ₁'.rcns.ids)) ∧   -- reaction deleted  
+  (∀ i : ι, ((i ∉ σ₁.rcns.ids) ∧ i ∈ σ₁'.rcns.ids) → ((i ∉ σ₂.rcns.ids) ∧ i ∈ σ₁'.rcns.ids)) -- reaction added  
+
 end Execution
 
 open Execution
