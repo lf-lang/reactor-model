@@ -7,8 +7,12 @@ variable {ι υ} [Value υ]
 -- step that can be taken.
 open Execution
 
+lemma instExecMonotoneCtx {σ₁ σ₂ : Reactor ι υ} {ctx₁ ctx₂ : Context ι} :
+ (σ₁, ctx₁) ⇓ᵢ (σ2, ctx₂) → ∃ i : ι, ctx₁.currentExecutedRcns.insert i = ctx₂.currentExecutedRcns :=
+  sorry
+
 lemma stuckAllExecuted  {σ : Reactor ι υ} {ctx : Context ι} :
- instantaneousStuck σ ctx →  σ.rcns.ids = ctx.currentExecutedRcns := 
+ instantaneousStuck σ ctx ↔ σ.rcns.ids = ctx.currentExecutedRcns := 
  sorry
 
 
@@ -47,8 +51,8 @@ lemma instantaneousConvergent {σ σ₁ σ₂ : Reactor ι υ} {ctx ctx₁ ctx�
     intros Hstep₁ Hstuck₁ Hstep₂ Hstuck₂
     have Hsteps := And.intro Hstep₁ Hstep₂
     apply instantaneousDeterministic  Hsteps
-    have Hexec₁ := stuckAllExecuted Hstuck₁
-    have Hexec₂ := stuckAllExecuted Hstuck₂
+    have Hexec₁ := stuckAllExecuted.1 Hstuck₁
+    have Hexec₂ := stuckAllExecuted.1 Hstuck₂
     have Htopology := instantaneousConvergentTopology Hstep₁ Hstuck₁ Hstep₂ Hstuck₂
     rw [Htopology] at Hexec₁
     rewrite [Hexec₁] at Hexec₂
@@ -58,6 +62,41 @@ lemma instantaneousConvergent {σ σ₁ σ₂ : Reactor ι υ} {ctx ctx₁ ctx�
     exact Context.currentIdentical Hexec₂ Htime₂
 
 theorem Execution.timedDeterministic {σ σ₁ σ₂ : Reactor ι υ} {ctx ctx₁ ctx₂  : Execution.Context ι} : 
-   (σ, ctx) ⇓ (σ₁, ctx₁) ∧ (σ, ctx) ⇓ (σ₂, ctx₂) → σ₁ = σ₂ ∧ ctx₁ = ctx₂ := sorry
+   (σ, ctx) ⇓ (σ₁, ctx₁) ∧ (σ, ctx) ⇓ (σ₂, ctx₂) → σ₁ = σ₂ := by
+  intros Hexec
+  cases Hexec.1 with
+   | instantaneousStep Hstep₁ Hstuck₁ => cases Hexec.2 with 
+       | instantaneousStep Hstep₂ Hstuck₂ =>  
+         apply instantaneousConvergent Hstep₁.1 Hstuck₁ Hstep₂.1 Hstuck₂
+       | advanceTime Hgnext Hgshed Hgminfuture Hallrcns Hσequiv =>
+         have Hmonotonectx := (instExecMonotoneCtx Hstep₁.1)
+         rw [Hallrcns] at Hmonotonectx
+         have Hcontra := exists.intro Hmonotonectx.
+         -- should be: coq's discriminate
+    | case advanceTime Hgnext₁ Hgshed₁ Hgminfuture₁ Hallrcns₁ Hσequiv₁ =>
+        cases Hexec.2 with 
+        | advanceTime Hgnext₂ Hgshed₂ Hgminfuture₂ Hallrcns₂ Hσequiv₂ =>
+        exact (Reactor.eqWithClearedPortsUnique Hσequiv₁ Hσequiv₂)
+        -- this does not use anything about the times... (as those are "encoded" in ctx₁ ctx₂)
+        -- probably we need to add statement that ctx₁ = ctx₂ as well ()
+        | instantaneousStep Hstep₂ Hstuck₂ =>
+        sorry -- should be the same contradiction as above
 
+
+
+        
+
+
+
+
+
+
+
+        
+
+
+         
+   | advanceTime
+
+  
   

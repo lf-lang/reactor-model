@@ -10,6 +10,10 @@ structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor ι υ) where
   samePortIDs : ∀ i, σ₁.containsID i Cmp.prt ↔ σ₂.containsID i Cmp.prt
   clearedIDs : ∀ i, σ₂.containsID i Cmp.prt → σ₂ *[Cmp.prt, i]= ⊥
 
+lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor ι υ} :
+ Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
+ σ₁ = σ₂ := sorry
+ 
 namespace Execution
 
 inductive ChangeStep (g : Time.Tag) (σ₁ σ₂ : Reactor ι υ) : Change ι υ → Prop 
@@ -57,8 +61,12 @@ inductive instantaneousExecution : Reactor ι υ →  Context ι → Reactor ι 
          (σ, c) ⇓ᵢ (σ₁, ctx₁) →
          instantaneousExecution σ₁ ctx₁ σ₂ ctx₂ →
          instantaneousExecution σ c σ₂ ctx₂
+  
+def instantaneousProperExecution (σ₁ : Reactor ι υ) (ctx₁ : Context ι) (σ₂ : Reactor ι υ)  (ctx₂ : Context ι) : Prop :=
+instantaneousExecution σ₁ ctx₁ σ₂ ctx₂ ∧ σ₁ ≠ σ₂
 
 notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ* (" σ₂ ", " ctx₂ ")" => instantaneousExecution σ₁ ctx₁ σ₂ ctx₂
+notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ+ (" σ₂ ", " ctx₂ ")" => instantaneousProperExecution σ₁ ctx₁ σ₂ ctx₂
 
 -- To model when the execution has finished at an instant, we define a property of a reactor being
 -- stuck in that instant: when there is no instanteneous step it can take
@@ -68,7 +76,7 @@ def instantaneousStuck (σ : Reactor ι υ) (ctx : Context ι) := ¬ (∃ σ' ct
 -- steps can be taken, or a time advancement.
 inductive Step (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
   | instantaneousStep {σ' ctx'} :
-    (σ, ctx) ⇓ᵢ* (σ', ctx') → 
+    (σ, ctx) ⇓ᵢ+ (σ', ctx') → 
     instantaneousStuck σ' ctx' →
     Step σ ctx σ' ctx'
   | advanceTime {σ' g} (hg : ctx.time < g) :
