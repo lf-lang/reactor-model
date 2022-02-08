@@ -36,49 +36,46 @@ notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ 
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
-inductive instantaneousStep (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
+inductive InstStep (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
   | execReaction {rcn : Reaction ι υ} {i σ'} : 
     (σ.rcns i = rcn) →
     (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
     (i ∉ ctx.currentExecutedRcns) →
     (rcn.triggersOn $ σ.inputForRcn rcn ctx.time) →
     (σ -[rcn $ σ.inputForRcn rcn ctx.time, ctx.time]→* σ') →
-    instantaneousStep σ ctx σ' (ctx.addCurrentExecuted i)
+    InstStep σ ctx σ' (ctx.addCurrentExecuted i)
   | skipReaction {rcn : Reaction ι υ} {i} :
     (σ.rcns i = rcn) →
     (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
     (i ∉ ctx.currentExecutedRcns) →
     (¬(rcn.triggersOn $ σ.inputForRcn rcn ctx.time)) →
-    instantaneousStep σ ctx σ (ctx.addCurrentExecuted i)
+    InstStep σ ctx σ (ctx.addCurrentExecuted i)
 
+notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ (" σ₂ ", " ctx₂ ")" => InstStep σ₁ ctx₁ σ₂ ctx₂
 
-notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ (" σ₂ ", " ctx₂ ")" => instantaneousStep σ₁ ctx₁ σ₂ ctx₂
 -- An execution at an instant is a series of steps,
--- which we model with the transitive, reflexive closure.
-inductive instantaneousExecution : Reactor ι υ →  Context ι → Reactor ι υ → Context ι → Prop 
- | refl : instantaneousExecution σ c σ c
- | trans {σ₁ σ₂: Reactor ι υ} {ctx₁ ctx₂ : Context ι} :
-         (σ, c) ⇓ᵢ (σ₁, ctx₁) →
-         instantaneousExecution σ₁ ctx₁ σ₂ ctx₂ →
-         instantaneousExecution σ c σ₂ ctx₂
-  
-def instantaneousProperExecution (σ₁ : Reactor ι υ) (ctx₁ : Context ι) (σ₂ : Reactor ι υ)  (ctx₂ : Context ι) : Prop :=
-instantaneousExecution σ₁ ctx₁ σ₂ ctx₂ ∧ σ₁ ≠ σ₂
+-- which we model with the transitive closure.
+inductive InstExecution : Reactor ι υ →  Context ι → Reactor ι υ → Context ι → Prop 
+  | single {σ₁ σ₂ ctx₁ ctx₂} : (σ₁, ctx₁) ⇓ᵢ (σ₂, ctx₂) → InstExecution σ₁ ctx₁ σ₂ ctx₂
+  | trans {σ₁ σ₂ σ₃ ctx₁ ctx₂ ctx₃} : (σ₁, ctx₁) ⇓ᵢ (σ₂, ctx₂) → InstExecution σ₂ ctx₂ σ₃ ctx₃ → InstExecution σ₁ ctx₁ σ₃ ctx₃
 
-notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ* (" σ₂ ", " ctx₂ ")" => instantaneousExecution σ₁ ctx₁ σ₂ ctx₂
-notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ+ (" σ₂ ", " ctx₂ ")" => instantaneousProperExecution σ₁ ctx₁ σ₂ ctx₂
+notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ+ (" σ₂ ", " ctx₂ ")" => InstExecution σ₁ ctx₁ σ₂ ctx₂
 
 -- To model when the execution has finished at an instant, we define a property of a reactor being
 -- stuck in that instant: when there is no instanteneous step it can take
-def instantaneousStuck (σ : Reactor ι υ) (ctx : Context ι) := ¬ (∃ σ' ctx', (σ, ctx) ⇓ᵢ (σ', ctx'))
+def instStuck (σ : Reactor ι υ) (ctx : Context ι) := ¬ ∃ σ' ctx', (σ, ctx) ⇓ᵢ (σ', ctx')
+
+
+structure StuckInstExecution (σ₁ : Reactor ι υ) (ctx₁ : Context ι) (σ₂ : Reactor ι υ) (ctx₂ : Context ι) : Prop where
+  exec : (σ₁, ctx₁) ⇓ᵢ+ (σ₂, ctx₂)
+  stuck : instStuck σ₂ ctx₂
+
+notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ| (" σ₂ ", " ctx₂ ")" => StuckInstExecution σ₁ ctx₁ σ₂ ctx₂
 
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.
 inductive Step (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
-  | instantaneousStep {σ' ctx'} :
-    (σ, ctx) ⇓ᵢ+ (σ', ctx') → 
-    instantaneousStuck σ' ctx' →
-    Step σ ctx σ' ctx'
+  | instToStuck {σ' ctx'} : (σ, ctx) ⇓ᵢ| (σ', ctx') → Step σ ctx σ' ctx'
   | advanceTime {σ' g} (hg : ctx.time < g) :
     (g ∈ σ.scheduledTags) →
     (∀ g' ∈ σ.scheduledTags, ctx.time < g' → g ≤ g') →
@@ -111,7 +108,7 @@ open Execution
 -- An execution of a reactor model is a series of execution steps.
 -- We model this with a reflexive transitive closure:
 inductive Execution : Reactor ι υ → Context ι → Reactor ι υ → Context ι → Prop
- | refl (σ ctx) : Execution σ ctx σ ctx
- | step {σ₁ ctx₁ σ₂ ctx₂ σ₃ ctx₃} : (σ₁, ctx₁) ⇓ (σ₂, ctx₂) → Execution σ₂ ctx₂ σ₃ ctx₃ → Execution σ₁ ctx₁ σ₃ ctx₃
+  | refl (σ ctx) : Execution σ ctx σ ctx
+  | step {σ₁ ctx₁ σ₂ ctx₂ σ₃ ctx₃} : (σ₁, ctx₁) ⇓ (σ₂, ctx₂) → Execution σ₂ ctx₂ σ₃ ctx₃ → Execution σ₁ ctx₁ σ₃ ctx₃
 
 notation "(" σ₁ ", " ctx₁ ") ⇓* (" σ₂ ", " ctx₂ ")" => Execution σ₁ ctx₁ σ₂ ctx₂

@@ -37,7 +37,7 @@ protected inductive Reaction (ι υ) [v : Value υ]
   | mk 
     (deps : Port.Role → Finset ι) 
     (triggers : Finset ι)
-    (children : Finset ι)
+    (children : Finset ι) -- TODO(maybe): Factor this out into the execution context.
     (body : Reaction.Input ι υ → List (Raw.Change ι υ))
 
 protected inductive Reactor (ι υ) [v : Value υ]

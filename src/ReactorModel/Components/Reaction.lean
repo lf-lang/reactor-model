@@ -48,7 +48,7 @@ instance : CoeFun (Reaction ι υ) (λ _ => Input ι υ → (List (Change ι υ)
 
 -- A reaction is normal ("norm") if its body produces no mutating changes.
 def isNorm (rcn : Reaction ι υ) : Prop :=
-  ∀ i c, (c ∈ rcn i) → ¬c.mutates
+  ∀ i c, (c ∈ rcn i) → ¬c.mutates 
 
 -- A reaction is a mutation if it is not "normal", i.e. it does produce
 -- mutating changes for some input.

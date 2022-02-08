@@ -2,7 +2,7 @@ import ReactorModel.Mathlib.List
 
 def Multiset.{u} (α : Type u) : Type u := Quotient ⟨List.Perm (α := α), List.Perm.Equivalence⟩
 
-instance : Coe (List α) (Multiset α) := ⟨Quotient.mk⟩
+instance : Coe (List α) (Multiset α) := ⟨Quotient.mk'⟩
 
 namespace Multiset
 
