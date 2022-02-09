@@ -76,7 +76,7 @@ theorem StuckInstExecution.convergent {s s₁ s₂ : State ι υ} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
   λ hs₁ hs₂ => InstExecution.deterministic hs₁.exec hs₂.exec $ StuckInstExecution.eq_ctx hs₁ hs₂
 
-protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} : 
+protected theorem ExecutionStep.deterministic {s s₁ s₂ : State ι υ} : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
   intro he₁ he₂
   cases he₁ <;> cases he₂
@@ -113,5 +113,21 @@ protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} :
         have := Finmap.ids_def'.mpr ⟨_, Eq.symm (by assumption)⟩
         contradiction
       )
+
+protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hs₁ : s₁.instStuck) (hs₂ : s₂.instStuck) : 
+  (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
+  intro he₁ he₂ ht
+  induction he₁ <;> cases he₂ 
+  case refl.refl => rfl
+  case step.step hi _ _ _ => 
+    have hi := hi hs₁
+    sorry
+  -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Collapse.20cases
+  case refl.step h _ => sorry
+  case step.refl h => 
+    cases h <;> sorry
+    -- TODO:
+    -- instToStuck isnt possible, because we're already stuck.
+    -- advanceTime advances time which contradicts ht
 
 end Execution
