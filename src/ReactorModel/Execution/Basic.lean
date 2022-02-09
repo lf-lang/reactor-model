@@ -2,6 +2,8 @@ import ReactorModel.Execution.Context
 
 variable {ι υ} [Value υ]
 
+-- TODO: You're only ever using (σ, ctx) together. Create some structure that bundles them.
+
 -- TODO: Come up with something nicer.
 structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor ι υ) where
   otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
@@ -16,14 +18,19 @@ lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor ι υ} :
  
 namespace Execution
 
-inductive ChangeStep (g : Time.Tag) (σ₁ σ₂ : Reactor ι υ) : Change ι υ → Prop 
-  | port {i v} : (σ₁ -[Cmp.prt, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
-  | state {i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.state i v)
-  | action {i} {t : Time} {tg : Time.Tag} {v : υ} {a : Time.Tag ▸ υ} : 
+inductive ChangeStep (g : Time.Tag) (σ₁ : Reactor ι υ) : Reactor ι υ → Change ι υ → Prop 
+  | port (σ₂) {i v} : (σ₁ -[Cmp.prt, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
+  | state (σ₂) {i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.state i v)
+  | action (σ₂) {i} {t : Time} {tg : Time.Tag} {v : υ} {a : Time.Tag ▸ υ} : 
     (σ₁.acts i = a) → 
     (t.after g = tg) → 
     (σ₁ -[Cmp.act, i := a.update tg v]→ σ₂) → 
     ChangeStep g σ₁ σ₂ (Change.action i t v)
+  -- Mutations are (temporarily) no-ops:
+  | connect {i₁ i₂} : ChangeStep g σ₁ σ₁ (Change.connect i₁ i₂)
+  | disconnect {i₁ i₂} : ChangeStep g σ₁ σ₁ (Change.disconnect i₁ i₂)
+  | create {rtr i} : ChangeStep g σ₁ σ₁ (Change.create rtr i)
+  | delete {i} : ChangeStep g σ₁ σ₁ (Change.delete i)
 
 notation σ₁:max " -[" c ", " g "]→ " σ₂:max => ChangeStep g σ₁ σ₂ c
 
@@ -55,7 +62,7 @@ notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ (" σ₂ ", " ctx₂ ")" => InstStep σ
 
 -- An execution at an instant is a series of steps,
 -- which we model with the transitive closure.
-inductive InstExecution : Reactor ι υ →  Context ι → Reactor ι υ → Context ι → Prop 
+inductive InstExecution : Reactor ι υ → Context ι → Reactor ι υ → Context ι → Prop 
   | single {σ₁ σ₂ ctx₁ ctx₂} : (σ₁, ctx₁) ⇓ᵢ (σ₂, ctx₂) → InstExecution σ₁ ctx₁ σ₂ ctx₂
   | trans {σ₁ σ₂ σ₃ ctx₁ ctx₂ ctx₃} : (σ₁, ctx₁) ⇓ᵢ (σ₂, ctx₂) → InstExecution σ₂ ctx₂ σ₃ ctx₃ → InstExecution σ₁ ctx₁ σ₃ ctx₃
 
@@ -63,8 +70,7 @@ notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ+ (" σ₂ ", " ctx₂ ")" => InstExecut
 
 -- To model when the execution has finished at an instant, we define a property of a reactor being
 -- stuck in that instant: when there is no instanteneous step it can take
-def instStuck (σ : Reactor ι υ) (ctx : Context ι) := ¬ ∃ σ' ctx', (σ, ctx) ⇓ᵢ (σ', ctx')
-
+abbrev instStuck (σ : Reactor ι υ) (ctx : Context ι) := ∀ σ' ctx', ¬ (σ, ctx) ⇓ᵢ (σ', ctx')
 
 structure StuckInstExecution (σ₁ : Reactor ι υ) (ctx₁ : Context ι) (σ₂ : Reactor ι υ) (ctx₂ : Context ι) : Prop where
   exec : (σ₁, ctx₁) ⇓ᵢ+ (σ₂, ctx₂)

@@ -187,8 +187,8 @@ theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o
   have hu := σ.uniqueIDs l₁ l₂
   rw [←hu] at h₂
   by_contra hc
-  have h₁ := Option.ne_none_iff_exists.mpr ⟨o₁, Eq.symm h₁⟩ |> Finmap.ids_def.mpr
-  have h₂ := Option.ne_none_iff_exists.mpr ⟨o₂, Eq.symm h₂⟩ |> Finmap.ids_def.mpr
+  have h₁ := Finmap.ids_def'.mpr ⟨o₁, Eq.symm h₁⟩
+  have h₂ := Finmap.ids_def'.mpr ⟨o₂, Eq.symm h₂⟩
   by_cases hc₁ : cmp₁ = l₁.target
   case neg =>
     have := Lineage.retarget_ne l₁ h₁ hc₁

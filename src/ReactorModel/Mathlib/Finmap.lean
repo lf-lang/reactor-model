@@ -46,10 +46,19 @@ noncomputable def ids (f : α ▸ β) : Finset α :=
 theorem ids_def {f : α ▸ β} {i : α} : i ∈ f.ids ↔ f i ≠ none := by
   simp [ids, Set.finite.mem_to_finset, Set.mem_set_of_eq]
 
+theorem ids_def' {f : α ▸ β} {i : α} : i ∈ f.ids ↔ ∃ b, some b = f i := by
+  apply Iff.intro
+  case mp => 
+    intro h
+    exact Option.ne_none_iff_exists.mp $ ids_def.mp h
+  case mpr => 
+    intro h
+    exact ids_def.mpr $ Option.ne_none_iff_exists.mpr h
+
 def nonempty (f : α ▸ β) : Prop := ∃ i, f i ≠ none
 
 noncomputable def lookup' (f : α ▸ β) {i : α} (h : i ∈ f.ids) : β :=
-   Exists.choose $ Option.ne_none_iff_exists.mp $ ids_def.mp h
+   Exists.choose $ ids_def'.mp h
    
 -- The (finite) set of values for which there exist inputs that map to them.
 noncomputable def values (f : α ▸ β) : Finset β :=
@@ -88,6 +97,9 @@ noncomputable def update (f : α ▸ β) (a : α) (b : Option β) : α ▸ β :=
 -- Sometimes when using `update`, the parameter `b` isn't lifted to be
 -- an `Option` automatically. In this case `update'` can be used.
 noncomputable def update' (f : α ▸ β) (a : α) (b : β) : α ▸ β := f.update a b
+
+theorem update_ne (f : α ▸ β) (a a' : α) (b : Option β) : (f.update a b) a' = f a' :=
+  sorry
 
 -- The finmap that combines a given finmap `f` with a function `g`
 -- by mapping all (defined) values in `f` through `g`. 

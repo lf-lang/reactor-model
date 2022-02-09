@@ -70,11 +70,7 @@ theorem inter_subset_right (s₁ s₂ : Finset α) [DecidableEq α] : s₁ ∩ s
 
 instance : Sdiff (Finset α) := sorry
 
-def min' [LinearOrder α] (s : Finset α) (H : s.nonempty) : α :=
-  sorry
-
-def min [LinearOrder α] (s : Finset α)  : Option α :=
-  sorry
+def max' [LinearOrder α] (s : Finset α) (H : s.nonempty) : α := sorry
 
 end Finset
 
