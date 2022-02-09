@@ -43,54 +43,55 @@ notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ 
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
-inductive InstStep (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
+inductive InstStep (s : State ι υ) : State ι υ → Prop 
   | execReaction {rcn : Reaction ι υ} {i σ'} : 
-    (σ.rcns i = rcn) →
-    (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
-    (i ∉ ctx.currentExecutedRcns) →
-    (rcn.triggersOn $ σ.inputForRcn rcn ctx.time) →
-    (σ -[rcn $ σ.inputForRcn rcn ctx.time, ctx.time]→* σ') →
-    InstStep σ ctx σ' (ctx.addCurrentExecuted i)
+    (s.rtr.rcns i = rcn) →
+    (s.rtr.predecessors i ⊆ s.ctx.currentExecutedRcns) →
+    (i ∉ s.ctx.currentExecutedRcns) →
+    (rcn.triggersOn $ σ.inputForRcn rcn s.ctx.time) →
+    (σ -[rcn $ σ.inputForRcn rcn s.ctx.time, s.ctx.time]→* σ') →
+    InstStep s ⟨σ', s.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn : Reaction ι υ} {i} :
-    (σ.rcns i = rcn) →
-    (σ.predecessors i ⊆ ctx.currentExecutedRcns) →
-    (i ∉ ctx.currentExecutedRcns) →
-    (¬(rcn.triggersOn $ σ.inputForRcn rcn ctx.time)) →
-    InstStep σ ctx σ (ctx.addCurrentExecuted i)
+    (s.rtr.rcns i = rcn) →
+    (s.rtr.predecessors i ⊆ s.ctx.currentExecutedRcns) →
+    (i ∉ s.ctx.currentExecutedRcns) →
+    (¬(rcn.triggersOn $ s.rtr.inputForRcn rcn s.ctx.time)) →
+    InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
 
-notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ (" σ₂ ", " ctx₂ ")" => InstStep σ₁ ctx₁ σ₂ ctx₂
+notation s₁:max " ⇓ᵢ " s₂:max => InstStep s₁ s₂
 
 -- An execution at an instant is a series of steps,
 -- which we model with the transitive closure.
-inductive InstExecution : Reactor ι υ → Context ι → Reactor ι υ → Context ι → Prop 
-  | single {σ₁ σ₂ ctx₁ ctx₂} : (σ₁, ctx₁) ⇓ᵢ (σ₂, ctx₂) → InstExecution σ₁ ctx₁ σ₂ ctx₂
-  | trans {σ₁ σ₂ σ₃ ctx₁ ctx₂ ctx₃} : (σ₁, ctx₁) ⇓ᵢ (σ₂, ctx₂) → InstExecution σ₂ ctx₂ σ₃ ctx₃ → InstExecution σ₁ ctx₁ σ₃ ctx₃
+inductive InstExecution : State ι υ → State ι υ → Prop 
+  | single {s₁ s₂} : s₁ ⇓ᵢ s₂ → InstExecution s₁ s₂
+  | trans {s₁ s₂ s₃} : s₁ ⇓ᵢ s₂ → InstExecution s₂ s₃ → InstExecution s₁ s₃
 
-notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ+ (" σ₂ ", " ctx₂ ")" => InstExecution σ₁ ctx₁ σ₂ ctx₂
+notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
 
 -- To model when the execution has finished at an instant, we define a property of a reactor being
 -- stuck in that instant: when there is no instanteneous step it can take
-abbrev instStuck (σ : Reactor ι υ) (ctx : Context ι) := ∀ σ' ctx', ¬ (σ, ctx) ⇓ᵢ (σ', ctx')
+abbrev State.instStuck (s : State ι υ) := ∀ s', ¬ s ⇓ᵢ s'
 
-structure StuckInstExecution (σ₁ : Reactor ι υ) (ctx₁ : Context ι) (σ₂ : Reactor ι υ) (ctx₂ : Context ι) : Prop where
-  exec : (σ₁, ctx₁) ⇓ᵢ+ (σ₂, ctx₂)
-  stuck : instStuck σ₂ ctx₂
+structure StuckInstExecution (s₁ s₂ : State ι υ) : Prop where
+  exec : s₁ ⇓ᵢ+ s₂
+  stuck : s₂.instStuck
 
-notation "(" σ₁ ", " ctx₁ ") ⇓ᵢ| (" σ₂ ", " ctx₂ ")" => StuckInstExecution σ₁ ctx₁ σ₂ ctx₂
+notation s₁:max " ⇓ᵢ| " s₂:max => StuckInstExecution s₁ s₂
 
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.
-inductive Step (σ : Reactor ι υ) (ctx : Context ι) : Reactor ι υ → Context ι → Prop 
-  | instToStuck {σ' ctx'} : (σ, ctx) ⇓ᵢ| (σ', ctx') → Step σ ctx σ' ctx'
-  | advanceTime {σ' g} (hg : ctx.time < g) :
-    (g ∈ σ.scheduledTags) →
-    (∀ g' ∈ σ.scheduledTags, ctx.time < g' → g ≤ g') →
-    (ctx.currentExecutedRcns = σ.rcns.ids) →
-    (σ.eqWithClearedPorts σ') →
-    Step σ ctx σ' (ctx.advanceTime hg)
+inductive Step (s : State ι υ) : State ι υ → Prop 
+  | instToStuck (s') : s ⇓ᵢ| s' → Step s s'
+  | advanceTime {σ' g} (hg : s.ctx.time < g) :
+    (g ∈ s.rtr.scheduledTags) →
+    (∀ g' ∈ s.rtr.scheduledTags, s.ctx.time < g' → g ≤ g') →
+    (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) →
+    (s.rtr.eqWithClearedPorts σ') →
+    Step s ⟨σ', s.ctx.advanceTime hg⟩
 
-notation "(" σ₁ ", " ctx₁ ") ⇓ (" σ₂ ", " ctx₂ ")" => Step σ₁ ctx₁ σ₂ ctx₂
+notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 
+/-
 def sameReactionExecuted
 {σ₁ σ₂ σ₁' σ₂' : Reactor ι υ}
 {ctx₁ ctx₂ ctx₁' ctx₂'  : Context ι} 
@@ -106,6 +107,7 @@ def sameReactionTopologyChanges
 (H2 : (σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) : Prop :=
   (∀ i : ι, (i ∈ σ₁.rcns.ids ∧ i ∉ σ₁'.rcns.ids) → (i ∈ σ₂.rcns.ids ∧ i ∉ σ₁'.rcns.ids)) ∧   -- reaction deleted  
   (∀ i : ι, ((i ∉ σ₁.rcns.ids) ∧ i ∈ σ₁'.rcns.ids) → ((i ∉ σ₂.rcns.ids) ∧ i ∈ σ₁'.rcns.ids)) -- reaction added  
+-/
 
 end Execution
 
@@ -113,8 +115,8 @@ open Execution
 
 -- An execution of a reactor model is a series of execution steps.
 -- We model this with a reflexive transitive closure:
-inductive Execution : Reactor ι υ → Context ι → Reactor ι υ → Context ι → Prop
-  | refl (σ ctx) : Execution σ ctx σ ctx
-  | step {σ₁ ctx₁ σ₂ ctx₂ σ₃ ctx₃} : (σ₁, ctx₁) ⇓ (σ₂, ctx₂) → Execution σ₂ ctx₂ σ₃ ctx₃ → Execution σ₁ ctx₁ σ₃ ctx₃
+inductive Execution : State ι υ → State ι υ → Prop
+  | refl (s) : Execution s s
+  | step (s₁) {s₂} (s₃) : s₁ ⇓ s₂ → Execution s₂ s₃ → Execution s₁ s₃
 
-notation "(" σ₁ ", " ctx₁ ") ⇓* (" σ₂ ", " ctx₂ ")" => Execution σ₁ ctx₁ σ₂ ctx₂
+notation s₁ " ⇓* " s₂ => Execution s₁ s₂
