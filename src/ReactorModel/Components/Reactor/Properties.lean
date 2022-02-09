@@ -18,8 +18,8 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h
   simp only [Finset.subset_iff, Finset.mem_union]
   intro j hj
   simp only [norms, Finmap.filter'_mem_values] at h
-  obtain ⟨i, h, hn⟩ := h
-  obtain ⟨nr, hr⟩ := rcns_has_raw h
+  have ⟨i, h, hn⟩ := h
+  have ⟨nr, hr⟩ := rcns_has_raw h
   have he := RawEquiv.rcns rtr
   have hnr := (Reaction.RawEquiv.isNorm_iff $ he.rel h hr).mp hn
   have hw := rtr.rawWF.direct.wfNormDeps nr i r hr
@@ -29,7 +29,7 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h
   case inl hw => exact Or.inl hw
   case inr hw =>
     apply Or.inr
-    obtain ⟨i', ri', h₁, h₂⟩ := hw
+    have ⟨i', ri', h₁, h₂⟩ := hw
     simp [nestedPortIDs, Set.finite.mem_to_finset]
     have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
     let rip := Reactor.fromRaw ri' hrip
@@ -50,13 +50,13 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h
 theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h : m ∈ rtr.muts.values) : 
   (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
   simp only [muts, Finmap.filter'_mem_values] at h
-  obtain ⟨i, h, hm⟩ := h
-  obtain ⟨mr, hr⟩ := rcns_has_raw h
+  have ⟨i, h, hm⟩ := h
+  have ⟨mr, hr⟩ := rcns_has_raw h
   have he := RawEquiv.rcns rtr
   have hq := he.rel h hr
   have hrm := (Reaction.RawEquiv.isMut_iff hq).mp hm
   have hw := rtr.rawWF.direct.wfMutDeps mr i hr hrm
-  obtain ⟨h₁, h₂⟩ := hw
+  have ⟨h₁, h₂⟩ := hw
   clear hw
   constructor
   case left =>
@@ -73,7 +73,7 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
     case inl h => exact Or.inl h
     case inr h =>
       apply Or.inr
-      obtain ⟨i', ri', h₁, h₂⟩ := h
+      have ⟨i', ri', h₁, h₂⟩ := h
       simp [nestedPortIDs, Set.finite.mem_to_finset]
       have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
       let rip := Reactor.fromRaw ri' hrip
@@ -88,9 +88,10 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
         exact h₂
 
 -- This constraint forces the priorities of mutations in a reactor to be greater than any of its normal reactions.
-theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rtr.norms.ids) (hm : iₘ ∈ rtr.muts.ids) : 
-  rtr.prios.lt iₘ iₙ := by
-  have h := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
+theorem mutsBeforeNorms {rtr : Reactor ι υ} {n m : Reaction ι υ} (hn : n ∈ rtr.norms.values) (hm : m ∈ rtr.muts.values) : 
+  n.prio < m.prio := by
+  sorry
+  /- have h := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
   simp only [muts, norms, Finmap.filter'_mem_ids] at hn hm
   obtain ⟨hr₁, hm₁⟩ := hn.choose_spec
   obtain ⟨hr₂, hm₂⟩ := hm.choose_spec
@@ -99,12 +100,15 @@ theorem mutsBeforeNorms {rtr : Reactor ι υ} {iₙ iₘ : ι} (hn : iₙ ∈ rt
   have he := RawEquiv.rcns rtr
   have hmr₁ := (Reaction.RawEquiv.isNorm_iff $ he.rel hr₁ hi₁).mp hm₁
   have hmr₂ := (Reaction.RawEquiv.isMut_iff  $ he.rel hr₂ hi₂).mp hm₂
-  exact h _ _ hi₁ hmr₁ hi₂ hmr₂
+  exact h _ _ hi₁ hmr₁ hi₂ hmr₂-/
 
 -- This constraint forces the priorities of all mutations in a reactor to be comparable,
 -- i.e. they form a linear order.
-theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ rtr.muts.ids) (h₂ : i₂ ∈ rtr.muts.ids) : 
-  rtr.prios.le i₁ i₂ ∨ rtr.prios.le i₂ i₁ := by
+theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} {m₁ m₂ : Reaction ι υ} 
+  (h₁ : rtr.muts i₁ = m₁) (h₂ : rtr.muts i₂ = m₂) (hn : i₁ ≠ i₂) : 
+  m₁.prio < m₂.prio ∨ m₂.prio < m₁.prio := by
+  sorry
+  /-
   have h := rtr.rawWF.direct.mutsLinearOrder i₁ i₂
   simp only [muts, Finmap.filter'_mem_ids] at h₁ h₂
   obtain ⟨hr₁, hm₁⟩ := h₁.choose_spec
@@ -115,6 +119,7 @@ theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} (h₁ : i₁ ∈ 
   have hmr₁ := (Reaction.RawEquiv.isMut_iff $ he.rel hr₁ hi₁).mp hm₁
   have hmr₂ := (Reaction.RawEquiv.isMut_iff $ he.rel hr₂ hi₂).mp hm₂
   exact h _ _ hi₁ hi₂ hmr₁ hmr₂
+  -/
 
 -- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
 -- structure that traces a path through the nested reactors of `σ` that lead

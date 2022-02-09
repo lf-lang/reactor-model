@@ -19,7 +19,6 @@ inductive Cmp
   | prt -- Port
   | act -- Actions
   | stv -- State variables
-  -- | pio -- Priorities
 
 namespace Cmp 
 
@@ -141,8 +140,8 @@ notation σ:max " &[" i "]= " c:max => Reactor.containerOf σ i c
 theorem containerOf_unique {σ : Reactor ι υ} {i : ι} {c₁ c₂ : Rooted ι} :
   σ &[i]= c₁ → σ &[i]= c₂ → c₁ = c₂ := by
   intro h₁ h₂
-  obtain ⟨l₁, h₁⟩ := h₁
-  obtain ⟨l₂, h₂⟩ := h₂
+  have ⟨l₁, h₁⟩ := h₁
+  have ⟨l₂, h₂⟩ := h₂
   simp [←h₁, ←h₂, σ.uniqueIDs l₁ l₂]
 
 -- The `objFor` relation is used to determine whether a given ID `i` identifies
@@ -183,8 +182,8 @@ notation σ:max " *[" cmp ", " i "]= " o:max => Reactor.objFor σ cmp i o
 theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o₁ : cmp₁.type ι υ} {o₂ : cmp₂.type ι υ} :
   (σ *[cmp₁, i]= o₁) → (σ *[cmp₂, i]= o₂) → cmp₁ = cmp₂ := by
   intro h₁ h₂
-  obtain ⟨l₁, h₁⟩ := h₁
-  obtain ⟨l₂, h₂⟩ := h₂
+  have ⟨l₁, h₁⟩ := h₁
+  have ⟨l₂, h₂⟩ := h₂
   have hu := σ.uniqueIDs l₁ l₂
   rw [←hu] at h₂
   by_contra hc
@@ -223,8 +222,8 @@ theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o
 theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ : cmp.type ι υ} : 
   (σ *[cmp, i]= o₁) → (σ *[cmp, i]= o₂) → o₁ = o₂ := by
   intro h₁ h₂
-  obtain ⟨l₁, h₁⟩ := h₁
-  obtain ⟨l₂, h₂⟩ := h₂
+  have ⟨l₁, h₁⟩ := h₁
+  have ⟨l₂, h₂⟩ := h₂
   have hu := σ.uniqueIDs l₁ l₂
   rw [hu] at h₁
   simp [h₁] at h₂
@@ -237,7 +236,6 @@ def containsID (σ : Reactor ι υ) (i : ι) (cmp : Cmp) : Prop :=
 structure EqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop where
   otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂
   otherIDsEq : ∀ {i'}, i' ≠ i → cmp.accessor σ₁ i' = cmp.accessor σ₂ i'
-  priosEq : σ₁.prios = σ₂.prios
 
 notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
 
@@ -247,7 +245,6 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cm
   (cmp.accessor σ₁ i = cmp.accessor σ₂ i) → σ₁ = σ₂ := by
   intro ha
   apply ext
-  simp only [he₁.priosEq, Eq.symm $ he₂.priosEq] 
   have h_aux₁ : cmp.accessor σ₁ = cmp.accessor σ₂ := by
     apply Finmap.ext
     intro i'
@@ -358,19 +355,13 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i :
     -- cases cmp <;> simp only [Lineage.directParent, h]
   case nested i _ σ₂ j _ rtr₂ _ _ hn _ hi =>
     simp only [objFor] at *
-    obtain ⟨l, hl⟩ := hi
+    have ⟨l, hl⟩ := hi
     exists Lineage.nest rtr₂ j l hn
     have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
       sorry
       -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
       -- by cases l <;> simp only [Lineage.directParent]
     simp [←hp, hl]
-
--- TODO: Unify these theorems.
-
-theorem Update.eq_prios {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
-  (σ₁ -[cmp, i := v]→ σ₂) → σ₁.prios = σ₂.prios := by 
-  intro h; cases h <;> apply EqModID.priosEq <;> assumption
 
 theorem Update.ne_cmp_and_ne_rtr_eq {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (cmp' : Cmp):
   (σ₁ -[cmp, i := v]→ σ₂) → cmp' ≠ cmp → cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂ := by 

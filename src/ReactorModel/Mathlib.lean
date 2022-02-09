@@ -6,6 +6,5 @@ import ReactorModel.Mathlib.Finset
 import ReactorModel.Mathlib.List
 import ReactorModel.Mathlib.Multiset
 import ReactorModel.Mathlib.Option
-import ReactorModel.Mathlib.PartialOrder
 import ReactorModel.Mathlib.Set
 import ReactorModel.Mathlib.Tactics

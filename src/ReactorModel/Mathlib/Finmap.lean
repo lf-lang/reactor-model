@@ -69,7 +69,7 @@ noncomputable def values (f : α ▸ β) : Finset β :=
     suffices h : t ⊆ ↑s from Set.finite.subset (Finset.finite_to_set s) h
     intro x h
     simp at *
-    obtain ⟨b, ⟨a, ha⟩, hb⟩ := h
+    have ⟨b, ⟨a, ha⟩, hb⟩ := h
     exists a
     apply And.intro
     case left => simp [ids_def, ha]
@@ -150,10 +150,6 @@ noncomputable def filter' (f : α ▸ β) (p : β → Prop) : α ▸ β := {
   ),
   finite := sorry
 }
-
-theorem filter'_mem_ids {f : α ▸ β} {p : β → Prop} {i : α} : 
-  i ∈ (f.filter' p).ids ↔ ∃ b : β, f i = b ∧ p b :=
-  sorry
 
 theorem filter'_mem_values {f : α ▸ β} {p : β → Prop} {b : β} : 
   b ∈ (f.filter' p).values ↔ ∃ i : α, f i = b ∧ p b :=

@@ -7,9 +7,8 @@ variable {ι υ} [Value υ]
 -- TODO: Come up with something nicer.
 structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor ι υ) where
   otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
-  priosEq : σ₁.prios = σ₂.prios
   samePortIDs : ∀ i, σ₁.containsID i Cmp.prt ↔ σ₂.containsID i Cmp.prt
-  clearedIDs : ∀ i r v, σ₂ *[Cmp.prt, i]= ⟨r, v⟩ → σ₂ *[Cmp.prt, i]= ⟨r, ⊥⟩
+  clearedIDs : ∀ i p, σ₂ *[Cmp.prt, i]= p → p.snd = ⊥
 
 lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor ι υ} :
  Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
@@ -45,14 +44,14 @@ notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ 
 inductive InstStep (s : State ι υ) : State ι υ → Prop 
   | execReaction {rcn : Reaction ι υ} {i σ'} : 
     (s.rtr.rcns i = rcn) →
-    (s.rtr.predecessors i ⊆ s.ctx.currentExecutedRcns) →
+    (s.rtr.predecessors rcn ⊆ s.ctx.currentExecutedRcns) →
     (i ∉ s.ctx.currentExecutedRcns) →
     (rcn.triggersOn $ σ.inputForRcn rcn s.ctx.time) →
     (σ -[rcn $ σ.inputForRcn rcn s.ctx.time, s.ctx.time]→* σ') →
     InstStep s ⟨σ', s.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn : Reaction ι υ} {i} :
     (s.rtr.rcns i = rcn) →
-    (s.rtr.predecessors i ⊆ s.ctx.currentExecutedRcns) →
+    (s.rtr.predecessors rcn ⊆ s.ctx.currentExecutedRcns) →
     (i ∉ s.ctx.currentExecutedRcns) →
     (¬(rcn.triggersOn $ s.rtr.inputForRcn rcn s.ctx.time)) →
     InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩

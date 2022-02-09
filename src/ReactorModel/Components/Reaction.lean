@@ -30,6 +30,7 @@ open Reaction
 structure Reaction where
   deps :          Port.Role → Finset ι 
   triggers :      Finset ι
+  prio :          Priority
   children :      Finset ι
   body :          Input ι υ → List (Change ι υ)
   tsSubInDeps :   triggers ⊆ deps Role.in
@@ -83,6 +84,7 @@ theorem eq_input_eq_triggering {rcn : Reaction ι υ} {i₁ i₂ : Input ι υ} 
 noncomputable def relay (src dst : ι) : Reaction ι υ := {
   deps := λ r => match r with | Role.in => Finset.singleton src | Role.out => Finset.singleton dst,
   triggers := Finset.singleton src,
+  prio := none,
   children := ∅,
   body := λ i => i.ports[src].elim [] ([Change.port dst ·]),
   tsSubInDeps := by simp,
@@ -107,6 +109,7 @@ noncomputable def updateInDeps {rcn : Reaction ι υ} {is : Finset ι} : Reactio
   {
     deps := deps',
     triggers := rcn.triggers ∩ (deps' Role.in), 
+    prio := rcn.prio,
     children := rcn.children,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
@@ -124,6 +127,7 @@ noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι}
     deps := deps',
     triggers := rcn.triggers ∩ (deps' Role.in), 
     children := rcn.children,
+    prio := rcn.prio,
     body := rcn.body,
     tsSubInDeps := Finset.inter_subset_right _ _,
     prtOutDepOnly := λ i _ v h' => hp i v h',
@@ -134,6 +138,7 @@ noncomputable def updateOutDeps {rcn : Reaction ι υ} {is : Finset ι}
 noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is ⊆ rcn.deps Role.in) : Reaction ι υ := {
   deps := rcn.deps,
   triggers := is, 
+  prio := rcn.prio,
   children := rcn.children,
   body := rcn.body,
   tsSubInDeps := h,
@@ -145,6 +150,7 @@ noncomputable def updateTriggers {rcn : Reaction ι υ} {is : Finset ι} (h : is
 noncomputable def updateChildren {rcn : Reaction ι υ} (is : Finset ι) (h : rcn.isMut) : Reaction ι υ := {
   deps := rcn.deps,
   triggers := rcn.triggers, 
+  prio := rcn.prio,
   children := is,
   body := rcn.body,
   tsSubInDeps := rcn.tsSubInDeps,

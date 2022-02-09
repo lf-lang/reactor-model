@@ -92,6 +92,7 @@ namespace Reaction
 def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction ι υ} (hr : ∃ i, rtr.rcns i = raw) : Reaction ι υ := {
   deps := raw.deps,
   triggers := raw.triggers,
+  prio := raw.prio,
   children := raw.children,
   body := (λ i => (raw.body i).attach.map (λ c => Change.fromRaw hw hr c.property)),
   tsSubInDeps := (hw.direct.rcnsWF hr).tsSubInDeps,
@@ -99,7 +100,7 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
     intro i _ v ho hc
     simp [List.mem_map] at hc
     have := (hw.direct.rcnsWF hr).prtOutDepOnly i v ho
-    obtain ⟨_, hc, he⟩ := hc
+    have ⟨_, hc, he⟩ := hc
     have he' := Change.RawEquiv.fromRaw hw hr hc
     rw [←he] at he'
     cases he'
@@ -108,7 +109,7 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
     intro i _ t v ho hc
     simp [List.mem_map] at hc
     have := (hw.direct.rcnsWF hr).actOutDepOnly i t v ho
-    obtain ⟨_, hc, he⟩ := hc
+    have ⟨_, hc, he⟩ := hc
     have he' := Change.RawEquiv.fromRaw hw hr hc
     rw [←he] at he'
     cases he'
@@ -139,13 +140,14 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
 structure RawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
   deps :     rcn.deps = raw.deps
   triggers : rcn.triggers = raw.triggers
+  prio :     rcn.prio = raw.prio
   children : rcn.children = raw.children
   body :     ∀ i, List.forall₂ Change.RawEquiv (rcn.body i) (raw.body i)
 
 theorem RawEquiv.unique {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι υ} (h₁ : RawEquiv rcn raw₁) (h₂ : RawEquiv rcn raw₂) : 
   raw₁ = raw₂ := by
   apply Raw.Reaction.ext
-  simp [←h₁.deps, ←h₂.deps, ←h₁.triggers, ←h₂.triggers, ←h₁.children, ←h₂.children]
+  simp [←h₁.deps, ←h₂.deps, ←h₁.triggers, ←h₂.triggers, ←h₁.prio, ←h₂.prio, ←h₁.children, ←h₂.children]
   funext i
   have hb₁ := h₁.body i
   have hb₂ := h₂.body i
@@ -168,6 +170,7 @@ theorem RawEquiv.fromRaw {raw : Raw.Reaction ι υ} {rtr} (hw hr) :
   RawEquiv (@Reaction.fromRaw _ _ _ rtr hw raw hr) raw := {
     deps := by simp [Reaction.fromRaw],
     triggers := by simp [Reaction.fromRaw],
+    prio := by simp [Reaction.fromRaw],
     children := by simp [Reaction.fromRaw],
     body := by
       intro i
@@ -183,7 +186,7 @@ theorem RawEquiv.isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
   constructor <;> (
     intro hm
     simp [isMut, isNorm, Raw.Reaction.isMut, Raw.Reaction.isNorm] at *
-    obtain ⟨i, c, hc, hm⟩ := hm
+    have ⟨i, c, hc, hm⟩ := hm
     exists i
     have hb := h.body i
     generalize hcs : rcn.body i = cs
@@ -201,7 +204,7 @@ theorem RawEquiv.isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
         rw [←hml] at he
         exact ⟨hdr, ⟨by simp, (Change.RawEquiv.mutates_iff he).mp hm⟩⟩
       case inr hmr => 
-        obtain ⟨x, ⟨hx₁, hx₂⟩⟩ := hi hmr
+        have ⟨x, ⟨hx₁, hx₂⟩⟩ := hi hmr
         exact ⟨x, ⟨List.mem_cons.mpr $ Or.inr hx₁, hx₂⟩⟩
   case mpr => 
     rw [hcs] at hb 
@@ -215,7 +218,7 @@ theorem RawEquiv.isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
         rw [←hml] at he
         exact ⟨hd, ⟨by simp, (Change.RawEquiv.mutates_iff he).mpr hm⟩⟩
       case inr hmr => 
-        obtain ⟨x, ⟨hx₁, hx₂⟩⟩ := hi hmr
+        have ⟨x, ⟨hx₁, hx₂⟩⟩ := hi hmr
         exact ⟨x, ⟨List.mem_cons.mpr $ Or.inr hx₁, hx₂⟩⟩
 
 theorem RawEquiv.isNorm_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : RawEquiv rcn raw) :

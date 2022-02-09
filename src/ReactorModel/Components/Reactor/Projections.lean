@@ -10,7 +10,6 @@ namespace Reactor
 def ports (rtr : Reactor ι υ) : ι ▸ (Port.Role × υ) := rtr.raw.ports
 def acts  (rtr : Reactor ι υ) : ι ▸ Time.Tag ▸ υ    := rtr.raw.acts
 def state (rtr : Reactor ι υ) : ι ▸ υ               := rtr.raw.state
-def prios (rtr : Reactor ι υ) : PartialOrder ι      := rtr.raw.prios
 
 -- The `nest` projection lifted to return a finmap of "proper" reactors.
 -- 
@@ -34,7 +33,7 @@ theorem RawEquiv.nest (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.RawEquiv
   rel := by
     intro i r r' hr hr'
     simp only [nest] at hr
-    obtain ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
+    have ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
     simp at h₂
     have h := RawEquiv.fromRaw' $ Eq.symm h₂
     have h₁ := Finmap.attach_def h₁
@@ -47,16 +46,16 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ 
   constructor
   case mp =>
     intro h
-    obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
-    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mp ⟨rtr', Eq.symm h⟩
-    obtain ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
+    have ⟨hi, hv⟩ := RawEquiv.nest rtr
+    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mpr ⟨rtr', Eq.symm h⟩
+    have ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
     have he := hv h (Eq.symm hx)
     simp [←hx, he.equiv]
   case mpr =>
     intro h
-    obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
+    have ⟨hi, hv⟩ := RawEquiv.nest rtr
     have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, Eq.symm h⟩)
-    obtain ⟨x, hx⟩ := Finmap.ids_def'.mp hi
+    have ⟨x, hx⟩ := Finmap.ids_def'.mp hi
     have he := hv (Eq.symm hx) h
     simp [←hx]
     exact Reactor.raw_ext_iff.mpr he.equiv  
@@ -78,7 +77,7 @@ theorem RawEquiv.rcns (rtr : Reactor ι υ) : Finmap.forall₂' Reaction.RawEqui
   rel := by
     intro i r r' hr hr'
     simp [rcns] at hr
-    obtain ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
+    have ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
     have h := Reaction.RawEquiv.fromRaw' $ Eq.symm h₂
     have h₁ := Finmap.attach_def h₁
     simp at h₁
@@ -93,18 +92,15 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   have he := RawEquiv.rcns rtr
   have hi := (he.eqIDs _).mp h'
   simp only [Finmap.ids_def'] at h'
-  obtain ⟨raw, hr⟩ := h'
+  have ⟨raw, hr⟩ := h'
   exact ⟨raw, Eq.symm hr⟩
 
 -- A projection for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
   rtr.ports.filter' (λ p => p.fst = r) |>.map Prod.snd
 
-set_option quotPrecheck false in
-notation i₁:max " <[" σ "] " i₂:max => (@LT.lt _ $ @Preorder.toLT _ $ @PartialOrder.toPreorder _ $ Reactor.prios σ) i₁ i₂
-
-def predecessors (σ : Reactor ι υ) (rcn : ι) : Set ι :=
- { rcn' ∈ σ.rcns.ids | rcn' <[σ] rcn }
+def predecessors (σ : Reactor ι υ) (rcn : Reaction ι υ) : Finset ι :=
+  σ.rcns.ids.filter λ i => ∃ rcn', σ.rcns i = some rcn' ∧ rcn'.prio < rcn.prio
 
 -- A direct projection to a reactor's normal reactions.
 noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
@@ -160,13 +156,13 @@ theorem rcns_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.rcns = rtr₂.rcns)
     simp only [Option.ne_none_iff_exists] at h₁'
     have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
     simp only [Finmap.ids_def'] at h₁'
-    obtain ⟨x, hx⟩ := h₁'
+    have ⟨x, hx⟩ := h₁'
     rw [h] at h₁
     have h₂' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₂'
     have h₂' := h₂' ⟨rcn, Eq.symm hc⟩
     have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
-    obtain ⟨y, hy⟩ := h₂₂'
+    have ⟨y, hy⟩ := h₂₂'
     rw [←hy]
     have hr₁ := h₁₁.rel (Eq.symm hx) hc
     have hr₂ := h₂.rel (Eq.symm hx) (Eq.symm hy)
@@ -192,13 +188,13 @@ theorem nest_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.nest = rtr₂.nest)
     simp only [Option.ne_none_iff_exists] at h₁'
     have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
     simp only [Finmap.ids_def'] at h₁'
-    obtain ⟨x, hx⟩ := h₁'
+    have ⟨x, hx⟩ := h₁'
     rw [h] at h₁
     have h₂' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₂'
     have h₂' := h₂' ⟨rcn, Eq.symm hc⟩
     have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
-    obtain ⟨y, hy⟩ := h₂₂'
+    have ⟨y, hy⟩ := h₂₂'
     rw [←hy]
     have hr₁ := h₁₁.rel (Eq.symm hx) hc
     have hr₂ := h₂.rel (Eq.symm hx) (Eq.symm hy)
@@ -208,26 +204,26 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor ι υ} :
   rtr₁ = rtr₂ ↔ 
   rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts  ∧ 
   rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧ 
-  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios := by
+  rtr₁.nest  = rtr₂.nest := by
   constructor
   case mp =>
     intro h
-    simp [ports, acts, state, prios, raw_ext_iff.mp h]
+    simp [ports, acts, state, raw_ext_iff.mp h]
     constructor <;> simp only [Finmap.ext, h]
   case mpr =>
     intro h
     apply raw_ext_iff.mpr
     apply Raw.Reactor.ext
-    simp [ports, acts, state, prios] at h
+    simp [ports, acts, state] at h
     simp only [h]
-    obtain ⟨_, _, _, h₁, h₂, _⟩ := h
+    have ⟨_, _, _, h₁, h₂⟩ := h
     simp [rcns_ext h₁, nest_ext h₂]
 
 @[ext]
 theorem ext {rtr₁ rtr₂ : Reactor ι υ} : 
   rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts  ∧ 
   rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧ 
-  rtr₁.nest  = rtr₂.nest ∧ rtr₁.prios = rtr₂.prios → 
+  rtr₁.nest  = rtr₂.nest → 
   rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h
 

@@ -21,6 +21,10 @@ class Value (α) where
 
 notation "⊥" => Value.absent
 
+def Priority := Option Nat
+
+instance : PartialOrder Priority := sorry
+
 variable {ι υ} [Value υ]
 
 -- Port roles are used to differentiate between input and output ports.
