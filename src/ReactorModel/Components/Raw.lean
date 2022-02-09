@@ -96,7 +96,7 @@ theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction ι υ} :
   rcn₁ = rcn₂ ↔ 
   rcn₁.deps = rcn₂.deps ∧ rcn₁.triggers = rcn₂.triggers ∧ 
   rcn₁.children = rcn₂.children ∧ rcn₁.body = rcn₂.body := by
-  apply Iff.intro
+  constructor
   case mp =>
     intro h
     cases rcn₁
@@ -140,7 +140,7 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} :
   rtr₁.acts  = rtr₂.acts  ∧ rtr₁.state = rtr₂.state ∧ 
   rtr₁.rcns  = rtr₂.rcns  ∧ rtr₁.nest  = rtr₂.nest  ∧ 
   rtr₁.prios = rtr₂.prios := by
-  apply Iff.intro
+  constructor
   case mp =>
     intro h
     cases rtr₁

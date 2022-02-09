@@ -10,7 +10,7 @@ variable {ι υ} [Value υ]
 
 -- An extensionality theorem for `Context`.
 theorem ext_iff {ctx₁ ctx₂ : Context ι} : ctx₁ = ctx₂ ↔ ctx₁.executedRcns = ctx₂.executedRcns := by
-  apply Iff.intro
+  constructor
   case mp => intro h; simp [h]
   case mpr => intro h; cases ctx₁; cases ctx₂; simp [h]
 

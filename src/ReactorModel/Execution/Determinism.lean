@@ -84,36 +84,14 @@ protected theorem ExecutionStep.deterministic {s s₁ s₂ : State ι υ} :
     exact StuckInstExecution.convergent hs₁ hs₂
   case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
     simp [Reactor.eqWithClearedPortsUnique h₁ h₂, Context.advanceTime, State.isNextTag_unique hg₁ hg₂]
-  -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Collapse.20cases
-  case instToStuck.advanceTime hs _ _ _ _ _ => 
+  case' instToStuck.advanceTime hs _ _ _ hr _, advanceTime.instToStuck _ _ _ _ hr _ hs => 
     cases hs.exec 
-    case single hi =>
+    case' single hi, trans hi _ =>
       cases hi <;> (
-        have := mt (Finset.ext_iff.mp (by assumption) _).mpr <| (by assumption)
+        have := mt (Finset.ext_iff.mp hr _).mpr <| (by assumption)
         have := Finmap.ids_def'.mpr ⟨_, Eq.symm (by assumption)⟩
         contradiction
       )
-    case trans _ hi _ => 
-      cases hi <;> (
-        have := mt (Finset.ext_iff.mp (by assumption) _).mpr <| (by assumption)
-        have := Finmap.ids_def'.mpr ⟨_, Eq.symm (by assumption)⟩
-        contradiction
-      )
-  case advanceTime.instToStuck _ _ _ _ hr _ hs => 
-    cases hs.exec 
-    case single hi =>
-      cases hi <;> (
-        have := mt (Finset.ext_iff.mp (by assumption) _).mpr <| (by assumption)
-        have := Finmap.ids_def'.mpr ⟨_, Eq.symm (by assumption)⟩
-        contradiction
-      )
-    case trans _ hi _ => 
-      cases hi <;> (
-        have := mt (Finset.ext_iff.mp (by assumption) _).mpr <| (by assumption)
-        have := Finmap.ids_def'.mpr ⟨_, Eq.symm (by assumption)⟩
-        contradiction
-      )
-
 protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hs₁ : s₁.instStuck) (hs₂ : s₂.instStuck) : 
   (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
   intro he₁ he₂ ht

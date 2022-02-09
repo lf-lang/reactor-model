@@ -74,15 +74,9 @@ theorem RawEquiv.unique {c : Change ι υ} {raw₁ raw₂ : Raw.Change ι υ} (h
 
 theorem RawEquiv.fromRaw {raw : Raw.Change ι υ} {rtr rcn i} (hw hr hc) :
   RawEquiv (@Change.fromRaw _ _ _ rtr hw rcn hr raw i hc) raw := by
-  cases raw <;> simp [Change.fromRaw]
-  case port =>       apply RawEquiv.port
-  case state =>      apply RawEquiv.state
-  case action =>     apply RawEquiv.action
-  case connect =>    apply RawEquiv.connect
-  case disconnect => apply RawEquiv.disconnect
-  case delete =>     apply RawEquiv.delete
-  case create r i => apply RawEquiv.create $ Reactor.RawEquiv.fromRaw _
-
+  cases raw <;> simp [Change.fromRaw] <;> constructor
+  exact Reactor.RawEquiv.fromRaw _
+  
 theorem RawEquiv.mutates_iff {c : Change ι υ} {raw : Raw.Change ι υ} (h : RawEquiv c raw) :
   c.mutates ↔ raw.mutates := by
   cases h <;> simp [mutates, Raw.Change.mutates]
@@ -186,7 +180,7 @@ theorem RawEquiv.fromRaw' {rcn : Reaction ι υ} {rtr raw hw hr} :
 
 theorem RawEquiv.isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : RawEquiv rcn raw) :
   rcn.isMut ↔ raw.isMut := by
-  apply Iff.intro <;> (
+  constructor <;> (
     intro hm
     simp [isMut, isNorm, Raw.Reaction.isMut, Raw.Reaction.isNorm] at *
     obtain ⟨i, c, hc, hm⟩ := hm

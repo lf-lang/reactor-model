@@ -25,7 +25,7 @@ def nest (rtr : Reactor ι υ) : ι ▸ Reactor ι υ :=
       have h' := Raw.Reactor.isAncestorOf.nested hm
       exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.rawWF
     )
-  )
+  )  
 
 theorem RawEquiv.nest (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.RawEquiv rtr.nest rtr.raw.nest := {
   eqIDs := by
@@ -45,13 +45,11 @@ theorem RawEquiv.nest (rtr : Reactor ι υ) : Finmap.forall₂' Reactor.RawEquiv
 }
 
 theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ rtr.raw.nest i = rtr'.raw := by
-  apply Iff.intro
+  constructor
   case mp =>
     intro h
     obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
-    have hm : i ∈ rtr.nest.ids := by
-      simp only [Finmap.ids_def, Option.ne_none_iff_exists]
-      exact ⟨rtr', Eq.symm h⟩
+    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mp ⟨rtr', Eq.symm h⟩
     obtain ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
     have he := hv h (Eq.symm hx)
     simp [←hx, he.equiv]
@@ -59,10 +57,10 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor ι υ} {i} : rtr.nest i = rtr' ↔ 
     intro h
     obtain ⟨hi, hv⟩ := nest_rawEquiv rtr
     have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, Eq.symm h⟩)
-    obtain ⟨x, hx⟩ := Option.ne_none_iff_exists.mp (Finmap.ids_def.mp hi)
+    obtain ⟨x, hx⟩ := Finmap.ids_def'.mp hi
     have he := hv (Eq.symm hx) h
     simp [←hx]
-    exact Reactor.raw_ext_iff.mpr he.equiv     
+    exact Reactor.raw_ext_iff.mpr he.equiv  
 
 -- The `rcns` projection lifted to return a finmap of "proper" reactions.
 -- 
@@ -95,7 +93,7 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   simp only [rcns, ←Finmap.ids_def, Finmap.map_mem_ids, Finmap.attach_mem_ids] at h'
   have he := RawEquiv.rcns rtr
   have hi := (he.eqIDs _).mp h'
-  simp only [Finmap.ids_def, Option.ne_none_iff_exists] at h'
+  simp only [Finmap.ids_def'] at h'
   obtain ⟨raw, hr⟩ := h'
   exact ⟨raw, Eq.symm hr⟩
 
@@ -162,7 +160,7 @@ theorem rcns_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.rcns = rtr₂.rcns)
     have h₁' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₁'
     have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
-    simp only [Finmap.ids_def, Option.ne_none_iff_exists] at h₁'
+    simp only [Finmap.ids_def'] at h₁'
     obtain ⟨x, hx⟩ := h₁'
     rw [h] at h₁
     have h₂' := (h₁.eqIDs i).mpr
@@ -194,7 +192,7 @@ theorem nest_ext {rtr₁ rtr₂ : Reactor ι υ} (h : rtr₁.nest = rtr₂.nest)
     have h₁' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₁'
     have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
-    simp only [Finmap.ids_def, Option.ne_none_iff_exists] at h₁'
+    simp only [Finmap.ids_def'] at h₁'
     obtain ⟨x, hx⟩ := h₁'
     rw [h] at h₁
     have h₂' := (h₁.eqIDs i).mpr
@@ -213,11 +211,11 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor ι υ} :
   rtr₁.acts = rtr₂.acts   ∧ rtr₁.state = rtr₂.state ∧ 
   rtr₁.rcns  = rtr₂.rcns  ∧ rtr₁.nest  = rtr₂.nest  ∧ 
   rtr₁.prios = rtr₂.prios := by
-  apply Iff.intro
+  constructor
   case mp =>
     intro h
     simp [ports, roles, acts, state, prios, raw_ext_iff.mp h]
-    apply And.intro <;> simp only [Finmap.ext, h]
+    constructor <;> simp only [Finmap.ext, h]
   case mpr =>
     intro h
     apply raw_ext_iff.mpr

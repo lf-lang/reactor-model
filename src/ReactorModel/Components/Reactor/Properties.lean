@@ -39,7 +39,7 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h
     have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
     let rip := Reactor.fromRaw ri' hrip
     exists rip
-    apply And.intro
+    constructor
     case h.left =>
       simp [Finmap.values_def]
       exists i'
@@ -63,7 +63,7 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
   have hw := rtr.rawWF.direct.wfMutDeps mr i hr hrm
   obtain ⟨h₁, h₂⟩ := hw
   clear hw
-  apply And.intro
+  constructor
   case left =>
     rw [hq.deps]
     simp [ports', ports, roles, Raw.Reactor.ports'] at h₁ ⊢
@@ -83,7 +83,7 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
       have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
       let rip := Reactor.fromRaw ri' hrip
       exists rip
-      apply And.intro
+      constructor
       case h.left =>
         simp [Finmap.values_def]
         exists i'

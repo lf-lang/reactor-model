@@ -66,7 +66,7 @@ def triggersOn (rcn : Reaction ι υ) (i : Input ι υ) : Prop :=
 theorem eq_input_eq_triggering {rcn : Reaction ι υ} {i₁ i₂ : Input ι υ} (h : i₁.ports =[rcn.deps Role.in] i₂.ports) :
   rcn.triggersOn i₁ ↔ rcn.triggersOn i₂ := by
   simp [triggersOn, Finmap.eqAt, Finmap.isPresent] at h ⊢
-  apply Iff.intro <;> (
+  constructor <;> (
     intro ⟨t, ⟨hm, hn⟩⟩
     exists t
     apply And.intro hm

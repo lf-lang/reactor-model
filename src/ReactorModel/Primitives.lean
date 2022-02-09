@@ -96,12 +96,11 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (ι ▸ υ) := {
     refl := by simp [eqAt]
     symm := by
       simp only [eqAt]
-      intro x y h i hi
-      apply Eq.symm
-      exact h i hi
+      intro _ _ h i hi
+      exact Eq.symm (h i hi)
     trans := by
       simp only [eqAt]
-      intro x y z hxy hyz i hi
+      intro _ _ _ hxy hyz i hi
       exact Eq.trans (hxy i hi) (hyz i hi)
   }
 }
@@ -121,7 +120,7 @@ noncomputable def presentIDs (p : ι ▸ υ) : Finset ι :=
     simp [Set.subset_def]
     intro x h
     simp at *
-    apply And.intro
+    constructor
     case right => exact h
     case left =>
       rw [Finmap.ids_def, Ne.def]

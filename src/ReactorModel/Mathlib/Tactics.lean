@@ -6,3 +6,10 @@ macro "unfold " l:many1(ident) : tactic =>
 
 macro "obtain " t:term " := " h:term : tactic => 
   `(match $h:term with | $t:term => ?_)
+
+-- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Collapse.20cases
+syntax "case' " ((ident <|> "_")*),* " => " tacticSeq : tactic
+macro_rules
+  | `(tactic| case' $[$xs:ident*],* => $tac) => do
+    let tacs ← xs.mapM fun xs => `(tactic| case $(xs[0]) $(xs[1:])* => $tac)
+    `(tactic| ($[$tacs]*))

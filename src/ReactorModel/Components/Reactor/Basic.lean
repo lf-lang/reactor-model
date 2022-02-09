@@ -92,7 +92,7 @@ structure Reactor (ι υ) [Value υ] where
 -- An raw-based extensionality theorem for `Reactor`.
 -- We also define a proper extensionality theorem called `ext_iff`.
 theorem Reactor.raw_ext_iff {rtr₁ rtr₂ : Reactor ι υ} : rtr₁ = rtr₂ ↔ rtr₁.raw = rtr₂.raw := by
-  apply Iff.intro <;> (
+  constructor <;> (
     intro h
     cases rtr₁
     cases rtr₂
