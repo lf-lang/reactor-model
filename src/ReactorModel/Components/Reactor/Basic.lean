@@ -49,7 +49,6 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
-  wfRoles :         rtr.roles.ids = rtr.ports.ids
   wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
   mutsBeforeNorms : ∀ iₙ iₘ n m, rtr.rcns iₙ = some n → n.isNorm → rtr.rcns iₘ = some m → m.isMut → rtr.prios.lt iₘ iₙ

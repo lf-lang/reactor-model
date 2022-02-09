@@ -19,6 +19,7 @@ inductive Cmp
   | prt -- Port
   | act -- Actions
   | stv -- State variables
+  -- | pio -- Priorities
 
 namespace Cmp 
 
@@ -29,7 +30,7 @@ namespace Cmp
 abbrev type : Cmp → Type _
   | rtr => Reactor ι υ
   | rcn => Reaction ι υ
-  | prt => υ
+  | prt => Port.Role × υ
   | act => Time.Tag ▸ υ
   | stv => υ
 
@@ -237,7 +238,6 @@ structure EqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop wher
   otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂
   otherIDsEq : ∀ {i'}, i' ≠ i → cmp.accessor σ₁ i' = cmp.accessor σ₂ i'
   priosEq : σ₁.prios = σ₂.prios
-  rolesEq : σ₁.roles = σ₂.roles
 
 notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
 
@@ -247,7 +247,7 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cm
   (cmp.accessor σ₁ i = cmp.accessor σ₂ i) → σ₁ = σ₂ := by
   intro ha
   apply ext
-  simp only [he₁.priosEq, Eq.symm $ he₂.priosEq, he₁.rolesEq, Eq.symm $ he₂.rolesEq] 
+  simp only [he₁.priosEq, Eq.symm $ he₂.priosEq] 
   have h_aux₁ : cmp.accessor σ₁ = cmp.accessor σ₂ := by
     apply Finmap.ext
     intro i'
@@ -372,12 +372,29 @@ theorem Update.eq_prios {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : 
   (σ₁ -[cmp, i := v]→ σ₂) → σ₁.prios = σ₂.prios := by 
   intro h; cases h <;> apply EqModID.priosEq <;> assumption
 
-theorem Update.eq_roles {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
-  (σ₁ -[cmp, i := v]→ σ₂) → σ₁.roles = σ₂.roles := by 
-  intro h; cases h <;> apply EqModID.rolesEq <;> assumption
-
 theorem Update.ne_cmp_and_ne_rtr_eq {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (cmp' : Cmp):
   (σ₁ -[cmp, i := v]→ σ₂) → cmp' ≠ cmp → cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂ := by 
   intro hu _ _; cases hu <;> apply EqModID.otherCmpsEq <;> assumption
 
 end Reactor
+
+inductive Cmp.Field
+  | prtVal -- Port value
+
+namespace Cmp.Field
+
+abbrev parent : Cmp.Field → Cmp 
+  | prtVal => Cmp.prt
+
+abbrev type (ι υ : Type u) [Value υ] : Cmp.Field → Type _
+  | prtVal => υ
+
+def mkParent : (f : Cmp.Field) → f.parent.type ι υ → f.type ι υ → f.parent.type ι υ
+  | prtVal, p, v => ⟨p.fst, v⟩
+
+end Cmp.Field
+
+def Reactor.Update.Field (f : Cmp.Field) (v : f.type ι υ) (i : ι) (σ₁ σ₂ : Reactor ι υ) : Prop :=
+  ∃ p, σ₁ *[f.parent, i]= p ∧ σ₁ -[f.parent, i := f.mkParent p v]→ σ₂
+  
+notation σ₁:max " -[" f ", " i " := " v "]→ " σ₂:max => Reactor.Update.Field f v i σ₁ σ₂

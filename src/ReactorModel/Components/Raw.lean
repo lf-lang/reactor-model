@@ -42,8 +42,7 @@ protected inductive Reaction (ι υ) [v : Value υ]
 
 protected inductive Reactor (ι υ) [v : Value υ]
   | mk 
-    (ports : ι ▸ υ) 
-    (roles : ι ▸ Port.Role)
+    (ports : ι ▸ (Port.Role × υ)) 
     (acts :  ι ▸ Time.Tag ▸ υ)
     (state : ι ▸ υ)
     (rcns :  ι → Option (Raw.Reaction ι υ))
@@ -121,25 +120,23 @@ end Raw.Reaction
 namespace Raw.Reactor
 
 -- These definitions give us the projections that would usually be generated for a structure.
-def ports : Raw.Reactor ι υ → ι ▸ υ                         | mk p _ _ _ _ _ _ => p
-def roles : Raw.Reactor ι υ → ι ▸ Port.Role                 | mk _ r _ _ _ _ _ => r
-def acts :  Raw.Reactor ι υ → ι ▸ Time.Tag ▸ υ              | mk _ _ a _ _ _ _ => a
-def state : Raw.Reactor ι υ → ι ▸ υ                         | mk _ _ _ s _ _ _ => s 
-def rcns :  Raw.Reactor ι υ → ι → Option (Raw.Reaction ι υ) | mk _ _ _ _ r _ _ => r
-def nest :  Raw.Reactor ι υ → ι → Option (Raw.Reactor ι υ)  | mk _ _ _ _ _ n _ => n
-def prios : Raw.Reactor ι υ → PartialOrder ι                | mk _ _ _ _ _ _ p => p 
+def ports : Raw.Reactor ι υ → ι ▸ (Port.Role × υ)           | mk p _ _ _ _ _ => p
+def acts :  Raw.Reactor ι υ → ι ▸ Time.Tag ▸ υ              | mk _ a _ _ _ _ => a
+def state : Raw.Reactor ι υ → ι ▸ υ                         | mk _ _ s _ _ _ => s 
+def rcns :  Raw.Reactor ι υ → ι → Option (Raw.Reaction ι υ) | mk _ _ _ r _ _ => r
+def nest :  Raw.Reactor ι υ → ι → Option (Raw.Reactor ι υ)  | mk _ _ _ _ n _ => n
+def prios : Raw.Reactor ι υ → PartialOrder ι                | mk _ _ _ _ _ p => p 
 
 -- Cf. `Reactor.ports'`.
 noncomputable def ports' (rtr : Raw.Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
-  rtr.ports.filter (λ i => rtr.roles i = r)
+  rtr.ports.filter' (λ p => p.fst = r) |>.map Prod.snd
 
 -- An extensionality theorem for `Raw.Reactor`.
 theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} : 
   rtr₁ = rtr₂ ↔ 
-  rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧
-  rtr₁.acts  = rtr₂.acts  ∧ rtr₁.state = rtr₂.state ∧ 
-  rtr₁.rcns  = rtr₂.rcns  ∧ rtr₁.nest  = rtr₂.nest  ∧ 
-  rtr₁.prios = rtr₂.prios := by
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts  = rtr₂.acts ∧ 
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧ 
+  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios := by
   constructor
   case mp =>
     intro h
@@ -148,7 +145,7 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} :
     simp [h]
   case mpr =>
     intro h
-    simp [ports, roles, state, rcns, acts, nest, prios] at h
+    simp [ports, state, rcns, acts, nest, prios] at h
     cases rtr₁
     cases rtr₂
     simp [h]
@@ -156,10 +153,10 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} :
 -- We need this additional theorem as the `ext` attribute can only be used on theorems proving an equality.
 @[ext]
 theorem ext {rtr₁ rtr₂ : Raw.Reactor ι υ} :
-  rtr₁.ports = rtr₂.ports ∧ rtr₁.roles = rtr₂.roles ∧
-  rtr₁.acts  = rtr₂.acts  ∧ rtr₁.state = rtr₂.state ∧ 
-  rtr₁.rcns  = rtr₂.rcns  ∧ rtr₁.nest  = rtr₂.nest  ∧ 
-  rtr₁.prios = rtr₂.prios → rtr₁ = rtr₂ :=
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts  = rtr₂.acts  ∧ 
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns  ∧ 
+  rtr₁.nest  = rtr₂.nest  ∧ rtr₁.prios = rtr₂.prios → 
+  rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h  
 
 end Raw.Reactor

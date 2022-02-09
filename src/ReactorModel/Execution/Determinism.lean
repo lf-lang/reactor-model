@@ -1,4 +1,5 @@
 import ReactorModel.Execution.Basic
+
 variable {ι υ} [Value υ]
 
 -- This file defines (and proves) determinism for the reactor model.

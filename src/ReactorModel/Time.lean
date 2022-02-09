@@ -9,7 +9,8 @@ structure Tag where
   t : Time
   microsteps : Nat
 
-instance LinearOrder_Tag : LinearOrder Tag := sorry
+-- TODO: Replacing this with `deriving LinearOrder` once that feature is available again.
+instance : LinearOrder Tag := sorry
 
 open Ordering in
 def after (t : Time) (g : Tag) : Option Tag :=  

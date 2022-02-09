@@ -6,11 +6,6 @@ variable {ι υ} [Value υ]
 
 namespace Reactor
 
--- The `roles` map associates each port (ID) in a reactor with a role (input or output).
--- These mappings should exist only for *those* ports with are actually part of the reactor,
--- which is enforced by this constraint.
-theorem wfRoles (rtr : Reactor ι υ) : rtr.roles.ids = rtr.ports.ids := rtr.rawWF.direct.wfRoles
-
 -- TODO (maybe): Factor out the overlap between the proofs of `wfNormDeps` and `wfMutDeps`.
 
 -- This constraint constrains the anti/-dependencies of `rtr`'s normal reactions, such that:
@@ -66,7 +61,7 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
   constructor
   case left =>
     rw [hq.deps]
-    simp [ports', ports, roles, Raw.Reactor.ports'] at h₁ ⊢
+    simp [ports', ports, Raw.Reactor.ports'] at h₁ ⊢
     exact h₁
   case right =>
     clear h₁

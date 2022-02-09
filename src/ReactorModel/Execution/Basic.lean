@@ -1,16 +1,15 @@
 import ReactorModel.Execution.State
 
-variable {ι υ} [Value υ]
+open Port
 
--- TODO: You're only ever using (σ, ctx) together. Create some structure that bundles them.
+variable {ι υ} [Value υ]
 
 -- TODO: Come up with something nicer.
 structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor ι υ) where
   otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
   priosEq : σ₁.prios = σ₂.prios
-  rolesEq : σ₁.roles = σ₂.roles
   samePortIDs : ∀ i, σ₁.containsID i Cmp.prt ↔ σ₂.containsID i Cmp.prt
-  clearedIDs : ∀ i, σ₂.containsID i Cmp.prt → σ₂ *[Cmp.prt, i]= ⊥
+  clearedIDs : ∀ i r v, σ₂ *[Cmp.prt, i]= ⟨r, v⟩ → σ₂ *[Cmp.prt, i]= ⟨r, ⊥⟩
 
 lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor ι υ} :
  Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
@@ -19,7 +18,7 @@ lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor ι υ} :
 namespace Execution
 
 inductive ChangeStep (g : Time.Tag) (σ₁ : Reactor ι υ) : Reactor ι υ → Change ι υ → Prop 
-  | port (σ₂) {i v} : (σ₁ -[Cmp.prt, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
+  | port (σ₂) {i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
   | state (σ₂) {i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.state i v)
   | action (σ₂) {i} {t : Time} {tg : Time.Tag} {v : υ} {a : Time.Tag ▸ υ} : 
     (σ₁.acts i = a) → 
