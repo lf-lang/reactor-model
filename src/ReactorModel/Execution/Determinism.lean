@@ -37,8 +37,8 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State ι υ} :
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
-theorem InstExecution.deterministic {s s₁ s₂ : State ι υ} : 
-  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁.rtr = s₂.rtr := sorry
+protected theorem InstExecution.deterministic {s s₁ s₂ : State ι υ} : 
+  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := sorry
 
 theorem StuckInstExecution.ctx_current_complete {s₁ s₂ : State ι υ} :
   (s₁ ⇓ᵢ| s₂) → s₂.ctx.executedRcns s₂.ctx.time = s₂.rtr.rcns.ids := by
@@ -73,17 +73,19 @@ theorem StuckInstExecution.eq_ctx {s s₁ s₂ : State ι υ} :
   case neg => simp only [←hs₁.exec.preserves_ctx_past_future g hg, hs₂.exec.preserves_ctx_past_future g hg]
 
 theorem StuckInstExecution.convergent {s s₁ s₂ : State ι υ} :
-  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr = s₂.rtr :=
+  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
   λ hs₁ hs₂ => InstExecution.deterministic hs₁.exec hs₂.exec $ StuckInstExecution.eq_ctx hs₁ hs₂
 
-theorem Execution.timed_deterministic {s s₁ s₂ : State ι υ} : 
-  (s ⇓ s₁) → (s ⇓ s₂) → s₁.rtr = s₂.rtr := by
+protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} : 
+  (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
   intro he₁ he₂
   cases he₁ <;> cases he₂
-  case instToStuck.instToStuck hs₁ hs₂ => exact StuckInstExecution.convergent hs₁ hs₂
-  case advanceTime.advanceTime h₁ _ _ _ _ _ _ h₂ => exact Reactor.eqWithClearedPortsUnique h₁ h₂
+  case instToStuck.instToStuck hs₁ hs₂ => 
+    exact StuckInstExecution.convergent hs₁ hs₂
+  case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
+    simp [Reactor.eqWithClearedPortsUnique h₁ h₂, Context.advanceTime, State.isNextTag_unique hg₁ hg₂]
   -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Collapse.20cases
-  case instToStuck.advanceTime hs _ _ _ _ _ _ _ => 
+  case instToStuck.advanceTime hs _ _ _ _ _ => 
     cases hs.exec 
     case single hi =>
       cases hi <;> (

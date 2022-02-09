@@ -1,14 +1,8 @@
 import ReactorModel.Components
 
-open Time Classical
-
 structure Execution.Context (ι) where
   executedRcns : Time.Tag ▸ Finset ι
   nonempty : executedRcns.nonempty
-
-structure Execution.State (ι υ) [Value υ] where
-  rtr : Reactor ι υ
-  ctx : Context ι
 
 namespace Execution.Context
 

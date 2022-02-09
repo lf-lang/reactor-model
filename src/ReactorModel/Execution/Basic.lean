@@ -1,4 +1,4 @@
-import ReactorModel.Execution.Context
+import ReactorModel.Execution.State
 
 variable {ι υ} [Value υ]
 
@@ -82,12 +82,10 @@ notation s₁:max " ⇓ᵢ| " s₂:max => StuckInstExecution s₁ s₂
 -- steps can be taken, or a time advancement.
 inductive Step (s : State ι υ) : State ι υ → Prop 
   | instToStuck (s') : s ⇓ᵢ| s' → Step s s'
-  | advanceTime {σ' g} (hg : s.ctx.time < g) :
-    (g ∈ s.rtr.scheduledTags) →
-    (∀ g' ∈ s.rtr.scheduledTags, s.ctx.time < g' → g ≤ g') →
+  | advanceTime {σ' g} (hg : s.isNextTag g) :
     (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) →
     (s.rtr.eqWithClearedPorts σ') →
-    Step s ⟨σ', s.ctx.advanceTime hg⟩
+    Step s ⟨σ', s.ctx.advanceTime hg.lower⟩
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 
