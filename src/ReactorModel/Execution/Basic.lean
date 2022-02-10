@@ -83,7 +83,7 @@ inductive Step (s : State ι υ) : State ι υ → Prop
   | advanceTime {σ' g} (hg : s.isNextTag g) :
     (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) →
     (s.rtr.eqWithClearedPorts σ') →
-    Step s ⟨σ', s.ctx.advanceTime hg.lower⟩
+    Step s ⟨σ', s.ctx.advanceTime g hg.lower⟩
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 

@@ -1,5 +1,7 @@
 import ReactorModel.Execution.Basic
 
+open Classical
+
 variable {ι υ} [Value υ]
 
 -- This file defines (and proves) determinism for the reactor model.
@@ -7,6 +9,9 @@ variable {ι υ} [Value υ]
 -- Primarily, we say the execution is deterministic if there is always ot most one timed
 -- step that can be taken.
 namespace Execution
+
+theorem InstExecution.first_step {s₁ s₂ : State ι υ} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
+  cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
 
 theorem InstExecution.preserves_time {s₁ s₂ : State ι υ} :
   (s₁ ⇓ᵢ+ s₂) → s₁.ctx.time = s₂.ctx.time := by
@@ -32,6 +37,10 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State ι υ} :
 -- reactor.
 protected theorem InstExecution.deterministic {s s₁ s₂ : State ι υ} : 
   (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := sorry
+
+theorem State.instStuck_if_all_rcns_executed {s : State ι υ} :
+  (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) → s.instStuck := by
+  sorry
 
 theorem StuckInstExecution.ctx_current_complete {s₁ s₂ : State ι υ} :
   (s₁ ⇓ᵢ| s₂) → s₂.ctx.executedRcns s₂.ctx.time = s₂.rtr.rcns.ids := by
@@ -85,20 +94,37 @@ protected theorem ExecutionStep.deterministic {s s₁ s₂ : State ι υ} :
         have := Finmap.ids_def'.mpr ⟨_, Eq.symm (by assumption)⟩
         contradiction
       )
+
+theorem Execution.time_monotone {s₁ s₂ : State ι υ} : 
+  (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
+  sorry
+
 protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hs₁ : s₁.instStuck) (hs₂ : s₂.instStuck) : 
   (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
   intro he₁ he₂ ht
   induction he₁ <;> cases he₂ 
   case refl.refl => rfl
-  case step.step hi _ _ _ => 
-    have hi := hi hs₁
-    sorry
-  -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Collapse.20cases
-  case refl.step h _ => sorry
-  case step.refl h => 
-    cases h <;> sorry
-    -- TODO:
-    -- instToStuck isnt possible, because we're already stuck.
-    -- advanceTime advances time which contradicts ht
+  case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hs₂ (Eq.symm ht) h₁₂ h₂₃
+  case refl.step _ _ h₁₂ h₂₃ => exact False.elim $ impossible_case_aux hs₁ ht h₁₂ h₂₃
+  case step.step s sₘ₁ s₁ h₁ₘ₁ hₘ₁₂ hi sₘ₂ h₁ₘ₂ hₘ₂₂ => 
+    rw [ExecutionStep.deterministic h₁ₘ₁ h₁ₘ₂] at hi
+    exact hi hs₁ hₘ₂₂ ht
+where 
+  impossible_case_aux {s₁ s₂ s₃ : State ι υ} (hs : s₁.instStuck) (ht : s₁.ctx.time = s₃.ctx.time) :
+    (s₁ ⇓ s₂) → (s₂ ⇓* s₃) → False := by
+    intro h₁₂ h₂₃
+    cases h₁₂
+    case instToStuck hi =>
+      have ⟨sₘ, _⟩ := hi.exec.first_step
+      have := hs sₘ
+      contradiction
+    case advanceTime g hg _ _ => 
+      have h := time_monotone h₂₃
+      rw [←ht] at h
+      simp only at h
+      have h' := s₁.ctx.advanceTime_strictly_increasing g hg.lower
+      have h'' := lt_of_le_of_lt h h'
+      have := lt_irrefl _ h''
+      contradiction
 
 end Execution

@@ -32,9 +32,13 @@ noncomputable def addCurrentExecuted (ctx : Context ι) (i : ι) : Context ι :=
 theorem addCurrentExecuted_same_time (ctx : Context ι) (i : ι) : (ctx.addCurrentExecuted i).time = ctx.time := by
   sorry
 
-noncomputable def advanceTime (ctx : Context ι) {g : Time.Tag} (h : ctx.time < g) : Context ι := {
+noncomputable def advanceTime (ctx : Context ι) (g : Time.Tag) (h : ctx.time < g) : Context ι := {
   executedRcns := ctx.executedRcns.update' g ∅,
   nonempty := sorry
 }
+
+theorem advanceTime_strictly_increasing (ctx : Context ι) (g : Time.Tag) (h : ctx.time < g) :
+  ctx.time < (ctx.advanceTime g h).time := by
+  sorry
 
 end Execution.Context
