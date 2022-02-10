@@ -24,6 +24,9 @@ theorem executedRcns_at_time_isSome (ctx : Context ι) :
 def currentExecutedRcns (ctx : Context ι) : Finset ι :=
   (ctx.executedRcns ctx.time).get ctx.executedRcns_at_time_isSome
 
+theorem currentExecutedRcns_def (ctx : Context ι) : some ctx.currentExecutedRcns = ctx.executedRcns ctx.time := by
+  sorry
+
 noncomputable def addCurrentExecuted (ctx : Context ι) (i : ι) : Context ι := {
   executedRcns := ctx.executedRcns.update ctx.time $ ctx.currentExecutedRcns.insert i,
   nonempty := sorry

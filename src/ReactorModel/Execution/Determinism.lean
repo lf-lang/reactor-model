@@ -32,6 +32,12 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State ι υ} :
     rw [InstExecution.preserves_time $ single he] at hg
     simp [hc, hi hg]
 
+-- Note: this only talks about the top-level reactions, not the nested ones.
+theorem InstExecution.convergent_rcns {s s₁ s₂ : State ι υ} :
+  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → s₁.rtr.rcns = s₂.rtr.rcns := by
+  sorry
+
+
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
@@ -40,10 +46,15 @@ protected theorem InstExecution.deterministic {s s₁ s₂ : State ι υ} :
 
 theorem State.instStuck_if_all_rcns_executed {s : State ι υ} :
   (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) → s.instStuck := by
-  sorry
-
+  intro h s' he
+  cases he
+  case' execReaction hi _ hm _ _, skipReaction hi _ hm _ =>
+    have h' := Finmap.ids_def'.mpr ⟨_, Eq.symm hi⟩
+    rw [←h] at h'
+    contradiction
+  
 theorem StuckInstExecution.ctx_current_complete {s₁ s₂ : State ι υ} :
-  (s₁ ⇓ᵢ| s₂) → s₂.ctx.executedRcns s₂.ctx.time = s₂.rtr.rcns.ids := by
+  (s₁ ⇓ᵢ| s₂) → s₂.ctx.currentExecutedRcns = s₂.rtr.rcns.ids := by
   sorry -- This is probably non-trivial.
 
   
@@ -57,26 +68,23 @@ theorem StuckInstExecution.ctx_current_complete {s₁ s₂ : State ι υ} :
 --  sameReactionTopologyChanges ((σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁')) ((σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) :=
 --  sorry
 
-theorem StuckInstExecution.topology_convergent {s s₁ s₂ : State ι υ} :
-  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.rcns = s₂.rtr.rcns := 
-  sorry
-
-theorem StuckInstExecution.eq_ctx {s s₁ s₂ : State ι υ} :
+theorem StuckInstExecution.convergent_ctx {s s₁ s₂ : State ι υ} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hs₁ hs₂
   apply Context.ext_iff.mpr; apply Finmap.ext
   intro g
   by_cases hg : g = s.ctx.time
   case pos => 
-    have h₁ := hs₁.ctx_current_complete
-    have h₂ := hs₂.ctx_current_complete
+    have h₁ := hs₁.ctx_current_complete |> Option.some_inj.mpr
+    have h₂ := hs₂.ctx_current_complete |> Option.some_inj.mpr
+    rw [Context.currentExecutedRcns_def] at h₁ h₂
     simp only [←hs₁.exec.preserves_time, ←hs₂.exec.preserves_time, ←hg] at h₁ h₂
-    simp only [h₁, h₂, StuckInstExecution.topology_convergent hs₁ hs₂]
+    simp only [h₁, h₂, InstExecution.convergent_rcns hs₁.exec hs₂.exec]
   case neg => simp only [←hs₁.exec.preserves_ctx_past_future g hg, hs₂.exec.preserves_ctx_past_future g hg]
 
 theorem StuckInstExecution.convergent {s s₁ s₂ : State ι υ} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
-  λ hs₁ hs₂ => InstExecution.deterministic hs₁.exec hs₂.exec $ StuckInstExecution.eq_ctx hs₁ hs₂
+  λ hs₁ hs₂ => InstExecution.deterministic hs₁.exec hs₂.exec $ StuckInstExecution.convergent_ctx hs₁ hs₂
 
 end Execution
 
