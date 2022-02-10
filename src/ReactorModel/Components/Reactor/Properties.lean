@@ -90,36 +90,30 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
 -- This constraint forces the priorities of mutations in a reactor to be greater than any of its normal reactions.
 theorem mutsBeforeNorms {rtr : Reactor ι υ} {n m : Reaction ι υ} (hn : n ∈ rtr.norms.values) (hm : m ∈ rtr.muts.values) : 
   n.prio < m.prio := by
-  sorry
-  /- have h := rtr.rawWF.direct.mutsBeforeNorms iₙ iₘ
-  simp only [muts, norms, Finmap.filter'_mem_ids] at hn hm
-  obtain ⟨hr₁, hm₁⟩ := hn.choose_spec
-  obtain ⟨hr₂, hm₂⟩ := hm.choose_spec
-  have hi₁ := (rcns_has_raw hr₁).choose_spec
-  have hi₂ := (rcns_has_raw hr₂).choose_spec
+  simp only [muts, norms, Finmap.filter'_mem_values] at hn hm
+  have ⟨ni, ⟨hnl, hn⟩⟩ := hn
+  have ⟨mi, ⟨hml, hm⟩⟩ := hm
+  have ⟨nr, hnr⟩ := rcns_has_raw hnl
+  have ⟨mr, hmr⟩ := rcns_has_raw hml
   have he := RawEquiv.rcns rtr
-  have hmr₁ := (Reaction.RawEquiv.isNorm_iff $ he.rel hr₁ hi₁).mp hm₁
-  have hmr₂ := (Reaction.RawEquiv.isMut_iff  $ he.rel hr₂ hi₂).mp hm₂
-  exact h _ _ hi₁ hmr₁ hi₂ hmr₂-/
+  have hne := he.rel hnl hnr
+  have hme := he.rel hml hmr
+  simp only [hne.prio, hme.prio]
+  exact rtr.rawWF.direct.mutsBeforeNorms hnr (hne.isNorm_iff.mp hn) hmr (hme.isMut_iff.mp hm)
 
 -- This constraint forces the priorities of all mutations in a reactor to be comparable,
 -- i.e. they form a linear order.
 theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} {m₁ m₂ : Reaction ι υ} 
   (h₁ : rtr.muts i₁ = m₁) (h₂ : rtr.muts i₂ = m₂) (hn : i₁ ≠ i₂) : 
   m₁.prio < m₂.prio ∨ m₂.prio < m₁.prio := by
-  sorry
-  /-
-  have h := rtr.rawWF.direct.mutsLinearOrder i₁ i₂
-  simp only [muts, Finmap.filter'_mem_ids] at h₁ h₂
-  obtain ⟨hr₁, hm₁⟩ := h₁.choose_spec
-  obtain ⟨hr₂, hm₂⟩ := h₂.choose_spec
-  have hi₁ := (rcns_has_raw hr₁).choose_spec
-  have hi₂ := (rcns_has_raw hr₂).choose_spec
+  simp only [muts, Finmap.filter'_mem] at h₁ h₂
+  have ⟨_, hi₁⟩ := rcns_has_raw h₁.left
+  have ⟨_, hi₂⟩ := rcns_has_raw h₂.left
   have he := RawEquiv.rcns rtr
-  have hmr₁ := (Reaction.RawEquiv.isMut_iff $ he.rel hr₁ hi₁).mp hm₁
-  have hmr₂ := (Reaction.RawEquiv.isMut_iff $ he.rel hr₂ hi₂).mp hm₂
-  exact h _ _ hi₁ hi₂ hmr₁ hmr₂
-  -/
+  have he₁ := he.rel h₁.left hi₁
+  have he₂ := he.rel h₂.left hi₂
+  simp only [he₁.prio, he₂.prio]
+  exact rtr.rawWF.direct.mutsLinearOrder hi₁ hi₂ (he₁.isMut_iff.mp h₁.right) (he₂.isMut_iff.mp h₂.right) hn
 
 -- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
 -- structure that traces a path through the nested reactors of `σ` that lead

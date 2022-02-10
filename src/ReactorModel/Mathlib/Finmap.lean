@@ -151,6 +151,10 @@ noncomputable def filter' (f : α ▸ β) (p : β → Prop) : α ▸ β := {
   finite := sorry
 }
 
+theorem filter'_mem {f : α ▸ β} {p : β → Prop} {i : α} {b : β} : 
+  (f.filter' p) i = some b ↔ f i = b ∧ p b :=
+  sorry
+
 theorem filter'_mem_values {f : α ▸ β} {p : β → Prop} {b : β} : 
   b ∈ (f.filter' p).values ↔ ∃ i : α, f i = b ∧ p b :=
   sorry 
