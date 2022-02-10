@@ -78,7 +78,16 @@ theorem StuckInstExecution.convergent {s s₁ s₂ : State ι υ} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
   λ hs₁ hs₂ => InstExecution.deterministic hs₁.exec hs₂.exec $ StuckInstExecution.eq_ctx hs₁ hs₂
 
-protected theorem ExecutionStep.deterministic {s s₁ s₂ : State ι υ} : 
+end Execution
+
+theorem Execution.Step.time_monotone {s₁ s₂ : State ι υ} : 
+  (s₁ ⇓ s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
+  intro h
+  cases h
+  case instToStuck h => exact le_of_eq h.exec.preserves_time
+  case advanceTime hg _ _ => exact le_of_lt $ s₁.ctx.advanceTime_strictly_increasing _ hg.lower
+
+protected theorem Execution.Step.deterministic {s s₁ s₂ : State ι υ} : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
   intro he₁ he₂
   cases he₁ <;> cases he₂
@@ -97,7 +106,10 @@ protected theorem ExecutionStep.deterministic {s s₁ s₂ : State ι υ} :
 
 theorem Execution.time_monotone {s₁ s₂ : State ι υ} : 
   (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
-  sorry
+  intro h
+  induction h 
+  case refl => simp
+  case step h _ hi => exact le_trans h.time_monotone hi
 
 protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hs₁ : s₁.instStuck) (hs₂ : s₂.instStuck) : 
   (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
@@ -107,7 +119,7 @@ protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hs₁ : s
   case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hs₂ (Eq.symm ht) h₁₂ h₂₃
   case refl.step _ _ h₁₂ h₂₃ => exact False.elim $ impossible_case_aux hs₁ ht h₁₂ h₂₃
   case step.step s sₘ₁ s₁ h₁ₘ₁ hₘ₁₂ hi sₘ₂ h₁ₘ₂ hₘ₂₂ => 
-    rw [ExecutionStep.deterministic h₁ₘ₁ h₁ₘ₂] at hi
+    rw [Execution.Step.deterministic h₁ₘ₁ h₁ₘ₂] at hi
     exact hi hs₁ hₘ₂₂ ht
 where 
   impossible_case_aux {s₁ s₂ s₃ : State ι υ} (hs : s₁.instStuck) (ht : s₁.ctx.time = s₃.ctx.time) :
@@ -126,5 +138,3 @@ where
       have h'' := lt_of_le_of_lt h h'
       have := lt_irrefl _ h''
       contradiction
-
-end Execution
