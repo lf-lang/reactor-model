@@ -37,27 +37,21 @@ theorem InstExecution.convergent_rcns {s s₁ s₂ : State ι υ} :
   (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → s₁.rtr.rcns = s₂.rtr.rcns := by
   sorry
 
-
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
 protected theorem InstExecution.deterministic {s s₁ s₂ : State ι υ} : 
   (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := sorry
 
-theorem State.instStuck_if_all_rcns_executed {s : State ι υ} :
-  (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) → s.instStuck := by
+theorem State.instComplete_to_inst_stuck {s : State ι υ} :
+  s.instComplete → ∀ s', ¬(s ⇓ᵢ s') := by
   intro h s' he
   cases he
   case' execReaction hi _ hm _ _, skipReaction hi _ hm _ =>
-    have h' := Finmap.ids_def'.mpr ⟨_, Eq.symm hi⟩
-    rw [←h] at h'
-    contradiction
-  
-theorem StuckInstExecution.ctx_current_complete {s₁ s₂ : State ι υ} :
-  (s₁ ⇓ᵢ| s₂) → s₂.ctx.currentExecutedRcns = s₂.rtr.rcns.ids := by
-  sorry -- This is probably non-trivial.
+  have h' := Finmap.ids_def'.mpr ⟨_, Eq.symm hi⟩
+  rw [←h] at h'
+  contradiction
 
-  
 -- The set of reactions can change because of mutations.
 -- However, these changes are deterministic.
 --lemma networkChangeDeterministic {σ₁ σ₂ σ₁' σ₂' : Reactor ι υ}
@@ -68,23 +62,23 @@ theorem StuckInstExecution.ctx_current_complete {s₁ s₂ : State ι υ} :
 --  sameReactionTopologyChanges ((σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁')) ((σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) :=
 --  sorry
 
-theorem StuckInstExecution.convergent_ctx {s s₁ s₂ : State ι υ} :
+theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State ι υ} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
-  intro hs₁ hs₂
+  intro hc₁ hc₂
   apply Context.ext_iff.mpr; apply Finmap.ext
   intro g
   by_cases hg : g = s.ctx.time
   case pos => 
-    have h₁ := hs₁.ctx_current_complete |> Option.some_inj.mpr
-    have h₂ := hs₂.ctx_current_complete |> Option.some_inj.mpr
+    have h₁ := hc₁.complete |> Option.some_inj.mpr
+    have h₂ := hc₂.complete |> Option.some_inj.mpr
     rw [Context.currentExecutedRcns_def] at h₁ h₂
-    simp only [←hs₁.exec.preserves_time, ←hs₂.exec.preserves_time, ←hg] at h₁ h₂
-    simp only [h₁, h₂, InstExecution.convergent_rcns hs₁.exec hs₂.exec]
-  case neg => simp only [←hs₁.exec.preserves_ctx_past_future g hg, hs₂.exec.preserves_ctx_past_future g hg]
+    simp only [←hc₁.exec.preserves_time, ←hc₂.exec.preserves_time, ←hg] at h₁ h₂
+    simp only [h₁, h₂, InstExecution.convergent_rcns hc₁.exec hc₂.exec]
+  case neg => simp only [←hc₁.exec.preserves_ctx_past_future g hg, hc₂.exec.preserves_ctx_past_future g hg]
 
-theorem StuckInstExecution.convergent {s s₁ s₂ : State ι υ} :
+theorem CompleteInstExecution.convergent {s s₁ s₂ : State ι υ} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
-  λ hs₁ hs₂ => InstExecution.deterministic hs₁.exec hs₂.exec $ StuckInstExecution.convergent_ctx hs₁ hs₂
+  λ hc₁ hc₂ => InstExecution.deterministic hc₁.exec hc₂.exec $ CompleteInstExecution.convergent_ctx hc₁ hc₂
 
 end Execution
 
@@ -92,19 +86,19 @@ theorem Execution.Step.time_monotone {s₁ s₂ : State ι υ} :
   (s₁ ⇓ s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
   intro h
   cases h
-  case instToStuck h => exact le_of_eq h.exec.preserves_time
+  case completeInst h => exact le_of_eq h.exec.preserves_time
   case advanceTime hg _ _ => exact le_of_lt $ s₁.ctx.advanceTime_strictly_increasing _ hg.lower
 
 protected theorem Execution.Step.deterministic {s s₁ s₂ : State ι υ} : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
   intro he₁ he₂
   cases he₁ <;> cases he₂
-  case instToStuck.instToStuck hs₁ hs₂ => 
-    exact StuckInstExecution.convergent hs₁ hs₂
+  case completeInst.completeInst hc₁ hc₂ => 
+    exact CompleteInstExecution.convergent hc₁ hc₂
   case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
     simp [Reactor.eqWithClearedPortsUnique h₁ h₂, Context.advanceTime, State.isNextTag_unique hg₁ hg₂]
-  case' instToStuck.advanceTime hs _ _ _ hr _, advanceTime.instToStuck _ _ _ _ hr _ hs => 
-    cases hs.exec 
+  case' completeInst.advanceTime hc _ _ _ hr _, advanceTime.completeInst _ _ _ _ hr _ hc => 
+    cases hc.exec 
     case' single hi, trans hi _ =>
       cases hi <;> (
         have := mt (Finset.ext_iff.mp hr _).mpr <| (by assumption)
@@ -119,24 +113,24 @@ theorem Execution.time_monotone {s₁ s₂ : State ι υ} :
   case refl => simp
   case step h _ hi => exact le_trans h.time_monotone hi
 
-protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hs₁ : s₁.instStuck) (hs₂ : s₂.instStuck) : 
+protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hc₁ : s₁.instComplete) (hc₂ : s₂.instComplete) : 
   (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
   intro he₁ he₂ ht
   induction he₁ <;> cases he₂ 
   case refl.refl => rfl
-  case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hs₂ (Eq.symm ht) h₁₂ h₂₃
-  case refl.step _ _ h₁₂ h₂₃ => exact False.elim $ impossible_case_aux hs₁ ht h₁₂ h₂₃
+  case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hc₂ (Eq.symm ht) h₁₂ h₂₃
+  case refl.step _ _ h₁₂ h₂₃ => exact False.elim $ impossible_case_aux hc₁ ht h₁₂ h₂₃
   case step.step s sₘ₁ s₁ h₁ₘ₁ hₘ₁₂ hi sₘ₂ h₁ₘ₂ hₘ₂₂ => 
     rw [Execution.Step.deterministic h₁ₘ₁ h₁ₘ₂] at hi
-    exact hi hs₁ hₘ₂₂ ht
+    exact hi hc₁ hₘ₂₂ ht
 where 
-  impossible_case_aux {s₁ s₂ s₃ : State ι υ} (hs : s₁.instStuck) (ht : s₁.ctx.time = s₃.ctx.time) :
+  impossible_case_aux {s₁ s₂ s₃ : State ι υ} (hc : s₁.instComplete) (ht : s₁.ctx.time = s₃.ctx.time) :
     (s₁ ⇓ s₂) → (s₂ ⇓* s₃) → False := by
     intro h₁₂ h₂₃
     cases h₁₂
-    case instToStuck hi =>
+    case completeInst hi =>
       have ⟨sₘ, _⟩ := hi.exec.first_step
-      have := hs sₘ
+      have := (State.instComplete_to_inst_stuck hc) sₘ
       contradiction
     case advanceTime g hg _ _ => 
       have h := time_monotone h₂₃

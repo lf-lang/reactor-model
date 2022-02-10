@@ -66,20 +66,18 @@ inductive InstExecution : State ι υ → State ι υ → Prop
 
 notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
 
--- To model when the execution has finished at an instant, we define a property of a reactor being
--- stuck in that instant: when there is no instanteneous step it can take
-abbrev State.instStuck (s : State ι υ) := ∀ s', ¬ s ⇓ᵢ s'
+abbrev State.instComplete (s : State ι υ) := s.ctx.currentExecutedRcns = s.rtr.rcns.ids
 
-structure StuckInstExecution (s₁ s₂ : State ι υ) : Prop where
+structure CompleteInstExecution (s₁ s₂ : State ι υ) : Prop where
   exec : s₁ ⇓ᵢ+ s₂
-  stuck : s₂.instStuck
+  complete : s₂.instComplete
 
-notation s₁:max " ⇓ᵢ| " s₂:max => StuckInstExecution s₁ s₂
+notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
 
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.
 inductive Step (s : State ι υ) : State ι υ → Prop 
-  | instToStuck (s') : s ⇓ᵢ| s' → Step s s'
+  | completeInst (s') : s ⇓ᵢ| s' → Step s s'
   | advanceTime {σ' g} (hg : s.isNextTag g) :
     (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) →
     (s.rtr.eqWithClearedPorts σ') →
