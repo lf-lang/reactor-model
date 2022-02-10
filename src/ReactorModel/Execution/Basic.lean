@@ -8,7 +8,7 @@ variable {ι υ} [Value υ]
 structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor ι υ) where
   otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
   samePortIDs : ∀ i, σ₁.containsID i Cmp.prt ↔ σ₂.containsID i Cmp.prt
-  clearedIDs : ∀ i p, σ₂ *[Cmp.prt, i]= p → p.snd = ⊥
+  clearedPorts : ∀ i p, σ₁ *[Cmp.prt, i]= p → σ₂ *[Cmp.prt, i]= { p .. with val := ⊥ }
 
 lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor ι υ} :
  Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 

@@ -8,10 +8,6 @@ variable {ι υ} [Value υ]
 -- step that can be taken.
 namespace Execution
 
-theorem ChangeStep.eq_rcns {σ₁ σ₂ : Reactor ι υ} {c : Change ι υ} {g : Time.Tag} :
-  σ₁ -[c, g]→ σ₂ → σ₁.rcns = σ₂.rcns := by
-  intro h; cases h <;> simp only <;> (apply Reactor.Update.ne_cmp_and_ne_rtr_eq Cmp.rcn; assumption; all_goals { by_contra; contradiction })
-
 theorem InstExecution.preserves_time {s₁ s₂ : State ι υ} :
   (s₁ ⇓ᵢ+ s₂) → s₁.ctx.time = s₂.ctx.time := by
   intro h

@@ -7,7 +7,7 @@ variable {ι υ} [Value υ]
 namespace Reactor
 
 -- Lifted versions of the trivially liftable projections of `Raw.Reactor`.
-def ports (rtr : Reactor ι υ) : ι ▸ (Port.Role × υ) := rtr.raw.ports
+def ports (rtr : Reactor ι υ) : ι ▸ Port υ := rtr.raw.ports
 def acts  (rtr : Reactor ι υ) : ι ▸ Time.Tag ▸ υ    := rtr.raw.acts
 def state (rtr : Reactor ι υ) : ι ▸ υ               := rtr.raw.state
 
@@ -96,8 +96,8 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
   exact ⟨raw, Eq.symm hr⟩
 
 -- A projection for ports, that allows us to separate them by port role.
-noncomputable def ports' (rtr : Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
-  rtr.ports.filter' (λ p => p.fst = r) |>.map Prod.snd
+noncomputable def portVals (rtr : Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
+  rtr.ports.filter' (·.role = r) |>.map Port.val
 
 def predecessors (σ : Reactor ι υ) (rcn : Reaction ι υ) : Finset ι :=
   σ.rcns.ids.filter λ i => ∃ rcn', σ.rcns i = some rcn' ∧ rcn'.prio < rcn.prio
@@ -117,16 +117,16 @@ noncomputable def muts (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
 -- This property is quite specific, but is required to nicely state properties
 -- like `Reactor.wfNormDeps`.
 noncomputable def nestedPortIDs (rtr : Reactor ι υ) (r : Port.Role) : Finset ι :=
-  let description := {i | ∃ n ∈ rtr.nest.values, i ∈ (n.ports' r).ids}
+  let description := {i | ∃ n ∈ rtr.nest.values, i ∈ (n.portVals r).ids}
   let finite : description.finite := by
-    let f : Finset ι := rtr.nest.values.bUnion (λ n => (n.ports' r).ids)
+    let f : Finset ι := rtr.nest.values.bUnion (λ n => (n.portVals r).ids)
     suffices h : description ⊆ ↑f 
       from Set.finite.subset (Finset.finite_to_set _) h
     simp [Set.subset_def]
   finite.toFinset
 
 noncomputable def inputForRcn (σ : Reactor ι υ) (rcn : Reaction ι υ) (t : Time.Tag) : Reaction.Input ι υ := {
-  ports := (σ.ports' Role.in).restrict $ rcn.deps Role.in,
+  portVals := (σ.portVals Role.in).restrict $ rcn.deps Role.in,
   acts := (σ.acts.filterMap (· t)).restrict $ rcn.deps Role.in,
   state := σ.state
 }

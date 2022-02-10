@@ -2,7 +2,7 @@ import ReactorModel.Primitives
 import ReactorModel.Time
 
 structure Reaction.Input (ι υ) [Value υ] where
-  ports : ι ▸ υ
+  portVals : ι ▸ υ
   acts : ι ▸ υ
   state : ι ▸ υ
 
@@ -43,7 +43,7 @@ protected inductive Reaction (ι υ) [v : Value υ]
 
 protected inductive Reactor (ι υ) [v : Value υ]
   | mk 
-    (ports : ι ▸ (Port.Role × υ)) 
+    (ports : ι ▸ Port υ) 
     (acts :  ι ▸ Time.Tag ▸ υ)
     (state : ι ▸ υ)
     (rcns :  ι → Option (Raw.Reaction ι υ))
@@ -121,15 +121,15 @@ end Raw.Reaction
 namespace Raw.Reactor
 
 -- These definitions give us the projections that would usually be generated for a structure.
-def ports : Raw.Reactor ι υ → ι ▸ (Port.Role × υ)           | mk p _ _ _ _ => p
+def ports : Raw.Reactor ι υ → ι ▸ Port υ                    | mk p _ _ _ _ => p
 def acts :  Raw.Reactor ι υ → ι ▸ Time.Tag ▸ υ              | mk _ a _ _ _ => a
 def state : Raw.Reactor ι υ → ι ▸ υ                         | mk _ _ s _ _ => s 
 def rcns :  Raw.Reactor ι υ → ι → Option (Raw.Reaction ι υ) | mk _ _ _ r _ => r
 def nest :  Raw.Reactor ι υ → ι → Option (Raw.Reactor ι υ)  | mk _ _ _ _ n => n
 
--- Cf. `Reactor.ports'`.
-noncomputable def ports' (rtr : Raw.Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
-  rtr.ports.filter' (λ p => p.fst = r) |>.map Prod.snd
+-- Cf. `Reactor.portVals`.
+noncomputable def portVals (rtr : Raw.Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
+  rtr.ports.filter' (·.role = r) |>.map Port.val
 
 -- An extensionality theorem for `Raw.Reactor`.
 theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} : 

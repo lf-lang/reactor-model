@@ -29,7 +29,7 @@ namespace Cmp
 abbrev type : Cmp → Type _
   | rtr => Reactor ι υ
   | rcn => Reaction ι υ
-  | prt => Port.Role × υ
+  | prt => Port υ
   | act => Time.Tag ▸ υ
   | stv => υ
 
@@ -381,7 +381,7 @@ abbrev type (ι υ : Type u) [Value υ] : Cmp.Field → Type _
   | prtVal => υ
 
 def mkParent : (f : Cmp.Field) → f.parent.type ι υ → f.type ι υ → f.parent.type ι υ
-  | prtVal, p, v => ⟨p.fst, v⟩
+  | prtVal, p, v => { p .. with val := v }
 
 end Cmp.Field
 

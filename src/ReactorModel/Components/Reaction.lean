@@ -61,20 +61,7 @@ theorem norm_no_child' (rcn : Reaction ι υ) : rcn.isNorm → rcn.children = �
 
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction ι υ) (i : Input ι υ) : Prop :=
-  ∃ t, t ∈ rcn.triggers ∧ i.ports.isPresent t
-
--- TODO: Remove this if it is not used.
-theorem eq_input_eq_triggering {rcn : Reaction ι υ} {i₁ i₂ : Input ι υ} (h : i₁.ports =[rcn.deps Role.in] i₂.ports) :
-  rcn.triggersOn i₁ ↔ rcn.triggersOn i₂ := by
-  simp [triggersOn, Finmap.eqAt, Finmap.isPresent] at h ⊢
-  constructor <;> (
-    intro ⟨t, ⟨hm, hn⟩⟩
-    exists t
-    apply And.intro hm
-    have ht := h _ $ Finset.subset_iff.mp rcn.tsSubInDeps hm
-    simp [ht] at hn ⊢
-    assumption
-  )
+  ∃ t, t ∈ rcn.triggers ∧ i.portVals.isPresent t
   
 -- Relay reactions are a specific kind of reaction that allow us to simplify what
 -- it means for reactors' ports to be connected. We can formalize connections between
@@ -86,18 +73,18 @@ noncomputable def relay (src dst : ι) : Reaction ι υ := {
   triggers := Finset.singleton src,
   prio := none,
   children := ∅,
-  body := λ i => i.ports[src].elim [] ([Change.port dst ·]),
+  body := λ i => i.portVals[src].elim [] ([Change.port dst ·]),
   tsSubInDeps := by simp,
   prtOutDepOnly := by
     intro i o v h hc
-    cases hs : i.ports[src] <;> simp [Option.elim, hs] at *
+    cases hs : i.portVals[src] <;> simp [Option.elim, hs] at *
     case some v' =>
       rw [Finset.not_mem_singleton] at h
       have hc' := hc.left
       contradiction
   actOutDepOnly := by
     intro i
-    cases hs : i.ports[src] <;> simp [Option.elim, hs]
+    cases hs : i.portVals[src] <;> simp [Option.elim, hs]
   normNoChild := by simp
 }
 

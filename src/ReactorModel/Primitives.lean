@@ -17,15 +17,12 @@ instance : Coe ι (Rooted ι) where
 -- Any such type must contain an "absent" value.
 class Value (α) where
   absent : α
-  unit : α
 
 notation "⊥" => Value.absent
 
 def Priority := Option Nat
 
 instance : PartialOrder Priority := sorry
-
-variable {ι υ} [Value υ]
 
 -- Port roles are used to differentiate between input and output ports.
 -- This is useful for avoiding duplication of definitions that are fundamentally 
@@ -48,7 +45,13 @@ abbrev Port.Role.opposite : Role → Role
   | Role.in => Role.out
   | Role.out => Role.in
 
+structure Port (υ) [Value υ] where
+  role : Port.Role
+  val : υ
+
 namespace Finmap 
+
+variable {ι υ} [Value υ]
 
 -- TODO: Remove `get`, `eqAt` and `inhabitedIDs` if they remain unused.
 

@@ -49,8 +49,8 @@ structure directlyWellFormed (rtr : Raw.Reactor ι υ) : Prop where
   rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
-  wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' r.opposite).ids}
-  wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.ports' Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.ports' Role.in).ids})
+  wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.portVals r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.portVals r.opposite).ids}
+  wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.portVals Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.portVals Role.in).ids})
   mutsBeforeNorms : ∀ {iₙ iₘ n m}, rtr.rcns iₙ = some n → n.isNorm → rtr.rcns iₘ = some m → m.isMut → n.prio < m.prio
   mutsLinearOrder : ∀ {i₁ i₂ m₁ m₂}, rtr.rcns i₁ = some m₁ → rtr.rcns i₂ = some m₂ → m₁.isMut → m₂.isMut → i₁ ≠ i₂ → (m₁.prio < m₂.prio ∨ m₂.prio < m₁.prio) 
 
