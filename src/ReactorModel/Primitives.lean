@@ -22,7 +22,39 @@ notation "⊥" => Value.absent
 
 def Priority := Option Nat
 
-instance : PartialOrder Priority := sorry
+instance : PartialOrder Priority := {
+  le := λ p₁ p₂ => p₁ = p₂ ∨ ∃ v₁ v₂, p₁ = some v₁ ∧ p₂ = some v₂ ∧ v₁ ≤ v₂,
+  le_refl := by simp [LE.le], 
+  le_trans := by
+    intro p₁ p₂ p₃ h₁₂ h₂₃
+    simp only [LE.le] at *
+    cases h₁₂ <;> cases h₂₃
+    case inl.inl h₁₂ h₂₃ => simp [h₁₂, h₂₃]
+    case inl.inr h₁₂ h₂₃ => rw [h₁₂]; exact Or.inr h₂₃ 
+    case inr.inl h₁₂ h₂₃ => rw [←h₂₃]; exact Or.inr h₁₂
+    case inr.inr h₁₂ h₂₃ =>
+      have ⟨v₁, v₂, h₁₂⟩ := h₁₂
+      have ⟨v₂', v₃, h₂₃⟩ := h₂₃
+      have h₂ := h₁₂.right.left
+      rw [h₂₃.left] at h₂
+      rw [Option.some_inj.mp h₂] at h₂₃
+      have h := Nat.le_trans h₁₂.right.right h₂₃.right.right
+      exact Or.inr ⟨v₁, v₃, ⟨h₁₂.left, ⟨h₂₃.right.left, h⟩⟩⟩,
+  lt_iff_le_not_le := by simp [LT.lt, LE.le],
+  le_antisymm := by
+    intro p₁ p₂ h₁₂ h₂₁
+    simp only [LE.le] at *
+    cases h₁₂ <;> cases h₂₁
+    case' inl.inl h, inl.inr h _, inr.inl h => simp only [h]
+    case inr.inr h₁₂ h₂₁ =>  
+      have ⟨v₁, v₂, h₁₂⟩ := h₁₂
+      have ⟨v₂', v₁', h₂₁⟩ := h₂₁
+      rw [h₁₂.left, h₁₂.right.left] at h₂₁ ⊢
+      have h₁ := Option.some_inj.mp h₂₁.left
+      have h₂ := Option.some_inj.mp h₂₁.right.left
+      rw [←h₁, ←h₂] at h₂₁
+      exact Option.some_inj.mpr $ Nat.le_antisymm h₁₂.right.right h₂₁.right.right
+}
 
 -- Port roles are used to differentiate between input and output ports.
 -- This is useful for avoiding duplication of definitions that are fundamentally 
