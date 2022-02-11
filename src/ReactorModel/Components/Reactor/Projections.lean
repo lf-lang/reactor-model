@@ -99,9 +99,6 @@ theorem rcns_has_raw {rtr : Reactor ι υ} {rcn i} (h : rtr.rcns i = some rcn) :
 noncomputable def portVals (rtr : Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
   rtr.ports.filter' (·.role = r) |>.map Port.val
 
-def predecessors (σ : Reactor ι υ) (rcn : Reaction ι υ) : Finset ι :=
-  σ.rcns.ids.filter λ i => ∃ rcn', σ.rcns i = some rcn' ∧ rcn'.prio < rcn.prio
-
 -- A direct projection to a reactor's normal reactions.
 noncomputable def norms (rtr : Reactor ι υ) : ι ▸ Reaction ι υ :=
   rtr.rcns.filter' (Reaction.isNorm)

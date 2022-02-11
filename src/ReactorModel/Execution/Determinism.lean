@@ -41,7 +41,9 @@ theorem InstExecution.convergent_rcns {s s₁ s₂ : State ι υ} :
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
 protected theorem InstExecution.deterministic {s s₁ s₂ : State ι υ} : 
-  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := sorry
+  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
+  intro he₁ he₂ hc
+  sorry
 
 theorem State.instComplete_to_inst_stuck {s : State ι υ} :
   s.instComplete → ∀ s', ¬(s ⇓ᵢ s') := by

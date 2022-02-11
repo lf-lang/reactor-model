@@ -170,8 +170,10 @@ theorem containerOf_unique {σ : Reactor ι υ} {i : ι} {c₁ c₂ : Rooted ι}
 -- by adding an instance of `Cmp` into the type of `Lineage`.
 -- This leads to heterogeneous equality though, and is therefore undesirable:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/.E2.9C.94.20Exfalso.20HEq
-def objFor (σ : Reactor ι υ) (cmp : Cmp) (i : ι) (o : cmp.type ι υ) : Prop := 
-  ∃ l : Lineage σ i, (cmp.accessor l.directParent.snd) i = o
+def objFor (σ : Reactor ι υ) : (cmp : Cmp) → Rooted ι → cmp.type ι υ → Prop
+  | Cmp.rtr, ⊤, o => o = σ
+  | _, ⊤, _ => False
+  | cmp, Rooted.nested i, o => ∃ l : Lineage σ i, (cmp.accessor l.directParent.snd) i = o
 
 -- This notation is chosen to be akin to the dereference notation in C.
 notation σ:max " *[" cmp ", " i "]= " o:max => Reactor.objFor σ cmp i o
@@ -181,6 +183,8 @@ notation σ:max " *[" cmp ", " i "]= " o:max => Reactor.objFor σ cmp i o
 -- Cf. `objFor_unique_obj` for further information.
 theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o₁ : cmp₁.type ι υ} {o₂ : cmp₂.type ι υ} :
   (σ *[cmp₁, i]= o₁) → (σ *[cmp₂, i]= o₂) → cmp₁ = cmp₂ := by
+  sorry
+  /-
   intro h₁ h₂
   have ⟨l₁, h₁⟩ := h₁
   have ⟨l₂, h₂⟩ := h₂
@@ -204,6 +208,7 @@ theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o
       rw [hu] at hc₁
       rw [←hc₂] at hc₁
       contradiction
+  -/
 
 -- In the `objFor` relation, any given ID can have at most one associated object. 
 --
@@ -221,6 +226,8 @@ theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o
 -- object equality. 
 theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ : cmp.type ι υ} : 
   (σ *[cmp, i]= o₁) → (σ *[cmp, i]= o₂) → o₁ = o₂ := by
+  sorry
+  /-
   intro h₁ h₂
   have ⟨l₁, h₁⟩ := h₁
   have ⟨l₂, h₂⟩ := h₂
@@ -228,6 +235,7 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   rw [hu] at h₁
   simp [h₁] at h₂
   exact h₂
+  -/
 
 def containsID (σ : Reactor ι υ) (i : ι) (cmp : Cmp) : Prop := 
   ∃ v, σ *[cmp, i]= v
@@ -349,12 +357,14 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i :
   case top i _ σ₂ _ _ h =>
     simp only [objFor]
     have h' := Option.ne_none_iff_exists.mpr ⟨v, Eq.symm h⟩ |> Finmap.ids_def.mpr
-    exists Lineage.fromCmp σ₂ i cmp h'
+    -- exists Lineage.fromCmp σ₂ i cmp h'
     sorry
     -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
     -- cases cmp <;> simp only [Lineage.directParent, h]
   case nested i _ σ₂ j _ rtr₂ _ _ hn _ hi =>
     simp only [objFor] at *
+    sorry
+    /- 
     have ⟨l, hl⟩ := hi
     exists Lineage.nest rtr₂ j l hn
     have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
@@ -362,6 +372,7 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i :
       -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
       -- by cases l <;> simp only [Lineage.directParent]
     simp [←hp, hl]
+    -/
 
 theorem Update.ne_cmp_and_ne_rtr_eq {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (cmp' : Cmp):
   (σ₁ -[cmp, i := v]→ σ₂) → cmp' ≠ cmp → cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂ := by 

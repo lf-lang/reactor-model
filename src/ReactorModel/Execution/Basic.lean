@@ -1,4 +1,5 @@
 import ReactorModel.Execution.State
+import ReactorModel.Execution.Dependency
 
 open Port
 
@@ -44,14 +45,14 @@ notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ 
 inductive InstStep (s : State ι υ) : State ι υ → Prop 
   | execReaction {rcn : Reaction ι υ} {i σ'} : 
     (s.rtr.rcns i = rcn) →
-    (s.rtr.predecessors rcn ⊆ s.ctx.currentExecutedRcns) →
+    (s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns) →
     (i ∉ s.ctx.currentExecutedRcns) →
     (rcn.triggersOn $ σ.inputForRcn rcn s.ctx.time) →
     (σ -[rcn $ σ.inputForRcn rcn s.ctx.time, s.ctx.time]→* σ') →
     InstStep s ⟨σ', s.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn : Reaction ι υ} {i} :
     (s.rtr.rcns i = rcn) →
-    (s.rtr.predecessors rcn ⊆ s.ctx.currentExecutedRcns) →
+    (s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns) →
     (i ∉ s.ctx.currentExecutedRcns) →
     (¬(rcn.triggersOn $ s.rtr.inputForRcn rcn s.ctx.time)) →
     InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
