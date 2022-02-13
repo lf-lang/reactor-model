@@ -1,5 +1,4 @@
 import ReactorModel.Execution.State
-import ReactorModel.Execution.Dependency
 
 open Port
 
@@ -41,19 +40,17 @@ notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ 
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
 inductive InstStep (s : State) : State → Prop 
-  | execReaction {rcn : Reaction} {i σ'} : 
+  | execReaction {rcn : Reaction} {i σ} : 
     (s.rtr.rcns i = rcn) →
-    (s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns) →
-    (i ∉ s.ctx.currentExecutedRcns) →
-    (rcn.triggersOn $ σ.inputForRcn rcn s.ctx.time) →
-    (σ -[rcn $ σ.inputForRcn rcn s.ctx.time, s.ctx.time]→* σ') →
-    InstStep s ⟨σ', s.ctx.addCurrentExecuted i⟩
+    (s.couldExec i) →
+    (s.triggers rcn) →
+    (s.rtr -[s.outputOf rcn, s.ctx.time]→* σ) →
+    InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn : Reaction} {i} :
     (s.rtr.rcns i = rcn) →
-    (s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns) →
-    (i ∉ s.ctx.currentExecutedRcns) →
-    (¬(rcn.triggersOn $ s.rtr.inputForRcn rcn s.ctx.time)) →
-    InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
+    (s.couldExec i) →
+    (¬ s.triggers rcn) →
+    InstStep s ⟨s.rtr, s.ctx.addCurrentExecuted i⟩
 
 notation s₁:max " ⇓ᵢ " s₂:max => InstStep s₁ s₂
 
@@ -77,30 +74,12 @@ notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
 -- steps can be taken, or a time advancement.
 inductive Step (s : State) : State → Prop 
   | completeInst (s') : s ⇓ᵢ| s' → Step s s'
-  | advanceTime {σ'} {g : Time.Tag} (hg : s.nextTag = g) :
-    (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) →
-    (s.rtr.eqWithClearedPorts σ') →
-    Step s ⟨σ', s.ctx.advanceTime g $ s.time_lt_nextTag hg⟩
+  | advanceTime {σ} {g : Time.Tag} (hg : s.nextTag = g) :
+    (s.instComplete) →
+    (s.rtr.eqWithClearedPorts σ) →
+    Step s ⟨σ, s.ctx.advanceTime g $ s.time_lt_nextTag hg⟩
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
-
-/-
-def sameReactionExecuted
-{σ₁ σ₂ σ₁' σ₂' : Reactor}
-{ctx₁ ctx₂ ctx₁' ctx₂'  : Context} 
-(H1 : (σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁'))
-(H2 : (σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) : Prop :=
-  ∃ i : ID, (i ∉ ctx₁.currentExecutedRcns) ∧ (i ∉ ctx₂.currentExecutedRcns) ∧ 
-  (i ∈ ctx₁'.currentExecutedRcns) ∧ (i ∈ ctx₂'.currentExecutedRcns)
-
-def sameReactionTopologyChanges
-{σ₁ σ₂ σ₁' σ₂' : Reactor}
-{ctx₁ ctx₂ ctx₁' ctx₂'  : Context} 
-(H1 : (σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁'))
-(H2 : (σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) : Prop :=
-  (∀ i : ID, (i ∈ σ₁.rcns.ids ∧ i ∉ σ₁'.rcns.ids) → (i ∈ σ₂.rcns.ids ∧ i ∉ σ₁'.rcns.ids)) ∧   -- reaction deleted  
-  (∀ i : ID, ((i ∉ σ₁.rcns.ids) ∧ i ∈ σ₁'.rcns.ids) → ((i ∉ σ₂.rcns.ids) ∧ i ∈ σ₁'.rcns.ids)) -- reaction added  
--/
 
 end Execution
 

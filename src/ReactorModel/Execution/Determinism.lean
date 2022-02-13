@@ -47,10 +47,11 @@ theorem State.instComplete_to_inst_stuck {s : State} :
   s.instComplete → ∀ s', ¬(s ⇓ᵢ s') := by
   intro h s' he
   cases he
-  case' execReaction hi _ hm _ _, skipReaction hi _ hm _ =>
-  have h' := Finmap.ids_def'.mpr ⟨_, Eq.symm hi⟩
-  rw [←h] at h'
-  contradiction
+  case' execReaction hi he _ _, skipReaction hi he _ =>
+    have h' := Finmap.ids_def'.mpr ⟨_, Eq.symm hi⟩
+    have := he.unexeced
+    rw [←h] at h'
+    contradiction
 
 -- The set of reactions can change because of mutations.
 -- However, these changes are deterministic.
@@ -87,7 +88,7 @@ theorem Execution.Step.time_monotone {s₁ s₂ : State} :
   intro h
   cases h
   case completeInst h => exact le_of_eq h.exec.preserves_time
-  case advanceTime hg _ _ => exact le_of_lt $ s₁.ctx.advanceTime_strictly_increasing _ hg.lower
+  case advanceTime hg _ _ => exact le_of_lt $ s₁.ctx.advanceTime_strictly_increasing _ (s₁.time_lt_nextTag hg)
 
 protected theorem Execution.Step.deterministic {s s₁ s₂ : State} : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
@@ -96,15 +97,17 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State} :
   case completeInst.completeInst hc₁ hc₂ => 
     exact CompleteInstExecution.convergent hc₁ hc₂
   case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
-    simp [Reactor.eqWithClearedPortsUnique h₁ h₂, Context.advanceTime, State.isNextTag_unique hg₁ hg₂]
-  case' completeInst.advanceTime hc _ _ _ hr _, advanceTime.completeInst _ _ _ hr _ hc => 
-    cases hc.exec 
-    case' single hi, trans hi _ =>
-      cases hi <;> (
-        have := mt (Finset.ext_iff.mp hr _).mpr <| (by assumption)
-        have := Finmap.ids_def'.mpr ⟨_, Eq.symm (by assumption)⟩
-        contradiction
-      )
+    simp only [hg₁, Option.some_inj] at hg₂
+    simp [Reactor.eqWithClearedPortsUnique h₁ h₂, Context.advanceTime, hg₂]  
+  case' completeInst.advanceTime hc _ _ _ hic _, advanceTime.completeInst _ _ _ hic _ hc => 
+    cases hc.exec; case' single hi, trans hi _ => exact False.elim $ impossible_case_aux hi hic
+where
+  impossible_case_aux {s₁ s₂ : State} (hi : s₁ ⇓ᵢ s₂) (hic : s₁.instComplete) : False := by
+    cases hi 
+    case' execReaction hl hce _ _, skipReaction hl hce _ =>
+      have := mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
+      have := Finmap.ids_def'.mpr ⟨_, Eq.symm hl⟩
+      contradiction
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 
   (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
@@ -136,7 +139,7 @@ where
       have h := time_monotone h₂₃
       rw [←ht] at h
       simp only at h
-      have h' := s₁.ctx.advanceTime_strictly_increasing g hg.lower
+      have h' := s₁.ctx.advanceTime_strictly_increasing g (s₁.time_lt_nextTag hg)
       have h'' := lt_of_le_of_lt h h'
       have := lt_irrefl _ h''
       contradiction
