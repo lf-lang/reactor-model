@@ -72,6 +72,10 @@ instance : Sdiff (Finset α) := sorry
 
 def max' [LinearOrder α] (s : Finset α) (H : s.nonempty) : α := sorry
 
+def min [LinearOrder α] (s : Finset α) : Option α := sorry
+
+theorem mem_of_min [LinearOrder α] {s : Finset α} : ∀ {a : α}, a ∈ s.min → a ∈ s := sorry
+
 end Finset
 
 def List.toFinset (l : List α) : Finset α := sorry

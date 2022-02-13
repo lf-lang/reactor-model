@@ -4,15 +4,15 @@ structure Execution.State where
   rtr : Reactor
   ctx : Context
 
-namespace Execution.State 
+namespace Execution.State
 
-structure isNextTag (s : State) (g : Time.Tag) : Prop where
-  mem : g ∈ s.rtr.scheduledTags
-  lower : s.ctx.time < g
-  upper : ∀ g' ∈ s.rtr.scheduledTags, s.ctx.time < g' → g ≤ g'
+def nextTag (s : State) : Option Time.Tag :=
+  s.rtr.scheduledTags.filter (s.ctx.time < ·) |>.min
 
-theorem isNextTag_unique {s : State} {g₁ g₂ : Time.Tag} :
-  (s.isNextTag g₁) → (s.isNextTag g₂) → g₁ = g₂ :=
-  sorry
+theorem time_lt_nextTag {s : State} {g : Time.Tag} :
+  (s.nextTag = g) → s.ctx.time < g := by 
+  intro h
+  simp only [nextTag] at h
+  exact Finset.mem_of_min h |> (Finset.mem_filter _).mp |> And.right
 
 end Execution.State 

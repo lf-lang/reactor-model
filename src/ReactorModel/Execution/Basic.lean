@@ -77,10 +77,10 @@ notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
 -- steps can be taken, or a time advancement.
 inductive Step (s : State) : State → Prop 
   | completeInst (s') : s ⇓ᵢ| s' → Step s s'
-  | advanceTime {σ' g} (hg : s.isNextTag g) :
+  | advanceTime {σ'} {g : Time.Tag} (hg : s.nextTag = g) :
     (s.ctx.currentExecutedRcns = s.rtr.rcns.ids) →
     (s.rtr.eqWithClearedPorts σ') →
-    Step s ⟨σ', s.ctx.advanceTime g hg.lower⟩
+    Step s ⟨σ', s.ctx.advanceTime g $ s.time_lt_nextTag hg⟩
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 
