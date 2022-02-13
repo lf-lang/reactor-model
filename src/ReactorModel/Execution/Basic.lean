@@ -9,8 +9,8 @@ structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor) where
   clearedPorts : ∀ i p, σ₁ *[Cmp.prt, i]= p → σ₂ *[Cmp.prt, i]= { p .. with val := ⊥ }
 
 lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor} :
- Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
- σ₁ = σ₂ := sorry
+  Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
+  σ₁ = σ₂ := sorry
  
 namespace Execution
 

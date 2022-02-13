@@ -112,7 +112,7 @@ noncomputable def muts (rtr : Reactor) : ID ▸ Reaction :=
 -- This property is quite specific, but is required to nicely state properties
 -- like `Reactor.wfNormDeps`.
 noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=
-  let description := {i | ∃ n ∈ rtr.nest.values, i ∈ (n.portVals r).ids}
+  let description := { i | ∃ n ∈ rtr.nest.values, i ∈ (n.portVals r).ids }
   let finite : description.finite := by
     let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.portVals r).ids)
     suffices h : description ⊆ ↑f 

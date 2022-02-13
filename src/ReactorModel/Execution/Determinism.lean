@@ -53,16 +53,6 @@ theorem State.instComplete_to_inst_stuck {s : State} :
     rw [←h] at h'
     contradiction
 
--- The set of reactions can change because of mutations.
--- However, these changes are deterministic.
---lemma networkChangeDeterministic {σ₁ σ₂ σ₁' σ₂' : Reactor}
---{ctx₁ ctx₂ ctx₁' ctx₂'  : Context} :
---  (σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁') →
---  (σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂') →
---  sameReactionExecuted ((σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁')) ((σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) →
---  sameReactionTopologyChanges ((σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁')) ((σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) :=
---  sorry
-
 theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hc₁ hc₂

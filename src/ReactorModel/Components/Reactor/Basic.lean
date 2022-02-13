@@ -47,7 +47,7 @@ structure directlyWellFormed (rtr : Raw.Reactor) : Prop where
   rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
   rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
   nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
-  -- uniqueInputs :    ∀ iₚ p i₁ i₂ n₁ n₂, rtr.nest i₁ = some n₁ → rtr.nest i₂ = some n₂ → i₁ ≠ i₂ → 
+  uniqueInputCons : ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, rtr.nest iₙ = some n → n.ports iₚ = some p → p.role = Role.in → rtr.rcns i₁ = some rcn₁ → rtr.rcns i₂ = some rcn₂ → i₁ ≠ i₂ → iₚ ∈ rcn₁.deps Role.out → iₚ ∉ rcn₂.deps Role.out
   wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.portVals r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.portVals r.opposite).ids}
   wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.portVals Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.portVals Role.in).ids})
   mutsBeforeNorms : ∀ {iₙ iₘ n m}, rtr.rcns iₙ = some n → n.isNorm → rtr.rcns iₘ = some m → m.isMut → n.prio < m.prio
