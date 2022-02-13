@@ -2,8 +2,6 @@ import ReactorModel.Components.Reactor.Projections
 
 open Port
 
-variable {ι υ} [Value υ]
-
 namespace Reactor
 
 -- TODO (maybe): Factor out the overlap between the proofs of `wfNormDeps` and `wfMutDeps`.
@@ -13,7 +11,7 @@ namespace Reactor
 --    nested directly in `rtr`
 -- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
 --    nested directly in `rtr`
-theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h : n ∈ rtr.norms.values) : 
+theorem wfNormDeps {rtr : Reactor} {n : Reaction} (r : Port.Role) (h : n ∈ rtr.norms.values) : 
   n.deps r ⊆ rtr.acts.ids ∪ (rtr.portVals r).ids ∪ rtr.nestedPortIDs r.opposite := by
   simp only [Finset.subset_iff, Finset.mem_union]
   intro j hj
@@ -47,7 +45,7 @@ theorem wfNormDeps {rtr : Reactor ι υ} {n : Reaction ι υ} (r : Port.Role) (h
 -- 1. their dependencies can only be input ports of `rtr`
 -- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
 --    nested directly in `rtr`
-theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h : m ∈ rtr.muts.values) : 
+theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.muts.values) : 
   (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.portVals Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
   simp only [muts, Finmap.filter'_mem_values] at h
   have ⟨i, h, hm⟩ := h
@@ -88,7 +86,7 @@ theorem wfMutDeps {rtr : Reactor ι υ} {m : Reaction ι υ} (r : Port.Role) (h 
         exact h₂
 
 -- This constraint forces the priorities of mutations in a reactor to be greater than any of its normal reactions.
-theorem mutsBeforeNorms {rtr : Reactor ι υ} {n m : Reaction ι υ} (hn : n ∈ rtr.norms.values) (hm : m ∈ rtr.muts.values) : 
+theorem mutsBeforeNorms {rtr : Reactor} {n m : Reaction} (hn : n ∈ rtr.norms.values) (hm : m ∈ rtr.muts.values) : 
   n.prio < m.prio := by
   simp only [muts, norms, Finmap.filter'_mem_values] at hn hm
   have ⟨ni, ⟨hnl, hn⟩⟩ := hn
@@ -103,7 +101,7 @@ theorem mutsBeforeNorms {rtr : Reactor ι υ} {n m : Reaction ι υ} (hn : n ∈
 
 -- This constraint forces the priorities of all mutations in a reactor to be comparable,
 -- i.e. they form a linear order.
-theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} {m₁ m₂ : Reaction ι υ} 
+theorem mutsLinearOrder {rtr : Reactor} {i₁ i₂ : ID} {m₁ m₂ : Reaction} 
   (h₁ : rtr.muts i₁ = m₁) (h₂ : rtr.muts i₂ = m₂) (hn : i₁ ≠ i₂) : 
   m₁.prio < m₂.prio ∨ m₂.prio < m₁.prio := by
   simp only [muts, Finmap.filter'_mem] at h₁ h₂
@@ -129,17 +127,17 @@ theorem mutsLinearOrder {rtr : Reactor ι υ} {i₁ i₂ : ι} {m₁ m₂ : Reac
 --
 -- We use this structure to define ID-uniqueness (`uniqueIDs`) in reactors as
 -- well as hierarchy accessors in Components>Reactor>Hierarchy.lean.
-inductive Lineage : Reactor ι υ → ι → Type _ 
+inductive Lineage : Reactor → ID → Type _ 
   | rtr {σ i} : i ∈ σ.nest.ids  → Lineage σ i
   | rcn {σ i} : i ∈ σ.rcns.ids  → Lineage σ i
   | prt {σ i} : i ∈ σ.ports.ids → Lineage σ i
   | act {σ i} : i ∈ σ.acts.ids  → Lineage σ i
   | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
-  | nest {σ : Reactor ι υ} σ' {i} i' : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
+  | nest {σ : Reactor} σ' {i} i' : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
 -- TODO (maybe): Merge this into the proof of `uniqueIDs` if possible.
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Unfold.20where
-private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
+private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
   | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
   | Lineage.act h => Raw.Reactor.Lineage.act σ.raw i h
   | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
@@ -151,7 +149,7 @@ private def Lineage.toRaw {σ : Reactor ι υ} {i} : (Lineage σ i) → Raw.Reac
 -- We define this property in terms of `Lineage`s, since a components is
 -- addressable by an ID in a reactor iff it has a lineage in that reactor
 -- (by construction of `Lineage`).
-theorem uniqueIDs {σ : Reactor ι υ} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
+theorem uniqueIDs {σ : Reactor} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
   induction l₁
   case nest _ σ₂ _ _ _ _ hi =>

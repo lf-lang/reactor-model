@@ -2,23 +2,22 @@ import ReactorModel.Mathlib
 
 open Classical
 
--- TODO: Add docs for Rooted.
+constant ID : Type
 
-inductive Rooted (ι)
+constant _Value : Σ V : Type, V := Sigma.mk Unit Unit.unit
+def Value : Type _ := _Value.fst
+constant Value.absent : Value := _Value.snd
+
+notation "⊥" => Value.absent
+
+inductive Rooted (ID)
   | root
-  | nested (i : ι)
+  | nested (i : ID)
 
 notation "⊤" => Rooted.root
 
-instance : Coe ι (Rooted ι) where
-  coe (i : ι) := Rooted.nested i
-
--- The class of types that can be used as values in a reactor.
--- Any such type must contain an "absent" value.
-class Value (α) where
-  absent : α
-
-notation "⊥" => Value.absent
+instance : Coe ID (Rooted ID) where
+  coe (i : ID) := Rooted.nested i
 
 def Priority := Option Nat
 
@@ -60,8 +59,8 @@ instance : PartialOrder Priority := {
 -- This is useful for avoiding duplication of definitions that are fundamentally 
 -- the same and only differ by the kinds of ports that are referenced/affected.
 --
--- E.g. a reaction defines its dependencies as a map `Port.Role → Finset ι`,
--- instead of two separate fields, each of type `Finset ι`.
+-- E.g. a reaction defines its dependencies as a map `Port.Role → Finset ID`,
+-- instead of two separate fields, each of type `Finset ID`.
 inductive Port.Role
   | «in» 
   | out
@@ -77,13 +76,11 @@ abbrev Port.Role.opposite : Role → Role
   | Role.in => Role.out
   | Role.out => Role.in
 
-structure Port (υ) [Value υ] where
+structure Port where
   role : Port.Role
-  val : υ
+  val : Value
 
 namespace Finmap 
-
-variable {ι υ} [Value υ]
 
 -- TODO: Remove `get`, `eqAt` and `inhabitedIDs` if they remain unused.
 
@@ -100,21 +97,20 @@ variable {ι υ} [Value υ]
 -- That is, if `p.get i = some v`, we know `v ≠ ⊥`.
 --
 -- The notation used for `p.get i` is `p[i]`.
-noncomputable def getValue (p : ι ▸ υ) (i : ι) : Option υ := 
+noncomputable def getValue (p : ID ▸ Value) (i : ID) : Option Value := 
   p.lookup i >>= (λ v => if v = ⊥ then none else v)
 
 notation p:max "[" i "]" => getValue p i
 
-theorem eq_lookup_eq_getValue {p₁ p₂ : ι ▸ υ} {i : ι} (h : p₁ i = p₂ i) :
+theorem eq_lookup_eq_getValue {p₁ p₂ : ID ▸ Value} {i : ID} (h : p₁ i = p₂ i) :
   p₁[i] = p₂[i] := by
   simp [getValue, bind, h]
 
-theorem lookup_none_getValue_none {p : ι ▸ υ} {i : ι} (h : p i = none) : 
+theorem lookup_none_getValue_none {p : ID ▸ Value} {i : ID} (h : p i = none) : 
   p[i] = none := by
   simp only [getValue, h]
-  rfl
 
-theorem lookup_absent_getValue_none {p : ι ▸ υ} {i : ι} (h : p i = some ⊥) :
+theorem lookup_absent_getValue_none {p : ID ▸ Value} {i : ID} (h : p i = some ⊥) :
   p[i] = none := by
   simp [getValue, bind, Option.bind, h]
 
@@ -123,13 +119,13 @@ theorem lookup_absent_getValue_none {p : ι ▸ υ} {i : ι} (h : p i = some ⊥
 -- Note, we only require equality up to `get`, not `lookup`.
 --
 -- The notation used for `eqAt is p₁ p₂` is `p₁ =[is] p₂`.
-def eqAt (is : Finset ι) (p₁ p₂ : ι ▸ υ) : Prop := 
+def eqAt (is : Finset ID) (p₁ p₂ : ID ▸ Value) : Prop := 
   ∀ i ∈ is, p₁[i] = p₂[i]
 
 notation p:max " =[" i "] " q:max => eqAt i p q
 
 -- (For a fixed set of IDs) `eqAt` is an equivalence relation.
-instance eqAt.Setoid (is : Finset ι) : Setoid (ι ▸ υ) := { 
+instance eqAt.Setoid (is : Finset ID) : Setoid (ID ▸ Value) := { 
   r := eqAt is,
   iseqv := { 
     refl := by simp [eqAt]
@@ -146,14 +142,14 @@ instance eqAt.Setoid (is : Finset ι) : Setoid (ι ▸ υ) := {
 
 -- An ID "is present" in a port assignment if the port exists and has a non-absent value.
 -- That is, it contains a value that is not `⊥`.
-def isPresent (p : ι ▸ υ) (i : ι) : Prop :=
+def isPresent (p : ID ▸ Value) (i : ID) : Prop :=
   p[i] ≠ none
 
 -- The (finite) set of IDs for which a given port-assignment contains non-absent values.
-noncomputable def presentIDs (p : ι ▸ υ) : Finset ι :=
-  let description : Set ι := { i | p.isPresent i }
+noncomputable def presentIDs (p : ID ▸ Value) : Finset ID :=
+  let description : Set ID := { i | p.isPresent i }
   let finite : description.finite := by
-    let f : Finset ι := p.ids.filter (λ i => p[i] ≠ none)
+    let f : Finset ID := p.ids.filter (λ i => p[i] ≠ none)
     suffices h : description ⊆ ↑f 
       from Set.finite.subset (Finset.finite_to_set _) h
     simp [Set.subset_def]

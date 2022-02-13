@@ -6,12 +6,6 @@ open Classical
 -- TODO: Redoc
 -- TODO: Better notation for cmp.accessor σ, e.g. σ[cmp]
 
--- Note that `ι` and `υ` live in the same universe:
--- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Stuck.20at.20solving.20universe.20constraint/near/253232009
-variable (ι υ : Type u) [Value υ]
-
--- TODO: Add cmps for prios and roles.
-
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
 inductive Cmp
   | rtr -- Nested reactors
@@ -27,18 +21,16 @@ namespace Cmp
 -- Note that the types for `prt` and `stv` are just `υ`, because IDs don't refer to
 -- the entire entire mappinngs, but rather the single values within them.
 abbrev type : Cmp → Type _
-  | rtr => Reactor ι υ
-  | rcn => Reaction ι υ
-  | prt => Port υ
-  | act => Time.Tag ▸ υ
-  | stv => υ
-
-variable {ι υ}
+  | rtr => Reactor
+  | rcn => Reaction
+  | prt => Port
+  | act => Time.Tag ▸ Value
+  | stv => Value
 
 -- Associates each type of component with the finmap in which it can be found inside
 -- of a reactor. We use this in `objFor` to generically resolve the lookup for *some*
 -- component and *some* ID.
-abbrev accessor : (cmp : Cmp) → Reactor ι υ → ι ▸ cmp.type ι υ
+abbrev accessor : (cmp : Cmp) → Reactor → ID ▸ cmp.type
   | rtr => Reactor.nest
   | rcn => Reactor.rcns
   | prt => Reactor.ports
@@ -47,8 +39,6 @@ abbrev accessor : (cmp : Cmp) → Reactor ι υ → ι ▸ cmp.type ι υ
 
 end Cmp
 
-variable {ι υ}
-
 namespace Reactor
 
 namespace Lineage
@@ -56,7 +46,7 @@ namespace Lineage
 -- The "direct parent" in a lineage is the reactor which contains the target of the lineage.
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
-def directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Rooted ι × Reactor ι υ)
+def directParent {σ : Reactor} {i} : Lineage σ i → (Rooted ID × Reactor)
   | rtr _ => (⊤, σ)
   | rcn _ => (⊤, σ)
   | prt _ => (⊤, σ)
@@ -68,7 +58,7 @@ def directParent {σ : Reactor ι υ} {i} : Lineage σ i → (Rooted ι × React
   | nest σ' i' (stv _) _ => (i', σ')
   | nest _  _  l       _ => directParent l -- By case distinction `l` is a `Lineage.nest`.
 
-def target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp 
+def target {σ : Reactor} {i} : Lineage σ i → Cmp 
   | rtr _ => Cmp.rtr
   | rcn _ => Cmp.rcn
   | prt _ => Cmp.prt
@@ -76,20 +66,20 @@ def target {σ : Reactor ι υ} {i} : Lineage σ i → Cmp
   | stv _ => Cmp.stv
   | nest _ _ l _ => target l
 
-def fromCmp (σ : Reactor ι υ) (i) : (cmp : Cmp) → (h : i ∈ (cmp.accessor σ).ids) → Lineage σ i
+def fromCmp (σ : Reactor) (i) : (cmp : Cmp) → (h : i ∈ (cmp.accessor σ).ids) → Lineage σ i
   | Cmp.rtr, h => Lineage.rtr h
   | Cmp.rcn, h => Lineage.rcn h
   | Cmp.prt, h => Lineage.prt h
   | Cmp.act, h => Lineage.act h
   | Cmp.stv, h => Lineage.stv h
 
-def retarget {σ : Reactor ι υ} {i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (cmp.accessor l.directParent.snd).ids → Lineage σ i
+def retarget {σ : Reactor} {i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (cmp.accessor l.directParent.snd).ids → Lineage σ i
   | nest σ' i' l' h', cmp, h => Lineage.nest σ' i' (retarget l' cmp h) h'
   | _, cmp, h => Lineage.fromCmp σ i cmp h
 
 
 set_option maxHeartbeats 100000 in
-theorem retarget_target (σ : Reactor ι υ) (i) (l : Lineage σ i) (cmp h) :
+theorem retarget_target (σ : Reactor) (i) (l : Lineage σ i) (cmp h) :
   (l.retarget cmp h).target = cmp := by sorry
   -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
   /-
@@ -103,7 +93,7 @@ theorem retarget_target (σ : Reactor ι υ) (i) (l : Lineage σ i) (cmp h) :
   all_goals { cases cmp <;> simp only [target, retarget] }
   -/
 
-theorem retarget_ne {σ : Reactor ι υ} {i} (l : Lineage σ i) {cmp} (h) :
+theorem retarget_ne {σ : Reactor} {i} (l : Lineage σ i) {cmp} (h) :
   cmp ≠ l.target → l ≠ l.retarget cmp h := by 
   intro hn hc
   have h' := Lineage.retarget_target σ i l cmp h
@@ -130,14 +120,14 @@ end Lineage
 -- we could easily extend the definition of `containerOf` to check whether `i = ⊤`
 -- and yield `False` in that case (as the top-level reactor will never have a
 -- parent container).
-def containerOf (σ : Reactor ι υ) (i : ι) (c : Rooted ι) : Prop := 
+def containerOf (σ : Reactor) (i : ID) (c : Rooted ID) : Prop := 
   ∃ l : Lineage σ i, (l.directParent).fst = c 
 
 -- This notation is chosen to be akin to the address notation in C.
 notation σ:max " &[" i "]= " c:max => Reactor.containerOf σ i c
 
 -- In the `containerOf` relation, any given ID can have at most one parent (`containerOf` is functional).
-theorem containerOf_unique {σ : Reactor ι υ} {i : ι} {c₁ c₂ : Rooted ι} :
+theorem containerOf_unique {σ : Reactor} {i : ID} {c₁ c₂ : Rooted ID} :
   σ &[i]= c₁ → σ &[i]= c₂ → c₁ = c₂ := by
   intro h₁ h₂
   have ⟨l₁, h₁⟩ := h₁
@@ -170,45 +160,45 @@ theorem containerOf_unique {σ : Reactor ι υ} {i : ι} {c₁ c₂ : Rooted ι}
 -- by adding an instance of `Cmp` into the type of `Lineage`.
 -- This leads to heterogeneous equality though, and is therefore undesirable:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/.E2.9C.94.20Exfalso.20HEq
-def objFor (σ : Reactor ι υ) : (cmp : Cmp) → Rooted ι → cmp.type ι υ → Prop
-  | Cmp.rtr, ⊤, o => o = σ
-  | _, ⊤, _ => False
-  | cmp, Rooted.nested i, o => ∃ l : Lineage σ i, (cmp.accessor l.directParent.snd) i = o
+def objFor (σ : Reactor) (cmp : Cmp) (o : cmp.type) : Rooted ID → Prop
+  | ⊤ => sorry -- match cmp with | Cmp.rtr => o = σ | _ => False
+  | Rooted.nested i => ∃ l : Lineage σ i, (cmp.accessor l.directParent.snd) i = o
 
 -- This notation is chosen to be akin to the dereference notation in C.
-notation σ:max " *[" cmp ", " i "]= " o:max => Reactor.objFor σ cmp i o
+notation σ:max " *[" cmp ", " i "]= " o:max => Reactor.objFor σ cmp o i
 
 -- In the `objFor` relation, any given ID can have associated objects of at most one component type.
 -- E.g. an ID cannot have associated objects of type `Cmp.rcn` *and* `Cmp.prt`.
 -- Cf. `objFor_unique_obj` for further information.
-theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o₁ : cmp₁.type ι υ} {o₂ : cmp₂.type ι υ} :
+theorem objFor_unique_cmp {σ : Reactor} {i : Rooted ID} {cmp₁ cmp₂ : Cmp} {o₁ : cmp₁.type} {o₂ : cmp₂.type} :
   (σ *[cmp₁, i]= o₁) → (σ *[cmp₂, i]= o₂) → cmp₁ = cmp₂ := by
-  sorry
-  /-
   intro h₁ h₂
-  have ⟨l₁, h₁⟩ := h₁
-  have ⟨l₂, h₂⟩ := h₂
-  have hu := σ.uniqueIDs l₁ l₂
-  rw [←hu] at h₂
-  by_contra hc
-  have h₁ := Finmap.ids_def'.mpr ⟨o₁, Eq.symm h₁⟩
-  have h₂ := Finmap.ids_def'.mpr ⟨o₂, Eq.symm h₂⟩
-  by_cases hc₁ : cmp₁ = l₁.target
-  case neg =>
-    have := Lineage.retarget_ne l₁ h₁ hc₁
-    have := σ.uniqueIDs l₁ $ l₁.retarget cmp₁ h₁
-    contradiction
-  case pos =>
-    by_cases hc₂ : cmp₂ = l₂.target
+  cases i
+  case root =>
+    sorry
+  case nested =>
+    have ⟨l₁, h₁⟩ := h₁
+    have ⟨l₂, h₂⟩ := h₂
+    have hu := σ.uniqueIDs l₁ l₂
+    rw [←hu] at h₂
+    by_contra hc
+    have h₁ := Finmap.ids_def'.mpr ⟨o₁, Eq.symm h₁⟩
+    have h₂ := Finmap.ids_def'.mpr ⟨o₂, Eq.symm h₂⟩
+    by_cases hc₁ : cmp₁ = l₁.target
     case neg =>
-      have := Lineage.retarget_ne l₂ h₂ hc₂
-      have := σ.uniqueIDs l₂ $ l₂.retarget cmp₂ h₂
+      have := Lineage.retarget_ne l₁ h₁ hc₁
+      have := σ.uniqueIDs l₁ $ l₁.retarget cmp₁ h₁
       contradiction
     case pos =>
-      rw [hu] at hc₁
-      rw [←hc₂] at hc₁
-      contradiction
-  -/
+      by_cases hc₂ : cmp₂ = l₂.target
+      case neg =>
+        have := Lineage.retarget_ne l₂ h₂ hc₂
+        have := σ.uniqueIDs l₂ $ l₂.retarget cmp₂ h₂
+        contradiction
+      case pos =>
+        rw [hu] at hc₁
+        rw [←hc₂] at hc₁
+        contradiction
 
 -- In the `objFor` relation, any given ID can have at most one associated object. 
 --
@@ -224,10 +214,8 @@ theorem objFor_unique_cmp {σ : Reactor ι υ} {i : ι} {cmp₁ cmp₂ : Cmp} {o
 -- First, `objFor_unique_obj` can be used to establish equality of the component types.
 -- After appropriate type casting (using the previous result), `objFor_unique_obj` can be used to show
 -- object equality. 
-theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ : cmp.type ι υ} : 
+theorem objFor_unique_obj {σ : Reactor} {i : ID} {cmp : Cmp} {o₁ o₂ : cmp.type} : 
   (σ *[cmp, i]= o₁) → (σ *[cmp, i]= o₂) → o₁ = o₂ := by
-  sorry
-  /-
   intro h₁ h₂
   have ⟨l₁, h₁⟩ := h₁
   have ⟨l₂, h₂⟩ := h₂
@@ -235,20 +223,19 @@ theorem objFor_unique_obj {σ : Reactor ι υ} {i : ι} {cmp : Cmp} {o₁ o₂ :
   rw [hu] at h₁
   simp [h₁] at h₂
   exact h₂
-  -/
 
-def containsID (σ : Reactor ι υ) (i : ι) (cmp : Cmp) : Prop := 
+def containsID (σ : Reactor) (i : ID) (cmp : Cmp) : Prop := 
   ∃ v, σ *[cmp, i]= v
 
 -- Note, this only makes sense when talking about a top-level ID.
-structure EqModID (σ₁ σ₂ : Reactor ι υ) (cmp : Cmp) (i : ι) : Prop where
+structure EqModID (σ₁ σ₂ : Reactor) (cmp : Cmp) (i : ID) : Prop where
   otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → cmp'.accessor σ₁ = cmp'.accessor σ₂
   otherIDsEq : ∀ {i'}, i' ≠ i → cmp.accessor σ₁ i' = cmp.accessor σ₂ i'
 
 notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
 
 -- TODO: Find out how to solve the case distinction more concisely.
-theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} 
+theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} 
   (he₁ : σ %[cmp, i]= σ₁) (he₂ : σ %[cmp, i]= σ₂) :
   (cmp.accessor σ₁ i = cmp.accessor σ₂ i) → σ₁ = σ₂ := by
   intro ha
@@ -301,7 +288,7 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cm
     have h₄ := h_aux₂ Cmp.act (by intro; contradiction)
     simp [h₀, h₁, h₂, h₃, h₄]
 
-inductive Update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Reactor ι υ → Prop :=
+inductive Update (cmp : Cmp) (v : cmp.type) : ID → Reactor → Reactor → Prop :=
   | top {i σ₁ σ₂} :
     (σ₁ %[cmp, i]= σ₂) →
     (cmp.accessor σ₁ i ≠ none) → -- This is required so that we know where to actually update i / so that there's at most one possible outcome of an update. 
@@ -316,12 +303,12 @@ inductive Update (cmp : Cmp) (v : cmp.type ι υ) : ι → Reactor ι υ → Rea
 
 notation σ₁:max " -[" cmp ", " i " := " v "]→ " σ₂:max => Reactor.Update cmp v i σ₁ σ₂
 
-theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (h : σ₁ -[cmp, i := v]→ σ₂) : Nonempty (Lineage σ₁ i) := by
+theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} (h : σ₁ -[cmp, i := v]→ σ₂) : Nonempty (Lineage σ₁ i) := by
   induction h
   case top i σ₁ _ _ ha _ => exact ⟨Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def.mpr ha⟩
   case nested hn _ _ hi => exact ⟨Lineage.nest _ _ (Classical.choice hi) hn⟩
 
-theorem Update.unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
+theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} :
   (σ -[cmp, i := v]→ σ₁) → (σ -[cmp, i := v]→ σ₂) → σ₁ = σ₂ := by
   intro h₁ h₂
   (induction h₁ generalizing σ₂) <;> cases h₂
@@ -350,7 +337,7 @@ theorem Update.unique {σ σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v :
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
 
-theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} :
+theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} :
   (σ₁ -[cmp, i := v]→ σ₂) → σ₂ *[cmp, i]= v := by
   intro h
   induction h
@@ -363,8 +350,6 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i :
     -- cases cmp <;> simp only [Lineage.directParent, h]
   case nested i _ σ₂ j _ rtr₂ _ _ hn _ hi =>
     simp only [objFor] at *
-    sorry
-    /- 
     have ⟨l, hl⟩ := hi
     exists Lineage.nest rtr₂ j l hn
     have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
@@ -372,9 +357,8 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i :
       -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
       -- by cases l <;> simp only [Lineage.directParent]
     simp [←hp, hl]
-    -/
 
-theorem Update.ne_cmp_and_ne_rtr_eq {σ₁ σ₂ : Reactor ι υ} {cmp : Cmp} {i : ι} {v : cmp.type ι υ} (cmp' : Cmp):
+theorem Update.ne_cmp_and_ne_rtr_eq {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} (cmp' : Cmp):
   (σ₁ -[cmp, i := v]→ σ₂) → cmp' ≠ cmp → cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂ := by 
   intro hu _ _; cases hu <;> apply EqModID.otherCmpsEq <;> assumption
 
@@ -388,15 +372,15 @@ namespace Cmp.Field
 abbrev parent : Cmp.Field → Cmp 
   | prtVal => Cmp.prt
 
-abbrev type (ι υ : Type u) [Value υ] : Cmp.Field → Type _
-  | prtVal => υ
+abbrev type : Cmp.Field → Type _
+  | prtVal => Value
 
-def mkParent : (f : Cmp.Field) → f.parent.type ι υ → f.type ι υ → f.parent.type ι υ
+def mkParent : (f : Cmp.Field) → f.parent.type → f.type → f.parent.type
   | prtVal, p, v => { p .. with val := v }
 
 end Cmp.Field
 
-def Reactor.Update.Field (f : Cmp.Field) (v : f.type ι υ) (i : ι) (σ₁ σ₂ : Reactor ι υ) : Prop :=
+def Reactor.Update.Field (f : Cmp.Field) (v : f.type) (i : ID) (σ₁ σ₂ : Reactor) : Prop :=
   ∃ p, σ₁ *[f.parent, i]= p ∧ σ₁ -[f.parent, i := f.mkParent p v]→ σ₂
   
 notation σ₁:max " -[" f ", " i " := " v "]→ " σ₂:max => Reactor.Update.Field f v i σ₁ σ₂

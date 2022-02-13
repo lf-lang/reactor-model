@@ -1,10 +1,10 @@
 import ReactorModel.Primitives
 import ReactorModel.Time
 
-structure Reaction.Input (ι υ) [Value υ] where
-  portVals : ι ▸ υ
-  acts : ι ▸ υ
-  state : ι ▸ υ
+structure Reaction.Input where
+  portVals : ID ▸ Value
+  acts : ID ▸ Value
+  state : ID ▸ Value
 
 namespace Raw
 
@@ -20,34 +20,34 @@ namespace Raw
 -- Side note:
 -- The type class instances required by all types are named (`i` and `v`). This 
 -- is necessary as Lean requires all type-level parameters of mutually inductive
--- definitions to have the same name. (So the `ι` and `υ` parameters also need to have
+-- definitions to have the same name. (So the `ID` and `Value` parameters also need to have
 -- the same name across all definitions.)
 mutual 
 
-protected inductive Change (ι υ) [v : Value υ]
-  | port (target : ι) (value : υ)
-  | action (target : ι) (time : Time) (value : υ)
-  | state (target : ι) (value : υ)
-  | connect (src : ι) (dst : ι)
-  | disconnect (src : ι) (dst : ι)
-  | create (rtr : Raw.Reactor ι υ) (id : ι)
-  | delete (rtrID : ι)
+protected inductive Change 
+  | port (target : ID) (value : Value)
+  | action (target : ID) (time : Time) (value : Value)
+  | state (target : ID) (value : Value)
+  | connect (src : ID) (dst : ID)
+  | disconnect (src : ID) (dst : ID)
+  | create (rtr : Raw.Reactor) (id : ID)
+  | delete (rtrID : ID)
 
-protected inductive Reaction (ι υ) [v : Value υ]
+protected inductive Reaction 
   | mk 
-    (deps : Port.Role → Finset ι) 
-    (triggers : Finset ι)
+    (deps : Port.Role → Finset ID) 
+    (triggers : Finset ID)
     (prio : Priority)
-    (children : Finset ι)
-    (body : Reaction.Input ι υ → List (Raw.Change ι υ))
+    (children : Finset ID)
+    (body : Reaction.Input → List Raw.Change)
 
-protected inductive Reactor (ι υ) [v : Value υ]
+protected inductive Reactor 
   | mk 
-    (ports : ι ▸ Port υ) 
-    (acts :  ι ▸ Time.Tag ▸ υ)
-    (state : ι ▸ υ)
-    (rcns :  ι → Option (Raw.Reaction ι υ))
-    (nest :  ι → Option (Raw.Reactor ι υ))
+    (ports : ID ▸ Port) 
+    (acts :  ID ▸ Time.Tag ▸ Value)
+    (state : ID ▸ Value)
+    (rcns :  ID → Option Raw.Reaction)
+    (nest :  ID → Option Raw.Reactor)
 
 -- This is a sanity check, to make sure that the above definition of reactors
 -- actually allows them to be constructed.
@@ -62,10 +62,8 @@ end Raw
 -- We try to limit these conveniences though, as they are superfluous as soon
 -- as we have "proper" components.
 
-variable {ι υ} [Value υ]
-
 -- Cf. `Change.mutates`.
-def Raw.Change.mutates : Raw.Change ι υ → Bool
+def Raw.Change.mutates : Raw.Change → Bool
   | port ..       => false
   | state ..      => false
   | action ..     => false
@@ -77,22 +75,22 @@ def Raw.Change.mutates : Raw.Change ι υ → Bool
 namespace Raw.Reaction
 
 -- These definitions give us the projections that would usually be generated for a structure.
-def deps :     Raw.Reaction ι υ → Port.Role → Finset ι                       | mk d _ _ _ _ => d
-def triggers : Raw.Reaction ι υ → Finset ι                                   | mk _ t _ _ _ => t
-def prio :     Raw.Reaction ι υ → Priority                                   | mk _ _ p _ _ => p
-def children : Raw.Reaction ι υ → Finset ι                                   | mk _ _ _ c _ => c
-def body :     Raw.Reaction ι υ → Reaction.Input ι υ → List (Raw.Change ι υ) | mk _ _ _ _ b => b
+def deps :     Raw.Reaction → Port.Role → Finset ID            | mk d _ _ _ _ => d
+def triggers : Raw.Reaction → Finset ID                        | mk _ t _ _ _ => t
+def prio :     Raw.Reaction → Priority                         | mk _ _ p _ _ => p
+def children : Raw.Reaction → Finset ID                        | mk _ _ _ c _ => c
+def body :     Raw.Reaction → Reaction.Input → List Raw.Change | mk _ _ _ _ b => b
 
 -- Cf. `Reaction.isNorm`.
-def isNorm (rcn : Raw.Reaction ι υ) : Prop :=
+def isNorm (rcn : Raw.Reaction) : Prop :=
   ∀ i c, (c ∈ rcn.body i) → ¬c.mutates
 
 -- Cf. `Reaction.isMut`.
-def isMut (rcn : Raw.Reaction ι υ) : Prop :=
+def isMut (rcn : Raw.Reaction) : Prop :=
   ¬rcn.isNorm
 
 -- An extensionality theorem for `Raw.Reaction`.
-theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction ι υ} : 
+theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction} : 
   rcn₁ = rcn₂ ↔ 
   rcn₁.deps = rcn₂.deps ∧ rcn₁.triggers = rcn₂.triggers ∧ rcn₁.prio = rcn₂.prio ∧
   rcn₁.children = rcn₂.children ∧ rcn₁.body = rcn₂.body := by
@@ -111,7 +109,7 @@ theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction ι υ} :
 
 -- We need this additional theorem as the `ext` attribute can only be used on theorems proving an equality.
 @[ext]
-theorem ext {rcn₁ rcn₂ : Raw.Reaction ι υ} :
+theorem ext {rcn₁ rcn₂ : Raw.Reaction} :
   rcn₁.deps = rcn₂.deps ∧ rcn₁.triggers = rcn₂.triggers ∧ rcn₁.prio = rcn₂.prio ∧
   rcn₁.children = rcn₂.children ∧ rcn₁.body = rcn₂.body → rcn₁ = rcn₂ :=
   λ h => ext_iff.mpr h  
@@ -121,18 +119,18 @@ end Raw.Reaction
 namespace Raw.Reactor
 
 -- These definitions give us the projections that would usually be generated for a structure.
-def ports : Raw.Reactor ι υ → ι ▸ Port υ                    | mk p _ _ _ _ => p
-def acts :  Raw.Reactor ι υ → ι ▸ Time.Tag ▸ υ              | mk _ a _ _ _ => a
-def state : Raw.Reactor ι υ → ι ▸ υ                         | mk _ _ s _ _ => s 
-def rcns :  Raw.Reactor ι υ → ι → Option (Raw.Reaction ι υ) | mk _ _ _ r _ => r
-def nest :  Raw.Reactor ι υ → ι → Option (Raw.Reactor ι υ)  | mk _ _ _ _ n => n
+def ports : Raw.Reactor → ID ▸ Port                | mk p _ _ _ _ => p
+def acts :  Raw.Reactor → ID ▸ Time.Tag ▸ Value    | mk _ a _ _ _ => a
+def state : Raw.Reactor → ID ▸ Value               | mk _ _ s _ _ => s 
+def rcns :  Raw.Reactor → ID → Option Raw.Reaction | mk _ _ _ r _ => r
+def nest :  Raw.Reactor → ID → Option Raw.Reactor  | mk _ _ _ _ n => n
 
 -- Cf. `Reactor.portVals`.
-noncomputable def portVals (rtr : Raw.Reactor ι υ) (r : Port.Role) : ι ▸ υ := 
+noncomputable def portVals (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Value := 
   rtr.ports.filter' (·.role = r) |>.map Port.val
 
 -- An extensionality theorem for `Raw.Reactor`.
-theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} : 
+theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} : 
   rtr₁ = rtr₂ ↔ 
   rtr₁.ports = rtr₂.ports ∧ rtr₁.acts  = rtr₂.acts ∧ 
   rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧ 
@@ -152,7 +150,7 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor ι υ} :
 
 -- We need this additional theorem as the `ext` attribute can only be used on theorems proving an equality.
 @[ext]
-theorem ext {rtr₁ rtr₂ : Raw.Reactor ι υ} :
+theorem ext {rtr₁ rtr₂ : Raw.Reactor} :
   rtr₁.ports = rtr₂.ports ∧ rtr₁.acts  = rtr₂.acts  ∧ 
   rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns  ∧ 
   rtr₁.nest  = rtr₂.nest → 

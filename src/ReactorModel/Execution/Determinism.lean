@@ -2,18 +2,16 @@ import ReactorModel.Execution.Basic
 
 open Classical
 
-variable {ι υ} [Value υ]
-
 -- This file defines (and proves) determinism for the reactor model.
 -- Determinism can be understood in multiple ways.
 -- Primarily, we say the execution is deterministic if there is always ot most one timed
 -- step that can be taken.
 namespace Execution
 
-theorem InstExecution.first_step {s₁ s₂ : State ι υ} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
+theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
   cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
 
-theorem InstExecution.preserves_time {s₁ s₂ : State ι υ} :
+theorem InstExecution.preserves_time {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → s₁.ctx.time = s₂.ctx.time := by
   intro h
   induction h
@@ -22,7 +20,7 @@ theorem InstExecution.preserves_time {s₁ s₂ : State ι υ} :
     have ht : s₁.ctx.time = s₂.ctx.time := by cases h₁₂ <;> simp [Context.addCurrentExecuted_same_time]
     simp [hi, ht]
 
-theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State ι υ} :
+theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
   intro h g hg
   induction h
@@ -33,19 +31,19 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State ι υ} :
     simp [hc, hi hg]
 
 -- Note: this only talks about the top-level reactions, not the nested ones.
-theorem InstExecution.convergent_rcns {s s₁ s₂ : State ι υ} :
+theorem InstExecution.convergent_rcns {s s₁ s₂ : State} :
   (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → s₁.rtr.rcns = s₂.rtr.rcns := by
   sorry
 
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
-protected theorem InstExecution.deterministic {s s₁ s₂ : State ι υ} : 
+protected theorem InstExecution.deterministic {s s₁ s₂ : State} : 
   (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
   intro he₁ he₂ hc
   sorry
 
-theorem State.instComplete_to_inst_stuck {s : State ι υ} :
+theorem State.instComplete_to_inst_stuck {s : State} :
   s.instComplete → ∀ s', ¬(s ⇓ᵢ s') := by
   intro h s' he
   cases he
@@ -56,15 +54,15 @@ theorem State.instComplete_to_inst_stuck {s : State ι υ} :
 
 -- The set of reactions can change because of mutations.
 -- However, these changes are deterministic.
---lemma networkChangeDeterministic {σ₁ σ₂ σ₁' σ₂' : Reactor ι υ}
---{ctx₁ ctx₂ ctx₁' ctx₂'  : Context ι} :
+--lemma networkChangeDeterministic {σ₁ σ₂ σ₁' σ₂' : Reactor}
+--{ctx₁ ctx₂ ctx₁' ctx₂'  : Context} :
 --  (σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁') →
 --  (σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂') →
 --  sameReactionExecuted ((σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁')) ((σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) →
 --  sameReactionTopologyChanges ((σ₁, ctx₁) ⇓ᵢ (σ₁', ctx₁')) ((σ₂, ctx₂) ⇓ᵢ (σ₂', ctx₂')) :=
 --  sorry
 
-theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State ι υ} :
+theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hc₁ hc₂
   apply Context.ext_iff.mpr; apply Finmap.ext
@@ -78,20 +76,20 @@ theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State ι υ} :
     simp only [h₁, h₂, InstExecution.convergent_rcns hc₁.exec hc₂.exec]
   case neg => simp only [←hc₁.exec.preserves_ctx_past_future g hg, hc₂.exec.preserves_ctx_past_future g hg]
 
-theorem CompleteInstExecution.convergent {s s₁ s₂ : State ι υ} :
+theorem CompleteInstExecution.convergent {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
   λ hc₁ hc₂ => InstExecution.deterministic hc₁.exec hc₂.exec $ CompleteInstExecution.convergent_ctx hc₁ hc₂
 
 end Execution
 
-theorem Execution.Step.time_monotone {s₁ s₂ : State ι υ} : 
+theorem Execution.Step.time_monotone {s₁ s₂ : State} : 
   (s₁ ⇓ s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
   intro h
   cases h
   case completeInst h => exact le_of_eq h.exec.preserves_time
   case advanceTime hg _ _ => exact le_of_lt $ s₁.ctx.advanceTime_strictly_increasing _ hg.lower
 
-protected theorem Execution.Step.deterministic {s s₁ s₂ : State ι υ} : 
+protected theorem Execution.Step.deterministic {s s₁ s₂ : State} : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
   intro he₁ he₂
   cases he₁ <;> cases he₂
@@ -99,7 +97,7 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State ι υ} :
     exact CompleteInstExecution.convergent hc₁ hc₂
   case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
     simp [Reactor.eqWithClearedPortsUnique h₁ h₂, Context.advanceTime, State.isNextTag_unique hg₁ hg₂]
-  case' completeInst.advanceTime hc _ _ _ hr _, advanceTime.completeInst _ _ _ _ hr _ hc => 
+  case' completeInst.advanceTime hc _ _ _ hr _, advanceTime.completeInst _ _ _ hr _ hc => 
     cases hc.exec 
     case' single hi, trans hi _ =>
       cases hi <;> (
@@ -108,14 +106,14 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State ι υ} :
         contradiction
       )
 
-theorem Execution.time_monotone {s₁ s₂ : State ι υ} : 
+theorem Execution.time_monotone {s₁ s₂ : State} : 
   (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
   intro h
   induction h 
   case refl => simp
   case step h _ hi => exact le_trans h.time_monotone hi
 
-protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hc₁ : s₁.instComplete) (hc₂ : s₂.instComplete) : 
+protected theorem Execution.deterministic {s s₁ s₂ : State} (hc₁ : s₁.instComplete) (hc₂ : s₂.instComplete) : 
   (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
   intro he₁ he₂ ht
   induction he₁ <;> cases he₂ 
@@ -126,7 +124,7 @@ protected theorem Execution.deterministic {s s₁ s₂ : State ι υ} (hc₁ : s
     rw [Execution.Step.deterministic h₁ₘ₁ h₁ₘ₂] at hi
     exact hi hc₁ hₘ₂₂ ht
 where 
-  impossible_case_aux {s₁ s₂ s₃ : State ι υ} (hc : s₁.instComplete) (ht : s₁.ctx.time = s₃.ctx.time) :
+  impossible_case_aux {s₁ s₂ s₃ : State} (hc : s₁.instComplete) (ht : s₁.ctx.time = s₃.ctx.time) :
     (s₁ ⇓ s₂) → (s₂ ⇓* s₃) → False := by
     intro h₁₂ h₂₃
     cases h₁₂

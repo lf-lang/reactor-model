@@ -1,23 +1,21 @@
 import ReactorModel.Components.Reaction
 
-variable {ι υ} [Value υ]
-
 -- TODO: Remove the fromRaw' theorems.
 
 namespace Reactor 
 
 -- `Reactor.fromRaw` is already defined as the name of `Reactor`'s constructor.
 
-structure RawEquiv (rtr : Reactor ι υ) (raw : Raw.Reactor ι υ) : Prop where
+structure RawEquiv (rtr : Reactor) (raw : Raw.Reactor) : Prop where
   equiv : rtr.raw = raw
 
-theorem RawEquiv.unique {rtr : Reactor ι υ} {raw₁ raw₂ : Raw.Reactor ι υ} (h₁ : RawEquiv rtr raw₁) (h₂ : RawEquiv rtr raw₂) : 
+theorem RawEquiv.unique {rtr : Reactor} {raw₁ raw₂ : Raw.Reactor} (h₁ : RawEquiv rtr raw₁) (h₂ : RawEquiv rtr raw₂) : 
   raw₁ = raw₂ := by simp [←h₁.equiv, ←h₂.equiv]
 
-theorem RawEquiv.fromRaw {raw : Raw.Reactor ι υ} (h) : RawEquiv (Reactor.fromRaw (raw := raw) h) raw :=
+theorem RawEquiv.fromRaw {raw : Raw.Reactor} (h) : RawEquiv (Reactor.fromRaw (raw := raw) h) raw :=
   { equiv := rfl }
 
-theorem RawEquiv.fromRaw' {rtr : Reactor ι υ} {raw h} : 
+theorem RawEquiv.fromRaw' {rtr : Reactor} {raw h} : 
   rtr = Reactor.fromRaw (raw := raw) h → RawEquiv rtr raw := 
   λ h => by simp [h, RawEquiv.fromRaw]
 
@@ -33,10 +31,10 @@ namespace Change
 -- have to turn a raw reactor into a "proper" reactor. That's why we need all
 -- the auxiliary proofs as input.
 def fromRaw
-  {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) 
-  {rcn : Raw.Reaction ι υ} (hr : ∃ i, rtr.rcns i = rcn) 
-  {raw : Raw.Change ι υ} {i} (hc : raw ∈ rcn.body i) : 
-  Change ι υ :=
+  {rtr : Raw.Reactor} (hw : rtr.wellFormed) 
+  {rcn : Raw.Reaction} (hr : ∃ i, rtr.rcns i = rcn) 
+  {raw : Raw.Change} {i} (hc : raw ∈ rcn.body i) : 
+  Change :=
   match hm:raw with 
     | Raw.Change.port target value        => Change.port target value  
     | Raw.Change.state target value       => Change.state target value 
@@ -57,7 +55,7 @@ def fromRaw
 -- changes to be "equivalent" (they contain the same data).
 -- This notion of equivalence is then used in `Change.fromRaw_rawEquiv` to
 -- prove that `Change.fromRaw` produces only equivalent changes.
-inductive RawEquiv : Change ι υ → Raw.Change ι υ → Prop
+inductive RawEquiv : Change → Raw.Change → Prop
   | port       {t v} :                              RawEquiv (Change.port t v) (Raw.Change.port t v)
   | state      {t v} :                              RawEquiv (Change.state t v) (Raw.Change.state t v)
   | action     {t tm v} :                           RawEquiv (Change.action t tm v) (Raw.Change.action t tm v)
@@ -66,18 +64,18 @@ inductive RawEquiv : Change ι υ → Raw.Change ι υ → Prop
   | create     {r r' i} : (Reactor.RawEquiv r r') → RawEquiv (Change.create r i) (Raw.Change.create r' i)
   | delete     {i} :                                RawEquiv (Change.delete i) (Raw.Change.delete i)
 
-theorem RawEquiv.unique {c : Change ι υ} {raw₁ raw₂ : Raw.Change ι υ} (h₁ : RawEquiv c raw₁) (h₂ : RawEquiv c raw₂) : 
+theorem RawEquiv.unique {c : Change} {raw₁ raw₂ : Raw.Change} (h₁ : RawEquiv c raw₁) (h₂ : RawEquiv c raw₂) : 
   raw₁ = raw₂ := by
   cases h₁ <;> cases h₂
   case create.create rtr r₁ _ he r₂ he' => simp only [Reactor.RawEquiv.unique he he']
   all_goals { rfl }
 
-theorem RawEquiv.fromRaw {raw : Raw.Change ι υ} {rtr rcn i} (hw hr hc) :
-  RawEquiv (@Change.fromRaw _ _ _ rtr hw rcn hr raw i hc) raw := by
+theorem RawEquiv.fromRaw {raw : Raw.Change} {rtr rcn i} (hw hr hc) :
+  RawEquiv (@Change.fromRaw rtr hw rcn hr raw i hc) raw := by
   cases raw <;> simp [Change.fromRaw] <;> constructor
   exact Reactor.RawEquiv.fromRaw _
   
-theorem RawEquiv.mutates_iff {c : Change ι υ} {raw : Raw.Change ι υ} (h : RawEquiv c raw) :
+theorem RawEquiv.mutates_iff {c : Change} {raw : Raw.Change} (h : RawEquiv c raw) :
   c.mutates ↔ raw.mutates := by
   cases h <;> simp [mutates, Raw.Change.mutates]
 
@@ -89,7 +87,7 @@ namespace Reaction
 -- then we can convert that raw reaction to a "proper" reaction.
 -- In the process we map all raw changes producable by the raw reaction to "proper"
 -- changes (using `Change.fromRaw`).
-def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction ι υ} (hr : ∃ i, rtr.rcns i = raw) : Reaction ι υ := {
+def fromRaw {rtr : Raw.Reactor} (hw : rtr.wellFormed) {raw : Raw.Reaction} (hr : ∃ i, rtr.rcns i = raw) : Reaction := {
   deps := raw.deps,
   triggers := raw.triggers,
   prio := raw.prio,
@@ -137,14 +135,14 @@ def fromRaw {rtr : Raw.Reactor ι υ} (hw : rtr.wellFormed) {raw : Raw.Reaction 
 -- reactions to be "equivalent" (they contain the same data).
 -- This notion of equivalence is then used in `fromRaw_rawEquiv` to
 -- prove that `fromRaw` produces only equivalent reactions.
-structure RawEquiv (rcn : Reaction ι υ) (raw : Raw.Reaction ι υ) : Prop :=
+structure RawEquiv (rcn : Reaction) (raw : Raw.Reaction) : Prop :=
   deps :     rcn.deps = raw.deps
   triggers : rcn.triggers = raw.triggers
   prio :     rcn.prio = raw.prio
   children : rcn.children = raw.children
   body :     ∀ i, List.forall₂ Change.RawEquiv (rcn.body i) (raw.body i)
 
-theorem RawEquiv.unique {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι υ} (h₁ : RawEquiv rcn raw₁) (h₂ : RawEquiv rcn raw₂) : 
+theorem RawEquiv.unique {rcn : Reaction} {raw₁ raw₂ : Raw.Reaction} (h₁ : RawEquiv rcn raw₁) (h₂ : RawEquiv rcn raw₂) : 
   raw₁ = raw₂ := by
   apply Raw.Reaction.ext
   simp [←h₁.deps, ←h₂.deps, ←h₁.triggers, ←h₂.triggers, ←h₁.prio, ←h₂.prio, ←h₁.children, ←h₂.children]
@@ -166,8 +164,8 @@ theorem RawEquiv.unique {rcn : Reaction ι υ} {raw₁ raw₂ : Raw.Reaction ι 
       case cons hd₂ tl₂ hhd₂ htl₂ =>
         simp [Change.RawEquiv.unique hhd₁ hhd₂, hi tl₁ htl₁ tl₂ htl₂]
 
-theorem RawEquiv.fromRaw {raw : Raw.Reaction ι υ} {rtr} (hw hr) :
-  RawEquiv (@Reaction.fromRaw _ _ _ rtr hw raw hr) raw := {
+theorem RawEquiv.fromRaw {raw : Raw.Reaction} {rtr} (hw hr) :
+  RawEquiv (@Reaction.fromRaw rtr hw raw hr) raw := {
     deps := by simp [Reaction.fromRaw],
     triggers := by simp [Reaction.fromRaw],
     prio := by simp [Reaction.fromRaw],
@@ -177,11 +175,11 @@ theorem RawEquiv.fromRaw {raw : Raw.Reaction ι υ} {rtr} (hw hr) :
       sorry
   }
 
-theorem RawEquiv.fromRaw' {rcn : Reaction ι υ} {rtr raw hw hr} :
-  rcn = @Reaction.fromRaw _ _ _ rtr hw raw hr → RawEquiv rcn raw :=
+theorem RawEquiv.fromRaw' {rcn : Reaction} {rtr raw hw hr} :
+  rcn = @Reaction.fromRaw rtr hw raw hr → RawEquiv rcn raw :=
   λ h => by simp [h, RawEquiv.fromRaw]
 
-theorem RawEquiv.isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : RawEquiv rcn raw) :
+theorem RawEquiv.isMut_iff {rcn : Reaction} {raw : Raw.Reaction} (h : RawEquiv rcn raw) :
   rcn.isMut ↔ raw.isMut := by
   constructor <;> (
     intro hm
@@ -221,7 +219,7 @@ theorem RawEquiv.isMut_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h 
         have ⟨x, ⟨hx₁, hx₂⟩⟩ := hi hmr
         exact ⟨x, ⟨List.mem_cons.mpr $ Or.inr hx₁, hx₂⟩⟩
 
-theorem RawEquiv.isNorm_iff {rcn : Reaction ι υ} {raw : Raw.Reaction ι υ} (h : RawEquiv rcn raw) :
+theorem RawEquiv.isNorm_iff {rcn : Reaction} {raw : Raw.Reaction} (h : RawEquiv rcn raw) :
   rcn.isNorm ↔ raw.isNorm := by
   have he := RawEquiv.isMut_iff h
   simp only [isMut, Raw.Reaction.isMut] at he

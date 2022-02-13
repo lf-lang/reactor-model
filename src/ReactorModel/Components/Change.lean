@@ -1,25 +1,21 @@
 import ReactorModel.Components.Reactor.Basic
 import ReactorModel.Time 
 
-variable (ι υ) [Value υ]
-
 -- In the semi-formal definition of the Reactor model, reactions' bodies are defined
 -- as "opaque code" that has access to a set of APIs for settings ports' values, 
 -- connecting ports, creating reactors, etc. The definition of a reaction's body used
--- in *this* formalization is as a function of type `Input ι υ → List (Change ι υ)`.
+-- in *this* formalization is as a function of type `Input ID Value → List (Change ID Value)`.
 -- That is, we ignore all side effects that a reaction could have and only consider the
 -- part that is relevant to the reactor system: the API calls. 
 -- These API calls are formalized by the `Change` type:
 inductive Change
-  | port (target : ι) (value : υ)
-  | state (target : ι) (value : υ)
-  | action (target : ι) (time : Time) (value : υ)
-  | connect (src : ι) (dst : ι)
-  | disconnect (src : ι) (dst : ι)
-  | create (rtr : Reactor ι υ) (id : ι)
-  | delete (rtrID : ι)
-
-variable {ι υ}
+  | port (target : ID) (value : Value)
+  | state (target : ID) (value : Value)
+  | action (target : ID) (time : Time) (value : Value)
+  | connect (src : ID) (dst : ID)
+  | disconnect (src : ID) (dst : ID)
+  | create (rtr : Reactor) (id : ID)
+  | delete (rtrID : ID)
 
 namespace Change
 
@@ -29,7 +25,7 @@ namespace Change
 -- This distinction will be used later to differentiate between "normal"
 -- reactions and mutations, as normal reactions are not allowed to produce
 -- mutating changes.
-def mutates : Change ι υ → Prop 
+def mutates : Change → Prop 
   | port ..       => False
   | state ..      => False
   | action ..     => False
@@ -39,7 +35,7 @@ def mutates : Change ι υ → Prop
   | delete ..     => True
 
 -- It is decidable whether a change mutates.
-instance : DecidablePred (@mutates ι υ _) 
+instance : DecidablePred mutates 
   | port ..       => isFalse (by simp [mutates])
   | state ..      => isFalse (by simp [mutates])
   | action ..     => isFalse (by simp [mutates])
