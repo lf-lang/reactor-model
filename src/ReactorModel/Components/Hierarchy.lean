@@ -223,8 +223,14 @@ theorem objFor_unique_obj {σ : Reactor} {i : ID} {cmp : Cmp} {o₁ o₂ : cmp.t
   simp [h₁] at h₂
   exact h₂
 
-def containsID (σ : Reactor) (i : ID) (cmp : Cmp) : Prop := 
-  ∃ v, σ *[cmp, i]= v
+noncomputable def allIDsFor (σ : Reactor) (cmp : Cmp) : Finset ID :=
+  let description := { i : ID | ∃ v, σ *[cmp, i]= v }
+  let finite : description.finite := sorry
+  finite.toFinset
+
+theorem allIDsFor_mem {σ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} : 
+  σ *[cmp, i]= v → i ∈ σ.allIDsFor cmp := 
+  sorry
 
 -- Note, this only makes sense when talking about a top-level ID.
 structure EqModID (σ₁ σ₂ : Reactor) (cmp : Cmp) (i : ID) : Prop where
@@ -369,7 +375,7 @@ inductive Cmp.Field
 
 namespace Cmp.Field
 
-abbrev parent : Cmp.Field → Cmp 
+abbrev cmp : Cmp.Field → Cmp 
   | prtVal => Cmp.prt
   | act .. => Cmp.act
 
@@ -377,13 +383,21 @@ abbrev type : Cmp.Field → Type _
   | prtVal => Value
   | act .. => Value
 
-noncomputable def mkParent : (f : Cmp.Field) → f.parent.type → f.type → f.parent.type
-  | prtVal, p, v => { p .. with val := v }
-  | act g, p, v => p.update g v
+noncomputable def mkCmpObj : (f : Cmp.Field) → f.cmp.type → f.type → f.cmp.type
+  | prtVal, c, v => { c .. with val := v }
+  | act g, c, v => c.update g v
 
 end Cmp.Field
 
-def Reactor.Update.Field (f : Cmp.Field) (v : f.type) (i : ID) (σ₁ σ₂ : Reactor) : Prop :=
-  ∃ p, σ₁ *[f.parent, i]= p ∧ σ₁ -[f.parent, i := f.mkParent p v]→ σ₂
-  
+namespace Reactor
+
+def Update.Field (f : Cmp.Field) (v : f.type) (i : ID) (σ₁ σ₂ : Reactor) : Prop :=
+  ∃ c, σ₁ *[f.cmp, i]= c ∧ σ₁ -[f.cmp, i := f.mkCmpObj c v]→ σ₂
+
 notation σ₁:max " -[" f ", " i " := " v "]→ " σ₂:max => Reactor.Update.Field f v i σ₁ σ₂
+
+theorem Update.Field.reflects_in_objFor {σ₁ σ₂ : Reactor} {f : Cmp.Field} {i : ID} {v : f.type} :
+  (σ₁ -[f, i := v]→ σ₂) → ∃ c, σ₁ *[f.cmp, i]= c ∧ σ₂ *[f.cmp, i]= (f.mkCmpObj c v) :=
+  λ ⟨c, hc, hu⟩ => ⟨c, hc, hu.reflects_in_objFor⟩
+
+end Reactor

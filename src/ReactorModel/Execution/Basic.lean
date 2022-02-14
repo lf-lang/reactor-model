@@ -5,27 +5,31 @@ open Port
 -- TODO: Come up with something nicer.
 structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor) where
   otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
-  samePortIDs : ∀ i, σ₁.containsID i Cmp.prt ↔ σ₂.containsID i Cmp.prt
+  samePortIDs : σ₁.allIDsFor Cmp.prt = σ₂.allIDsFor Cmp.prt
   clearedPorts : ∀ i p, σ₁ *[Cmp.prt, i]= p → σ₂ *[Cmp.prt, i]= { p .. with val := ⊥ }
 
 lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor} :
   Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
   σ₁ = σ₂ := sorry
- 
+
+structure Reactor.isNewTag (σ : Reactor) (act : ID) (t : Time) (cur new : Time.Tag) : Prop where
+  notPast : cur < new 
+  afterLast : ∃ acts, σ₁ *[Cmp.act, act]= acts ∧ some new.microsteps = (acts.ids.filter (·.t = t)).max >>= (some $ ·.microsteps + 1)
+
 namespace Execution
 
-inductive ChangeStep (g : Time.Tag) (σ₁ : Reactor) : Reactor → Change → Prop 
-  | port (σ₂) {i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
-  | state (σ₂) {i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.state i v)
-  | action (σ₂) {i} {t : Time} {tg : Time.Tag} {v : Value} : -- TODO: Fix the definition of scheduling an action .
-    (t.after g = tg) → 
-    (σ₁ -[Cmp.Field.act tg, i := v]→ σ₂) → 
-    ChangeStep g σ₁ σ₂ (Change.action i t v)
+inductive ChangeStep (curTag : Time.Tag) (σ₁ : Reactor) : Reactor → Change → Prop 
+  | port (σ₂) {i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
+  | state (σ₂) {i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.state i v)
+  | action (σ₂) {i : ID} {t : Time} {v : Value} {newTag : Time.Tag} :
+    (σ₁.isNewTag i t curTag newTag) →
+    (σ₁ -[Cmp.Field.act newTag, i := v]→ σ₂) → 
+    ChangeStep curTag σ₁ σ₂ (Change.action i t v)
   -- Mutations are (temporarily) no-ops:
-  | connect {i₁ i₂} : ChangeStep g σ₁ σ₁ (Change.connect i₁ i₂)
-  | disconnect {i₁ i₂} : ChangeStep g σ₁ σ₁ (Change.disconnect i₁ i₂)
-  | create {rtr i} : ChangeStep g σ₁ σ₁ (Change.create rtr i)
-  | delete {i} : ChangeStep g σ₁ σ₁ (Change.delete i)
+  | connect {i₁ i₂} : ChangeStep curTag σ₁ σ₁ (Change.connect i₁ i₂)
+  | disconnect {i₁ i₂} : ChangeStep curTag σ₁ σ₁ (Change.disconnect i₁ i₂)
+  | create {rtr i} : ChangeStep curTag σ₁ σ₁ (Change.create rtr i)
+  | delete {i} : ChangeStep curTag σ₁ σ₁ (Change.delete i)
 
 notation σ₁:max " -[" c ", " g "]→ " σ₂:max => ChangeStep g σ₁ σ₂ c
 
@@ -39,13 +43,13 @@ notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ 
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
 inductive InstStep (s : State) : State → Prop 
-  | execReaction {rcn : Reaction} {i σ} : 
+  | execReaction {rcn : Reaction} {i : ID} {σ} : 
     (s.rtr *[Cmp.rcn, i]= rcn) →
     (s.couldExec i) →
     (s.triggers rcn) →
     (s.rtr -[s.outputOf rcn, s.ctx.time]→* σ) →
     InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
-  | skipReaction {rcn : Reaction} {i} :
+  | skipReaction {rcn : Reaction} {i : ID} :
     (s.rtr *[Cmp.rcn, i]= rcn) →
     (s.couldExec i) →
     (¬ s.triggers rcn) →
@@ -61,7 +65,7 @@ inductive InstExecution : State → State → Prop
 
 notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
 
-abbrev State.instComplete (s : State) := s.ctx.currentExecutedRcns = s.rtr.rcns.ids
+abbrev State.instComplete (s : State) : Prop := s.ctx.currentExecutedRcns = s.rtr.allIDsFor Cmp.rcn
 
 structure CompleteInstExecution (s₁ s₂ : State) : Prop where
   exec : s₁ ⇓ᵢ+ s₂

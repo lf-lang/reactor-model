@@ -4,6 +4,8 @@ namespace Set
 
 theorem ext {a b : Set α} (h : ∀ x, x ∈ a ↔ x ∈ b) : a = b := sorry
 
+theorem ext_iff {x y : Set α} : (∀ z : α, z ∈ x ↔ z ∈ y) ↔ x = y := sorry
+
 @[simp] theorem mem_sep_eq {s : Set α} {p : α → Prop} {x : α} : 
   x ∈ {x ∈ s | p x} ↔ (x ∈ s ∧ p x) := sorry
 

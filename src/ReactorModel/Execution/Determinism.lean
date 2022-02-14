@@ -24,14 +24,6 @@ theorem ChangeStep.port_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ 
   apply Reactor.ext
   sorry  
 
-theorem ChangeStep.action_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {g : Time.Tag} : 
-  (σ -[Change.port i₁ v₁, g]→ σ₁) → (σ₁ -[Change.port i₂ v₂, g]→ σ₁₂) → 
-  (σ -[Change.port i₂ v₂, g]→ σ₂) → (σ₂ -[Change.port i₁ v₁, g]→ σ₂₁) → 
-  (i₁ ≠ i₂) → σ₁₂ = σ₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hi
-  apply Reactor.ext
-  sorry  
-
 -- indep = no dependency from i to j or j to i + assume that reactions within a reactor are totally ordered
 -- non-pure reactions have to be totally ordered in every scenario!
 
@@ -63,9 +55,8 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
     rw [InstExecution.preserves_time $ single he] at hg
     simp [hc, hi hg]
 
--- Note: this only talks about the top-level reactions, not the nested ones.
 theorem InstExecution.convergent_rcns {s s₁ s₂ : State} :
-  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → s₁.rtr.rcns = s₂.rtr.rcns := by
+  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → s₁.rtr.allIDsFor Cmp.rcn = s₂.rtr.allIDsFor Cmp.rcn := by
   sorry
 
 -- This theorem is the main theorem about determinism in an instantaneous setting.
@@ -81,7 +72,7 @@ theorem State.instComplete_to_inst_stuck {s : State} :
   intro h s' he
   cases he
   case' execReaction hi he _ _, skipReaction hi he _ =>
-    have h' := Finmap.ids_def'.mpr ⟨_, Eq.symm hi⟩
+    have h' := Reactor.allIDsFor_mem hi
     have := he.unexeced
     rw [←h] at h'
     contradiction
@@ -129,7 +120,7 @@ where
     cases hi 
     case' execReaction hl hce _ _, skipReaction hl hce _ =>
       have := mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
-      have := Finmap.ids_def'.mpr ⟨_, Eq.symm hl⟩
+      have := Reactor.allIDsFor_mem hl
       contradiction
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 

@@ -74,7 +74,7 @@ noncomputable def relay (src dst : ID) : Reaction := {
   triggers := Finset.singleton src,
   prio := none,
   children := ∅,
-  body := λ i => i.portVals[src].elim [] ([Change.port dst ·]),
+  body := λ i => match i.portVals[src] with | none => [] | some v => [Change.port dst v],
   tsSubInDeps := by simp,
   prtOutDepOnly := by
     intro i o v h hc
@@ -90,9 +90,12 @@ noncomputable def relay (src dst : ID) : Reaction := {
 }
 
 theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
-  simp [relay, isPure]
+  constructor 
+  case input => simp [relay]
+  case output =>
+    intro i iₛ s h
+    cases hc : i.portVals[i₁] <;> simp [relay, hc] at h
 
--- TODO: Docs
 -- Note, these functions will only be relevant for defining mutations' execution.
 
 noncomputable def updateInDeps {rcn : Reaction} {is : Finset ID} : Reaction := 
