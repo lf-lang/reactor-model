@@ -7,9 +7,10 @@ structure Execution.State where
 
 namespace Execution.State
 
-structure couldExec (s : State) (rcn : ID) : Prop where
-  deps : s.rtr.dependencies rcn ⊆ s.ctx.currentExecutedRcns
-  unexeced : rcn ∉ s.ctx.currentExecutedRcns
+structure couldExec (s : State) (i : ID) : Prop where
+  deps : s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns
+  unexeced : i ∉ s.ctx.currentExecutedRcns
+  mutsBeforeNorms : ∃ iₚ p rcn, (s.rtr &[i]= iₚ) ∧ (s.rtr *[Cmp.rtr, iₚ]= p) ∧ (p.rcns i = some rcn) ∧ (rcn.isNorm → p.muts.ids ⊆ s.ctx.currentExecutedRcns)
 
 def triggers (s : State) (rcn : Reaction) : Prop :=
   rcn.triggersOn $ s.rtr.inputForRcn rcn s.ctx.time

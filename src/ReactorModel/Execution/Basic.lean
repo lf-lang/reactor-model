@@ -17,10 +17,9 @@ namespace Execution
 inductive ChangeStep (g : Time.Tag) (σ₁ : Reactor) : Reactor → Change → Prop 
   | port (σ₂) {i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
   | state (σ₂) {i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep g σ₁ σ₂ (Change.state i v)
-  | action (σ₂) {i} {t : Time} {tg : Time.Tag} {v : Value} {a : Time.Tag ▸ Value} : 
-    (σ₁.acts i = a) → 
+  | action (σ₂) {i} {t : Time} {tg : Time.Tag} {v : Value} : -- TODO: Fix the definition of scheduling an action .
     (t.after g = tg) → 
-    (σ₁ -[Cmp.act, i := a.update tg v]→ σ₂) → 
+    (σ₁ -[Cmp.Field.act tg, i := v]→ σ₂) → 
     ChangeStep g σ₁ σ₂ (Change.action i t v)
   -- Mutations are (temporarily) no-ops:
   | connect {i₁ i₂} : ChangeStep g σ₁ σ₁ (Change.connect i₁ i₂)
@@ -41,13 +40,13 @@ notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ 
 -- passing of time
 inductive InstStep (s : State) : State → Prop 
   | execReaction {rcn : Reaction} {i σ} : 
-    (s.rtr.rcns i = rcn) →
+    (s.rtr *[Cmp.rcn, i]= rcn) →
     (s.couldExec i) →
     (s.triggers rcn) →
     (s.rtr -[s.outputOf rcn, s.ctx.time]→* σ) →
     InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn : Reaction} {i} :
-    (s.rtr.rcns i = rcn) →
+    (s.rtr *[Cmp.rcn, i]= rcn) →
     (s.couldExec i) →
     (¬ s.triggers rcn) →
     InstStep s ⟨s.rtr, s.ctx.addCurrentExecuted i⟩

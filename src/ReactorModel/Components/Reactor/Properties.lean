@@ -12,7 +12,7 @@ namespace Reactor
 -- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
 --    nested directly in `rtr`
 theorem wfNormDeps {rtr : Reactor} {n : Reaction} (r : Port.Role) (h : n ∈ rtr.norms.values) : 
-  n.deps r ⊆ rtr.acts.ids ∪ (rtr.portVals r).ids ∪ rtr.nestedPortIDs r.opposite := by
+  n.deps r ⊆ rtr.acts.ids ∪ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite := by
   simp only [Finset.subset_iff, Finset.mem_union]
   intro j hj
   simp only [norms, Finmap.filter'_mem_values] at h
@@ -38,7 +38,7 @@ theorem wfNormDeps {rtr : Reactor} {n : Reaction} (r : Port.Role) (h : n ∈ rtr
       exists i'
       exact nest_mem_raw_iff.mpr h₁
     case h.right =>
-      simp [portVals, Raw.Reactor.portVals, ports] at h₂ ⊢
+      simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
       exact h₂
 
 -- This constraint constrains the anti/-dependencies of `rtr`'s mutations, such that:
@@ -46,7 +46,7 @@ theorem wfNormDeps {rtr : Reactor} {n : Reaction} (r : Port.Role) (h : n ∈ rtr
 -- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
 --    nested directly in `rtr`
 theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.muts.values) : 
-  (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.portVals Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
+  (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
   simp only [muts, Finmap.filter'_mem_values] at h
   have ⟨i, h, hm⟩ := h
   have ⟨mr, hr⟩ := rcns_has_raw h
@@ -59,7 +59,7 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
   constructor
   case left =>
     rw [hq.deps]
-    simp [portVals, ports, Raw.Reactor.portVals] at h₁ ⊢
+    simp [ports', ports, Raw.Reactor.ports'] at h₁ ⊢
     exact h₁
   case right =>
     clear h₁
@@ -82,26 +82,12 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
         exists i'
         exact nest_mem_raw_iff.mpr h₁
       case h.right =>
-        simp [portVals, Raw.Reactor.portVals, ports] at h₂ ⊢
+        simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
         exact h₂
-
--- This constraint forces the priorities of mutations in a reactor to be greater than any of its normal reactions.
-theorem mutsBeforeNorms {rtr : Reactor} {n m : Reaction} (hn : n ∈ rtr.norms.values) (hm : m ∈ rtr.muts.values) : 
-  n.prio < m.prio := by
-  simp only [muts, norms, Finmap.filter'_mem_values] at hn hm
-  have ⟨ni, ⟨hnl, hn⟩⟩ := hn
-  have ⟨mi, ⟨hml, hm⟩⟩ := hm
-  have ⟨nr, hnr⟩ := rcns_has_raw hnl
-  have ⟨mr, hmr⟩ := rcns_has_raw hml
-  have he := RawEquiv.rcns rtr
-  have hne := he.rel hnl hnr
-  have hme := he.rel hml hmr
-  simp only [hne.prio, hme.prio]
-  exact rtr.rawWF.direct.mutsBeforeNorms hnr (hne.isNorm_iff.mp hn) hmr (hme.isMut_iff.mp hm)
 
 -- This constraint forces the priorities of all mutations in a reactor to be comparable,
 -- i.e. they form a linear order.
-theorem mutsLinearOrder {rtr : Reactor} {i₁ i₂ : ID} {m₁ m₂ : Reaction} 
+theorem mutsTotal {rtr : Reactor} {i₁ i₂ : ID} {m₁ m₂ : Reaction} 
   (h₁ : rtr.muts i₁ = m₁) (h₂ : rtr.muts i₂ = m₂) (hn : i₁ ≠ i₂) : 
   m₁.prio < m₂.prio ∨ m₂.prio < m₁.prio := by
   simp only [muts, Finmap.filter'_mem] at h₁ h₂
@@ -111,7 +97,7 @@ theorem mutsLinearOrder {rtr : Reactor} {i₁ i₂ : ID} {m₁ m₂ : Reaction}
   have he₁ := he.rel h₁.left hi₁
   have he₂ := he.rel h₂.left hi₂
   simp only [he₁.prio, he₂.prio]
-  exact rtr.rawWF.direct.mutsLinearOrder hi₁ hi₂ (he₁.isMut_iff.mp h₁.right) (he₂.isMut_iff.mp h₂.right) hn
+  exact rtr.rawWF.direct.mutsTotal hi₁ hi₂ (he₁.isMut_iff.mp h₁.right) (he₂.isMut_iff.mp h₂.right) hn
 
 -- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
 -- structure that traces a path through the nested reactors of `σ` that lead

@@ -19,6 +19,18 @@ inductive Change
 
 namespace Change
 
+def EqKind : Change → Change → Prop
+  | port ..,       port ..       => True 
+  | state ..,      state ..      => True 
+  | action ..,     action ..     => True 
+  | connect ..,    connect ..    => True
+  | disconnect .., disconnect .. => True 
+  | create ..,     create ..     => True 
+  | delete ..,     delete ..     => True 
+  | _,             _             => False
+
+notation c₁ " ≊ " c₂ => EqKind c₁ c₂
+
 -- Instances of `Change` can be split into two groups: 
 -- those which express a mutation to the structure of a reactor system, 
 -- and those which don't.

@@ -94,8 +94,11 @@ theorem rcns_has_raw {rtr : Reactor} {rcn i} (h : rtr.rcns i = some rcn) :
   exact ⟨raw, Eq.symm hr⟩
 
 -- A projection for ports, that allows us to separate them by port role.
+noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ▸ Port := 
+  rtr.ports.filter' (·.role = r)
+
 noncomputable def portVals (rtr : Reactor) (r : Port.Role) : ID ▸ Value := 
-  rtr.ports.filter' (·.role = r) |>.map Port.val
+  (rtr.ports' r).map Port.val
 
 -- A direct projection to a reactor's normal reactions.
 noncomputable def norms (rtr : Reactor) : ID ▸ Reaction :=
@@ -112,9 +115,9 @@ noncomputable def muts (rtr : Reactor) : ID ▸ Reaction :=
 -- This property is quite specific, but is required to nicely state properties
 -- like `Reactor.wfNormDeps`.
 noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=
-  let description := { i | ∃ n ∈ rtr.nest.values, i ∈ (n.portVals r).ids }
+  let description := { i | ∃ n ∈ rtr.nest.values, i ∈ (n.ports' r).ids }
   let finite : description.finite := by
-    let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.portVals r).ids)
+    let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.ports' r).ids)
     suffices h : description ⊆ ↑f 
       from Set.finite.subset (Finset.finite_to_set _) h
     simp [Set.subset_def]

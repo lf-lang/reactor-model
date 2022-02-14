@@ -9,7 +9,7 @@ structure Tag where
   t : Time
   microsteps : Nat
 
--- TODO: Replacing this with `deriving LinearOrder` once that feature is available again.
+-- TODO: Replace this with `deriving LinearOrder` once that feature is available again.
 instance : LinearOrder Tag := sorry
 
 open Ordering in

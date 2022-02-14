@@ -89,6 +89,11 @@ def isNorm (rcn : Raw.Reaction) : Prop :=
 def isMut (rcn : Raw.Reaction) : Prop :=
   ¬rcn.isNorm
 
+-- Cf. `Reaction.isPure`.
+structure isPure (rcn : Raw.Reaction) : Prop where
+  input : ∀ p a s₁ s₂, rcn.body ⟨p, a, s₁⟩ = rcn.body ⟨p, a, s₂⟩ 
+  output : ∀ i iₛ s, (Raw.Change.state iₛ s) ∉ rcn.body i
+
 -- An extensionality theorem for `Raw.Reaction`.
 theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction} : 
   rcn₁ = rcn₂ ↔ 
@@ -125,9 +130,12 @@ def state : Raw.Reactor → ID ▸ Value               | mk _ _ s _ _ => s
 def rcns :  Raw.Reactor → ID → Option Raw.Reaction | mk _ _ _ r _ => r
 def nest :  Raw.Reactor → ID → Option Raw.Reactor  | mk _ _ _ _ n => n
 
+noncomputable def ports' (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Port := 
+  rtr.ports.filter' (·.role = r)
+
 -- Cf. `Reactor.portVals`.
 noncomputable def portVals (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Value := 
-  rtr.ports.filter' (·.role = r) |>.map Port.val
+  (rtr.ports' r).map Port.val
 
 -- An extensionality theorem for `Raw.Reactor`.
 theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} : 

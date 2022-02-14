@@ -19,6 +19,9 @@ inductive Dependency (σ : Reactor) : ID → ID → Prop
     Dependency σ i₁ i₂
   | trans (i₁ i₂ i₃) : Dependency σ i₁ i₂ → Dependency σ i₂ i₃ → Dependency σ i₁ i₃
 
-notation i₁ " >[" σ "] " i₂ => Dependency σ i₁ i₂
+notation i₁:max " >[" σ "] " i₂:max => Dependency σ i₁ i₂
 
 def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
+
+def Reactor.independent (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop := 
+  ¬(rcn₁ >[σ] rcn₂) ∧ ¬(rcn₂ >[σ] rcn₁)

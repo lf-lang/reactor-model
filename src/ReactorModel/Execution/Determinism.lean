@@ -8,6 +8,39 @@ open Classical
 -- step that can be taken.
 namespace Execution
 
+theorem ChangeStep.ne_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} {g : Time.Tag} : 
+  (σ -[c₁, g]→ σ₁) → (σ₁ -[c₂, g]→ σ₁₂) → 
+  (σ -[c₂, g]→ σ₂) → (σ₂ -[c₁, g]→ σ₂₁) → 
+  (¬ c₁ ≊ c₂) → σ₁₂ = σ₂₁ := by
+  intro h₁ h₁₂ h₂ h₂₁ hc
+  apply Reactor.ext
+  sorry  
+
+theorem ChangeStep.port_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {g : Time.Tag} : 
+  (σ -[Change.port i₁ v₁, g]→ σ₁) → (σ₁ -[Change.port i₂ v₂, g]→ σ₁₂) → 
+  (σ -[Change.port i₂ v₂, g]→ σ₂) → (σ₂ -[Change.port i₁ v₁, g]→ σ₂₁) → 
+  (i₁ ≠ i₂) → σ₁₂ = σ₂₁ := by
+  intro h₁ h₁₂ h₂ h₂₁ hi
+  apply Reactor.ext
+  sorry  
+
+theorem ChangeStep.action_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {g : Time.Tag} : 
+  (σ -[Change.port i₁ v₁, g]→ σ₁) → (σ₁ -[Change.port i₂ v₂, g]→ σ₁₂) → 
+  (σ -[Change.port i₂ v₂, g]→ σ₂) → (σ₂ -[Change.port i₁ v₁, g]→ σ₂₁) → 
+  (i₁ ≠ i₂) → σ₁₂ = σ₂₁ := by
+  intro h₁ h₁₂ h₂ h₂₁ hi
+  apply Reactor.ext
+  sorry  
+
+-- indep = no dependency from i to j or j to i + assume that reactions within a reactor are totally ordered
+-- non-pure reactions have to be totally ordered in every scenario!
+
+theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁' σ₂' : Reactor} {rcn₁ rcn₂ : Reaction} {i₁ i₂ : Reaction.Input} {g : Time.Tag} : 
+  (σ -[rcn₁ i₁, g]→* σ₁) → (σ₁ -[rcn₂ i₂, g]→* σ₂) → 
+  (σ -[rcn₂ i₂, g]→* σ₁') → (σ₁' -[rcn₁ i₁, g]→* σ₂') → -- This doesn't work. The inputs to the reactions have to be derived from the network, or do they?
+  (True /-rcn₁ and rcn₂ are independent-/) → 
+  σ₂ = σ₂' := sorry
+
 theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
   cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
 

@@ -365,17 +365,21 @@ end Reactor
 
 inductive Cmp.Field
   | prtVal -- Port value
+  | act (g : Time.Tag) -- Action at tag
 
 namespace Cmp.Field
 
 abbrev parent : Cmp.Field → Cmp 
   | prtVal => Cmp.prt
+  | act .. => Cmp.act
 
 abbrev type : Cmp.Field → Type _
   | prtVal => Value
+  | act .. => Value
 
-def mkParent : (f : Cmp.Field) → f.parent.type → f.type → f.parent.type
+noncomputable def mkParent : (f : Cmp.Field) → f.parent.type → f.type → f.parent.type
   | prtVal, p, v => { p .. with val := v }
+  | act g, p, v => p.update g v
 
 end Cmp.Field
 
