@@ -85,19 +85,15 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
         simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
         exact h₂
 
--- This constraint forces the priorities of all mutations in a reactor to be comparable,
--- i.e. they form a linear order.
-theorem mutsTotal {rtr : Reactor} {i₁ i₂ : ID} {m₁ m₂ : Reaction} 
-  (h₁ : rtr.muts i₁ = m₁) (h₂ : rtr.muts i₂ = m₂) (hn : i₁ ≠ i₂) : 
-  m₁.prio < m₂.prio ∨ m₂.prio < m₁.prio := by
-  simp only [muts, Finmap.filter'_mem] at h₁ h₂
-  have ⟨_, hi₁⟩ := rcns_has_raw h₁.left
-  have ⟨_, hi₂⟩ := rcns_has_raw h₂.left
-  have he := RawEquiv.rcns rtr
-  have he₁ := he.rel h₁.left hi₁
-  have he₂ := he.rel h₂.left hi₂
-  simp only [he₁.prio, he₂.prio]
-  exact rtr.rawWF.direct.mutsTotal hi₁ hi₂ (he₁.isMut_iff.mp h₁.right) (he₂.isMut_iff.mp h₂.right) hn
+
+inductive rcnsNeedTotalOrder (rtr : Reactor) (rcn₁ rcn₂ : Reaction) 
+  | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps Role.out ∩ rcn₂.deps Role.out ≠ ∅) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+  | muts   {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+
+theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
+  (rtr.rcnsNeedTotalOrder rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio) := by
+  sorry
 
 -- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
 -- structure that traces a path through the nested reactors of `σ` that lead

@@ -92,7 +92,7 @@ def isMut (rcn : Raw.Reaction) : Prop :=
 -- Cf. `Reaction.isPure`.
 structure isPure (rcn : Raw.Reaction) : Prop where
   input : ∀ p a s₁ s₂, rcn.body ⟨p, a, s₁⟩ = rcn.body ⟨p, a, s₂⟩ 
-  output : ∀ i iₛ s, (Raw.Change.state iₛ s) ∉ rcn.body i
+  output : ∀ i c, c ∈ rcn.body i → ∃ p v, c = Raw.Change.port p v
 
 -- An extensionality theorem for `Raw.Reaction`.
 theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction} : 

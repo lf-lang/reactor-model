@@ -58,8 +58,15 @@ theorem norm_no_child' (rcn : Reaction) : rcn.isNorm → rcn.children = ∅ :=
 -- A reaction is pure if it does not interact with its parent reactor's state.
 structure isPure (rcn : Reaction) : Prop where
   input : ∀ p a s₁ s₂, rcn ⟨p, a, s₁⟩ = rcn ⟨p, a, s₂⟩ 
-  output : ∀ i iₛ s, (Change.state iₛ s) ∉ rcn.body i
+  output : ∀ i c, c ∈ rcn.body i → ∃ p v, c = Change.port p v
 
+theorem muts_not_pure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
+  intro hm ⟨_, ho⟩
+  simp [isMut, isNorm] at hm
+  have ⟨i, c, hb, hm⟩ := hm
+  have ho := ho i c hb
+  cases c <;> (have ⟨_, _, _⟩ := ho; contradiction)
+  
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction) (i : Input) : Prop :=
   ∃ t, t ∈ rcn.triggers ∧ i.portVals.isPresent t
@@ -93,8 +100,9 @@ theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
   constructor 
   case input => simp [relay]
   case output =>
-    intro i iₛ s h
+    intro i c h
     cases hc : i.portVals[i₁] <;> simp [relay, hc] at h
+    exact ⟨_, _, h⟩
 
 -- Note, these functions will only be relevant for defining mutations' execution.
 
