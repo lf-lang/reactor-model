@@ -19,7 +19,7 @@ inductive Change
 
 namespace Change
 
-def EqKind : Change → Change → Prop
+abbrev EqKind : Change → Change → Prop
   | port ..,       port ..       => True 
   | state ..,      state ..      => True 
   | action ..,     action ..     => True 

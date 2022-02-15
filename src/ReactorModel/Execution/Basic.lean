@@ -5,7 +5,7 @@ open Port
 -- TODO: Come up with something nicer.
 structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor) where
   otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
-  samePortIDs : σ₁.allIDsFor Cmp.prt = σ₂.allIDsFor Cmp.prt
+  samePortIDs : σ₁.ids Cmp.prt = σ₂.ids Cmp.prt
   clearedPorts : ∀ i p, σ₁ *[Cmp.prt, i]= p → σ₂ *[Cmp.prt, i]= { p .. with val := ⊥ }
 
 lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor} :
@@ -15,6 +15,10 @@ lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor} :
 structure Reactor.isNewTag (σ : Reactor) (act : ID) (t : Time) (cur new : Time.Tag) : Prop where
   notPast : cur < new 
   afterLast : ∃ acts, σ₁ *[Cmp.act, act]= acts ∧ some new.microsteps = (acts.ids.filter (·.t = t)).max >>= (some $ ·.microsteps + 1)
+
+theorem Reactor.isNewTag_unique {σ : Reactor} {act : ID} {t : Time} {cur new₁ new₂ : Time.Tag} : 
+  (σ.isNewTag act t cur new₁) → (σ.isNewTag act t cur new₂) → new₁ = new₂ :=
+  sorry
 
 namespace Execution
 
@@ -65,7 +69,7 @@ inductive InstExecution : State → State → Prop
 
 notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
 
-abbrev State.instComplete (s : State) : Prop := s.ctx.currentExecutedRcns = s.rtr.allIDsFor Cmp.rcn
+abbrev State.instComplete (s : State) : Prop := s.ctx.currentExecutedRcns = s.rtr.ids Cmp.rcn
 
 structure CompleteInstExecution (s₁ s₂ : State) : Prop where
   exec : s₁ ⇓ᵢ+ s₂

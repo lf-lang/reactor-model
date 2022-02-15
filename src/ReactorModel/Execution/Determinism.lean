@@ -13,16 +13,34 @@ theorem ChangeStep.ne_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c�
   (σ -[c₂, g]→ σ₂) → (σ₂ -[c₁, g]→ σ₂₁) → 
   (¬ c₁ ≊ c₂) → σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hc
-  apply Reactor.ext
-  sorry  
+  cases h₁ <;> cases h₁₂ <;> cases h₂ <;> cases h₂₁ <;> (simp only [Change.EqKind] at *) 
+  case' delete.state.state.delete, state.delete.delete.state,
+        create.state.state.create, state.create.create.state, 
+        disconnect.state.state.disconnect, state.disconnect.disconnect.state, 
+        connect.state.state.connect, state.connect.connect.state =>
+    exact Reactor.Update.unique (by assumption) (by assumption)
+  case' delete.port.port.delete, port.delete.delete.port, 
+        create.port.port.create, port.create.create.port, 
+        disconnect.port.port.disconnect, port.disconnect.disconnect.port, 
+        connect.port.port.connect, port.connect.connect.port =>
+    exact Reactor.Update.Field.unique (by assumption) (by assumption)
+  case' delete.action.action.delete h₁ _ h₂ _, action.delete.delete.action h₁ _ h₂ _, 
+        create.action.action.create h₁ _ h₂ _, action.create.create.action h₁ _ h₂ _, 
+        disconnect.action.action.disconnect h₁ _ h₂ _, action.disconnect.disconnect.action h₁ _ h₂ _, 
+        connect.action.action.connect h₁ _ h₂ _, action.connect.connect.action h₁ _ h₂ _ =>
+    rw [Reactor.isNewTag_unique h₁ h₂] at *
+    exact Reactor.Update.Field.unique (by assumption) (by assumption)
+  case port.action.action.port h₁ _ _ _ _ ht₁ h₂ _ ht₂ h₃ h₄ =>
+    -- have HH := Reactor.isNewTag_unique ht₁ ht₂
+    -- have H := Reactor.Update.Field.ne_cmp_comm σ σ₁ σ₂ σ₁₂ σ₂₁ h₁ h₂ 
+    sorry
+  all_goals sorry
 
 theorem ChangeStep.port_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {g : Time.Tag} : 
   (σ -[Change.port i₁ v₁, g]→ σ₁) → (σ₁ -[Change.port i₂ v₂, g]→ σ₁₂) → 
   (σ -[Change.port i₂ v₂, g]→ σ₂) → (σ₂ -[Change.port i₁ v₁, g]→ σ₂₁) → 
   (i₁ ≠ i₂) → σ₁₂ = σ₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hi
-  apply Reactor.ext
-  sorry  
+  sorry
 
 -- indep = no dependency from i to j or j to i + assume that reactions within a reactor are totally ordered
 -- non-pure reactions have to be totally ordered in every scenario!
@@ -55,10 +73,6 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
     rw [InstExecution.preserves_time $ single he] at hg
     simp [hc, hi hg]
 
-theorem InstExecution.convergent_rcns {s s₁ s₂ : State} :
-  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → s₁.rtr.allIDsFor Cmp.rcn = s₂.rtr.allIDsFor Cmp.rcn := by
-  sorry
-
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
@@ -72,10 +86,14 @@ theorem State.instComplete_to_inst_stuck {s : State} :
   intro h s' he
   cases he
   case' execReaction hi he _ _, skipReaction hi he _ =>
-    have h' := Reactor.allIDsFor_mem hi
+    have h' := Reactor.ids_def.mp hi
     have := he.unexeced
     rw [←h] at h'
     contradiction
+
+theorem CompleteInstExecution.convergent_rcns {s s₁ s₂ : State} :
+  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+  sorry
 
 theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
@@ -88,7 +106,7 @@ theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
     have h₂ := hc₂.complete |> Option.some_inj.mpr
     rw [Context.currentExecutedRcns_def] at h₁ h₂
     simp only [←hc₁.exec.preserves_time, ←hc₂.exec.preserves_time, ←hg] at h₁ h₂
-    simp only [h₁, h₂, InstExecution.convergent_rcns hc₁.exec hc₂.exec]
+    simp only [h₁, h₂, CompleteInstExecution.convergent_rcns hc₁ hc₂]
   case neg => simp only [←hc₁.exec.preserves_ctx_past_future g hg, hc₂.exec.preserves_ctx_past_future g hg]
 
 theorem CompleteInstExecution.convergent {s s₁ s₂ : State} :
@@ -120,7 +138,7 @@ where
     cases hi 
     case' execReaction hl hce _ _, skipReaction hl hce _ =>
       have := mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
-      have := Reactor.allIDsFor_mem hl
+      have := Reactor.ids_def.mp hl
       contradiction
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 

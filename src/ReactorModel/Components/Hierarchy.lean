@@ -223,13 +223,13 @@ theorem objFor_unique_obj {σ : Reactor} {i : ID} {cmp : Cmp} {o₁ o₂ : cmp.t
   simp [h₁] at h₂
   exact h₂
 
-noncomputable def allIDsFor (σ : Reactor) (cmp : Cmp) : Finset ID :=
+noncomputable def ids (σ : Reactor) (cmp : Cmp) : Finset ID :=
   let description := { i : ID | ∃ v, σ *[cmp, i]= v }
   let finite : description.finite := sorry
   finite.toFinset
 
-theorem allIDsFor_mem {σ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} : 
-  σ *[cmp, i]= v → i ∈ σ.allIDsFor cmp := 
+theorem ids_def {σ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} : 
+  σ *[cmp, i]= v ↔ i ∈ σ.ids cmp := 
   sorry
 
 -- Note, this only makes sense when talking about a top-level ID.
@@ -363,9 +363,23 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {
       -- by cases l <;> simp only [Lineage.directParent]
     simp [←hp, hl]
 
-theorem Update.ne_cmp_and_ne_rtr_eq {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} (cmp' : Cmp):
+theorem Update.ne_cmp_and_ne_rtr_eq {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} (cmp' : Cmp) :
   (σ₁ -[cmp, i := v]→ σ₂) → cmp' ≠ cmp → cmp' ≠ Cmp.rtr → cmp'.accessor σ₁ = cmp'.accessor σ₂ := by 
   intro hu _ _; cases hu <;> apply EqModID.otherCmpsEq <;> assumption
+
+theorem Update.ne_cmp_comm (σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor) {cmp₁ cmp₂ : Cmp} {i₁ i₂ : ID} {v₁ : cmp₁.type} {v₂ : cmp₂.type} :
+  (σ -[cmp₁, i₁ := v₁]→ σ₁) → (σ₁ -[cmp₂, i₂ := v₂]→ σ₁₂) →
+  (σ -[cmp₂, i₂ := v₂]→ σ₂) → (σ₂ -[cmp₁, i₁ := v₁]→ σ₂₁) →
+  (cmp₁ ≠ cmp₂) → 
+  σ₁₂ = σ₂₁ :=
+  sorry
+
+theorem Update.ne_id_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp₁ cmp₂ : Cmp} {i₁ i₂ : ID} {v₁ : cmp₁.type} {v₂ : cmp₂.type} :
+  (σ -[cmp₁, i₁ := v₁]→ σ₁) → (σ₁ -[cmp₂, i₂ := v₂]→ σ₁₂) →
+  (σ -[cmp₂, i₂ := v₂]→ σ₂) → (σ₂ -[cmp₁, i₁ := v₁]→ σ₂₁) →
+  (i₁ ≠ i₂) → 
+  σ₁₂ = σ₂₁ :=
+  sorry
 
 end Reactor
 
@@ -396,8 +410,19 @@ def Update.Field (f : Cmp.Field) (v : f.type) (i : ID) (σ₁ σ₂ : Reactor) :
 
 notation σ₁:max " -[" f ", " i " := " v "]→ " σ₂:max => Reactor.Update.Field f v i σ₁ σ₂
 
+theorem Update.Field.unique {σ σ₁ σ₂ : Reactor} {f : Cmp.Field} {i : ID} {v : f.type} :
+  (σ -[f, i := v]→ σ₁) → (σ -[f, i := v]→ σ₂) → σ₁ = σ₂ :=
+  sorry
+
 theorem Update.Field.reflects_in_objFor {σ₁ σ₂ : Reactor} {f : Cmp.Field} {i : ID} {v : f.type} :
   (σ₁ -[f, i := v]→ σ₂) → ∃ c, σ₁ *[f.cmp, i]= c ∧ σ₂ *[f.cmp, i]= (f.mkCmpObj c v) :=
   λ ⟨c, hc, hu⟩ => ⟨c, hc, hu.reflects_in_objFor⟩
+
+theorem Update.Field.ne_cmp_comm (σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor) {f₁ f₂ : Cmp.Field} {i₁ i₂ : ID} {v₁ : f₁.type} {v₂ : f₂.type} :
+  (σ -[f₁, i₁ := v₁]→ σ₁) → (σ₁ -[f₂, i₂ := v₂]→ σ₁₂) →
+  (σ -[f₂, i₂ := v₂]→ σ₂) → (σ₂ -[f₁, i₁ := v₁]→ σ₂₁) →
+  (f₁ ≠ f₂) → 
+  σ₁₂ = σ₂₁ :=
+  sorry
 
 end Reactor
