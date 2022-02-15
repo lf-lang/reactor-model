@@ -37,6 +37,10 @@ inductive ChangeStep (curTag : Time.Tag) (σ₁ : Reactor) : Reactor → Change 
 
 notation σ₁:max " -[" c ", " g "]→ " σ₂:max => ChangeStep g σ₁ σ₂ c
 
+theorem Reactor.isNewTag_not_action_step_unique {σ₁ σ₂ : Reactor} {act : ID} {t : Time} {cur new₁ new₂ : Time.Tag} {c : Change} : 
+  (σ₁.isNewTag act t cur new₁) → (σ₂.isNewTag act t cur new₂) → (σ₁ -[c, cur]→ σ₂) → (∀ ci ct cv, c ≠ Change.action ci ct cv) → new₁ = new₂ :=
+  sorry
+
 inductive ChangeListStep (g : Time.Tag) : Reactor → Reactor → List (Change) → Prop
   | nil (σ₁) : ChangeListStep g σ₁ σ₁ []
   | cons {σ₁ σ₂ σ₃ change rest} : (σ₁ -[change, g]→ σ₂) → (ChangeListStep g σ₂ σ₃ rest) → ChangeListStep g σ₁ σ₃ (change::rest)

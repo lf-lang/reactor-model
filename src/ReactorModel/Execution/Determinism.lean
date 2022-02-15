@@ -8,7 +8,7 @@ open Classical
 -- step that can be taken.
 namespace Execution
 
-theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {g : Time.Tag} : 
+theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} {g : Time.Tag} : 
   (σ -[c₁, g]→ σ₁) → (σ₁ -[c₂, g]→ σ₁₂) → 
   (σ -[c₂, g]→ σ₂) → (σ₂ -[c₁, g]→ σ₂₁) → 
   c₁.mutates → σ₁₂ = σ₂₁ := by
@@ -35,34 +35,44 @@ theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i�
   )
   <;> (cases h₁; cases h₂; cases h₁₂; cases h₂₁; rfl)
   
-
 theorem ChangeStep.ne_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} {g : Time.Tag} : 
   (σ -[c₁, g]→ σ₁) → (σ₁ -[c₂, g]→ σ₁₂) → 
   (σ -[c₂, g]→ σ₂) → (σ₂ -[c₁, g]→ σ₂₁) → 
   (¬ c₁ ≊ c₂) → σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hc
-  cases h₁ <;> cases h₁₂ <;> cases h₂ <;> cases h₂₁ <;> (simp only [Change.EqKind] at *) 
-  case' delete.state.state.delete, state.delete.delete.state,
-        create.state.state.create, state.create.create.state, 
-        disconnect.state.state.disconnect, state.disconnect.disconnect.state, 
-        connect.state.state.connect, state.connect.connect.state =>
-    exact Reactor.Update.unique (by assumption) (by assumption)
-  case' delete.port.port.delete, port.delete.delete.port, 
-        create.port.port.create, port.create.create.port, 
-        disconnect.port.port.disconnect, port.disconnect.disconnect.port, 
-        connect.port.port.connect, port.connect.connect.port =>
-    exact Reactor.Update.Field.unique (by assumption) (by assumption)
-  case' delete.action.action.delete h₁ _ h₂ _, action.delete.delete.action h₁ _ h₂ _, 
-        create.action.action.create h₁ _ h₂ _, action.create.create.action h₁ _ h₂ _, 
-        disconnect.action.action.disconnect h₁ _ h₂ _, action.disconnect.disconnect.action h₁ _ h₂ _, 
-        connect.action.action.connect h₁ _ h₂ _, action.connect.connect.action h₁ _ h₂ _ =>
-    rw [Reactor.isNewTag_unique h₁ h₂] at *
-    exact Reactor.Update.Field.unique (by assumption) (by assumption)
-  case port.action.action.port h₁ _ _ _ _ ht₁ h₂ _ ht₂ h₃ h₄ =>
-    -- have HH := Reactor.isNewTag_unique ht₁ ht₂
-    -- have H := Reactor.Update.Field.ne_cmp_comm σ σ₁ σ₂ σ₁₂ σ₂₁ h₁ h₂ 
-    sorry
-  all_goals sorry
+  by_cases hm : c₁.mutates ∨ c₂.mutates
+  case pos =>
+    cases hm
+    case inl h => exact ChangeStep.mutates_comm h₁ h₁₂ h₂ h₂₁ h
+    case inr h => exact Eq.symm $ ChangeStep.mutates_comm h₂ h₂₁ h₁ h₁₂ h
+  case neg =>
+    cases c₁ <;> cases c₂ <;> (simp only [not_or, Change.mutates, Change.EqKind] at *)
+    case port.state =>
+      cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
+        exact Reactor.Update.Field.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
+    case state.port => 
+      cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
+        exact Eq.symm $ Reactor.Update.Field.ne_cmp_comm h₂ h₂₁ h₁ h₁₂ (by intro; contradiction)
+    case port.action =>
+      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
+      have h := Reactor.isNewTag_not_action_step_unique ht₂ ht₁ (ChangeStep.port (curTag := g) _ h₁) (by simp)
+      rw [h] at h₂
+      exact Reactor.Update.Field.ne_field_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
+    case action.port =>
+      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
+      have h := Reactor.isNewTag_not_action_step_unique ht₁ ht₂ (ChangeStep.port (curTag := g) _ h₂) (by simp)
+      rw [h] at h₁
+      exact Reactor.Update.Field.ne_field_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
+    case state.action =>
+      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
+      have h := Reactor.isNewTag_not_action_step_unique ht₂ ht₁ (ChangeStep.state (curTag := g) _ h₁) (by simp)
+      rw [h] at h₂
+      exact Eq.symm $ Reactor.Update.Field.ne_cmp_comm h₂ h₂₁ h₁ h₁₂ (by intro; contradiction)
+    case action.state =>
+      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
+      have h := Reactor.isNewTag_not_action_step_unique ht₁ ht₂ (ChangeStep.state (curTag := g) _ h₂) (by simp)
+      rw [h] at h₁
+      exact Reactor.Update.Field.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
 
 theorem ChangeStep.port_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {g : Time.Tag} : 
   (σ -[Change.port i₁ v₁, g]→ σ₁) → (σ₁ -[Change.port i₂ v₂, g]→ σ₁₂) → 
