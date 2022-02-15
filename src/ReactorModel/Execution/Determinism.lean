@@ -8,6 +8,34 @@ open Classical
 -- step that can be taken.
 namespace Execution
 
+theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {g : Time.Tag} : 
+  (σ -[c₁, g]→ σ₁) → (σ₁ -[c₂, g]→ σ₁₂) → 
+  (σ -[c₂, g]→ σ₂) → (σ₂ -[c₁, g]→ σ₂₁) → 
+  c₁.mutates → σ₁₂ = σ₂₁ := by
+  intro h₁ h₁₂ h₂ h₂₁ hm
+  cases c₁ 
+  <;> (simp only [Change.mutates] at hm) 
+  <;> (
+    cases c₂
+    case port => 
+      cases h₁; cases h₂; cases h₁₂; cases h₂₁
+      exact Reactor.Update.Field.unique (by assumption) (by assumption)
+    case state => 
+      cases h₁; cases h₂; cases h₁₂; cases h₂₁
+      exact Reactor.Update.unique (by assumption) (by assumption)
+    case action => 
+      cases h₁
+      cases h₂
+      case _ ht₁ _ =>
+        cases h₁₂
+        case _ ht₂ _ =>
+          cases h₂₁
+          rw [Reactor.isNewTag_unique ht₁ ht₂] at *
+          exact Reactor.Update.Field.unique (by assumption) (by assumption)
+  )
+  <;> (cases h₁; cases h₂; cases h₁₂; cases h₂₁; rfl)
+  
+
 theorem ChangeStep.ne_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} {g : Time.Tag} : 
   (σ -[c₁, g]→ σ₁) → (σ₁ -[c₂, g]→ σ₁₂) → 
   (σ -[c₂, g]→ σ₂) → (σ₂ -[c₁, g]→ σ₂₁) → 
