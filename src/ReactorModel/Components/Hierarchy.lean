@@ -432,4 +432,11 @@ theorem Update.Field.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {f
   σ₁₂ = σ₂₁ :=
   sorry
 
+theorem Update.Field.ne_id_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {f : Cmp.Field} {i₁ i₂ : ID} {v₁ v₂ : f.type} :
+  (σ -[f, i₁ := v₁]→ σ₁) → (σ₁ -[f, i₂ := v₂]→ σ₁₂) →
+  (σ -[f, i₂ := v₂]→ σ₂) → (σ₂ -[f, i₁ := v₁]→ σ₂₁) →
+  (i₁ ≠ i₂) → 
+  σ₁₂ = σ₂₁ :=
+  sorry
+
 end Reactor

@@ -23,12 +23,9 @@ theorem Reactor.isNewTag_unique {σ : Reactor} {act : ID} {t : Time} {cur new₁
 namespace Execution
 
 inductive ChangeStep (curTag : Time.Tag) (σ₁ : Reactor) : Reactor → Change → Prop 
-  | port (σ₂) {i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
-  | state (σ₂) {i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.state i v)
-  | action (σ₂) {i : ID} {t : Time} {v : Value} {newTag : Time.Tag} :
-    (σ₁.isNewTag i t curTag newTag) →
-    (σ₁ -[Cmp.Field.act newTag, i := v]→ σ₂) → 
-    ChangeStep curTag σ₁ σ₂ (Change.action i t v)
+  | port {σ₂ i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
+  | state {σ₂ i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.state i v)
+  | action {σ₂ i t v newTag} : (σ₁.isNewTag i t curTag newTag) → (σ₁ -[Cmp.Field.act newTag, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.action i t v)
   -- Mutations are (temporarily) no-ops:
   | connect {i₁ i₂} : ChangeStep curTag σ₁ σ₁ (Change.connect i₁ i₂)
   | disconnect {i₁ i₂} : ChangeStep curTag σ₁ σ₁ (Change.disconnect i₁ i₂)
@@ -39,6 +36,10 @@ notation σ₁:max " -[" c ", " g "]→ " σ₂:max => ChangeStep g σ₁ σ₂ 
 
 theorem Reactor.isNewTag_not_action_step_unique {σ₁ σ₂ : Reactor} {act : ID} {t : Time} {cur new₁ new₂ : Time.Tag} {c : Change} : 
   (σ₁.isNewTag act t cur new₁) → (σ₂.isNewTag act t cur new₂) → (σ₁ -[c, cur]→ σ₂) → (∀ ci ct cv, c ≠ Change.action ci ct cv) → new₁ = new₂ :=
+  sorry
+
+theorem Reactor.isNewTag_action_step_ne_ids_unique {σ₁ σ₂ : Reactor} {act act' : ID} {t₁ t₂ t' : Time} {v} {cur new₁ new₂ : Time.Tag} : 
+  (σ₁.isNewTag act t₁ cur new₁) → (σ₂.isNewTag act t₂ cur new₂) → (σ₁ -[Change.action act' t' v, cur]→ σ₂) → (act ≠ act') → new₁ = new₂ :=
   sorry
 
 inductive ChangeListStep (g : Time.Tag) : Reactor → Reactor → List (Change) → Prop
