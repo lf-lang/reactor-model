@@ -134,7 +134,12 @@ theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁
     have ⟨i₁, hi₁⟩ := mt (c₁.target_none_iff_mutates.mp) hm.left  |> Option.ne_none_iff_exists.mp
     have ⟨i₂, hi₂⟩ := mt (c₂.target_none_iff_mutates.mp) hm.right |> Option.ne_none_iff_exists.mp
     have ht' := ht i₁ i₂ hi₁.symm hi₂.symm
-    exact ChangeStep.ne_target_comm h₁ h₁₂ h₂ h₂₁ (by simp [←hi₁, ←hi₂, ht'])
+    have ht'' : c₁.target ≠ c₂.target := by simp [←hi₁, ←hi₂, ht']
+    cases c₁ <;> cases c₂ <;> simp [Change.target] at ht''
+    case port.port => exact ChangeStep.ne_port_comm h₁ h₁₂ h₂ h₂₁ ht''
+    case state.state => exact ChangeStep.ne_state_comm h₁ h₁₂ h₂ h₂₁ ht''
+    case action.action => exact ChangeStep.ne_action_comm h₁ h₁₂ h₂ h₂₁ ht''
+    all_goals { exact ChangeStep.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) }
 
 theorem ChangeStep.unique {σ σ₁ σ₂ : Reactor} {c : Change} {g : Time.Tag} :
   (σ -[c, g]→ σ₁) → (σ -[c, g]→ σ₂) → σ₁ = σ₂ := by
