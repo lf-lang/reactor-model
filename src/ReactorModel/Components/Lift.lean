@@ -112,6 +112,7 @@ def fromRaw {rtr : Raw.Reactor} (hw : rtr.wellFormed) {raw : Raw.Reaction} (hr :
     rw [←he] at he'
     cases he'
     contradiction,
+  actNotPast := by sorry,
   normNoChild := by
     intro ha
     have hn := (hw.direct.rcnsWF hr).normNoChild

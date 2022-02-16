@@ -18,6 +18,7 @@ structure Raw.Reaction.wellFormed (rcn : Raw.Reaction) : Prop where
   tsSubInDeps :   rcn.triggers ⊆ rcn.deps Role.in                                     
   prtOutDepOnly : ∀ i {o} (v : Value), (o ∉ rcn.deps Role.out) → Raw.Change.port o v ∉ rcn.body i
   actOutDepOnly : ∀ i {o} t (v : Value), (o ∉ rcn.deps Role.out) → (Raw.Change.action o t v) ∉ rcn.body i
+  actNotPast :    ∀ i t (v : Value), (Raw.Change.action o t v) ∈ rcn.body i → i.time.t ≤ t
   normNoChild :   rcn.isNorm → rcn.children = ∅
 
 inductive Raw.Reactor.rcnsNeedTotalOrder (rtr : Raw.Reactor) (rcn₁ rcn₂ : Raw.Reaction) 

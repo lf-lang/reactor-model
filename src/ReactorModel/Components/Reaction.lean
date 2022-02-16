@@ -34,6 +34,7 @@ structure Reaction where
   tsSubInDeps :   triggers ⊆ deps Role.in
   prtOutDepOnly : ∀ i {o} (v : Value),     (o ∉ deps Role.out) → Change.port o v ∉ body i
   actOutDepOnly : ∀ i {o} (t) (v : Value), (o ∉ deps Role.out) → Change.action o t v ∉ body i
+  actNotPast :    ∀ i t (v : Value), (Change.action o t v) ∈ body i → i.time.t ≤ t
   normNoChild :   (∀ i c, (c ∈ body i) → ¬c.mutates) → children = ∅
   
 namespace Reaction
@@ -57,7 +58,7 @@ theorem norm_no_child' (rcn : Reaction) : rcn.isNorm → rcn.children = ∅ :=
 
 -- A reaction is pure if it does not interact with its parent reactor's state.
 structure isPure (rcn : Reaction) : Prop where
-  input : ∀ p a s₁ s₂, rcn ⟨p, a, s₁⟩ = rcn ⟨p, a, s₂⟩ 
+  input : ∀ p a s₁ s₂ t, rcn ⟨p, a, s₁, t⟩ = rcn ⟨p, a, s₂, t⟩ 
   output : ∀ i c, c ∈ rcn.body i → ∃ p v, c = Change.port p v
 
 theorem muts_not_pure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
@@ -93,6 +94,9 @@ noncomputable def relay (src dst : ID) : Reaction := {
   actOutDepOnly := by
     intro i
     cases hs : i.portVals[src] <;> simp [Option.elim, hs]
+  actNotPast := by
+    intro _ i _ _ h
+    cases hs : i.portVals[src] <;> (simp [hs] at h),
   normNoChild := by simp
 }
 
@@ -117,6 +121,7 @@ noncomputable def updateInDeps {rcn : Reaction} {is : Finset ID} : Reaction :=
     tsSubInDeps := Finset.inter_subset_right _ _,
     prtOutDepOnly := rcn.prtOutDepOnly,
     actOutDepOnly := rcn.actOutDepOnly,
+    actNotPast := sorry,
     normNoChild := rcn.normNoChild
   }
 
@@ -134,6 +139,7 @@ noncomputable def updateOutDeps {rcn : Reaction} {is : Finset ID}
     tsSubInDeps := Finset.inter_subset_right _ _,
     prtOutDepOnly := λ i _ v h' => hp i v h',
     actOutDepOnly := λ i _ v h' => ha i v h',
+    actNotPast := sorry,
     normNoChild := rcn.normNoChild
   } 
 
@@ -146,6 +152,7 @@ noncomputable def updateTriggers {rcn : Reaction} {is : Finset ID} (h : is ⊆ r
   tsSubInDeps := h,
   prtOutDepOnly := rcn.prtOutDepOnly,
   actOutDepOnly := rcn.actOutDepOnly,
+  actNotPast := sorry,
   normNoChild := rcn.normNoChild
 }
 
@@ -158,6 +165,7 @@ noncomputable def updateChildren {rcn : Reaction} (is : Finset ID) (h : rcn.isMu
   tsSubInDeps := rcn.tsSubInDeps,
   prtOutDepOnly := rcn.prtOutDepOnly,
   actOutDepOnly := rcn.actOutDepOnly,
+  actNotPast := sorry,
   normNoChild := by
     simp only [isMut, isNorm] at h
     intro h'

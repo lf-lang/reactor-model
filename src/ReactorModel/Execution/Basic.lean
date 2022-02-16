@@ -12,41 +12,40 @@ lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor} :
   Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
   σ₁ = σ₂ := sorry
 
-structure Reactor.isNewTag (σ : Reactor) (act : ID) (t : Time) (cur new : Time.Tag) : Prop where
-  notPast : cur < new 
-  afterLast : ∃ acts, σ₁ *[Cmp.act, act]= acts ∧ some new.microsteps = (acts.ids.filter (·.t = t)).max >>= (some $ ·.microsteps + 1)
+def Reactor.isNewTag (σ : Reactor) (act : ID) (t : Time) (new : Time.Tag) : Prop :=
+  ∃ acts, σ *[Cmp.act, act]= acts ∧ some new.microsteps = (acts.ids.filter (·.t = t)).max >>= (some $ ·.microsteps + 1)
 
-theorem Reactor.isNewTag_unique {σ : Reactor} {act : ID} {t : Time} {cur new₁ new₂ : Time.Tag} : 
-  (σ.isNewTag act t cur new₁) → (σ.isNewTag act t cur new₂) → new₁ = new₂ :=
+theorem Reactor.isNewTag_unique {σ : Reactor} {act : ID} {t : Time} {new₁ new₂ : Time.Tag} : 
+  (σ.isNewTag act t new₁) → (σ.isNewTag act t new₂) → new₁ = new₂ :=
   sorry
 
 namespace Execution
 
-inductive ChangeStep (curTag : Time.Tag) (σ₁ : Reactor) : Reactor → Change → Prop 
-  | port {σ₂ i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
-  | state {σ₂ i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.state i v)
-  | action {σ₂ i t v newTag} : (σ₁.isNewTag i t curTag newTag) → (σ₁ -[Cmp.Field.act newTag, i := v]→ σ₂) → ChangeStep curTag σ₁ σ₂ (Change.action i t v)
+inductive ChangeStep (σ₁ : Reactor) : Reactor → Change → Prop 
+  | port {σ₂ i v} : (σ₁ -[Cmp.Field.prtVal, i := v]→ σ₂) → ChangeStep σ₁ σ₂ (Change.port i v) -- Port propagation isn't necessary/possible, because we're using relay reactions. 
+  | state {σ₂ i v} : (σ₁ -[Cmp.stv, i := v]→ σ₂) → ChangeStep σ₁ σ₂ (Change.state i v)
+  | action {σ₂ i t v newTag} : (σ₁.isNewTag i t newTag) → (σ₁ -[Cmp.Field.act newTag, i := v]→ σ₂) → ChangeStep σ₁ σ₂ (Change.action i t v)
   -- Mutations are (temporarily) no-ops:
-  | connect {i₁ i₂} : ChangeStep curTag σ₁ σ₁ (Change.connect i₁ i₂)
-  | disconnect {i₁ i₂} : ChangeStep curTag σ₁ σ₁ (Change.disconnect i₁ i₂)
-  | create {rtr i} : ChangeStep curTag σ₁ σ₁ (Change.create rtr i)
-  | delete {i} : ChangeStep curTag σ₁ σ₁ (Change.delete i)
+  | connect {i₁ i₂} : ChangeStep σ₁ σ₁ (Change.connect i₁ i₂)
+  | disconnect {i₁ i₂} : ChangeStep σ₁ σ₁ (Change.disconnect i₁ i₂)
+  | create {rtr i} : ChangeStep σ₁ σ₁ (Change.create rtr i)
+  | delete {i} : ChangeStep σ₁ σ₁ (Change.delete i)
 
-notation σ₁:max " -[" c ", " g "]→ " σ₂:max => ChangeStep g σ₁ σ₂ c
+notation σ₁:max " -[" c "]→ " σ₂:max => ChangeStep σ₁ σ₂ c
 
-theorem Reactor.isNewTag_not_action_step_unique {σ₁ σ₂ : Reactor} {act : ID} {t : Time} {cur new₁ new₂ : Time.Tag} {c : Change} : 
-  (σ₁.isNewTag act t cur new₁) → (σ₂.isNewTag act t cur new₂) → (σ₁ -[c, cur]→ σ₂) → (∀ ci ct cv, c ≠ Change.action ci ct cv) → new₁ = new₂ :=
+theorem Reactor.isNewTag_not_action_step_unique {σ₁ σ₂ : Reactor} {act : ID} {t : Time} {new₁ new₂ : Time.Tag} {c : Change} : 
+  (σ₁.isNewTag act t new₁) → (σ₂.isNewTag act t new₂) → (σ₁ -[c]→ σ₂) → (∀ ci ct cv, c ≠ Change.action ci ct cv) → new₁ = new₂ :=
   sorry
 
-theorem Reactor.isNewTag_action_step_ne_ids_unique {σ₁ σ₂ : Reactor} {act act' : ID} {t₁ t₂ t' : Time} {v} {cur new₁ new₂ : Time.Tag} : 
-  (σ₁.isNewTag act t₁ cur new₁) → (σ₂.isNewTag act t₂ cur new₂) → (σ₁ -[Change.action act' t' v, cur]→ σ₂) → (act ≠ act') → new₁ = new₂ :=
+theorem Reactor.isNewTag_action_step_ne_ids_unique {σ₁ σ₂ : Reactor} {act act' : ID} {t₁ t₂ t' : Time} {v} {new₁ new₂ : Time.Tag} : 
+  (σ₁.isNewTag act t₁ new₁) → (σ₂.isNewTag act t₂ new₂) → (σ₁ -[Change.action act' t' v]→ σ₂) → (act ≠ act') → new₁ = new₂ :=
   sorry
 
-inductive ChangeListStep (g : Time.Tag) : Reactor → Reactor → List (Change) → Prop
-  | nil (σ₁) : ChangeListStep g σ₁ σ₁ []
-  | cons {σ₁ σ₂ σ₃ change rest} : (σ₁ -[change, g]→ σ₂) → (ChangeListStep g σ₂ σ₃ rest) → ChangeListStep g σ₁ σ₃ (change::rest)
+inductive ChangeListStep : Reactor → Reactor → List (Change) → Prop
+  | nil (σ₁) : ChangeListStep σ₁ σ₁ []
+  | cons {σ₁ σ₂ σ₃ hd tl} : (σ₁ -[hd]→ σ₂) → (ChangeListStep σ₂ σ₃ tl) → ChangeListStep σ₁ σ₃ (hd::tl)
 
-notation σ₁:max " -[" cs ", " g "]→* " σ₂:max => ChangeListStep g σ₁ σ₂ cs
+notation σ₁:max " -[" cs "]→* " σ₂:max => ChangeListStep σ₁ σ₂ cs
 
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the
@@ -56,7 +55,7 @@ inductive InstStep (s : State) : State → Prop
     (s.rtr *[Cmp.rcn, i]= rcn) →
     (s.couldExec i) →
     (s.triggers rcn) →
-    (s.rtr -[s.outputOf rcn, s.ctx.time]→* σ) →
+    (s.rtr -[s.outputOf rcn]→* σ) →
     InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn : Reaction} {i : ID} :
     (s.rtr *[Cmp.rcn, i]= rcn) →

@@ -5,6 +5,7 @@ structure Reaction.Input where
   portVals : ID ▸ Value
   acts : ID ▸ Value
   state : ID ▸ Value
+  time : Time.Tag
 
 namespace Raw
 
@@ -91,7 +92,7 @@ def isMut (rcn : Raw.Reaction) : Prop :=
 
 -- Cf. `Reaction.isPure`.
 structure isPure (rcn : Raw.Reaction) : Prop where
-  input : ∀ p a s₁ s₂, rcn.body ⟨p, a, s₁⟩ = rcn.body ⟨p, a, s₂⟩ 
+  input : ∀ p a s₁ s₂ t, rcn.body ⟨p, a, s₁, t⟩ = rcn.body ⟨p, a, s₂, t⟩ 
   output : ∀ i c, c ∈ rcn.body i → ∃ p v, c = Raw.Change.port p v
 
 -- An extensionality theorem for `Raw.Reaction`.
