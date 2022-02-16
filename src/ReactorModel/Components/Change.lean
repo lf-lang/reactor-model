@@ -31,6 +31,12 @@ abbrev EqKind : Change → Change → Prop
 
 notation c₁ " ≊ " c₂ => EqKind c₁ c₂
 
+def target : Change → Option ID 
+  | port t ..   => t
+  | state t ..  => t
+  | action t .. => t
+  | _           => none
+  
 -- Instances of `Change` can be split into two groups: 
 -- those which express a mutation to the structure of a reactor system, 
 -- and those which don't.
@@ -55,5 +61,8 @@ instance : DecidablePred mutates
   | disconnect .. => isTrue  (by simp [mutates])
   | create ..     => isTrue  (by simp [mutates])
   | delete ..     => isTrue  (by simp [mutates])
+
+theorem target_none_iff_mutates (c : Change) : c.target = none ↔ c.mutates := by
+  cases c <;> simp only [target, mutates]
 
 end Change
