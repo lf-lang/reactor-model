@@ -109,17 +109,6 @@ theorem ChangeStep.ne_action_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {
     exact Reactor.Update.Field.ne_id_comm h₁ h₁₂ h₂ h₂₁ hi
   case neg =>
     exact Reactor.Update.Field.ne_field_comm h₁ h₁₂ h₂ h₂₁ (by simp [hc])
-  
-theorem ChangeStep.ne_target_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} {g : Time.Tag} :
-  (σ -[c₁, g]→ σ₁) → (σ₁ -[c₂, g]→ σ₁₂) → 
-  (σ -[c₂, g]→ σ₂) → (σ₂ -[c₁, g]→ σ₂₁) → 
-  (c₁.target ≠ c₂.target) → σ₁₂ = σ₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ ht
-  cases c₁ <;> cases c₂ <;> simp [Change.target] at ht
-  case port.port => exact ChangeStep.ne_port_comm h₁ h₁₂ h₂ h₂₁ ht
-  case state.state => exact ChangeStep.ne_state_comm h₁ h₁₂ h₂ h₂₁ ht
-  case action.action => exact ChangeStep.ne_action_comm h₁ h₁₂ h₂ h₂₁ ht
-  all_goals { exact ChangeStep.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) }
 
 theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} {g : Time.Tag} :
   (σ -[c₁, g]→ σ₁) → (σ₁ -[c₂, g]→ σ₁₂) → 
@@ -144,40 +133,37 @@ theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁
 theorem ChangeStep.unique {σ σ₁ σ₂ : Reactor} {c : Change} {g : Time.Tag} :
   (σ -[c, g]→ σ₁) → (σ -[c, g]→ σ₂) → σ₁ = σ₂ := by
   intro h₁ h₂ 
-  sorry
-
-theorem ChangeListStep.indep_single_swap {σ σ₁ σ₂ : Reactor} {c hd : Change} {tl : List Change} {g : Time.Tag} : 
-  (σ -[c::hd::tl, g]→* σ₁) → (σ -[hd::c::tl, g]→* σ₂) →
-  (∀ i i', c.target = some i → hd.target = some i' → i ≠ i') →
-  σ₁ = σ₂ := by
-  intro h₁ h₂ ht
-  cases h₁; case _ h₁ h₁' => cases h₁'; case _ h₁' h₁'' =>
-  cases h₂; case _ h₂ h₂' => cases h₂'; case _ h₂' h₂'' =>
-    sorry
-    -- σ -c->  σ2*3 -hd-> σ2*2 -tl-> σ₁
-    -- σ -hd-> σ2*1 -c->  σ2*  -hd-> σ₂
-
+  cases h₁ <;> cases h₂
+  case port.port h₁ h₂ => exact Reactor.Update.Field.unique h₁ h₂
+  case state.state h₁ h₂ => exact Reactor.Update.unique h₁ h₂
+  case action.action ht₁ h₁ _ ht₂ h₂ => 
+    rw [Reactor.isNewTag_unique ht₁ ht₂] at h₁
+    exact Reactor.Update.Field.unique h₁ h₂
+  all_goals { rfl }
 
 theorem ChangeListStep.indep_swap {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {hd : Change} {tl : List Change} {g : Time.Tag} : 
   (σ -[hd, g]→  σ₁) → (σ₁ -[tl, g]→* σ₁₂) →
   (σ -[tl, g]→* σ₂) → (σ₂ -[hd, g]→  σ₂₁) →
   (∀ c ih ic, c ∈ tl → hd.target = some ih → c.target = some ic → ih ≠ ic) →
-  σ₁ = σ₂ := by
-  intro h₁ h₂ h₁₂ h₂₁ ht
+  σ₁₂ = σ₂₁ := by
+  intro h₁ h₁₂ h₂ h₂₁ ht
   induction tl generalizing σ σ₁ σ₂ σ₁₂ σ₂₁
-  case nil => 
-    -- cases h₂; case _ h₂ h₂' => cases h₁'; cases h₂; case _ h₂ h₂' => cases h₂'; case _ => 
-    -- exact ChangeStep.unique h₁ h₂
-    sorry
+  case nil => cases h₁₂; cases h₂; exact ChangeStep.unique h₁ h₂₁
   case cons hd' tl' hi =>
-    cases h₁₂; case _ h₁₂ h₁₂' => cases h₂; case _ h₂ h₂' =>
-      sorry
-      -- show that you can swap hd with hd' in h₁
-      -- then if you chop off hd' from h₁ and h₂ you have the hypo-
-      -- thises for hi
-      --
-      -- σ -hd->  σ₁   -hd'-> σ₂* -tl'-> σ₁₂
-      -- σ -hd'-> σ₂*' -tl'-> σ₂  -hd->  σ₂₁
+    cases h₁₂; case _ σ₁ₘ h₁₂ h₁₂' => cases h₂; case _ σₘ₂ h₂ h₂' =>
+      -- σ -hd--> σ₁  -hd'->  σ₁ₘ -tl'->* σ₁₂
+      -- σ -hd'-> σₘ₂ -tl'->* σ₂  -hd-->  σ₂₁
+      have H : ∃ σH, σₘ₂ -[hd, g]→ σH := sorry -- by contra?
+      have ⟨σH, H⟩ := H
+      have HH := ChangeStep.indep_comm h₁ h₁₂ h₂ H (by
+        intro i₁ i₂ hi₁ hi₂
+        exact ht hd' i₁ i₂ (List.mem_cons_self _ _) hi₁ hi₂
+      )
+      rw [←HH] at H
+      exact hi H h₁₂' h₂' h₂₁ (by
+        intro c i₁ i₂ hc hi₁ hi₂
+        exact ht c i₁ i₂ (List.mem_cons.mpr $ Or.inr hc) hi₁ hi₂
+      )
 
 theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cs₁ cs₂ : List Change} {g : Time.Tag} : 
   (σ -[cs₁, g]→* σ₁) → (σ₁ -[cs₂, g]→* σ₁₂) → 
