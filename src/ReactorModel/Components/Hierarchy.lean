@@ -46,16 +46,11 @@ namespace Lineage
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
 def directParent {σ : Reactor} {i} : Lineage σ i → (Rooted ID × Reactor)
-  | rtr _ => (⊤, σ)
-  | rcn _ => (⊤, σ)
-  | prt _ => (⊤, σ)
-  | act _ => (⊤, σ)
-  | stv _ => (⊤, σ)
-  | nest σ' i' (rtr _) _ => (i', σ')
-  | nest σ' i' (rcn _) _ => (i', σ')
-  | nest σ' i' (prt _) _ => (i', σ')
-  | nest σ' i' (stv _) _ => (i', σ')
-  | nest _  _  l       _ => directParent l -- By case distinction `l` is a `Lineage.nest`.
+  | nest σ' i' n _ => 
+    match n with 
+    | nest _ _ l _ => directParent l 
+    | _ => (i', σ')
+  | _ => (⊤, σ)
 
 def target {σ : Reactor} {i} : Lineage σ i → Cmp 
   | rtr _ => Cmp.rtr
@@ -65,7 +60,7 @@ def target {σ : Reactor} {i} : Lineage σ i → Cmp
   | stv _ => Cmp.stv
   | nest _ _ l _ => target l
 
-def fromCmp (σ : Reactor) (i) : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) → Lineage σ i
+def fromCmp {σ : Reactor} {i} : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) → Lineage σ i
   | Cmp.rtr, h => Lineage.rtr h
   | Cmp.rcn, h => Lineage.rcn h
   | Cmp.prt, h => Lineage.prt h
@@ -74,8 +69,7 @@ def fromCmp (σ : Reactor) (i) : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) �
 
 def retarget {σ : Reactor} {i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (l.directParent.snd.cmp cmp).ids → Lineage σ i
   | nest σ' i' l' h', cmp, h => Lineage.nest σ' i' (retarget l' cmp h) h'
-  | _, cmp, h => Lineage.fromCmp σ i cmp h
-
+  | _, cmp, h => Lineage.fromCmp cmp h
 
 set_option maxHeartbeats 100000 in
 theorem retarget_target (σ : Reactor) (i) (l : Lineage σ i) (cmp h) :
@@ -309,7 +303,7 @@ notation σ₁:max " -[" cmp ":" i:max f "]→ " σ₂:max => Reactor.Update cmp
 
 theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} (h : σ₁ -[cmp:i f]→ σ₂) : Nonempty (Lineage σ₁ i) := by
   induction h
-  case top i σ₁ _ _ _ ha _ => exact ⟨Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
+  case top i σ₁ _ _ _ ha _ => exact ⟨Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
   case nested hn _ _ hi => exact ⟨Lineage.nest _ _ (Classical.choice hi) hn⟩
 
 theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
@@ -332,38 +326,45 @@ theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.t
     rw [hj] at he₁ hn₂
     exact EqModID.eq_from_eq_val_for_id he₁ he₂ hn₂
   case top.nested i σ₁ _ _ _ ht _ _ _ _ hu hn _ _ =>
-    let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
+    let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
     let l₂ := Lineage.nest _ _ (Classical.choice hu.requires_lineage_to_target) hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
   case nested.top i σ₁ _ _ _ _ _ hn _ hu _ _ ht _ _ =>
-    let l₁ := Lineage.fromCmp σ₁ i cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
+    let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
     let l₂ := Lineage.nest _ _ (Classical.choice hu.requires_lineage_to_target) hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
 
 theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
   (σ₁ -[cmp:i f]→ σ₂) → ∃ v, σ₁ *[cmp, i]= v ∧ σ₂ *[cmp, i]= (f v) := by
-  sorry
-  /-intro h
+  intro h
   induction h
-  case top i _ σ₂ _ _ h =>
+  case top i σ₁ σ₂ v _ hv hf =>
     simp only [objFor]
-    have h' := Option.ne_none_iff_exists.mpr ⟨v, Eq.symm h⟩ |> Finmap.ids_def.mpr
-    -- exists Lineage.fromCmp σ₂ i cmp h'
-    sorry
-    -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
-    -- cases cmp <;> simp only [Lineage.directParent, h]
-  case nested i _ σ₂ j _ rtr₂ _ _ hn _ hi =>
+    exists v
+    constructor
+    case left =>
+      use Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨v, hv.symm⟩
+      simp only [←hv]
+      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
+    case right =>
+      use Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨f v, hf.symm⟩
+      simp only [←hf]
+      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
+  case nested i _ σ₂ j rtr₁ rtr₂ _ hr₁ hr₂ _ hi =>
     simp only [objFor] at *
-    have ⟨l, hl⟩ := hi
-    exists Lineage.nest rtr₂ j l hn
-    have hp : l.directParent.snd = (Lineage.nest rtr₂ j l hn).directParent.snd := 
-      sorry
-      -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
-      -- by cases l <;> simp only [Lineage.directParent]
-    simp [←hp, hl]
-  -/
+    have ⟨v, ⟨lv, hv⟩, ⟨lf, hf⟩⟩ := hi
+    exists v
+    constructor
+    case left =>
+      use Lineage.nest rtr₁ j lv hr₁
+      simp only [←hv]
+      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
+    case right =>
+      use Lineage.nest rtr₂ j lf hr₂
+      simp only [←hf]
+      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
 
   theorem Update.ne_cmp_ne_rtr_eq {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} (cmp' : Cmp) :
     (σ₁ -[cmp:i f]→ σ₂) → cmp' ≠ cmp → cmp' ≠ Cmp.rtr → σ₁.cmp cmp' = σ₂.cmp cmp' := by 

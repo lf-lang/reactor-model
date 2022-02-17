@@ -14,15 +14,15 @@ lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor} :
 
 namespace Execution
 
-noncomputable def schedule (acts : Time.Tag ▸ Value) (t : Time) (v : Value) : Time.Tag ▸ Value :=
-  match acts.ids.filter (·.t = t) |>.max with
-  | none => acts.update ⟨t, 0⟩ v
-  | some g => acts.update ⟨t, g.microsteps + 1⟩ v
+noncomputable def schedule (act : Time.Tag ▸ Value) (t : Time) (v : Value) : Time.Tag ▸ Value :=
+  match act.ids.filter (·.t = t) |>.max with
+  | none => act.update ⟨t, 0⟩ v
+  | some g => act.update ⟨t, g.microsteps + 1⟩ v
 
 inductive ChangeStep (σ : Reactor) : Reactor → Change → Prop 
-  | port {σ' i v} :     (σ -[Cmp.prt:i ({ · .. with val := v})]→ σ') → ChangeStep σ σ' (Change.port i v)
-  | state {σ' i v} :    (σ -[Cmp.stv:i              (λ _ => v)]→ σ') → ChangeStep σ σ' (Change.state i v)
-  | action {σ' i t v} : (σ -[Cmp.act:i        (schedule · t v)]→ σ') → ChangeStep σ σ' (Change.action i t v)
+  | port {σ' i v} :     (σ -[Cmp.prt:i    (⟨·.role, v⟩)]→ σ') → ChangeStep σ σ' (Change.port i v)
+  | state {σ' i v} :    (σ -[Cmp.stv:i       (λ _ => v)]→ σ') → ChangeStep σ σ' (Change.state i v)
+  | action {σ' i t v} : (σ -[Cmp.act:i (schedule · t v)]→ σ') → ChangeStep σ σ' (Change.action i t v)
   -- Mutations are (temporarily) no-ops:
   | connect {i₁ i₂} :    ChangeStep σ σ (Change.connect i₁ i₂)
   | disconnect {i₁ i₂} : ChangeStep σ σ (Change.disconnect i₁ i₂)
