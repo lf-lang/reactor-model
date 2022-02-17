@@ -232,6 +232,10 @@ structure EqModID (σ₁ σ₂ : Reactor) (cmp : Cmp) (i : ID) : Prop where
 
 notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
 
+theorem EqModID.trans {σ₁ σ₂ σ₃ : Reactor} {cmp : Cmp} {i : ID} :
+  σ₁ %[cmp, i]= σ₂ → σ₂ %[cmp, i]= σ₃ → σ₁ %[cmp, i]= σ₃ :=
+  sorry
+
 -- TODO: Find out how to solve the case distinction more concisely.
 theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} 
   (he₁ : σ %[cmp, i]= σ₁) (he₂ : σ %[cmp, i]= σ₂) :
@@ -306,6 +310,29 @@ theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i
   case top i σ₁ _ _ _ ha _ => exact ⟨Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
   case nested hn _ _ hi => exact ⟨Lineage.nest _ _ (Classical.choice hi) hn⟩
 
+
+
+
+inductive Lineage.Equiv {i} : (σ₁ : Reactor) → (σ₂ : Reactor) → Lineage σ₁ i → Lineage σ₂ i → Prop
+  | rtr (h₁ : i ∈ σ₁.nest.ids)  (h₂ : i ∈ σ₂.nest.ids)  : Equiv σ₁ σ₂ (Lineage.rtr h₁) (Lineage.rtr h₂)
+  | rcn (h₁ : i ∈ σ₁.rcns.ids)  (h₂ : i ∈ σ₂.rcns.ids)  : Equiv σ₁ σ₂ (Lineage.rcn h₁) (Lineage.rcn h₂)
+  | prt (h₁ : i ∈ σ₁.ports.ids) (h₂ : i ∈ σ₂.ports.ids) : Equiv σ₁ σ₂ (Lineage.prt h₁) (Lineage.prt h₂)
+  | act (h₁ : i ∈ σ₁.acts.ids)  (h₂ : i ∈ σ₂.acts.ids)  : Equiv σ₁ σ₂ (Lineage.act h₁) (Lineage.act h₂)
+  | stv (h₁ : i ∈ σ₁.state.ids) (h₂ : i ∈ σ₂.state.ids) : Equiv σ₁ σ₂ (Lineage.stv h₁) (Lineage.stv h₂)
+  | nest {rtr₁ rtr₂ i'} {l₁ : Lineage rtr₁ i} {l₂ : Lineage rtr₂ i} (h₁ : σ₁.nest i' = some rtr₁) (h₂ : σ₂.nest i' = some rtr₂) : 
+    Equiv rtr₁ rtr₂ l₁ l₂ →  Equiv σ₁ σ₂ (Lineage.nest rtr₁ i' l₁ h₁) (Lineage.nest rtr₂ i' l₂ h₂)
+
+notation l₁:max " ≈ " l₂:max => Lineage.Equiv _ _ l₁ l₂
+
+theorem Update.update_equiv_lineage {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} 
+  (h : σ₁ -[cmp:i f]→ σ₂) (l₁ : Lineage σ₁ i) (l₂ : Lineage σ₂ i) : 
+  l₁ ≈ l₂ := by
+  sorry
+
+
+
+
+
 theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
   (σ -[cmp:i f]→ σ₁) → (σ -[cmp:i f]→ σ₂) → σ₁ = σ₂ := by
   intro h₁ h₂
@@ -325,17 +352,12 @@ theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.t
     rw [hi', ←hn₂'] at hn₂
     rw [hj] at he₁ hn₂
     exact EqModID.eq_from_eq_val_for_id he₁ he₂ hn₂
-  case top.nested i σ₁ _ _ _ ht _ _ _ _ hu hn _ _ =>
+  case' top.nested σ₁ _ _ _ ht _ _ _ _ hu hn _ _, nested.top σ₁ _ _ _ _ _ hn _ hu _ _ ht _ _ =>
     let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
-    let l₂ := Lineage.nest _ _ (Classical.choice hu.requires_lineage_to_target) hn
+    let l₂ := Lineage.nest _ _ hu.requires_lineage_to_target.some hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
-  case nested.top i σ₁ _ _ _ _ _ hn _ hu _ _ ht _ _ =>
-    let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
-    let l₂ := Lineage.nest _ _ (Classical.choice hu.requires_lineage_to_target) hn
-    have hc := σ₁.uniqueIDs l₁ l₂
-    cases cmp <;> contradiction
-
+  
 theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
   (σ₁ -[cmp:i f]→ σ₂) → ∃ v, σ₁ *[cmp, i]= v ∧ σ₂ *[cmp, i]= (f v) := by
   intro h
@@ -366,28 +388,61 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {
       simp only [←hf]
       sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
 
-  theorem Update.ne_cmp_ne_rtr_eq {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} (cmp' : Cmp) :
-    (σ₁ -[cmp:i f]→ σ₂) → cmp' ≠ cmp → cmp' ≠ Cmp.rtr → σ₁.cmp cmp' = σ₂.cmp cmp' := by 
-    intro hu _ _; cases hu <;> apply EqModID.otherCmpsEq <;> assumption
+  theorem Update.eq_cmp_eq_compose {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f₁ f₂ : cmp.type → cmp.type} :
+    (σ -[cmp:i f₁]→ σ₁) → (σ₁ -[cmp:i f₂]→ σ₂) → (σ -[cmp:i (f₂ ∘ f₁)]→ σ₂) := by
+    intro h₁ h₂
+    -- have H1 := h₁.requires_lineage_to_target
+    -- have H2 := h₂.requires_lineage_to_target
+    -- have H := h₁.update_equiv_lineage H1.some H2.some
+
+    induction h₁ generalizing σ₂ <;> cases h₂
+    case top.top v₁ he₁ hv₁ hf₁ v₂ hv₂ hf₂ he₂ =>
+      rw [hf₁, Option.some_inj] at hv₂
+      rw [←hv₂] at hf₂
+      exact Update.top (he₁.trans he₂) hv₁ hf₂
+    case top.nested σ₁ _ _ _ hf _ _ _ hu hn₁ _ _ =>
+      let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, hf.symm⟩
+      let l₂ := Lineage.nest _ _ hu.requires_lineage_to_target.some hn₁
+      have hc := σ₁.uniqueIDs l₁ l₂
+      cases cmp <;> contradiction
+    case nested.top i σ σ₁ j rtr₁ rtr₂ he₁ hn₁ hn₂ hu hi v hv hf he₂ =>
+      let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, hv.symm⟩
+      let l₂ := Lineage.nest _ _ hu.requires_lineage_to_target.some hn₁
+      sorry
+      -- have hc := σ₁.uniqueIDs l₁ l₂
+      -- cases cmp <;> contradiction
+    case nested.nested i σ σ₁ j₁ rtr₁₁ rtr₁₂ he₁ hn₁₁ hn₁₂ hu₁ hi j₂ rtr₂₁ rtr₂₂ hu₂ hn₂₁ hn₂₂ he₂ =>
+      -- TODO: This is akin to the nested.nested case in Update.unique.
+      -- But first we need to prove that an update for some i preserves the lineage to i. 
+      
+      -- Use H1 H2 and H from above here.
+      have HJ : j₁ = j₂ := sorry 
+      rw [HJ] at hn₁₁ hn₁₂ he₁
+      rw [hn₁₂, Option.some_inj] at hn₂₁
+      rw [hn₂₁] at hi
+      apply Update.nested (he₁.trans he₂) hn₁₁ hn₂₂ (hi hu₂)
+
+  theorem Update.funcs_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cmp} {i : ID} {f₁ f₂ : cmp.type → cmp.type} :
+    (σ -[cmp:i f₁]→ σ₁) → (σ₁ -[cmp:i f₂]→ σ₁₂) →
+    (σ -[cmp:i f₂]→ σ₂) → (σ₂ -[cmp:i f₁]→ σ₂₁) →
+    (f₁ ∘ f₂ = f₂ ∘ f₁) → σ₁₂ = σ₂₁ := by
+    intro h₁ h₁₂ h₂ h₂₁ hc
+    have hc₁ := Update.eq_cmp_eq_compose h₁ h₁₂
+    have hc₂ := Update.eq_cmp_eq_compose h₂ h₂₁
+    rw [hc] at hc₂
+    exact Update.unique hc₁ hc₂
 
   theorem Update.ne_cmp_ne_rtr_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp₁ cmp₂ : Cmp} {i₁ i₂ : ID} {f₁ : cmp₁.type → cmp₁.type} {f₂ : cmp₂.type → cmp₂.type} :
     (σ -[cmp₁:i₁ f₁]→ σ₁) → (σ₁ -[cmp₂:i₂ f₂]→ σ₁₂) →
     (σ -[cmp₂:i₂ f₂]→ σ₂) → (σ₂ -[cmp₁:i₁ f₁]→ σ₂₁) →
     (cmp₁ ≠ cmp₂) → (cmp₁ ≠ Cmp.rtr) → (cmp₂ ≠ Cmp.rtr) → 
-    σ₁₂ = σ₂₁ :=
+    σ₁₂ = σ₂₁ := by
     sorry
 
   theorem Update.ne_id_ne_rtr_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cmp} {i₁ i₂ : ID} {f₁ f₂ : cmp.type → cmp.type} :
     (σ -[cmp:i₁ f₁]→ σ₁) → (σ₁ -[cmp:i₂ f₂]→ σ₁₂) →
     (σ -[cmp:i₂ f₂]→ σ₂) → (σ₂ -[cmp:i₁ f₁]→ σ₂₁) →
     (i₁ ≠ i₂) → (cmp ≠ Cmp.rtr) → 
-    σ₁₂ = σ₂₁ :=
-    sorry
-
-  theorem Update.funcs_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cmp} {i : ID} {f₁ f₂ : cmp.type → cmp.type} :
-    (σ -[cmp:i f₁]→ σ₁) → (σ₁ -[cmp:i f₂]→ σ₁₂) →
-    (σ -[cmp:i f₂]→ σ₂) → (σ₂ -[cmp:i f₁]→ σ₂₁) →
-    (f₁ ∘ f₂ = f₂ ∘ f₁) → 
     σ₁₂ = σ₂₁ :=
     sorry
 
