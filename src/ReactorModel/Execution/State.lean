@@ -12,11 +12,11 @@ structure couldExec (s : State) (i : ID) : Prop where
   unexeced : i ∉ s.ctx.currentExecutedRcns
   mutsBeforeNorms : ∃ iₚ p rcn, (s.rtr &[i]= iₚ) ∧ (s.rtr *[Cmp.rtr, iₚ]= p) ∧ (p.rcns i = some rcn) ∧ (rcn.isNorm → p.muts.ids ⊆ s.ctx.currentExecutedRcns)
 
-def triggers (s : State) (rcn : Reaction) : Prop :=
-  rcn.triggersOn $ s.rtr.inputForRcn rcn s.ctx.time
+noncomputable def rcnInput (s : State) (rcn : Reaction) : Reaction.Input :=
+  s.rtr.inputForRcn rcn s.ctx.time
 
-noncomputable def outputOf (s : State) (rcn : Reaction) : List Change :=
-  rcn $ s.rtr.inputForRcn rcn s.ctx.time
+def triggers (s : State) (rcn : Reaction) : Prop :=
+  rcn.triggersOn $ s.rcnInput rcn
 
 def nextTag (s : State) : Option Time.Tag :=
   s.rtr.scheduledTags.filter (s.ctx.time < ·) |>.min

@@ -19,14 +19,13 @@ theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c�
     cases c₂
     case port => 
       cases h₁; cases h₂; cases h₁₂; cases h₂₁
-      exact Reactor.Update.Field.unique (by assumption) (by assumption)
+      exact Reactor.Update.unique (by assumption) (by assumption)
     case state => 
       cases h₁; cases h₂; cases h₁₂; cases h₂₁
       exact Reactor.Update.unique (by assumption) (by assumption)
     case action => 
       cases h₁; cases h₂; case _ ht₁ _ => cases h₁₂; case _ ht₂ _ => cases h₂₁; case _ =>
-        rw [Reactor.isNewTag_unique ht₁ ht₂] at *
-        exact Reactor.Update.Field.unique (by assumption) (by assumption)
+      exact Reactor.Update.unique (by assumption) (by assumption)
   )
   <;> (cases h₁; cases h₂; cases h₁₂; cases h₂₁; rfl)
   
@@ -47,68 +46,10 @@ theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c�
   by_cases hm : c₁.mutates ∨ c₂.mutates
   case pos => exact ChangeStep.mutates_comm' h₁ h₁₂ h₂ h₂₁ hm
   case neg =>
-    cases c₁ <;> cases c₂ <;> (simp only [not_or, Change.mutates, Change.EqKind] at *)
-    case port.state =>
+    cases c₁ <;> cases c₂ <;> (simp only [not_or, Change.mutates, Change.EqKind] at *) <;> (
       cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
-        exact Reactor.Update.Field.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
-    case state.port => 
-      cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
-        exact Eq.symm $ Reactor.Update.Field.ne_cmp_comm h₂ h₂₁ h₁ h₁₂ (by intro; contradiction)
-    case port.action =>
-      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
-      have h := Reactor.isNewTag_not_action_step_unique ht₂ ht₁ (ChangeStep.port h₁) (by simp)
-      rw [h] at h₂
-      exact Reactor.Update.Field.ne_field_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
-    case action.port =>
-      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
-      have h := Reactor.isNewTag_not_action_step_unique ht₁ ht₂ (ChangeStep.port h₂) (by simp)
-      rw [h] at h₁
-      exact Reactor.Update.Field.ne_field_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
-    case state.action =>
-      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
-      have h := Reactor.isNewTag_not_action_step_unique ht₂ ht₁ (ChangeStep.state h₁) (by simp)
-      rw [h] at h₂
-      exact Eq.symm $ Reactor.Update.Field.ne_cmp_comm h₂ h₂₁ h₁ h₁₂ (by intro; contradiction)
-    case action.state =>
-      cases h₁; case _ h₁ => cases h₁₂; case _ ht₁ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ ht₂ h₂₁ =>
-      have h := Reactor.isNewTag_not_action_step_unique ht₁ ht₂ (ChangeStep.state h₂) (by simp)
-      rw [h] at h₁
-      exact Reactor.Update.Field.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction)
-
-theorem ChangeStep.ne_port_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} : 
-  (σ -[Change.port i₁ v₁]→ σ₁) → (σ₁ -[Change.port i₂ v₂]→ σ₁₂) → 
-  (σ -[Change.port i₂ v₂]→ σ₂) → (σ₂ -[Change.port i₁ v₁]→ σ₂₁) → 
-  (i₁ ≠ i₂) → σ₁₂ = σ₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hi
-  cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
-  exact Reactor.Update.Field.ne_id_comm h₁ h₁₂ h₂ h₂₁ hi
-
-theorem ChangeStep.ne_state_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} : 
-  (σ -[Change.state i₁ v₁]→ σ₁) → (σ₁ -[Change.state i₂ v₂]→ σ₁₂) → 
-  (σ -[Change.state i₂ v₂]→ σ₂) → (σ₂ -[Change.state i₁ v₁]→ σ₂₁) → 
-  (i₁ ≠ i₂) → σ₁₂ = σ₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hi
-  cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
-  exact Reactor.Update.ne_id_comm h₁ h₁₂ h₂ h₂₁ hi
-
-theorem ChangeStep.ne_action_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {i₁ i₂ : ID} {v₁ v₂ : Value} {t₁ t₂ : Time} : 
-  (σ -[Change.action i₁ t₁ v₁]→ σ₁) → (σ₁ -[Change.action i₂ t₂ v₂]→ σ₁₂) → 
-  (σ -[Change.action i₂ t₂ v₂]→ σ₂) → (σ₂ -[Change.action i₁ t₁ v₁]→ σ₂₁) → 
-  (i₁ ≠ i₂) → σ₁₂ = σ₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hi
-  cases h₁; case _ g₁ ht₁ h₁ => cases h₁₂; case _ ht₁₂ h₁₂ => cases h₂; case _ g₂ ht₂ h₂ => cases h₂₁; case _ ht₂₁ h₂₁ =>
-  have hs₁ := ChangeStep.action ht₁ h₁
-  have hs₂ := ChangeStep.action ht₂ h₂
-  have hu₁ := Reactor.isNewTag_action_step_ne_ids_unique ht₂ ht₁₂ hs₁ hi.symm
-  have hu₂ := Reactor.isNewTag_action_step_ne_ids_unique ht₁ ht₂₁ hs₂ hi
-  rw [←hu₁] at h₁₂
-  rw [←hu₂] at h₂₁
-  by_cases hc : g₁ = g₂
-  case pos =>
-    rw [hc] at h₁ h₂₁
-    exact Reactor.Update.Field.ne_id_comm h₁ h₁₂ h₂ h₂₁ hi
-  case neg =>
-    exact Reactor.Update.Field.ne_field_comm h₁ h₁₂ h₂ h₂₁ (by simp [hc])
+      simp [Reactor.Update.ne_cmp_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) (by intro; contradiction) (by intro; contradiction)]
+    )
 
 theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} :
   (σ -[c₁]→ σ₁) → (σ₁ -[c₂]→ σ₁₂) → 
@@ -125,45 +66,17 @@ theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁
     have ht' := ht i₁ i₂ hi₁.symm hi₂.symm
     have ht'' : c₁.target ≠ c₂.target := by simp [←hi₁, ←hi₂, ht']
     cases c₁ <;> cases c₂ <;> simp [Change.target] at ht''
-    case port.port => exact ChangeStep.ne_port_comm h₁ h₁₂ h₂ h₂₁ ht''
-    case state.state => exact ChangeStep.ne_state_comm h₁ h₁₂ h₂ h₂₁ ht''
-    case action.action => exact ChangeStep.ne_action_comm h₁ h₁₂ h₂ h₂₁ ht''
+    case' port.port, state.state, action.action => 
+      cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
+      exact Reactor.Update.ne_id_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ ht'' (by intro; contradiction)
     all_goals { exact ChangeStep.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) }
 
 theorem ChangeStep.unique {σ σ₁ σ₂ : Reactor} {c : Change} :
   (σ -[c]→ σ₁) → (σ -[c]→ σ₂) → σ₁ = σ₂ := by
   intro h₁ h₂ 
   cases h₁ <;> cases h₂
-  case port.port h₁ h₂ => exact Reactor.Update.Field.unique h₁ h₂
-  case state.state h₁ h₂ => exact Reactor.Update.unique h₁ h₂
-  case action.action ht₁ h₁ _ ht₂ h₂ => 
-    rw [Reactor.isNewTag_unique ht₁ ht₂] at h₁
-    exact Reactor.Update.Field.unique h₁ h₂
+  case' port.port h₁ h₂, state.state h₁ h₂, action.action h₁ h₂ => exact Reactor.Update.unique h₁ h₂
   all_goals { rfl }
-
-theorem ChangeListStep.indep_swap {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {hd : Change} {tl : List Change} : 
-  (σ -[hd]→  σ₁) → (σ₁ -[tl]→* σ₁₂) →
-  (σ -[tl]→* σ₂) → (σ₂ -[hd]→  σ₂₁) →
-  (∀ c ih ic, c ∈ tl → hd.target = some ih → c.target = some ic → ih ≠ ic) →
-  σ₁₂ = σ₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ ht
-  induction tl generalizing σ σ₁ σ₂ σ₁₂ σ₂₁
-  case nil => cases h₁₂; cases h₂; exact ChangeStep.unique h₁ h₂₁
-  case cons hd' tl' hi =>
-    cases h₁₂; case _ σ₁ₘ h₁₂ h₁₂' => cases h₂; case _ σₘ₂ h₂ h₂' =>
-      -- σ -hd--> σ₁  -hd'->  σ₁ₘ -tl'->* σ₁₂
-      -- σ -hd'-> σₘ₂ -tl'->* σ₂  -hd-->  σ₂₁
-      have H : ∃ σH, σₘ₂ -[hd]→ σH := sorry -- Is there a proof of: if applying a change to *some* reactor works, then applying it to *any* reactor works?
-      have ⟨σH, H⟩ := H
-      have HH := ChangeStep.indep_comm h₁ h₁₂ h₂ H (by
-        intro i₁ i₂ hi₁ hi₂
-        exact ht hd' i₁ i₂ (List.mem_cons_self _ _) hi₁ hi₂
-      )
-      rw [←HH] at H
-      exact hi H h₁₂' h₂' h₂₁ (by
-        intro c i₁ i₂ hc hi₁ hi₂
-        exact ht c i₁ i₂ (List.mem_cons.mpr $ Or.inr hc) hi₁ hi₂
-      )
 
 theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cs₁ cs₂ : List Change} : 
   (σ -[cs₁]→* σ₁) → (σ₁ -[cs₂]→* σ₁₂) → 
@@ -171,7 +84,7 @@ theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
   σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ ht
-  sorry
+  sorry -- TODO (Andrés)
 
 theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
   cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
