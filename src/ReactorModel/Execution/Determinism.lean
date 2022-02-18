@@ -17,15 +17,9 @@ theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c�
   <;> (simp only [Change.mutates] at hm) 
   <;> (
     cases c₂
-    case port => 
+    case' port, state, action => 
       cases h₁; cases h₂; cases h₁₂; cases h₂₁
-      exact Reactor.Update.unique (by assumption) (by assumption)
-    case state => 
-      cases h₁; cases h₂; cases h₁₂; cases h₂₁
-      exact Reactor.Update.unique (by assumption) (by assumption)
-    case action => 
-      cases h₁; cases h₂; case _ ht₁ _ => cases h₁₂; case _ ht₂ _ => cases h₂₁; case _ =>
-      exact Reactor.Update.unique (by assumption) (by assumption)
+      exact Reactor.Update.unique' (by assumption) (by assumption)
   )
   <;> (cases h₁; cases h₂; cases h₁₂; cases h₂₁; rfl)
   
@@ -75,7 +69,7 @@ theorem ChangeStep.unique {σ σ₁ σ₂ : Reactor} {c : Change} :
   (σ -[c]→ σ₁) → (σ -[c]→ σ₂) → σ₁ = σ₂ := by
   intro h₁ h₂ 
   cases h₁ <;> cases h₂
-  case' port.port h₁ h₂, state.state h₁ h₂, action.action h₁ h₂ => exact Reactor.Update.unique h₁ h₂
+  case' port.port h₁ h₂, state.state h₁ h₂, action.action h₁ h₂ => exact Reactor.Update.unique' h₁ h₂
   all_goals { rfl }
 
 theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cs₁ cs₂ : List Change} : 
