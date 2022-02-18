@@ -5,7 +5,8 @@ import ReactorModel.Components.Reactor.Basic
 import ReactorModel.Components.Reactor.Projections
 import ReactorModel.Components.Reactor.Properties
 import ReactorModel.Components.Change
-import ReactorModel.Components.Hierarchy
+import ReactorModel.Components.Get
 import ReactorModel.Components.Lift
 import ReactorModel.Components.Raw
 import ReactorModel.Components.Reaction
+import ReactorModel.Components.Update

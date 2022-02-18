@@ -85,7 +85,6 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
         simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
         exact h₂
 
-
 inductive rcnsNeedTotalOrder (rtr : Reactor) (rcn₁ rcn₂ : Reaction) 
   | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
   | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps Role.out ∩ rcn₂.deps Role.out ≠ ∅) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
@@ -117,8 +116,6 @@ inductive Lineage : Reactor → ID → Type _
   | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
   | nest {σ : Reactor} σ' {i} i' : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
--- TODO (maybe): Merge this into the proof of `uniqueIDs` if possible.
--- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Unfold.20where
 private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
   | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
   | Lineage.act h => Raw.Reactor.Lineage.act σ.raw i h
