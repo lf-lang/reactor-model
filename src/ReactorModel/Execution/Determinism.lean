@@ -121,7 +121,7 @@ theorem State.instComplete_to_inst_stuck {s : State} :
   intro h s' he
   cases he
   case' execReaction hi he _ _, skipReaction hi he _ =>
-    have h' := Reactor.ids_def.mp hi
+    have h' := Reactor.ids_def.mp ⟨_, hi⟩
     have := he.unexeced
     rw [←h] at h'
     contradiction
@@ -173,7 +173,7 @@ where
     cases hi 
     case' execReaction hl hce _ _, skipReaction hl hce _ =>
       have := mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
-      have := Reactor.ids_def.mp hl
+      have := Reactor.ids_def.mp ⟨_, hl⟩
       contradiction
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 

@@ -222,19 +222,23 @@ noncomputable def ids (σ : Reactor) (cmp : Cmp) : Finset ID :=
   let finite : description.finite := sorry
   finite.toFinset
 
-theorem ids_def {σ : Reactor} {cmp : Cmp} {i : ID} {v : cmp.type} : 
-  σ *[cmp, i]= v ↔ i ∈ σ.ids cmp := 
-  sorry
+theorem ids_def {σ : Reactor} {cmp : Cmp} {i : ID} : 
+  (∃ v, σ *[cmp, i]= v) ↔ i ∈ σ.ids cmp := by
+  constructor <;> (
+    intro h
+    simp only [ids, Set.finite.mem_to_finset] at *
+    exact h
+  )
 
 -- Note, this only makes sense when talking about a top-level ID.
 structure EqModID (σ₁ σ₂ : Reactor) (cmp : Cmp) (i : ID) : Prop where
   otherCmpsEq : ∀ {cmp'}, cmp' ≠ cmp → σ₁.cmp cmp' = σ₂.cmp cmp'
   otherIDsEq : ∀ {i'}, i' ≠ i → σ₁.cmp cmp i' = σ₂.cmp cmp i'
 
-notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
+notation σ₁:max " %[" cmp ":" i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
 
 theorem EqModID.trans {σ₁ σ₂ σ₃ : Reactor} {cmp : Cmp} {i : ID} :
-  σ₁ %[cmp, i]= σ₂ → σ₂ %[cmp, i]= σ₃ → σ₁ %[cmp, i]= σ₃ := 
+  σ₁ %[cmp:i]= σ₂ → σ₂ %[cmp:i]= σ₃ → σ₁ %[cmp:i]= σ₃ := 
   λ h₁₂ h₂₃ => {
     otherCmpsEq := λ hc => (h₁₂.otherCmpsEq hc).trans $ h₂₃.otherCmpsEq hc,
     otherIDsEq := λ hi => (h₁₂.otherIDsEq hi).trans $ h₂₃.otherIDsEq hi
@@ -242,7 +246,7 @@ theorem EqModID.trans {σ₁ σ₂ σ₃ : Reactor} {cmp : Cmp} {i : ID} :
   
 -- TODO: Find out how to solve the case distinction more concisely.
 theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} 
-  (he₁ : σ %[cmp, i]= σ₁) (he₂ : σ %[cmp, i]= σ₂) :
+  (he₁ : σ %[cmp:i]= σ₁) (he₂ : σ %[cmp:i]= σ₂) :
   (σ₁.cmp cmp i = σ₂.cmp cmp i) → σ₁ = σ₂ := by
   intro ha
   apply ext
@@ -296,12 +300,12 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
 
 inductive Update (cmp : Cmp) (f : cmp.type → cmp.type) : ID → Reactor → Reactor → Prop :=
   | top {i σ₁ σ₂ v} :
-    (σ₁ %[cmp, i]= σ₂) →
+    (σ₁ %[cmp:i]= σ₂) →
     (σ₁.cmp cmp i = some v) → -- This is required so that we know where to actually update i / so that there's at most one possible outcome of an update. 
     (σ₂.cmp cmp i = f v) → 
     Update cmp f i σ₁ σ₂
   | nested {i σ₁ σ₂} {j rtr₁ rtr₂} : 
-    (σ₁ %[Cmp.rtr, j]= σ₂) →
+    (σ₁ %[Cmp.rtr:j]= σ₂) →
     (σ₁.nest j = some rtr₁) →
     (σ₂.nest j = some rtr₂) →
     (Update cmp f i rtr₁ rtr₂) →
