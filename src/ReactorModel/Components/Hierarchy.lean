@@ -73,7 +73,8 @@ def retarget {σ : Reactor} {i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (
 
 set_option maxHeartbeats 100000 in
 theorem retarget_target (σ : Reactor) (i) (l : Lineage σ i) (cmp h) :
-  (l.retarget cmp h).target = cmp := by sorry
+  (l.retarget cmp h).target = cmp :=
+  sorry
   -- TODO: This used to work. Let's hope a newer Lean version can handle the `simp only [directParent]` again.
   /-
   induction l 
@@ -233,9 +234,12 @@ structure EqModID (σ₁ σ₂ : Reactor) (cmp : Cmp) (i : ID) : Prop where
 notation σ₁:max " %[" cmp ", " i "]= " σ₂:max => EqModID σ₁ σ₂ cmp i
 
 theorem EqModID.trans {σ₁ σ₂ σ₃ : Reactor} {cmp : Cmp} {i : ID} :
-  σ₁ %[cmp, i]= σ₂ → σ₂ %[cmp, i]= σ₃ → σ₁ %[cmp, i]= σ₃ :=
-  sorry
-
+  σ₁ %[cmp, i]= σ₂ → σ₂ %[cmp, i]= σ₃ → σ₁ %[cmp, i]= σ₃ := 
+  λ h₁₂ h₂₃ => {
+    otherCmpsEq := λ hc => (h₁₂.otherCmpsEq hc).trans $ h₂₃.otherCmpsEq hc,
+    otherIDsEq := λ hi => (h₁₂.otherIDsEq hi).trans $ h₂₃.otherIDsEq hi
+  }
+  
 -- TODO: Find out how to solve the case distinction more concisely.
 theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} 
   (he₁ : σ %[cmp, i]= σ₁) (he₂ : σ %[cmp, i]= σ₂) :
@@ -410,7 +414,7 @@ theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {
     (σ -[cmp₁:i₁ f₁]→ σ₁) → (σ₁ -[cmp₂:i₂ f₂]→ σ₁₂) →
     (σ -[cmp₂:i₂ f₂]→ σ₂) → (σ₂ -[cmp₁:i₁ f₁]→ σ₂₁) →
     (cmp₁ ≠ cmp₂) → (cmp₁ ≠ Cmp.rtr) → (cmp₂ ≠ Cmp.rtr) → 
-    σ₁₂ = σ₂₁ := by
+    σ₁₂ = σ₂₁ :=
     sorry
 
   theorem Update.ne_id_ne_rtr_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cmp} {i₁ i₂ : ID} {f₁ f₂ : cmp.type → cmp.type} :
