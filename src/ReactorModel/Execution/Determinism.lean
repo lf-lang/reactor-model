@@ -41,12 +41,12 @@ theorem ChangeStep.mutates_comm' {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c
 theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} : 
   (σ -[c₁]→ σ₁) → (σ₁ -[c₂]→ σ₁₂) → 
   (σ -[c₂]→ σ₂) → (σ₂ -[c₁]→ σ₂₁) → 
-  (¬ c₁ ≊ c₂) → σ₁₂ = σ₂₁ := by
+  (¬ c₁ ≈ c₂) → σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hc
   by_cases hm : c₁.mutates ∨ c₂.mutates
   case pos => exact ChangeStep.mutates_comm' h₁ h₁₂ h₂ h₂₁ hm
   case neg =>
-    cases c₁ <;> cases c₂ <;> (simp only [not_or, Change.mutates, Change.EqKind] at *) <;> (
+    cases c₁ <;> cases c₂ <;> (simp only [not_or, Change.mutates] at *) <;> (
       cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
       simp [Reactor.Update.ne_cmp_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) (by intro; contradiction) (by intro; contradiction)]
     )

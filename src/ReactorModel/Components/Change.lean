@@ -19,7 +19,7 @@ inductive Change
 
 namespace Change
 
-abbrev EqKind : Change → Change → Prop
+abbrev Equiv : Change → Change → Prop
   | port ..,       port ..       => True 
   | state ..,      state ..      => True 
   | action ..,     action ..     => True 
@@ -29,7 +29,7 @@ abbrev EqKind : Change → Change → Prop
   | delete ..,     delete ..     => True 
   | _,             _             => False
 
-notation c₁ " ≊ " c₂ => EqKind c₁ c₂
+notation c₁ " ≈ " c₂ => Equiv c₁ c₂
 
 def target : Change → Option ID 
   | port t ..   => t
