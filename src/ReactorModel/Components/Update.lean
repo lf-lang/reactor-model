@@ -101,6 +101,12 @@ notation σ₁:max " -[" cmp ";" i:max u "]→ " σ₂:max => Reactor.Update cmp
 set_option quotPrecheck false in
 notation σ₁:max " -[" cmp ":" i:max f "]→ " σ₂:max => Reactor.Update cmp i (λ v v' => v' = f v) σ₁ σ₂
 
+def Update.rooted (σ₁ σ₂ : Reactor) (u : Reactor → Reactor → Prop) : Rooted ID → Prop
+  | ⊤ => u σ₁ σ₂
+  | Rooted.nested i => σ₁ -[Cmp.rtr;i u]→ σ₂
+
+notation σ₁:max " -[Cmp.rtr;" i:max u "]→ " σ₂:max => Update.rooted σ₁ σ₂ u i
+
 theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : Nonempty (Lineage σ₁ i) := by
   induction h
   case top ha _ _ => exact ⟨Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩

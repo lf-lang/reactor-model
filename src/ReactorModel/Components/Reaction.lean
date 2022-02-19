@@ -108,54 +108,6 @@ theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
     cases hc : i.portVals[i₁] <;> simp [relay, hc] at h
     exact ⟨_, _, h⟩
 
--- Note, these functions will only be relevant for defining mutations' execution.
-
-noncomputable def updateInDeps {rcn : Reaction} {is : Finset ID} : Reaction := 
-  let deps' := Function.update rcn.deps Role.in is
-  {
-    deps := deps',
-    triggers := rcn.triggers ∩ (deps' Role.in), 
-    prio := rcn.prio,
-    children := rcn.children,
-    body := rcn.body,
-    tsSubInDeps := Finset.inter_subset_right _ _,
-    prtOutDepOnly := rcn.prtOutDepOnly,
-    actOutDepOnly := rcn.actOutDepOnly,
-    actNotPast := sorry,
-    normNoChild := rcn.normNoChild
-  }
-
-noncomputable def updateOutDeps {rcn : Reaction} {is : Finset ID} 
-  (hp : ∀ i {o} (v : Value), (o ∉ is) → (Change.port o v) ∉ rcn i) 
-  (ha : ∀ i {o} t (v : Value), (o ∉ is) → (Change.action o t v) ∉ rcn i) 
-  : Reaction := 
-  let deps' := Function.update rcn.deps Role.out is
-  {
-    deps := deps',
-    triggers := rcn.triggers ∩ (deps' Role.in), 
-    children := rcn.children,
-    prio := rcn.prio,
-    body := rcn.body,
-    tsSubInDeps := Finset.inter_subset_right _ _,
-    prtOutDepOnly := λ i _ v h' => hp i v h',
-    actOutDepOnly := λ i _ v h' => ha i v h',
-    actNotPast := sorry,
-    normNoChild := rcn.normNoChild
-  } 
-
-noncomputable def updateTriggers {rcn : Reaction} {is : Finset ID} (h : is ⊆ rcn.deps Role.in) : Reaction := {
-  deps := rcn.deps,
-  triggers := is, 
-  prio := rcn.prio,
-  children := rcn.children,
-  body := rcn.body,
-  tsSubInDeps := h,
-  prtOutDepOnly := rcn.prtOutDepOnly,
-  actOutDepOnly := rcn.actOutDepOnly,
-  actNotPast := sorry,
-  normNoChild := rcn.normNoChild
-}
-
 noncomputable def updateChildren {rcn : Reaction} (is : Finset ID) (h : rcn.isMut) : Reaction := {
   deps := rcn.deps,
   triggers := rcn.triggers, 

@@ -8,9 +8,9 @@ open Classical
 -- step that can be taken.
 namespace Execution
 
-theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} : 
-  (σ -[c₁]→ σ₁) → (σ₁ -[c₂]→ σ₁₂) → 
-  (σ -[c₂]→ σ₂) → (σ₂ -[c₁]→ σ₂₁) → 
+theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
+  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
+  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
   c₁.mutates → σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hm
   cases c₁ 
@@ -23,18 +23,18 @@ theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c�
   )
   <;> (cases h₁; cases h₂; cases h₁₂; cases h₂₁; rfl)
   
-theorem ChangeStep.mutates_comm' {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} : 
-  (σ -[c₁]→ σ₁) → (σ₁ -[c₂]→ σ₁₂) → 
-  (σ -[c₂]→ σ₂) → (σ₂ -[c₁]→ σ₂₁) → 
+theorem ChangeStep.mutates_comm' {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
+  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
+  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
   (c₁.mutates ∨ c₂.mutates) → σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hm
   cases hm
   case inl h => exact ChangeStep.mutates_comm h₁ h₁₂ h₂ h₂₁ h
   case inr h => exact Eq.symm $ ChangeStep.mutates_comm h₂ h₂₁ h₁ h₁₂ h
 
-theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} : 
-  (σ -[c₁]→ σ₁) → (σ₁ -[c₂]→ σ₁₂) → 
-  (σ -[c₂]→ σ₂) → (σ₂ -[c₁]→ σ₂₁) → 
+theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
+  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
+  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
   (¬ c₁ ≈ c₂) → σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hc
   by_cases hm : c₁.mutates ∨ c₂.mutates
@@ -45,9 +45,9 @@ theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c�
       simp [Reactor.Update.ne_cmp_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) (by intro; contradiction) (by intro; contradiction)]
     )
 
-theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁ c₂ : Change} :
-  (σ -[c₁]→ σ₁) → (σ₁ -[c₂]→ σ₁₂) → 
-  (σ -[c₂]→ σ₂) → (σ₂ -[c₁]→ σ₂₁) → 
+theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} :
+  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
+  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
   (∀ i₁ i₂, c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) → 
   σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ ht
@@ -65,16 +65,16 @@ theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c₁
       exact Reactor.Update.ne_id_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ ht'' (by intro; contradiction)
     all_goals { exact ChangeStep.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) }
 
-theorem ChangeStep.unique {σ σ₁ σ₂ : Reactor} {c : Change} :
-  (σ -[c]→ σ₁) → (σ -[c]→ σ₂) → σ₁ = σ₂ := by
+theorem ChangeStep.unique {σ σ₁ σ₂ : Reactor} {rcn : ID} {c : Change} :
+  (σ -[rcn:c]→ σ₁) → (σ -[rcn:c]→ σ₂) → σ₁ = σ₂ := by
   intro h₁ h₂ 
   cases h₁ <;> cases h₂
   case' port.port h₁ h₂, state.state h₁ h₂, action.action h₁ h₂ => exact Reactor.Update.unique' h₁ h₂
   all_goals { rfl }
 
-theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cs₁ cs₂ : List Change} : 
-  (σ -[cs₁]→* σ₁) → (σ₁ -[cs₂]→* σ₁₂) → 
-  (σ -[cs₂]→* σ₂) → (σ₂ -[cs₁]→* σ₂₁) → 
+theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
+  (σ -[rcn₁:cs₁]→* σ₁) → (σ₁ -[rcn₂:cs₂]→* σ₁₂) → 
+  (σ -[rcn₂:cs₂]→* σ₂) → (σ₂ -[rcn₁:cs₁]→* σ₂₁) → 
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
   σ₁₂ = σ₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ ht
