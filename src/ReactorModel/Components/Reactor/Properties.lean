@@ -114,7 +114,7 @@ inductive Lineage : Reactor → ID → Type _
   | prt {σ i} : i ∈ σ.ports.ids → Lineage σ i
   | act {σ i} : i ∈ σ.acts.ids  → Lineage σ i
   | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
-  | nest {σ : Reactor} σ' {i} i' : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
+  | nest {σ σ' i i'} : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
 private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
   | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
@@ -122,7 +122,7 @@ private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Li
   | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
   | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((RawEquiv.rcns σ).eqIDs i).mp h
   | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((RawEquiv.nest σ).eqIDs i).mp h
-  | Lineage.nest _ i' l hn => Raw.Reactor.Lineage.nest σ.raw i i' (toRaw l) (nest_mem_raw_iff.mp hn)
+  | Lineage.nest l hn => Raw.Reactor.Lineage.nest (toRaw l) (nest_mem_raw_iff.mp hn)
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.
 -- We define this property in terms of `Lineage`s, since a components is

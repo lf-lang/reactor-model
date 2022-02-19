@@ -45,9 +45,9 @@ namespace Lineage
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
 def directParent {σ : Reactor} {i} : Lineage σ i → (Rooted ID × Reactor)
-  | nest σ' i' n _ => 
+  | @nest _ σ' _ i' n _ => 
     match n with 
-    | nest _ _ l _ => directParent l 
+    | nest l _ => directParent l 
     | _ => (i', σ')
   | _ => (⊤, σ)
 
@@ -57,7 +57,7 @@ def target {σ : Reactor} {i} : Lineage σ i → Cmp
   | prt _ => Cmp.prt
   | act _ => Cmp.act
   | stv _ => Cmp.stv
-  | nest _ _ l _ => target l
+  | nest l _ => target l
 
 def fromCmp {σ : Reactor} {i} : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) → Lineage σ i
   | Cmp.rtr, h => Lineage.rtr h
@@ -67,7 +67,7 @@ def fromCmp {σ : Reactor} {i} : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) �
   | Cmp.stv, h => Lineage.stv h
 
 def retarget {σ : Reactor} {i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (l.directParent.snd.cmp cmp).ids → Lineage σ i
-  | nest σ' i' l' h', cmp, h => Lineage.nest σ' i' (retarget l' cmp h) h'
+  | nest l' h', cmp, h => Lineage.nest (retarget l' cmp h) h'
   | _, cmp, h => Lineage.fromCmp cmp h
 
 set_option maxHeartbeats 100000 in

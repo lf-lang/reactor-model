@@ -9,7 +9,7 @@ inductive Raw.Reactor.Lineage : Raw.Reactor → ID → Type _
   | prt σ i : i ∈ σ.ports.ids → Lineage σ i
   | act σ i : i ∈ σ.acts.ids  → Lineage σ i
   | stv σ i : i ∈ σ.state.ids → Lineage σ i
-  | nest (σ : Raw.Reactor) {σ'} (i i') : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
+  | nest {σ σ' i i'} : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
 
 -- These are the constraints required for a "proper" reaction.
 -- They are used in `Reaction.fromRaw` to lift a `Raw.Reaction` to a
