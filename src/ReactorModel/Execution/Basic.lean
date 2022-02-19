@@ -2,16 +2,6 @@ import ReactorModel.Execution.State
 
 open Port
 
--- TODO: Come up with something nicer.
-structure Reactor.eqWithClearedPorts (σ₁ σ₂ : Reactor) where
-  otherCmpsEq : ∀ {cmp}, cmp ≠ Cmp.prt → cmp.accessor σ₁ = cmp.accessor σ₂
-  samePortIDs : σ₁.ids Cmp.prt = σ₂.ids Cmp.prt
-  clearedPorts : ∀ i p, σ₁ *[Cmp.prt, i]= p → σ₂ *[Cmp.prt, i]= { p .. with val := ⊥ }
-
-lemma Reactor.eqWithClearedPortsUnique {σ σ₁ σ₂ : Reactor} :
-  Reactor.eqWithClearedPorts σ σ₁ → Reactor.eqWithClearedPorts σ σ₂ → 
-  σ₁ = σ₂ := sorry
-
 namespace Execution
 
 noncomputable def schedule (act : Time.Tag ▸ Value) (t : Time) (v : Value) : Time.Tag ▸ Value :=
@@ -101,13 +91,16 @@ structure CompleteInstExecution (s₁ s₂ : State) : Prop where
 
 notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
 
+def clearingPorts (σ₁ σ₂ : Reactor) : Prop := sorry -- TODO: Define this via MultiUpdate if that is realized.
+theorem clearingPorts_unique {σ σ₁ σ₂ : Reactor} : clearingPorts σ σ₁ → clearingPorts σ σ₂ → σ₁ = σ₂ :=  sorry
+
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.
 inductive Step (s : State) : State → Prop 
   | completeInst (s') : s ⇓ᵢ| s' → Step s s'
   | advanceTime {σ} {g : Time.Tag} (hg : s.nextTag = g) :
     (s.instComplete) →
-    (s.rtr.eqWithClearedPorts σ) →
+    (clearingPorts s.rtr σ) →
     Step s ⟨σ, s.ctx.advanceTime g $ s.time_lt_nextTag hg⟩
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂

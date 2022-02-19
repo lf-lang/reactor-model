@@ -159,7 +159,7 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State} :
     exact CompleteInstExecution.convergent hc₁ hc₂
   case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
     simp only [hg₁, Option.some_inj] at hg₂
-    simp [Reactor.eqWithClearedPortsUnique h₁ h₂, Context.advanceTime, hg₂]  
+    simp [clearingPorts_unique h₁ h₂, Context.advanceTime, hg₂]  
   case' completeInst.advanceTime hc _ _ _ hic _, advanceTime.completeInst _ _ _ hic _ hc => 
     cases hc.exec; case' single hi, trans hi _ => exact False.elim $ impossible_case_aux hi hic
 where
