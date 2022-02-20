@@ -101,12 +101,6 @@ notation σ₁:max " -[" cmp ";" i:max u "]→ " σ₂:max => Reactor.Update cmp
 set_option quotPrecheck false in
 notation σ₁:max " -[" cmp ":" i:max f "]→ " σ₂:max => Reactor.Update cmp i (λ v v' => v' = f v) σ₁ σ₂
 
-def Update.rooted (σ₁ σ₂ : Reactor) (u : Reactor → Reactor → Prop) : Rooted ID → Prop
-  | ⊤ => u σ₁ σ₂
-  | Rooted.nested i => σ₁ -[Cmp.rtr;i u]→ σ₂
-
-notation σ₁:max " -[Cmp.rtr;" i:max u "]→ " σ₂:max => Update.rooted σ₁ σ₂ u i
-
 theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : Nonempty (Lineage σ₁ i) := by
   induction h
   case top ha _ _ => exact ⟨Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
@@ -231,6 +225,20 @@ theorem Update.ne_id_ne_rtr_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {c
   (i₁ ≠ i₂) → (cmp ≠ Cmp.rtr) → 
   σ₁₂ = σ₂₁ :=
   sorry
+
+structure Mutation.rtrRel (cmp : Cmp) (cmpRel : (ID ▸ cmp.type) → (ID ▸ cmp.type) → Prop) (σ₁ σ₂ : Reactor) : Prop where
+  eqCmps : ∀ cmp', (cmp' ≠ cmp) → σ₁.cmp cmp' = σ₂.cmp cmp'
+  mutate : cmpRel (σ₁.cmp cmp) (σ₂.cmp cmp)
+
+open Mutation in
+inductive Mutation (σ₁ σ₂ : Reactor) (cmp : Cmp) (cmpRel : (ID ▸ cmp.type) → (ID ▸ cmp.type) → Prop) : Rooted ID → Prop
+  | root : (rtrRel cmp cmpRel) σ₁ σ₂ → Mutation σ₁ σ₂ cmp cmpRel ⊤ 
+  | nest {i} : σ₁ -[Cmp.rtr;i (rtrRel cmp cmpRel)]→ σ₂ → Mutation σ₁ σ₂ cmp cmpRel (Rooted.nested i) 
+
+notation σ₁:max " -[" cmp:max "/" r:max cmpRel "]→ " σ₂:max => Reactor.Mutation σ₁ σ₂ cmp cmpRel r
+
+set_option quotPrecheck false in
+notation σ₁:max " -[" cmp:max "|" r:max f "]→ " σ₂:max => Reactor.Mutation σ₁ σ₂ cmp (λ c c' => c' = f c) r
 
 end Reactor
 

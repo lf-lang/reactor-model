@@ -9,40 +9,21 @@ noncomputable def schedule (act : Time.Tag ▸ Value) (t : Time) (v : Value) : T
   | none => act.update ⟨t, 0⟩ v
   | some g => act.update ⟨t, g.microsteps + 1⟩ v
 
--- If port src and should be connected to port dst, is t the reactor where the relay reaction should be placed?
-inductive isRelayReactor (σ : Reactor) (t : ID) (src dst : ID) : Prop
-  | sameRtr {p : ID} :        (σ &[src]= p) → (σ &[dst]= p) → (σ &[p]= t)                   → isRelayReactor σ t src dst
-  | bothNested {ns nd : ID} : (σ &[src]= ns) → (σ &[dst]= nd) → (σ &[ns]= t) → (σ &[nd]= t) → isRelayReactor σ t src dst
-  | srcNested {n : ID} :      (σ &[src]= n) → (σ &[n]= t) → (σ &[dst]= t)                   → isRelayReactor σ t src dst
-  | dstNested {n : ID} :      (σ &[dst]= n) → (σ &[n]= t) → (σ &[src]= t)                   → isRelayReactor σ t src dst
-
--- TODO: Can these be bundled as a derivative of the Update relation (e.g. called Mutation)?
--- NOTE: We're currently ignoring the reactions' children - what did we need those for again?
-
-structure insertingRelayReaction (src dst : ID) (σ₁ σ₂ : Reactor) : Prop where
-  eqCmps : ∀ cmp, (cmp ≠ Cmp.rcn) → σ₁.cmp cmp = σ₂.cmp cmp
-  insert : ∃ i, (i ∉ σ₁.rcns.ids) ∧ (σ₂.rcns i = Reaction.relay src dst) ∧ ∀ j, j ≠ i → σ₁.rcns j = σ₂.rcns j
-
-structure deletingRelayReactions (src dst : ID) (σ₁ σ₂ : Reactor) : Prop where
-  eqCmps : ∀ cmp, (cmp ≠ Cmp.rcn) → σ₁.cmp cmp = σ₂.cmp cmp
-  delete : σ₁.rcns.filter' (· ≠ Reaction.relay src dst) = σ₂.rcns
-
-structure creatingReactor (rtr : Reactor) (i : ID) (σ₁ σ₂ : Reactor) : Prop where
-  eqCmps : ∀ cmp, (cmp ≠ Cmp.rtr) → σ₁.cmp cmp = σ₂.cmp cmp
-  create : σ₁.nest.update i rtr = σ₂.nest
-
-structure deletingReactor (i : ID) (σ₁ σ₂ : Reactor) : Prop where
-  eqCmps : ∀ cmp, (cmp ≠ Cmp.rtr) → σ₁.cmp cmp = σ₂.cmp cmp
-  create : σ₁.nest.update i none = σ₂.nest
+-- PROBLEM: This new ID is not unique -> this will cause trouble wrt determinism.
+-- Easy fix: Add the id of the new reaction as part of Change.connect and require 
+--           that that id must be new (by a reactor constraint).
+--           Then it's a simple Finmap.update.
+def insertingRelayReaction (src dst : ID) (rcns₁ rcns₂ : ID ▸ Reaction) : Prop :=
+  ∃ i, (i ∉ rcns₁.ids) ∧ (rcns₂ i = Reaction.relay src dst) ∧ ∀ j, j ≠ i → rcns₁ j = rcns₂ j
 
 inductive ChangeStep (rcn : ID) (σ : Reactor) : Reactor → Change → Prop 
-  | port {σ' i v} :     (σ -[Cmp.prt:i    (⟨·.role, v⟩)]→ σ') → ChangeStep rcn σ σ' (Change.port i v)
-  | state {σ' i v} :    (σ -[Cmp.stv:i       (λ _ => v)]→ σ') → ChangeStep rcn σ σ' (Change.state i v)
+  | port {σ' i v} :     (σ -[Cmp.prt:i (⟨·.role, v⟩)]→ σ')    → ChangeStep rcn σ σ' (Change.port i v)
+  | state {σ' i v} :    (σ -[Cmp.stv:i λ _ => v]→ σ')         → ChangeStep rcn σ σ' (Change.state i v)
   | action {σ' i t v} : (σ -[Cmp.act:i (schedule · t v)]→ σ') → ChangeStep rcn σ σ' (Change.action i t v)
-  -- | connect {σ' src dst r} :    (isRelayReactor σ r src dst) → (σ -[Cmp.rtr;r (insertingRelayReaction src dst)]→ σ') → ChangeStep rcn σ σ' (Change.connect src dst)
-  -- | disconnect {σ' src dst r} : (isRelayReactor σ r src dst) → (σ -[Cmp.rtr;r (deletingRelayReactions src dst)]→ σ') → ChangeStep rcn σ σ' (Change.disconnect src dst)
-  -- | create {σ' rtr i r} :                      (σ &[rcn]= r) → (σ -[Cmp.rtr;r (creatingReactor rtr i)]→ σ')          → ChangeStep rcn σ σ' (Change.create rtr i)
-  -- | delete {σ' i r} :                          (σ &[rcn]= r) → (σ -[Cmp.rtr;r (deletingReactor i)]→ σ')              → ChangeStep rcn σ σ' (Change.create rtr i)
+  -- | connect {σ' src dst r} :    (σ &[rcn]= r) → (σ -[Cmp.rcn/r insertingRelayReaction src dst]→ σ')           → ChangeStep rcn σ σ' (Change.connect src dst)
+  -- | disconnect {σ' src dst r} : (σ &[rcn]= r) → (σ -[Cmp.rcn|r (·.filter' (· ≠ Reaction.relay src dst))]→ σ') → ChangeStep rcn σ σ' (Change.disconnect src dst)
+  -- | create {σ' rtr i r} :       (σ &[rcn]= r) → (σ -[Cmp.rtr|r (·.update i (some rtr))]→ σ')                  → ChangeStep rcn σ σ' (Change.create rtr i)
+  -- | delete {σ' i r} :           (σ &[rcn]= r) → (σ -[Cmp.rtr|r (·.update i none)]→ σ')                        → ChangeStep rcn σ σ' (Change.create rtr i)
   -- Mutations are (temporarily) no-ops:
   | connect {i₁ i₂} :    ChangeStep rcn σ σ (Change.connect i₁ i₂)
   | disconnect {i₁ i₂} : ChangeStep rcn σ σ (Change.disconnect i₁ i₂)
