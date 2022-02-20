@@ -233,7 +233,7 @@ structure Mutation.rtrRel (cmp : Cmp) (cmpRel : (ID ▸ cmp.type) → (ID ▸ cm
 open Mutation in
 inductive Mutation (σ₁ σ₂ : Reactor) (cmp : Cmp) (cmpRel : (ID ▸ cmp.type) → (ID ▸ cmp.type) → Prop) : Rooted ID → Prop
   | root : (rtrRel cmp cmpRel) σ₁ σ₂ → Mutation σ₁ σ₂ cmp cmpRel ⊤ 
-  | nest {i} : σ₁ -[Cmp.rtr;i (rtrRel cmp cmpRel)]→ σ₂ → Mutation σ₁ σ₂ cmp cmpRel (Rooted.nested i) 
+  | nest {i} : σ₁ -[Cmp.rtr;i (rtrRel cmp cmpRel)]→ σ₂ → Mutation σ₁ σ₂ cmp cmpRel (Rooted.nest i) 
 
 notation σ₁:max " -[" cmp:max "/" r:max cmpRel "]→ " σ₂:max => Reactor.Mutation σ₁ σ₂ cmp cmpRel r
 

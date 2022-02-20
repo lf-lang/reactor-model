@@ -43,12 +43,10 @@ def fromRaw
     | Raw.Change.disconnect src dst       => Change.disconnect src dst 
     | Raw.Change.delete rtrID             => Change.delete rtrID
     | Raw.Change.create cr id => 
-      let cr' := Reactor.fromRaw cr (by
-          rw [hm] at hc
+      Change.create (id := id) $ Reactor.fromRaw cr (by
           have ha := Raw.Reactor.isAncestorOf.creatable hr.choose_spec hc
           exact Raw.Reactor.isAncestorOf_preserves_wf ha hw
       )
-      Change.create cr' id
 
 -- To ensure that `Change.fromRaw` performs a sensible transformation from
 -- raw to "proper" changes, we define what it means for raw and "proper"
@@ -112,7 +110,14 @@ def fromRaw {rtr : Raw.Reactor} (hw : rtr.wellFormed) {raw : Raw.Reaction} (hr :
     rw [←he] at he'
     cases he'
     contradiction,
-  actNotPast := by sorry,
+  actNotPast := by
+    intro i a t v h
+    simp [List.mem_map] at h
+    have ⟨c, hc, ha⟩ := h
+    have he := Change.RawEquiv.fromRaw hw hr hc
+    rw [←ha] at he
+    cases he
+    exact (hw.direct.rcnsWF hr).actNotPast i a t v hc,
   normNoChild := by
     intro ha
     have hn := (hw.direct.rcnsWF hr).normNoChild

@@ -154,7 +154,7 @@ theorem containerOf_unique {σ : Reactor} {i : ID} {c₁ c₂ : Rooted ID} :
 -- This leads to heterogeneous equality though, and is therefore undesirable:
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/.E2.9C.94.20Exfalso.20HEq
 def objFor (σ : Reactor) (cmp : Cmp) (o : cmp.type) : Rooted ID → Prop
-  | Rooted.nested i => ∃ l : Lineage σ i, (l.directParent.snd.cmp cmp) i = o
+  | Rooted.nest i => ∃ l : Lineage σ i, (l.directParent.snd.cmp cmp) i = o
   | ⊤ => match cmp with | Cmp.rtr => HEq o σ | _ => False
 
 -- This notation is chosen to be akin to the dereference notation in C.
@@ -168,7 +168,7 @@ theorem objFor_unique_cmp {σ : Reactor} {i : Rooted ID} {cmp₁ cmp₂ : Cmp} {
   intro h₁ h₂
   cases i
   case root => cases cmp₁ <;> cases cmp₂ <;> simp only [objFor] at *
-  case nested =>
+  case nest =>
     have ⟨l₁, h₁⟩ := h₁
     have ⟨l₂, h₂⟩ := h₂
     have hu := σ.uniqueIDs l₁ l₂

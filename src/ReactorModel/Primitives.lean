@@ -12,12 +12,12 @@ notation "⊥" => Value.absent
 
 inductive Rooted (ID)
   | root
-  | nested (i : ID)
+  | nest (i : ID)
 
 notation "⊤" => Rooted.root
 
 instance : Coe ID (Rooted ID) where
-  coe (i : ID) := Rooted.nested i
+  coe (i : ID) := Rooted.nest i
 
 def Priority := Option Nat
 

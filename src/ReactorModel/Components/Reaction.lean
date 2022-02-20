@@ -34,7 +34,7 @@ structure Reaction where
   tsSubInDeps :   triggers ⊆ deps Role.in
   prtOutDepOnly : ∀ i {o} (v : Value),     (o ∉ deps Role.out) → Change.port o v ∉ body i
   actOutDepOnly : ∀ i {o} (t) (v : Value), (o ∉ deps Role.out) → Change.action o t v ∉ body i
-  actNotPast :    ∀ i t (v : Value), (Change.action o t v) ∈ body i → i.time.t ≤ t
+  actNotPast :    ∀ i a t (v : Value), (Change.action a t v) ∈ body i → i.time.t ≤ t
   normNoChild :   (∀ i c, (c ∈ body i) → ¬c.mutates) → children = ∅
   
 namespace Reaction
@@ -95,7 +95,7 @@ noncomputable def relay (src dst : ID) : Reaction := {
     intro i
     cases hs : i.portVals[src] <;> simp [Option.elim, hs]
   actNotPast := by
-    intro _ i _ _ h
+    intro i _ _ _ h
     cases hs : i.portVals[src] <;> (simp [hs] at h),
   normNoChild := by simp
 }
@@ -107,21 +107,5 @@ theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
     intro i c h
     cases hc : i.portVals[i₁] <;> simp [relay, hc] at h
     exact ⟨_, _, h⟩
-
-noncomputable def updateChildren {rcn : Reaction} (is : Finset ID) (h : rcn.isMut) : Reaction := {
-  deps := rcn.deps,
-  triggers := rcn.triggers, 
-  prio := rcn.prio,
-  children := is,
-  body := rcn.body,
-  tsSubInDeps := rcn.tsSubInDeps,
-  prtOutDepOnly := rcn.prtOutDepOnly,
-  actOutDepOnly := rcn.actOutDepOnly,
-  actNotPast := sorry,
-  normNoChild := by
-    simp only [isMut, isNorm] at h
-    intro h'
-    contradiction
-}
     
 end Reaction

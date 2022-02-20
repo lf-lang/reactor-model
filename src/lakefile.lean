@@ -6,6 +6,6 @@ package reactor_model where
   dependencies := #[
     {
       name := `mathlib
-      src := Source.git "https://github.com/leanprover-community/mathlib4.git" "9ea62cd8be727e9a01506729d72eece6fb38dc6d"
+      src := Source.git "https://github.com/leanprover-community/mathlib4.git" "b6afb0dfcaeee607ddd20f38373d2f1419b517c8"
     }
   ]
