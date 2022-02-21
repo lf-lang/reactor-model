@@ -103,12 +103,12 @@ notation σ₁:max " -[" cmp ":" i:max f "]→ " σ₂:max => Reactor.Update cmp
 
 theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : Nonempty (Lineage σ₁ i) := by
   induction h
-  case top ha _ _ => exact ⟨Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
+  case top ha _ _ => exact ⟨Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
   case nest hn _ _ hi => exact ⟨Lineage.nest hi.some hn⟩
 
 theorem Update.preserves_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : Nonempty (Lineage σ₂ i) := by
   induction h
-  case top ha _ => exact ⟨Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
+  case top ha _ => exact ⟨Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨_, ha.symm⟩⟩
   case nest hn _ hi => exact ⟨Lineage.nest hi.some hn⟩
 
 theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} :
@@ -132,7 +132,7 @@ theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.t
     rw [hj] at he₁ hn₂
     exact EqModID.eq_from_eq_val_for_id he₁ he₂ hn₂
   case' top.nest σ₁ _ _ _ _ ht _ _ _ _ _ hu hn _ _, nest.top σ₁ _ _ _ _ _ hn _ hu _ _ _ _ ht _ _ =>
-    let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
+    let l₁ := Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨_, ht.symm⟩
     let l₂ := Lineage.nest hu.requires_lineage_to_target.some hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
@@ -141,31 +141,31 @@ theorem Update.unique' {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.
   (σ -[cmp:i f]→ σ₁) → (σ -[cmp:i f]→ σ₂) → σ₁ = σ₂ :=
   λ h₁ h₂ => Update.unique h₁ h₂ λ _ _ _ hv₁ hv₂ => hv₁.trans hv₂.symm
 
-theorem Update.reflects_in_objFor {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} :
-  (σ₁ -[cmp;i u]→ σ₂) → ∃ v v', (σ₁ *[cmp, i]= v) ∧ (σ₂ *[cmp, i]= v') ∧ (u v v') := by
+theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} :
+  (σ₁ -[cmp;i u]→ σ₂) → ∃ v v', (σ₁ *[cmp:i]= v) ∧ (σ₂ *[cmp:i]= v') ∧ (u v v') := by
   intro h
   induction h
   case top σ₁ σ₂ v v' he hv hv' hu =>
-    refine ⟨v, v', ?_, ?_, hu⟩
-    case _ =>
-      use Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨v, hv.symm⟩
-      simp only [←hv]
-      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
-    case _ =>
-      use Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨v', hv'.symm⟩
-      simp only [←hv']
-      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
+    refine ⟨v, v', ?top.object₁, ?top.object₂, hu⟩
+    case top.object₁ =>
+      apply Object.nest $ Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨v, hv.symm⟩
+      simp [Lineage.cmp_parent, hv]
+    case top.object₂ =>
+      apply Object.nest $ Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨v', hv'.symm⟩
+      simp [Lineage.cmp_parent, hv']
   case nest _ σ₂ j rtr₁ rtr₂ _ hr₁ hr₂ _ hi =>
-    have ⟨v, v', ⟨lv, hv⟩, ⟨lv', hv'⟩, hu⟩ := hi
-    refine ⟨v, v', ?_, ?_, hu⟩ 
-    case _ =>
-      use Lineage.nest lv hr₁
-      simp only [←hv]
-      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
-    case _ =>
-      use Lineage.nest lv' hr₂
-      simp only [←hv']
-      sorry -- TODO: This used to work: cases cmp <;> simp only [Lineage.directParent]
+    have ⟨v, v', ho₁, ho₂, hu⟩ := hi
+    refine ⟨v, v', ?nest.object₁, ?nest.object₂, hu⟩ 
+    case nest.object₁ =>
+      cases ho₁
+      case nest l hl => 
+        apply Object.nest $ Lineage.nest l hr₁
+        simp [Lineage.nest_parent, hl]
+    case nest.object₂ =>
+      cases ho₂
+      case nest l hl =>
+        apply Object.nest $ Lineage.nest l hr₂
+        simp [Lineage.nest_parent, hl]
 
 notation u₂ " ● " u₁ => λ v₁ v₂ => ∃ v, (u₁ v₁ v) ∧ (u₂ v v₂)
 
@@ -178,12 +178,12 @@ theorem Update.compose {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u₁ u�
     rw [hv₂] at hu₁
     exact Update.top (he₁.trans he₂) hv₁ hv₂' ⟨v₂, hu₁, hu₂⟩
   case top.nest hv' _ _ _ _ hu hn _ _ =>
-    let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, hv'.symm⟩
+    let l₁ := Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨_, hv'.symm⟩
     let l₂ := Lineage.nest hu.requires_lineage_to_target.some hn
     have hc := Reactor.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
   case nest.top hn hu _ _ _ _ hv _ _ =>
-    let l₁ := Lineage.fromCmp cmp $ Finmap.ids_def'.mpr ⟨_, hv.symm⟩
+    let l₁ := Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨_, hv.symm⟩
     let l₂ := Lineage.nest hu.preserves_lineage_to_target.some hn
     have hc := Reactor.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
