@@ -89,8 +89,7 @@ noncomputable def relay (src dst : ID) : Reaction := {
     cases hs : i.portVals[src] <;> simp [Option.elim, hs] at *
     case some v' =>
       rw [Finset.not_mem_singleton] at h
-      have hc' := hc.left
-      contradiction
+      exact absurd hc.left h
   actOutDepOnly := by
     intro i
     cases hs : i.portVals[src] <;> simp [Option.elim, hs]

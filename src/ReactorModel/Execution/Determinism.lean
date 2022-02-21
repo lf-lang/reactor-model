@@ -30,7 +30,7 @@ theorem ChangeStep.mutates_comm' {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {r
   intro h₁ h₁₂ h₂ h₂₁ hm
   cases hm
   case inl h => exact ChangeStep.mutates_comm h₁ h₁₂ h₂ h₂₁ h
-  case inr h => exact Eq.symm $ ChangeStep.mutates_comm h₂ h₂₁ h₁ h₁₂ h
+  case inr h => exact (ChangeStep.mutates_comm h₂ h₂₁ h₁ h₁₂ h).symm
 
 theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
   (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
@@ -96,9 +96,9 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
   intro h g hg
   induction h
-  case single h => cases h <;> simp [Context.addCurrentExecuted, Finmap.update_ne]
+  case single h => cases h <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
   case trans s₁ s₂ _ he _ hi =>
-    have hc : s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by cases he <;> simp [Context.addCurrentExecuted, Finmap.update_ne]
+    have hc : s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by cases he <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
     rw [InstExecution.preserves_time $ single he] at hg
     simp [hc, hi hg]
 
@@ -116,9 +116,8 @@ theorem State.instComplete_to_inst_stuck {s : State} :
   cases he
   case' execReaction hi he _ _, skipReaction hi he _ =>
     have h' := Reactor.ids_def.mp ⟨_, hi⟩
-    have := he.unexeced
     rw [←h] at h'
-    contradiction
+    exact absurd h' he.unexeced
 
 theorem CompleteInstExecution.convergent_rcns {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
@@ -166,9 +165,7 @@ where
   impossible_case_aux {s₁ s₂ : State} (hi : s₁ ⇓ᵢ s₂) (hic : s₁.instComplete) : False := by
     cases hi 
     case' execReaction hl hce _ _, skipReaction hl hce _ =>
-      have := mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
-      have := Reactor.ids_def.mp ⟨_, hl⟩
-      contradiction
+      exact absurd (Reactor.ids_def.mp ⟨_, hl⟩) $ mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 
   (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
@@ -182,7 +179,7 @@ protected theorem Execution.deterministic {s s₁ s₂ : State} (hc₁ : s₁.in
   intro he₁ he₂ ht
   induction he₁ <;> cases he₂ 
   case refl.refl => rfl
-  case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hc₂ (Eq.symm ht) h₁₂ h₂₃
+  case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hc₂ ht.symm h₁₂ h₂₃
   case refl.step _ _ h₁₂ h₂₃ => exact False.elim $ impossible_case_aux hc₁ ht h₁₂ h₂₃
   case step.step s sₘ₁ s₁ h₁ₘ₁ hₘ₁₂ hi sₘ₂ h₁ₘ₂ hₘ₂₂ => 
     rw [Execution.Step.deterministic h₁ₘ₁ h₁ₘ₂] at hi
@@ -193,14 +190,11 @@ where
     intro h₁₂ h₂₃
     cases h₁₂
     case completeInst hi =>
-      have ⟨sₘ, _⟩ := hi.exec.first_step
-      have := (State.instComplete_to_inst_stuck hc) sₘ
-      contradiction
+      have ⟨sₘ, h⟩ := hi.exec.first_step
+      exact absurd h $ (State.instComplete_to_inst_stuck hc) sₘ
     case advanceTime g hg _ _ => 
       have h := time_monotone h₂₃
       rw [←ht] at h
       simp only at h
       have h' := s₁.ctx.advanceTime_strictly_increasing g (s₁.time_lt_nextTag hg)
-      have h'' := lt_of_le_of_lt h h'
-      have := lt_irrefl _ h''
-      contradiction
+      exact (lt_irrefl _ $ lt_of_le_of_lt h h').elim

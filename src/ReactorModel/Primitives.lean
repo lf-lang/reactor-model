@@ -132,7 +132,7 @@ instance eqAt.Setoid (is : Finset ID) : Setoid (ID ▸ Value) := {
     symm := by
       simp only [eqAt]
       intro _ _ h i hi
-      exact Eq.symm (h i hi)
+      exact (h i hi).symm
     trans := by
       simp only [eqAt]
       intro _ _ _ hxy hyz i hi

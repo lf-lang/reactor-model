@@ -16,26 +16,33 @@ def time (ctx : Context) : Time.Tag :=
   ctx.executedRcns.ids.max' ⟨ctx.nonempty.choose, Finmap.ids_def.mpr ctx.nonempty.choose_spec⟩
 
 theorem executedRcns_at_time_isSome (ctx : Context) :
-  (ctx.executedRcns ctx.time).isSome :=
-  sorry
+  (ctx.executedRcns ctx.time).isSome := by
+  simp only [Option.isSome_iff_exists]
+  have h : ∀ a, ctx.executedRcns.lookup (time ctx) = some a ↔ some a = ctx.executedRcns.lookup (time ctx) := by
+    intro a; constructor <;> (intro h; exact h.symm)
+  simp only [h, ←Finmap.ids_def']
+  exact Finset.max'_mem _ _
 
 def currentExecutedRcns (ctx : Context) : Finset ID :=
   (ctx.executedRcns ctx.time).get ctx.executedRcns_at_time_isSome
 
 theorem currentExecutedRcns_def (ctx : Context) : some ctx.currentExecutedRcns = ctx.executedRcns ctx.time := by
-  sorry
+  simp [currentExecutedRcns, Option.get_some $ ctx.executedRcns ctx.time]
 
 noncomputable def addCurrentExecuted (ctx : Context) (i : ID) : Context := {
   executedRcns := ctx.executedRcns.update ctx.time $ ctx.currentExecutedRcns.insert i,
-  nonempty := sorry
+  nonempty := ctx.executedRcns.update_nonempty _ _ ctx.nonempty
 }
 
-theorem addCurrentExecuted_same_time (ctx : Context) (i : ID) : (ctx.addCurrentExecuted i).time = ctx.time := by
+theorem addCurrentExecuted_same_time (ctx : Context) (i : ID) : (ctx.addCurrentExecuted i).time = ctx.time := by 
+  suffices h : (ctx.addCurrentExecuted i).executedRcns.ids = ctx.executedRcns.ids by 
+    simp [time, h]
+    sorry
   sorry
 
 noncomputable def advanceTime (ctx : Context) (g : Time.Tag) (h : ctx.time < g) : Context := {
   executedRcns := ctx.executedRcns.update' g ∅,
-  nonempty := sorry
+  nonempty := ctx.executedRcns.update_nonempty _ _ ctx.nonempty
 }
 
 theorem advanceTime_strictly_increasing (ctx : Context) (g : Time.Tag) (h : ctx.time < g) :

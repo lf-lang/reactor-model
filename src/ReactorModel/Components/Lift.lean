@@ -90,7 +90,7 @@ def fromRaw {rtr : Raw.Reactor} (hw : rtr.wellFormed) {raw : Raw.Reaction} (hr :
   triggers := raw.triggers,
   prio := raw.prio,
   children := raw.children,
-  body := (λ i => (raw.body i).attach.map (λ c => Change.fromRaw hw hr c.property)),
+  body := λ i => (raw.body i).attach.map (Change.fromRaw hw hr ·.property),
   tsSubInDeps := (hw.direct.rcnsWF hr).tsSubInDeps,
   prtOutDepOnly := by
     intro i _ v ho hc
@@ -170,15 +170,28 @@ theorem RawEquiv.unique {rcn : Reaction} {raw₁ raw₂ : Raw.Reaction} (h₁ : 
       case cons hd₂ tl₂ hhd₂ htl₂ =>
         simp [Change.RawEquiv.unique hhd₁ hhd₂, hi tl₁ htl₁ tl₂ htl₂]
 
+/-
+https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/tactic.20'generalize'.20failed
+private theorem RawEquiv.fromRaw_body_aux {raw : Raw.Reaction} {rtr : Raw.Reactor} (hw : rtr.wellFormed) (rcs : List Raw.Change) :
+  ∀ raw i (hr : ∃ i, rtr.rcns i = some raw), rcs = raw.body i → List.forall₂ Change.RawEquiv ((Reaction.fromRaw hw hr).body i) (raw.body i) := by
+  simp only [Reaction.fromRaw]
+  induction rcs
+  case nil =>
+    intro raw i hr he
+    simp only [←he]
+    sorry
+  case cons =>
+    intro raw i hr he
+    simp only [←he]
+-/
+
 theorem RawEquiv.fromRaw {raw : Raw.Reaction} {rtr} (hw hr) :
   RawEquiv (@Reaction.fromRaw rtr hw raw hr) raw := {
     deps := by simp [Reaction.fromRaw],
     triggers := by simp [Reaction.fromRaw],
     prio := by simp [Reaction.fromRaw],
     children := by simp [Reaction.fromRaw],
-    body := by
-      intro i
-      sorry
+    body := sorry
   }
 
 theorem RawEquiv.fromRaw' {rcn : Reaction} {rtr raw hw hr} :

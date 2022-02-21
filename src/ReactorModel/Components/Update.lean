@@ -39,12 +39,12 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
     intro i'
     by_cases hc : i' = i
     case pos => simp only [hc, ha]
-    case neg => simp only [he₁.ne_id_eq hc, Eq.symm $ he₂.ne_id_eq hc]
+    case neg => simp only [he₁.ne_id_eq hc, (he₂.ne_id_eq hc).symm]
   have h_aux₂ : ∀ cmp', cmp' ≠ cmp → σ₁.cmp cmp' = σ₂.cmp cmp' := by
     intro cmp' hn
     have h := he₁.ne_cmp_eq hn
     rw [he₂.ne_cmp_eq hn] at h
-    exact Eq.symm h
+    exact h.symm
   cases cmp
   case a.rtr =>
     have h₀ := h_aux₁

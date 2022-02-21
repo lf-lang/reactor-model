@@ -1,7 +1,7 @@
 import Mathlib
 
 def Time := Nat
-  deriving LinearOrder, Ord, DecidableEq, Inhabited
+deriving LinearOrder, Ord, DecidableEq, Inhabited
 
 namespace Time
  

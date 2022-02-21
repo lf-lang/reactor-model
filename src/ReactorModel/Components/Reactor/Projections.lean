@@ -33,7 +33,7 @@ theorem RawEquiv.nest (rtr : Reactor) : Finmap.forall₂' Reactor.RawEquiv rtr.n
     simp only [nest] at hr
     have ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
     simp at h₂
-    have h := RawEquiv.fromRaw' $ Eq.symm h₂
+    have h := RawEquiv.fromRaw' h₂.symm
     have h₁ := Finmap.attach_def h₁
     simp at h h₁
     simp [h₁] at hr'
@@ -45,16 +45,16 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor} {i} : rtr.nest i = rtr' ↔ rtr.ra
   case mp =>
     intro h
     have ⟨hi, hv⟩ := RawEquiv.nest rtr
-    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mpr ⟨rtr', Eq.symm h⟩
+    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mpr ⟨rtr', h.symm⟩
     have ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
-    have he := hv h (Eq.symm hx)
+    have he := hv h hx.symm
     simp [←hx, he.equiv]
   case mpr =>
     intro h
     have ⟨hi, hv⟩ := RawEquiv.nest rtr
-    have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, Eq.symm h⟩)
+    have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, h.symm⟩)
     have ⟨x, hx⟩ := Finmap.ids_def'.mp hi
-    have he := hv (Eq.symm hx) h
+    have he := hv hx.symm h
     simp [←hx]
     exact Reactor.raw_ext_iff.mpr he.equiv  
 
@@ -76,7 +76,7 @@ theorem RawEquiv.rcns (rtr : Reactor) : Finmap.forall₂' Reaction.RawEquiv rtr.
     intro i r r' hr hr'
     simp [rcns] at hr
     have ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
-    have h := Reaction.RawEquiv.fromRaw' $ Eq.symm h₂
+    have h := Reaction.RawEquiv.fromRaw' h₂.symm
     have h₁ := Finmap.attach_def h₁
     simp at h₁
     simp [h₁] at hr'
@@ -85,13 +85,13 @@ theorem RawEquiv.rcns (rtr : Reactor) : Finmap.forall₂' Reaction.RawEquiv rtr.
 
 theorem rcns_has_raw {rtr : Reactor} {rcn i} (h : rtr.rcns i = some rcn) : 
   ∃ raw, rtr.raw.rcns i = some raw := by
-  have h' := Option.ne_none_iff_exists.mpr ⟨rcn, Eq.symm h⟩
+  have h' := Option.ne_none_iff_exists.mpr ⟨rcn, h.symm⟩
   simp only [rcns, ←Finmap.ids_def, Finmap.map_mem_ids, Finmap.attach_mem_ids] at h'
   have he := RawEquiv.rcns rtr
   have hi := (he.eqIDs _).mp h'
   simp only [Finmap.ids_def'] at h'
   have ⟨raw, hr⟩ := h'
-  exact ⟨raw, Eq.symm hr⟩
+  exact ⟨raw, hr.symm⟩
 
 -- A projection for ports, that allows us to separate them by port role.
 noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ▸ Port := 
@@ -153,18 +153,18 @@ theorem rcns_ext {rtr₁ rtr₂ : Reactor} (h : rtr₁.rcns = rtr₂.rcns) : rtr
     rw [←h] at h₂
     have h₁' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₁'
-    have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
+    have h₁' := h₁' ⟨rcn, hc.symm⟩
     simp only [Finmap.ids_def'] at h₁'
     have ⟨x, hx⟩ := h₁'
     rw [h] at h₁
     have h₂' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₂'
-    have h₂' := h₂' ⟨rcn, Eq.symm hc⟩
+    have h₂' := h₂' ⟨rcn, hc.symm⟩
     have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
     have ⟨y, hy⟩ := h₂₂'
     rw [←hy]
-    have hr₁ := h₁₁.rel (Eq.symm hx) hc
-    have hr₂ := h₂.rel (Eq.symm hx) (Eq.symm hy)
+    have hr₁ := h₁₁.rel hx.symm hc
+    have hr₂ := h₂.rel hx.symm hy.symm
     simp [Reaction.RawEquiv.unique hr₁ hr₂]
 
 theorem nest_ext {rtr₁ rtr₂ : Reactor} (h : rtr₁.nest = rtr₂.nest) : rtr₁.raw.nest = rtr₂.raw.nest := by
@@ -185,18 +185,18 @@ theorem nest_ext {rtr₁ rtr₂ : Reactor} (h : rtr₁.nest = rtr₂.nest) : rtr
     rw [←h] at h₂
     have h₁' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₁'
-    have h₁' := h₁' ⟨rcn, Eq.symm hc⟩
+    have h₁' := h₁' ⟨rcn, hc.symm⟩
     simp only [Finmap.ids_def'] at h₁'
     have ⟨x, hx⟩ := h₁'
     rw [h] at h₁
     have h₂' := (h₁.eqIDs i).mpr
     simp only [Option.ne_none_iff_exists] at h₂'
-    have h₂' := h₂' ⟨rcn, Eq.symm hc⟩
+    have h₂' := h₂' ⟨rcn, hc.symm⟩
     have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
     have ⟨y, hy⟩ := h₂₂'
     rw [←hy]
-    have hr₁ := h₁₁.rel (Eq.symm hx) hc
-    have hr₂ := h₂.rel (Eq.symm hx) (Eq.symm hy)
+    have hr₁ := h₁₁.rel hx.symm hc
+    have hr₂ := h₂.rel hx.symm hy.symm
     simp [Reactor.RawEquiv.unique hr₁ hr₂]
 
 theorem ext_iff {rtr₁ rtr₂ : Reactor} : 

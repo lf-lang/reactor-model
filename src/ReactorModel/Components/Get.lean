@@ -91,8 +91,7 @@ theorem retarget_ne {σ : Reactor} {i} (l : Lineage σ i) {cmp} (h) :
   intro hn hc
   have h' := Lineage.retarget_target σ i l cmp h
   rw [←hc] at h'
-  have := Eq.symm h'
-  contradiction
+  exact absurd h'.symm hn
 
 end Lineage
 
@@ -174,19 +173,13 @@ theorem objFor_unique_cmp {σ : Reactor} {i : Rooted ID} {cmp₁ cmp₂ : Cmp} {
     have hu := σ.uniqueIDs l₁ l₂
     rw [←hu] at h₂
     by_contra hc
-    have h₁ := Finmap.ids_def'.mpr ⟨o₁, Eq.symm h₁⟩
-    have h₂ := Finmap.ids_def'.mpr ⟨o₂, Eq.symm h₂⟩
+    have h₁ := Finmap.ids_def'.mpr ⟨o₁, h₁.symm⟩
+    have h₂ := Finmap.ids_def'.mpr ⟨o₂, h₂.symm⟩
     by_cases hc₁ : cmp₁ = l₁.target
-    case neg =>
-      have := Lineage.retarget_ne l₁ h₁ hc₁
-      have := σ.uniqueIDs l₁ $ l₁.retarget cmp₁ h₁
-      contradiction
+    case neg => exact absurd (σ.uniqueIDs l₁ $ l₁.retarget cmp₁ h₁) (Lineage.retarget_ne l₁ h₁ hc₁)
     case pos =>
       by_cases hc₂ : cmp₂ = l₂.target
-      case neg =>
-        have := Lineage.retarget_ne l₂ h₂ hc₂
-        have := σ.uniqueIDs l₂ $ l₂.retarget cmp₂ h₂
-        contradiction
+      case neg => exact absurd (σ.uniqueIDs l₂ $ l₂.retarget cmp₂ h₂) (Lineage.retarget_ne l₂ h₂ hc₂)
       case pos =>
         rw [hu] at hc₁
         rw [←hc₂] at hc₁
