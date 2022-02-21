@@ -44,8 +44,8 @@ def fromRaw
     | Raw.Change.delete rtrID             => Change.delete rtrID
     | Raw.Change.create cr id => 
       Change.create (id := id) $ Reactor.fromRaw cr (by
-          have ha := Raw.Reactor.isAncestorOf.creatable hr.choose_spec hc
-          exact Raw.Reactor.isAncestorOf_preserves_wf ha hw
+          have ha := Raw.Reactor.Ancestor.creatable hr.choose_spec hc
+          exact Raw.Reactor.Ancestor.preserves_wf ha hw
       )
 
 -- To ensure that `Change.fromRaw` performs a sensible transformation from

@@ -29,7 +29,7 @@ theorem wfNormDeps {rtr : Reactor} {n : Reaction} (r : Port.Role) (h : n ∈ rtr
     apply Or.inr
     have ⟨i', ri', h₁, h₂⟩ := hw
     simp [nestedPortIDs, Set.finite.mem_to_finset]
-    have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
+    have hrip := Raw.Reactor.Ancestor.preserves_wf (Raw.Reactor.Ancestor.nested h₁) rtr.rawWF
     let rip := Reactor.fromRaw ri' hrip
     exists rip
     constructor
@@ -73,7 +73,7 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
       apply Or.inr
       have ⟨i', ri', h₁, h₂⟩ := h
       simp [nestedPortIDs, Set.finite.mem_to_finset]
-      have hrip := Raw.Reactor.isAncestorOf_preserves_wf (Raw.Reactor.isAncestorOf.nested h₁) rtr.rawWF
+      have hrip := Raw.Reactor.Ancestor.preserves_wf (Raw.Reactor.Ancestor.nested h₁) rtr.rawWF
       let rip := Reactor.fromRaw ri' hrip
       exists rip
       constructor

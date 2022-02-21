@@ -187,7 +187,7 @@ theorem Object.unique_cmp {σ : Reactor} {i : Rooted ID} {cmp₁ cmp₂ : Cmp} {
 -- If this is important though, the two theorems can be used in succession:
 -- First, `objFor_unique_obj` can be used to establish equality of the component types.
 -- After appropriate type casting (using the previous result), `objFor_unique_obj` can be used to show
--- object equality. 
+-- object equality. X
 theorem Object.unique_obj {σ : Reactor} {i : Rooted ID} {cmp : Cmp} {o₁ o₂ : cmp.type} : 
   (σ *[cmp:i]= o₁) → (σ *[cmp:i]= o₂) → o₁ = o₂ := by
   intro h₁ h₂

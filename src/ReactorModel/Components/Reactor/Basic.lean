@@ -65,11 +65,11 @@ structure directlyWellFormed (rtr : Raw.Reactor) : Prop where
 -- 2. `creatable`: there exists a reaction (which must be a mutation) in `r₁` which
 --    can produce a `Raw.Change.create` which contains `r₂`
 --
--- The `isAncestorOf` relation forms the transitive closure over the previous cases.
-inductive isAncestorOf : Raw.Reactor → Raw.Reactor → Prop 
-  | nested {parent child i} : (parent.nest i = some child) → isAncestorOf parent child
-  | creatable {old new rcn inp i iᵣ} : (old.rcns i = some rcn) → (Change.create new iᵣ ∈ rcn.body inp) → isAncestorOf old new
-  | trans {r₁ r₂ r₃} : (isAncestorOf r₁ r₂) → (isAncestorOf r₂ r₃) → (isAncestorOf r₁ r₃)
+-- The `Ancestor` relation forms the transitive closure over the previous cases.
+inductive Ancestor : Raw.Reactor → Raw.Reactor → Prop 
+  | nested {parent child i} : (parent.nest i = some child) → Ancestor parent child
+  | creatable {old new rcn inp i iᵣ} : (old.rcns i = some rcn) → (Change.create new iᵣ ∈ rcn.body inp) → Ancestor old new
+  | trans {r₁ r₂ r₃} : (Ancestor r₁ r₂) → (Ancestor r₂ r₃) → (Ancestor r₁ r₃)
 
 -- This property ensures "properness" of a reactor in two steps:
 -- 
@@ -79,7 +79,7 @@ inductive isAncestorOf : Raw.Reactor → Raw.Reactor → Prop
 --    The `isAncestorOf` relation formalizes the notion of (transitive) nesting and "creatability".
 structure wellFormed (σ : Raw.Reactor) : Prop where
   direct : σ.directlyWellFormed 
-  offspring : ∀ {rtr : Raw.Reactor}, σ.isAncestorOf rtr → rtr.directlyWellFormed
+  offspring : ∀ {rtr : Raw.Reactor}, Ancestor σ rtr → rtr.directlyWellFormed
 
 end Raw.Reactor
 
@@ -103,8 +103,8 @@ theorem Reactor.raw_ext_iff {rtr₁ rtr₂ : Reactor} : rtr₁ = rtr₂ ↔ rtr�
     simp [h]
   )
 
-theorem Raw.Reactor.isAncestorOf_preserves_wf {rtr₁ rtr₂ : Raw.Reactor} (ha : rtr₁.isAncestorOf rtr₂) (hw : rtr₁.wellFormed) :
+theorem Raw.Reactor.Ancestor.preserves_wf {rtr₁ rtr₂ : Raw.Reactor} (ha : Ancestor rtr₁ rtr₂) (hw : rtr₁.wellFormed) :
   rtr₂.wellFormed := {
     direct := hw.offspring ha,
-    offspring := λ hr => hw.offspring (isAncestorOf.trans ha hr)
+    offspring := λ hr => hw.offspring (Ancestor.trans ha hr)
   }

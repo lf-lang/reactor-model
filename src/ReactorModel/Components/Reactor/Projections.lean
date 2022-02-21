@@ -18,8 +18,8 @@ def nest (rtr : Reactor) : ID ▸ Reactor :=
   let raw : Finmap ID (Raw.Reactor) := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFiniteRtrs }
   raw.attach.map (λ ⟨_, h⟩ => Reactor.fromRaw _ (by
       have ⟨_, hm⟩ := Finmap.values_def.mp h
-      have h' := Raw.Reactor.isAncestorOf.nested hm
-      exact Raw.Reactor.isAncestorOf_preserves_wf h' rtr.rawWF
+      have h' := Raw.Reactor.Ancestor.nested hm
+      exact Raw.Reactor.Ancestor.preserves_wf h' rtr.rawWF
     )
   )  
 
