@@ -9,15 +9,6 @@ noncomputable def schedule (act : Time.Tag ▸ Value) (t : Time) (v : Value) : T
   | none => act.update ⟨t, 0⟩ v
   | some g => act.update ⟨t, g.microsteps + 1⟩ v
 
--- PROBLEM: This new ID is not unique -> this will cause trouble wrt determinism.
--- Easy fix: Add the id of the new reaction as part of Change.connect and require 
---           that that id must be new (by a reactor constraint).
---           Then it's a simple Finmap.update.
--- Other idea: Require a function on Reactor that produces an ID which is currently 
---             not yet used as part of the reactor.
-def insertingRelayReaction (src dst : ID) (rcns₁ rcns₂ : ID ▸ Reaction) : Prop :=
-  ∃ i, (i ∉ rcns₁.ids) ∧ (rcns₂ i = Reaction.relay src dst) ∧ ∀ j, j ≠ i → rcns₁ j = rcns₂ j
-
 inductive ChangeStep (rcn : ID) (s : State) : State → Change → Prop 
   | port {σ' i v} :     (s.rtr -[Cmp.prt:i (⟨·.role, v⟩)]→ σ')    → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.port i v)
   | state {σ' i v} :    (s.rtr -[Cmp.stv:i λ _ => v]→ σ')         → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.state i v)

@@ -39,7 +39,6 @@ protected inductive Reaction
     (deps : Port.Role → Finset ID) 
     (triggers : Finset ID)
     (prio : Priority)
-    (children : Finset ID)
     (body : Reaction.Input → List Raw.Change)
 
 protected inductive Reactor 
@@ -72,11 +71,10 @@ def Raw.Change.mutates : Raw.Change → Bool
 namespace Raw.Reaction
 
 -- These definitions give us the projections that would usually be generated for a structure.
-def deps :     Raw.Reaction → Port.Role → Finset ID            | mk d _ _ _ _ => d
-def triggers : Raw.Reaction → Finset ID                        | mk _ t _ _ _ => t
-def prio :     Raw.Reaction → Priority                         | mk _ _ p _ _ => p
-def children : Raw.Reaction → Finset ID                        | mk _ _ _ c _ => c
-def body :     Raw.Reaction → Reaction.Input → List Raw.Change | mk _ _ _ _ b => b
+def deps :     Raw.Reaction → Port.Role → Finset ID            | mk d _ _ _ => d
+def triggers : Raw.Reaction → Finset ID                        | mk _ t _ _ => t
+def prio :     Raw.Reaction → Priority                         | mk _ _ p _ => p
+def body :     Raw.Reaction → Reaction.Input → List Raw.Change | mk _ _ _ b => b
 
 -- Cf. `Reaction.isNorm`.
 def isNorm (rcn : Raw.Reaction) : Prop :=
@@ -94,8 +92,8 @@ structure isPure (rcn : Raw.Reaction) : Prop where
 -- An extensionality theorem for `Raw.Reaction`.
 theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction} : 
   rcn₁ = rcn₂ ↔ 
-  rcn₁.deps = rcn₂.deps ∧ rcn₁.triggers = rcn₂.triggers ∧ rcn₁.prio = rcn₂.prio ∧
-  rcn₁.children = rcn₂.children ∧ rcn₁.body = rcn₂.body := by
+  rcn₁.deps = rcn₂.deps ∧ rcn₁.triggers = rcn₂.triggers ∧ 
+  rcn₁.prio = rcn₂.prio ∧ rcn₁.body = rcn₂.body := by
   constructor
   case mp =>
     intro h
@@ -104,7 +102,7 @@ theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction} :
     simp [h]
   case mpr =>
     intro h
-    simp only [deps, triggers, prio, children, body] at h
+    simp only [deps, triggers, prio, body] at h
     cases rcn₁
     cases rcn₂
     simp [h]
@@ -112,8 +110,8 @@ theorem ext_iff {rcn₁ rcn₂ : Raw.Reaction} :
 -- We need this additional theorem as the `ext` attribute can only be used on theorems proving an equality.
 @[ext]
 theorem ext {rcn₁ rcn₂ : Raw.Reaction} :
-  rcn₁.deps = rcn₂.deps ∧ rcn₁.triggers = rcn₂.triggers ∧ rcn₁.prio = rcn₂.prio ∧
-  rcn₁.children = rcn₂.children ∧ rcn₁.body = rcn₂.body → rcn₁ = rcn₂ :=
+  rcn₁.deps = rcn₂.deps ∧ rcn₁.triggers = rcn₂.triggers ∧ 
+  rcn₁.prio = rcn₂.prio ∧ rcn₁.body = rcn₂.body → rcn₁ = rcn₂ :=
   λ h => ext_iff.mpr h  
 
 end Raw.Reaction

@@ -88,7 +88,6 @@ def fromRaw {rtr : Raw.Reactor} (hw : rtr.wellFormed) {raw : Raw.Reaction} (hr :
   deps := raw.deps,
   triggers := raw.triggers,
   prio := raw.prio,
-  children := raw.children,
   body := λ i => (raw.body i).attach.map (Change.fromRaw hw hr ·.property),
   tsSubInDeps := (hw.direct.rcnsWF hr).tsSubInDeps,
   prtOutDepOnly := by 
@@ -117,22 +116,6 @@ def fromRaw {rtr : Raw.Reactor} (hw : rtr.wellFormed) {raw : Raw.Reaction} (hr :
     rw [←ha] at he
     cases he
     exact (hw.direct.rcnsWF hr).actNotPast i a t v hc,
-  normNoChild := by 
-    intro ha
-    have hn := (hw.direct.rcnsWF hr).normNoChild
-    simp at ha
-    simp [Raw.Reaction.isNorm] at hw
-    suffices hg : ∀ i c, c ∈ raw.body i → ¬c.mutates from hn hg
-    intro i c hc
-    have ha := ha i (Change.fromRaw hw hr hc)
-    simp only [List.mem_map] at ha
-    have ha := ha (by
-      let a : { x // x ∈ raw.body i } := ⟨c, hc⟩
-      exists a
-      simp [List.mem_attach]
-    )
-    have h := Change.RawEquiv.fromRaw hw hr hc
-    exact mt (Change.RawEquiv.mutates_iff h).mpr ha
 }
 
 -- To ensure that `fromRaw` performs a sensible transformation from a raw
@@ -144,13 +127,12 @@ structure RawEquiv (rcn : Reaction) (raw : Raw.Reaction) : Prop :=
   deps :     rcn.deps = raw.deps
   triggers : rcn.triggers = raw.triggers
   prio :     rcn.prio = raw.prio
-  children : rcn.children = raw.children
   body :     ∀ i, List.forall₂ Change.RawEquiv (rcn.body i) (raw.body i)
 
 theorem RawEquiv.unique {rcn : Reaction} {raw₁ raw₂ : Raw.Reaction} (h₁ : RawEquiv rcn raw₁) (h₂ : RawEquiv rcn raw₂) : 
   raw₁ = raw₂ := by
   apply Raw.Reaction.ext
-  simp [←h₁.deps, ←h₂.deps, ←h₁.triggers, ←h₂.triggers, ←h₁.prio, ←h₂.prio, ←h₁.children, ←h₂.children]
+  simp [←h₁.deps, ←h₂.deps, ←h₁.triggers, ←h₂.triggers, ←h₁.prio, ←h₂.prio]
   funext i
   have hb₁ := h₁.body i
   have hb₂ := h₂.body i
@@ -174,7 +156,6 @@ theorem RawEquiv.fromRaw {raw : Raw.Reaction} {rtr} (hw hr) :
     deps := by simp [Reaction.fromRaw],
     triggers := by simp [Reaction.fromRaw],
     prio := by simp [Reaction.fromRaw],
-    children := by simp [Reaction.fromRaw],
     body := by
       intro i
       simp [Reaction.fromRaw]

@@ -29,13 +29,11 @@ structure Reaction where
   deps :          Port.Role → Finset ID
   triggers :      Finset ID
   prio :          Priority
-  children :      Finset ID
   body :          Input → List Change
   tsSubInDeps :   triggers ⊆ deps Role.in
   prtOutDepOnly : ∀ i {o} (v : Value),     (o ∉ deps Role.out) → Change.port o v ∉ body i
   actOutDepOnly : ∀ i {o} (t) (v : Value), (o ∉ deps Role.out) → Change.action o t v ∉ body i
   actNotPast :    ∀ i a t (v : Value), (Change.action a t v) ∈ body i → i.time.t ≤ t
-  normNoChild :   (∀ i c, (c ∈ body i) → ¬c.mutates) → children = ∅
   
 namespace Reaction
 
@@ -51,10 +49,6 @@ def isNorm (rcn : Reaction) : Prop :=
 -- A reaction is a mutation if it is not "normal", i.e. it does produce
 -- mutating changes for some input.
 def isMut (rcn : Reaction) : Prop := ¬rcn.isNorm
-
--- A version of `Reaction.norm_no_child` that uses `isNorm`.
-theorem norm_no_child' (rcn : Reaction) : rcn.isNorm → rcn.children = ∅ := 
-  rcn.normNoChild
 
 -- A reaction is pure if it does not interact with its parent reactor's state.
 structure isPure (rcn : Reaction) : Prop where
@@ -81,7 +75,6 @@ noncomputable def relay (src dst : ID) : Reaction := {
   deps := λ r => match r with | Role.in => Finset.singleton src | Role.out => Finset.singleton dst,
   triggers := Finset.singleton src,
   prio := none,
-  children := ∅,
   body := λ i => match i.portVals[src] with | none => [] | some v => [Change.port dst v],
   tsSubInDeps := by simp,
   prtOutDepOnly := by
@@ -96,7 +89,6 @@ noncomputable def relay (src dst : ID) : Reaction := {
   actNotPast := by
     intro i _ _ _ h
     cases hs : i.portVals[src] <;> (simp [hs] at h),
-  normNoChild := by simp
 }
 
 theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
