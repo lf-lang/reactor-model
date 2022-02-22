@@ -13,41 +13,43 @@ noncomputable def schedule (act : Time.Tag ▸ Value) (t : Time) (v : Value) : T
 -- Easy fix: Add the id of the new reaction as part of Change.connect and require 
 --           that that id must be new (by a reactor constraint).
 --           Then it's a simple Finmap.update.
+-- Other idea: Require a function on Reactor that produces an ID which is currently 
+--             not yet used as part of the reactor.
 def insertingRelayReaction (src dst : ID) (rcns₁ rcns₂ : ID ▸ Reaction) : Prop :=
   ∃ i, (i ∉ rcns₁.ids) ∧ (rcns₂ i = Reaction.relay src dst) ∧ ∀ j, j ≠ i → rcns₁ j = rcns₂ j
 
-inductive ChangeStep (rcn : ID) (σ : Reactor) : Reactor → Change → Prop 
-  | port {σ' i v} :     (σ -[Cmp.prt:i (⟨·.role, v⟩)]→ σ')    → ChangeStep rcn σ σ' (Change.port i v)
-  | state {σ' i v} :    (σ -[Cmp.stv:i λ _ => v]→ σ')         → ChangeStep rcn σ σ' (Change.state i v)
-  | action {σ' i t v} : (σ -[Cmp.act:i (schedule · t v)]→ σ') → ChangeStep rcn σ σ' (Change.action i t v)
-  -- | connect {σ' src dst r} :    (σ &[rcn]= r) → (σ -[Cmp.rcn/r insertingRelayReaction src dst]→ σ')           → ChangeStep rcn σ σ' (Change.connect src dst)
-  -- | disconnect {σ' src dst r} : (σ &[rcn]= r) → (σ -[Cmp.rcn|r (·.filter' (· ≠ Reaction.relay src dst))]→ σ') → ChangeStep rcn σ σ' (Change.disconnect src dst)
-  -- | create {σ' rtr i r} :       (σ &[rcn]= r) → (σ -[Cmp.rtr|r (·.update i (some rtr))]→ σ')                  → ChangeStep rcn σ σ' (Change.create rtr i)
-  -- | delete {σ' i r} :           (σ &[rcn]= r) → (σ -[Cmp.rtr|r (·.update i none)]→ σ')                        → ChangeStep rcn σ σ' (Change.create rtr i)
+inductive ChangeStep (rcn : ID) (s : State) : State → Change → Prop 
+  | port {σ' i v} :     (s.rtr -[Cmp.prt:i (⟨·.role, v⟩)]→ σ')    → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.port i v)
+  | state {σ' i v} :    (s.rtr -[Cmp.stv:i λ _ => v]→ σ')         → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.state i v)
+  | action {σ' i t v} : (s.rtr -[Cmp.act:i (schedule · t v)]→ σ') → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.action i t v)
+  -- | connect {σ' src dst r} :    (s.rtr &[Cmp.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.update s.freshID (Reaction.relay src dst))]→ σ') → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.connect src dst)
+  -- | disconnect {σ' src dst r} : (s.rtr &[Cmp.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.filter' (· ≠ Reaction.relay src dst))]→ σ')      → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.disconnect src dst)
+  -- | create {σ' rtr r} :         (s.rtr &[Cmp.rcn:rcn]= r) → (s.rtr -[Cmp.rtr|r (·.update s.freshID (some rtr))]→ σ')               → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.create rtr)
+  -- | delete {σ' i r} :           (s.rtr &[Cmp.rcn:rcn]= r) → (s.rtr -[Cmp.rtr|r (·.update i none)]→ σ')                             → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.delete i)
   -- Mutations are (temporarily) no-ops:
-  | connect {i₁ i₂} :    ChangeStep rcn σ σ (Change.connect i₁ i₂)
-  | disconnect {i₁ i₂} : ChangeStep rcn σ σ (Change.disconnect i₁ i₂)
-  | create {rtr i} :     ChangeStep rcn σ σ (Change.create rtr i)
-  | delete {i} :         ChangeStep rcn σ σ (Change.delete i)
+  | connect {i₁ i₂} :    ChangeStep rcn s s (Change.connect i₁ i₂)
+  | disconnect {i₁ i₂} : ChangeStep rcn s s (Change.disconnect i₁ i₂)
+  | create {rtr} :       ChangeStep rcn s s (Change.create rtr)
+  | delete {i} :         ChangeStep rcn s s (Change.delete i)
 
-notation σ₁:max " -[" rcn ":" c "]→ " σ₂:max => ChangeStep rcn σ₁ σ₂ c
+notation s₁:max " -[" rcn ":" c "]→ " s₂:max => ChangeStep rcn s₁ s₂ c
 
-inductive ChangeListStep (rcn : ID) : Reactor → Reactor → List (Change) → Prop
-  | nil (σ₁) : ChangeListStep rcn σ₁ σ₁ []
-  | cons {σ₁ σ₂ σ₃ hd tl} : (σ₁ -[rcn:hd]→ σ₂) → (ChangeListStep rcn σ₂ σ₃ tl) → ChangeListStep rcn σ₁ σ₃ (hd::tl)
+inductive ChangeListStep (rcn : ID) : State → State → List Change → Prop
+  | nil (s) : ChangeListStep rcn s s []
+  | cons {s₁ s₂ s₃ hd tl} : (s₁ -[rcn:hd]→ s₂) → (ChangeListStep rcn s₂ s₃ tl) → ChangeListStep rcn s₁ s₃ (hd::tl)
 
-notation σ₁:max " -[" rcn ":" cs "]→* " σ₂:max => ChangeListStep rcn σ₁ σ₂ cs
+notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep rcn s₁ s₂ cs
 
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
 inductive InstStep (s : State) : State → Prop 
-  | execReaction {rcn : Reaction} {i : ID} {σ} : 
+  | execReaction {rcn : Reaction} {i : ID} {s' : State} : 
     (s.rtr *[Cmp.rcn:i]= rcn) →
     (s.couldExec i) →
     (s.triggers rcn) →
-    (s.rtr -[i:rcn (s.rcnInput rcn)]→* σ) →
-    InstStep s ⟨σ, s.ctx.addCurrentExecuted i⟩
+    (s -[i:rcn (s.rcnInput rcn)]→* s') →
+    InstStep s ⟨s'.rtr, s'.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn : Reaction} {i : ID} :
     (s.rtr *[Cmp.rcn:i]= rcn) →
     (s.couldExec i) →

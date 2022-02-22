@@ -68,7 +68,7 @@ structure directlyWellFormed (rtr : Raw.Reactor) : Prop where
 -- The `Ancestor` relation forms the transitive closure over the previous cases.
 inductive Ancestor : Raw.Reactor → Raw.Reactor → Prop 
   | nested {parent child i} : (parent.nest i = some child) → Ancestor parent child
-  | creatable {old new rcn inp i iᵣ} : (old.rcns i = some rcn) → (Change.create new iᵣ ∈ rcn.body inp) → Ancestor old new
+  | creatable {old new rcn inp i} : (old.rcns i = some rcn) → (Change.create new ∈ rcn.body inp) → Ancestor old new
   | trans {r₁ r₂ r₃} : (Ancestor r₁ r₂) → (Ancestor r₂ r₃) → (Ancestor r₁ r₃)
 
 -- This property ensures "properness" of a reactor in two steps:

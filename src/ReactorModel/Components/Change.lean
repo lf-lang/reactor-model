@@ -14,8 +14,8 @@ inductive Change
   | action (target : ID) (time : Time) (value : Value)
   | connect (src : ID) (dst : ID)
   | disconnect (src : ID) (dst : ID)
-  | create (rtr : Reactor) (id : ID)
-  | delete (rtrID : ID)
+  | create (rtr : Reactor)
+  | delete (rtr : ID)
 
 namespace Change
 

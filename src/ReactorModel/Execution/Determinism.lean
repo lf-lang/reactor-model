@@ -8,10 +8,10 @@ open Classical
 -- step that can be taken.
 namespace Execution
 
-theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
-  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
-  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
-  c₁.mutates → σ₁₂ = σ₂₁ := by
+theorem ChangeStep.mutates_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
+  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
+  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
+  c₁.mutates → s₁₂ = s₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hm
   cases c₁ 
   <;> (simp only [Change.mutates] at hm) 
@@ -19,23 +19,23 @@ theorem ChangeStep.mutates_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rc
     cases c₂
     case' port, state, action => 
       cases h₁; cases h₂; cases h₁₂; cases h₂₁
-      exact Reactor.Update.unique' (by assumption) (by assumption)
+      sorry -- exact Reactor.Update.unique' (by assumption) (by assumption)
   )
   <;> (cases h₁; cases h₂; cases h₁₂; cases h₂₁; rfl)
   
-theorem ChangeStep.mutates_comm' {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
-  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
-  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
-  (c₁.mutates ∨ c₂.mutates) → σ₁₂ = σ₂₁ := by
+theorem ChangeStep.mutates_comm' {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
+  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
+  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
+  (c₁.mutates ∨ c₂.mutates) → s₁₂ = s₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hm
   cases hm
   case inl h => exact ChangeStep.mutates_comm h₁ h₁₂ h₂ h₂₁ h
   case inr h => exact (ChangeStep.mutates_comm h₂ h₂₁ h₁ h₁₂ h).symm
 
-theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
-  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
-  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
-  (¬ c₁ ≈ c₂) → σ₁₂ = σ₂₁ := by
+theorem ChangeStep.ne_cmp_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
+  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
+  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
+  (¬ c₁ ≈ c₂) → s₁₂ = s₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ hc
   by_cases hm : c₁.mutates ∨ c₂.mutates
   case pos => exact ChangeStep.mutates_comm' h₁ h₁₂ h₂ h₂₁ hm
@@ -45,11 +45,11 @@ theorem ChangeStep.ne_cmp_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn
       simp [Reactor.Update.ne_cmp_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) (by intro; contradiction) (by intro; contradiction)]
     )
 
-theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} :
-  (σ -[rcn₁:c₁]→ σ₁) → (σ₁ -[rcn₂:c₂]→ σ₁₂) → 
-  (σ -[rcn₂:c₂]→ σ₂) → (σ₂ -[rcn₁:c₁]→ σ₂₁) → 
+theorem ChangeStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} :
+  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
+  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
   (∀ i₁ i₂, c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) → 
-  σ₁₂ = σ₂₁ := by
+  s₁₂ = s₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ ht
   by_cases hm : c₁.mutates ∨ c₂.mutates
   case pos => exact ChangeStep.mutates_comm' h₁ h₁₂ h₂ h₂₁ hm
@@ -62,23 +62,30 @@ theorem ChangeStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn�
     cases c₁ <;> cases c₂ <;> simp [Change.target] at ht''
     case' port.port, state.state, action.action => 
       cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
-      exact Reactor.Update.ne_id_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ ht'' (by intro; contradiction)
+      sorry -- exact Reactor.Update.ne_id_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ ht'' (by intro; contradiction)
     all_goals { exact ChangeStep.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) }
 
-theorem ChangeStep.unique {σ σ₁ σ₂ : Reactor} {rcn : ID} {c : Change} :
-  (σ -[rcn:c]→ σ₁) → (σ -[rcn:c]→ σ₂) → σ₁ = σ₂ := by
+theorem ChangeStep.unique {s s₁ s₂ : State} {rcn : ID} {c : Change} :
+  (s -[rcn:c]→ s₁) → (s -[rcn:c]→ s₂) → s₁ = s₂ := by
   intro h₁ h₂ 
   cases h₁ <;> cases h₂
-  case' port.port h₁ h₂, state.state h₁ h₂, action.action h₁ h₂ => exact Reactor.Update.unique' h₁ h₂
+  case' port.port h₁ _ h₂, state.state h₁ _ h₂, action.action h₁ _ h₂ => simp [Reactor.Update.unique' h₁ h₂]
   all_goals { rfl }
 
-theorem ChangeListStep.indep_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
-  (σ -[rcn₁:cs₁]→* σ₁) → (σ₁ -[rcn₂:cs₂]→* σ₁₂) → 
-  (σ -[rcn₂:cs₂]→* σ₂) → (σ₂ -[rcn₁:cs₁]→* σ₂₁) → 
+theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
+  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) → 
+  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) → 
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  σ₁₂ = σ₂₁ := by
+  s₁₂ = s₂₁ := by
   intro h₁ h₁₂ h₂ h₂₁ ht
   sorry -- TODO (Andrés)
+
+theorem ChangeListStep.eq_ctx {s s' : State} {rcn : ID} {cs : List Change} : 
+  (s -[rcn:cs]→* s') → s.ctx = s'.ctx := by
+  intro h
+  induction h
+  case nil => rfl
+  case cons => sorry
 
 theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
   cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
@@ -87,18 +94,21 @@ theorem InstExecution.preserves_time {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → s₁.ctx.time = s₂.ctx.time := by
   intro h
   induction h
-  case single h => cases h <;> simp [Context.addCurrentExecuted_same_time]
-  case trans s₁ s₂ _ h₁₂ h₂₃ hi => 
-    have ht : s₁.ctx.time = s₂.ctx.time := by cases h₁₂ <;> simp [Context.addCurrentExecuted_same_time]
-    simp [hi, ht]
+  case single h => 
+    cases h <;> simp only [Context.addCurrentExecuted_same_time]
+    case execReaction h => simp [ChangeListStep.eq_ctx h]
+  case trans s₁ s₂ _ h₁₂ h₂₃ hi =>
+    rw [←hi] 
+    cases h₁₂ <;> simp only [Context.addCurrentExecuted_same_time]
+    case execReaction h => simp [ChangeListStep.eq_ctx h]
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
   intro h g hg
   induction h
-  case single h => cases h <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
+  case single h => sorry -- cases h <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
   case trans s₁ s₂ _ he _ hi =>
-    have hc : s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by cases he <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
+    have hc : s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := sorry -- by cases he <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
     rw [InstExecution.preserves_time $ single he] at hg
     simp [hc, hi hg]
 
@@ -126,7 +136,9 @@ theorem CompleteInstExecution.convergent_rcns {s s₁ s₂ : State} :
 theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hc₁ hc₂
-  apply Context.ext_iff.mpr; apply Finmap.ext
+  apply Context.ext_iff.mpr
+  refine ⟨?_, sorry⟩
+  apply Finmap.ext
   intro g
   by_cases hg : g = s.ctx.time
   case pos => 

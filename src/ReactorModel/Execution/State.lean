@@ -27,4 +27,9 @@ theorem time_lt_nextTag {s : State} {g : Time.Tag} :
   simp only [nextTag] at h
   exact Finset.mem_of_min h |> (Finset.mem_filter _).mp |> And.right
 
+def freshID (s : State) : ID := s.ctx.freshID s.rtr
+
+theorem freshID_fresh (s : State) : ∀ cmp, s.freshID ∉ s.rtr.ids cmp :=
+  λ cmp => s.ctx.freshIDCorrect s.rtr cmp
+
 end Execution.State 

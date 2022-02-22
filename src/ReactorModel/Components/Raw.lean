@@ -31,7 +31,7 @@ protected inductive Change
   | state (target : ID) (value : Value)
   | connect (src : ID) (dst : ID)
   | disconnect (src : ID) (dst : ID)
-  | create (rtr : Raw.Reactor) (id : ID)
+  | create (rtr : Raw.Reactor)
   | delete (rtrID : ID)
 
 protected inductive Reaction 
@@ -49,10 +49,6 @@ protected inductive Reactor
     (state : ID ▸ Value)
     (rcns :  ID → Option Raw.Reaction)
     (nest :  ID → Option Raw.Reactor)
-
--- This is a sanity check, to make sure that the above definition of reactors
--- actually allows them to be constructed.
-deriving Inhabited
 
 end
 
@@ -141,8 +137,8 @@ noncomputable def portVals (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Value :=
 -- An extensionality theorem for `Raw.Reactor`.
 theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} : 
   rtr₁ = rtr₂ ↔ 
-  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts  = rtr₂.acts ∧ 
-  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧ 
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts ∧ 
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns = rtr₂.rcns ∧ 
   rtr₁.nest  = rtr₂.nest := by
   constructor
   case mp =>
@@ -160,8 +156,8 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} :
 -- We need this additional theorem as the `ext` attribute can only be used on theorems proving an equality.
 @[ext]
 theorem ext {rtr₁ rtr₂ : Raw.Reactor} :
-  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts  = rtr₂.acts  ∧ 
-  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns  ∧ 
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts  ∧ 
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns = rtr₂.rcns  ∧ 
   rtr₁.nest  = rtr₂.nest → 
   rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h  
