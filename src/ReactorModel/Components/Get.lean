@@ -1,4 +1,4 @@
-import ReactorModel.Components.Reactor.Properties
+import ReactorModel.Components.Reactor.Basic
 
 open Classical 
 
@@ -61,10 +61,10 @@ def cmp {σ i} : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) → Lineage σ i
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
 def parent {σ i} : Lineage σ i → (Rooted ID × Reactor)
-  | @nest _ σ' _ i' n _ => 
-    match n with 
-    | nest .. => parent n 
-    | _ => (i', σ')
+  | @nest _ _ r j l _ => 
+    match l with 
+    | nest .. => parent l
+    | _ => (j, r)
   | _ => (⊤, σ)
 
 @[simp] theorem cmp_parent {σ i cmp} (h : i ∈ (σ.cmp cmp).ids) : (Lineage.cmp cmp h).parent.snd = σ := by

@@ -125,7 +125,7 @@ theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.t
     let l₁' := Classical.choice hu₂.requires_lineage_to_target
     let l₂ := Lineage.nest l₁ hn₁
     let l₂' := Lineage.nest l₁' hn₁'
-    injection σ.uniqueIDs l₂ l₂' with _ hr _ hj
+    injection σ.uniqueIDs l₂ l₂' with _ _ hr hj
     rw [←hr] at hu₂
     have hi' := hi hu₂
     rw [hi', ←hn₂'] at hn₂
@@ -190,7 +190,7 @@ theorem Update.compose {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u₁ u�
   case nest.nest σ σ₁ j₁ rtr₁₁ rtr₁₂ he₁ hn₁₁ hn₁₂ hu₁ hi j₂ rtr₂₁ rtr₂₂ hu₂ hn₂₁ hn₂₂ he₂ =>
     let l₁ := Lineage.nest hu₁.preserves_lineage_to_target.some hn₁₂
     let l₂ := Lineage.nest hu₂.requires_lineage_to_target.some hn₂₁
-    injection σ₁.uniqueIDs l₁ l₂ with _ hr _ hj
+    injection σ₁.uniqueIDs l₁ l₂ with _ _ hr hj
     rw [hj] at hn₁₁ he₁
     rw [hr] at hi
     exact Update.nest (he₁.trans he₂) hn₁₁ hn₂₂ (hi hu₂)

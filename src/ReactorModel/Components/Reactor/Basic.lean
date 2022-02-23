@@ -1,61 +1,16 @@
-import ReactorModel.Components.Raw
+import ReactorModel.Components.Reactor.Raw
 
-open Port
-
--- Cf. `Reactor.Lineage`.
-inductive Raw.Reactor.Lineage : Raw.Reactor → ID → Type _ 
-  | rtr σ i : σ.nest i ≠ none → Lineage σ i
-  | rcn σ i : σ.rcns i ≠ none → Lineage σ i
-  | prt σ i : i ∈ σ.ports.ids → Lineage σ i
-  | act σ i : i ∈ σ.acts.ids  → Lineage σ i
-  | stv σ i : i ∈ σ.state.ids → Lineage σ i
-  | nest {σ σ' i i'} : (Lineage σ' i) → (σ.nest i' = some σ') → Lineage σ i
-
--- These are the constraints required for a "proper" reaction.
--- They are used in `Reaction.fromRaw` to lift a `Raw.Reaction` to a
--- "proper" `Reaction`.
-structure Raw.Reaction.wellFormed (rcn : Raw.Reaction) : Prop where
-  tsSubInDeps :   rcn.triggers ⊆ rcn.deps Role.in                                     
-  prtOutDepOnly : ∀ i {o} (v : Value), (o ∉ rcn.deps Role.out) → Raw.Change.port o v ∉ rcn.body i
-  actOutDepOnly : ∀ i {o} t (v : Value), (o ∉ rcn.deps Role.out) → (Raw.Change.action o t v) ∉ rcn.body i
-  actNotPast :    ∀ i a t (v : Value), (Raw.Change.action a t v) ∈ rcn.body i → i.time.t ≤ t
-
-inductive Raw.Reactor.rcnsNeedTotalOrder (rtr : Raw.Reactor) (rcn₁ rcn₂ : Raw.Reaction) 
-  | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps Role.out ∩ rcn₂.deps Role.out ≠ ∅) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | muts   {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+open Port Classical
 
 namespace Raw.Reactor
 
--- These are the (almost all of the) constraints required for a "proper" reactor.
--- These constraints only directly constrain the given reactor, and don't apply
--- to the reactors nested in it or created by it (via a mutation). 
--- The latter cases are covered in `wellFormed` below.
---
--- The constraints can be separated into three different categories
--- 1. Reaction constraints (`rcnsWF`)
--- 2. ID constraints (`uniqueIDs`)
--- 3. Reactor constraints (all others)
---
--- Note that some constraints are quite complicated in their type.
--- This is because they're defined over `Raw` components for which
--- we don't (want to) declare many conveniences. Categories 2 and 3
--- are lifted in Components>Reactor>Properties.lean, which will "clean
--- up" their types as well.
--- 
--- These constraints play an important role in limiting the behavior of
--- reactors and are thus partially responsible for its determinism. They
--- are therefore subject to change, as the need for different/more
--- constraints may arise.
-structure directlyWellFormed (rtr : Raw.Reactor) : Prop where
-  uniqueIDs :       ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
-  rcnsWF :          ∀ {rcn}, (∃ i, rtr.rcns i = some rcn) → rcn.wellFormed
-  rcnsFinite :      { i | rtr.rcns i ≠ none }.finite
-  nestFiniteRtrs :  { i | rtr.nest i ≠ none }.finite
-  uniqueInputCons : ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, rtr.nest iₙ = some n → n.ports iₚ = some p → p.role = Role.in → rtr.rcns i₁ = some rcn₁ → rtr.rcns i₂ = some rcn₂ → i₁ ≠ i₂ → iₚ ∈ rcn₁.deps Role.out → iₚ ∉ rcn₂.deps Role.out
-  wfNormDeps :      ∀ n i r, rtr.rcns i = some n → n.isNorm → ↑(n.deps r) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.portVals r).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.portVals r.opposite).ids}
-  wfMutDeps :       ∀ m i, rtr.rcns i = some m → m.isMut → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ (↑(m.deps Role.out) ⊆ ↑(rtr.portVals Role.out).ids ∪ {i | ∃ j x, rtr.nest j = some x ∧ i ∈ (x.portVals Role.in).ids})
-  rcnsTotalOrder :  ∀ {rcn₁ rcn₂}, rtr.rcnsNeedTotalOrder rcn₁ rcn₂ → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio) 
+protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
+  nestFinite : { i | rtr.nest i ≠ none }.finite
+  uniqueIDs :  ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
+  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' Role.in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps Role.out) → iₚ ∉ rcn₂.deps Role.out
+  normDeps :   ∀ {n r}, (n ∈ rtr.norms.values) → n.deps r ⊆ (rtr.acts.ids ∪ (rtr.portVals r).ids ∪ (rtr.nestedPortIDs r.opposite))
+  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.portVals Role.out).ids ∪ (rtr.nestedPortIDs Role.in))
+  rcnsTotal :  ∀ {rcn₁ rcn₂}, rtr.rcnsNeedTotalOrder rcn₁ rcn₂ → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
 
 -- To define properties of reactors recursively, we need a concept of containment.
 -- Containment in a reactor can come in two flavors: 
@@ -66,8 +21,7 @@ structure directlyWellFormed (rtr : Raw.Reactor) : Prop where
 --
 -- The `Ancestor` relation forms the transitive closure over the previous cases.
 inductive Ancestor : Raw.Reactor → Raw.Reactor → Prop 
-  | nested {parent child i} : (parent.nest i = some child) → Ancestor parent child
-  | creatable {old new rcn inp i} : (old.rcns i = some rcn) → (Change.create new ∈ rcn.body inp) → Ancestor old new
+  | nest {parent child i} : (parent.nest i = some child) → Ancestor parent child
   | trans {r₁ r₂ r₃} : (Ancestor r₁ r₂) → (Ancestor r₂ r₃) → (Ancestor r₁ r₃)
 
 -- This property ensures "properness" of a reactor in two steps:
@@ -76,9 +30,14 @@ inductive Ancestor : Raw.Reactor → Raw.Reactor → Prop
 --    required for a "proper" reactor.
 -- 2. `offspring` ensures that all nested and creatable reactors also satisfy `directlyWellFormed`.
 --    The `isAncestorOf` relation formalizes the notion of (transitive) nesting and "creatability".
-structure wellFormed (σ : Raw.Reactor) : Prop where
-  direct : σ.directlyWellFormed 
-  offspring : ∀ {rtr : Raw.Reactor}, Ancestor σ rtr → rtr.directlyWellFormed
+structure WellFormed (σ : Raw.Reactor) : Prop where
+  direct : WellFormed.Direct σ 
+  offspring : ∀ {rtr}, Ancestor σ rtr → WellFormed.Direct rtr
+
+theorem WellFormed.ancestor {rtr₁ rtr₂ : Raw.Reactor} (hw : WellFormed rtr₁)  (ha : Ancestor rtr₁ rtr₂) : WellFormed rtr₂ := {
+  direct := hw.offspring ha,
+  offspring := λ ha' => hw.offspring $ ha.trans ha'
+}
 
 end Raw.Reactor
 
@@ -88,12 +47,30 @@ end Raw.Reactor
 -- The `fromRaw ::` names the constructor of `Reactor`.
 structure Reactor where
   fromRaw ::
-    raw : Raw.Reactor
-    rawWF : raw.wellFormed  
+    private raw : Raw.Reactor
+    private rawWF : Raw.Reactor.WellFormed raw  
 
--- An raw-based extensionality theorem for `Reactor`.
+namespace Reactor
+
+def ports (rtr : Reactor) : ID ▸ Port             := rtr.raw.ports
+def acts  (rtr : Reactor) : ID ▸ Time.Tag ▸ Value := rtr.raw.acts
+def state (rtr : Reactor) : ID ▸ Value            := rtr.raw.state
+def rcns  (rtr : Reactor) : ID ▸ Reaction         := rtr.raw.rcns
+
+def nest  (rtr : Reactor) : ID ▸ Reactor :=
+  let raw : ID ▸ Raw.Reactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
+  raw.attach.map (λ ⟨_, h⟩ => Reactor.fromRaw _ (by
+      have ⟨_, hm⟩ := Finmap.values_def.mp h
+      exact rtr.rawWF.ancestor $ Raw.Reactor.Ancestor.nest hm
+    )
+  )  
+
+theorem nest_raw_eq_raw_nest (rtr : Reactor) : (rtr.nest.map Reactor.raw) = rtr.raw.nest := 
+  sorry
+
+-- A raw-based extensionality theorem for `Reactor`.
 -- We also define a proper extensionality theorem called `ext_iff`.
-theorem Reactor.raw_ext_iff {rtr₁ rtr₂ : Reactor} : rtr₁ = rtr₂ ↔ rtr₁.raw = rtr₂.raw := by
+private theorem raw_ext_iff {rtr₁ rtr₂ : Reactor} : rtr₁ = rtr₂ ↔ rtr₁.raw = rtr₂.raw := by
   constructor <;> (
     intro h
     cases rtr₁
@@ -102,8 +79,208 @@ theorem Reactor.raw_ext_iff {rtr₁ rtr₂ : Reactor} : rtr₁ = rtr₂ ↔ rtr�
     simp [h]
   )
 
-theorem Raw.Reactor.Ancestor.preserves_wf {rtr₁ rtr₂ : Raw.Reactor} (ha : Ancestor rtr₁ rtr₂) (hw : rtr₁.wellFormed) :
-  rtr₂.wellFormed := {
-    direct := hw.offspring ha,
-    offspring := λ hr => hw.offspring (Ancestor.trans ha hr)
-  }
+theorem ext_iff {rtr₁ rtr₂ : Reactor} : 
+  rtr₁ = rtr₂ ↔ 
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts  ∧ 
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns = rtr₂.rcns ∧ 
+  rtr₁.nest  = rtr₂.nest := by
+  constructor
+  case mp =>
+    intro h
+    simp [ports, acts, state, raw_ext_iff.mp h]
+    constructor <;> simp only [Finmap.ext, h]
+  case mpr =>
+    intro h
+    apply raw_ext_iff.mpr
+    apply Raw.Reactor.ext_iff.mpr
+    simp [ports, rcns, acts, state] at h
+    simp only [h]
+    have ⟨_, _, _, _, h⟩ := h
+    sorry -- simp [nest_ext h]
+
+@[ext]
+theorem ext {rtr₁ rtr₂ : Reactor} : 
+  rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts  ∧ 
+  rtr₁.state = rtr₂.state ∧ rtr₁.rcns  = rtr₂.rcns ∧ 
+  rtr₁.nest  = rtr₂.nest → 
+  rtr₁ = rtr₂ :=
+  λ h => ext_iff.mpr h
+
+noncomputable def norms (rtr : Reactor) : ID ▸ Reaction :=
+  rtr.rcns.filter' (Reaction.isNorm)
+
+noncomputable def muts (rtr : Reactor) : ID ▸ Reaction :=
+  rtr.rcns.filter' (Reaction.isMut)  
+
+noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ▸ Port := 
+  rtr.ports.filter' (·.role = r)
+
+noncomputable def portVals (rtr : Reactor) (r : Port.Role) : ID ▸ Value := 
+  (rtr.ports' r).map Port.val
+
+noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=
+  let description := { i | ∃ n, n ∈ rtr.nest.values ∧ i ∈ (n.ports' r).ids }
+  let finite : description.finite := by
+    let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.ports' r).ids)
+    suffices h : description ⊆ ↑f 
+      from Set.finite.subset (Finset.finite_to_set _) h
+    simp [Set.subset_def]
+  finite.toFinset
+
+noncomputable def inputForRcn (σ : Reactor) (rcn : Reaction) (g : Time.Tag) : Reaction.Input := {
+  portVals := (σ.portVals Role.in).restrict $ rcn.deps Role.in,
+  acts := (σ.acts.filterMap (· g)).restrict $ rcn.deps Role.in,
+  state := σ.state,
+  time := g
+}
+
+noncomputable def scheduledTags (σ : Reactor) : Finset Time.Tag := 
+  σ.acts.values.bUnion (·.ids)
+
+/-
+-- TODO (maybe): Factor out the overlap between the proofs of `wfNormDeps` and `wfMutDeps`.
+
+-- This constraint constrains the anti/-dependencies of `rtr`'s normal reactions, such that:
+-- 1. their dependencies can only be input ports of `rtr` or output ports of reactors
+--    nested directly in `rtr`
+-- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
+--    nested directly in `rtr`
+theorem wfNormDeps {rtr : Reactor} {n : Reaction} (r : Port.Role) (h : n ∈ rtr.norms.values) : 
+  n.deps r ⊆ rtr.acts.ids ∪ (rtr.ports' r).ids ∪ rtr.nestedPortIDs r.opposite := by
+  simp only [Finset.subset_iff, Finset.mem_union]
+  intro j hj
+  simp only [norms, Finmap.filter'_mem_values] at h
+  have ⟨i, h, hn⟩ := h
+  have ⟨nr, hr⟩ := rcns_has_raw h
+  have he := RawEquiv.rcns rtr
+  have hnr := (Reaction.RawEquiv.isNorm_iff $ he.rel h hr).mp hn
+  have hw := rtr.rawWF.direct.wfNormDeps nr i r hr
+  simp [Set.subset_def, Set.mem_union] at hw
+  rw [(he.rel h hr).deps] at hj
+  cases (hw hnr j hj)
+  case inl hw => exact Or.inl hw
+  case inr hw =>
+    apply Or.inr
+    have ⟨i', ri', h₁, h₂⟩ := hw
+    simp [nestedPortIDs, Set.finite.mem_to_finset]
+    have hrip := Raw.Reactor.Ancestor.preserves_wf (Raw.Reactor.Ancestor.nested h₁) rtr.rawWF
+    let rip := Reactor.fromRaw ri' hrip
+    exists rip
+    constructor
+    case h.left =>
+      simp [Finmap.values_def]
+      exists i'
+      exact nest_mem_raw_iff.mpr h₁
+    case h.right =>
+      simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
+      exact h₂
+
+-- This constraint constrains the anti/-dependencies of `rtr`'s mutations, such that:
+-- 1. their dependencies can only be input ports of `rtr`
+-- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
+--    nested directly in `rtr`
+theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.muts.values) : 
+  (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
+  simp only [muts, Finmap.filter'_mem_values] at h
+  have ⟨i, h, hm⟩ := h
+  have ⟨mr, hr⟩ := rcns_has_raw h
+  have he := RawEquiv.rcns rtr
+  have hq := he.rel h hr
+  have hrm := (Reaction.RawEquiv.isMut_iff hq).mp hm
+  have hw := rtr.rawWF.direct.wfMutDeps mr i hr hrm
+  have ⟨h₁, h₂⟩ := hw
+  clear hw
+  constructor
+  case left =>
+    rw [hq.deps]
+    simp [ports', ports, Raw.Reactor.ports'] at h₁ ⊢
+    exact h₁
+  case right =>
+    clear h₁
+    simp [Set.subset_def, Set.mem_union] at h₂
+    simp [Finset.subset_iff]  
+    rw [hq.deps]
+    intro j hj
+    cases (h₂ j hj)
+    case inl h => exact Or.inl h
+    case inr h =>
+      apply Or.inr
+      have ⟨i', ri', h₁, h₂⟩ := h
+      simp [nestedPortIDs, Set.finite.mem_to_finset]
+      have hrip := Raw.Reactor.Ancestor.preserves_wf (Raw.Reactor.Ancestor.nested h₁) rtr.rawWF
+      let rip := Reactor.fromRaw ri' hrip
+      exists rip
+      constructor
+      case h.left =>
+        simp [Finmap.values_def]
+        exists i'
+        exact nest_mem_raw_iff.mpr h₁
+      case h.right =>
+        simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
+        exact h₂
+
+inductive rcnsNeedTotalOrder (rtr : Reactor) (rcn₁ rcn₂ : Reaction) 
+  | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps Role.out ∩ rcn₂.deps Role.out ≠ ∅) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+  | muts   {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+
+theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
+  (rtr.rcnsNeedTotalOrder rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio) := by
+  sorry
+
+-/
+-/
+-/
+
+-- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
+-- structure that traces a path through the nested reactors of `σ` that lead
+-- to the component identified by `i`.
+-- 
+-- A `Lineage` captures two important aspects:
+-- 
+-- 1. The non-recursive constructors (`rtr`, `rcn`, `prt` and `stv`) tell us
+-- what kind of component is identified by `i`.
+-- 2. The recursive `nest` constructor captures all of the reactors `σ'` that
+-- need to be traversed from the root reactor `σ` to arrive at the immediate
+-- parent of `i`.
+--
+-- We use this structure to define ID-uniqueness (`uniqueIDs`) in reactors as
+-- well as hierarchy accessors in Components>Reactor>Hierarchy.lean.
+inductive Lineage : Reactor → ID → Type _ 
+  | rtr {σ i} : i ∈ σ.nest.ids  → Lineage σ i
+  | rcn {σ i} : i ∈ σ.rcns.ids  → Lineage σ i
+  | prt {σ i} : i ∈ σ.ports.ids → Lineage σ i
+  | act {σ i} : i ∈ σ.acts.ids  → Lineage σ i
+  | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
+  | nest {σ i rtr j} : (Lineage rtr i) → (σ.nest j = some rtr) → Lineage σ i
+
+/-
+private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
+  | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
+  | Lineage.act h => Raw.Reactor.Lineage.act σ.raw i h
+  | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
+  | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((RawEquiv.rcns σ).eqIDs i).mp h
+  | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((RawEquiv.nest σ).eqIDs i).mp h
+  | Lineage.nest l hn => Raw.Reactor.Lineage.nest (toRaw l) (nest_mem_raw_iff.mp hn)
+-/
+
+-- Any component in a reactor that is addressable by an ID has a unique ID.
+-- We define this property in terms of `Lineage`s, since a components is
+-- addressable by an ID in a reactor iff it has a lineage in that reactor
+-- (by construction of `Lineage`).
+theorem uniqueIDs {σ : Reactor} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by sorry
+/-  have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
+  induction l₁
+  case nest _ σ₂ _ _ _ _ hi =>
+    cases l₂ 
+    case nest σ' _ _ _ =>
+      simp [Lineage.toRaw] at h
+      have hσ : σ₂ = σ' := by apply Reactor.raw_ext_iff.mpr; exact h.left
+      subst hσ
+      simp [h.right.left]
+      exact hi _ $ eq_of_heq h.right.right
+    all_goals { contradiction }
+  all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
+-/
+
+end Reactor

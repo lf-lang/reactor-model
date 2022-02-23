@@ -2,7 +2,11 @@ import ReactorModel.Components.Change
 
 open Port Classical
 
-open Reaction
+structure Reaction.Input where
+  portVals : ID ▸ Value
+  acts : ID ▸ Value
+  state : ID ▸ Value
+  time : Time.Tag
 
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
@@ -24,8 +28,8 @@ open Reaction
 -- This is enforced by `normNoChild` (the condition `∀ i s c, c ∈ (body i s) → ¬c.mutates` 
 -- is precisely the definition of `isNorm`, but we couldn't use `isNorm` in the definition 
 -- of `Reaction` yet, as this would be circular).
-@[ext]
-structure Reaction where
+open Reaction in
+@[ext] structure Reaction where
   deps :          Port.Role → Finset ID
   triggers :      Finset ID
   prio :          Priority
