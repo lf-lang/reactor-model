@@ -3,8 +3,7 @@ import ReactorModel.Components
 structure Execution.Context where
   executedRcns : Time.Tag ▸ Finset ID
   execedNonempty : executedRcns.nonempty
-  freshID : Reactor → ID   
-  freshIDCorrect : ∀ σ cmp, freshID σ ∉ σ.ids cmp
+  freshID : { f : Finset ID → ID // ∀ is, f is ∉ is }
 
 namespace Execution.Context
 
@@ -36,8 +35,7 @@ theorem currentExecutedRcns_def (ctx : Context) : some ctx.currentExecutedRcns =
 noncomputable def addCurrentExecuted (ctx : Context) (i : ID) : Context := {
   executedRcns := ctx.executedRcns.update ctx.time $ ctx.currentExecutedRcns.insert i,
   execedNonempty := ctx.executedRcns.update_nonempty _ _ ctx.execedNonempty,
-  freshID := ctx.freshID,
-  freshIDCorrect := ctx.freshIDCorrect
+  freshID := ctx.freshID
 }
 
 theorem addCurrentExecuted_same_time (ctx : Context) (i : ID) : (ctx.addCurrentExecuted i).time = ctx.time := by 
@@ -49,8 +47,7 @@ theorem addCurrentExecuted_same_time (ctx : Context) (i : ID) : (ctx.addCurrentE
 noncomputable def advanceTime (ctx : Context) (g : Time.Tag) (h : ctx.time < g) : Context := {
   executedRcns := ctx.executedRcns.update' g ∅,
   execedNonempty := ctx.executedRcns.update_nonempty _ _ ctx.execedNonempty,
-  freshID := ctx.freshID,
-  freshIDCorrect := ctx.freshIDCorrect
+  freshID := ctx.freshID
 }
 
 theorem advanceTime_strictly_increasing (ctx : Context) (g : Time.Tag) (h : ctx.time < g) :

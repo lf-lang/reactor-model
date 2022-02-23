@@ -21,6 +21,15 @@ inductive Change
 
 namespace Change
 
+def image (f : ID → ID) : Change → Change
+  | port t v       => port (f t) v
+  | state t v      => state (f t) v
+  | action t tm v  => action (f t) tm v
+  | connect s d    => connect (f s) (f d)
+  | disconnect s d => disconnect (f s) (f d)
+  | create cl      => create cl
+  | delete i       => delete (f i)
+
 abbrev Equiv : Change → Change → Prop
   | port ..,       port ..       => True 
   | state ..,      state ..      => True 

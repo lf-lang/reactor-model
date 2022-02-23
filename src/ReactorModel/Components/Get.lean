@@ -210,4 +210,9 @@ theorem ids_def {σ : Reactor} {cmp : Cmp} {i : ID} :
     exact h
   )
 
+noncomputable def allIDs (σ : Reactor) : Finset ID :=
+  let description := { i : ID | ∃ cmp, i ∈ σ.ids cmp }
+  let finite : description.finite := sorry
+  finite.toFinset
+
 end Reactor
