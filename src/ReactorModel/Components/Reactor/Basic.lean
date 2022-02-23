@@ -8,8 +8,8 @@ protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
   nestFinite : { i | rtr.nest i ≠ none }.finite
   uniqueIDs :  ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
   uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' Role.in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps Role.out) → iₚ ∉ rcn₂.deps Role.out
-  normDeps :   ∀ {n r}, (n ∈ rtr.norms.values) → n.deps r ⊆ (rtr.acts.ids ∪ (rtr.portVals r).ids ∪ (rtr.nestedPortIDs r.opposite))
-  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.portVals Role.out).ids ∪ (rtr.nestedPortIDs Role.in))
+  normDeps :   ∀ {n r}, (n ∈ rtr.norms.values) → ↑(n.deps r) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.portVals r).ids ∪ (rtr.nestedPortIDs r.opposite))
+  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ ↑(m.deps Role.out) ⊆ ↑(rtr.portVals Role.out).ids ∪ (rtr.nestedPortIDs Role.in)
   rcnsTotal :  ∀ {rcn₁ rcn₂}, rtr.rcnsNeedTotalOrder rcn₁ rcn₂ → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
 
 -- To define properties of reactors recursively, we need a concept of containment.
@@ -57,16 +57,13 @@ def acts  (rtr : Reactor) : ID ▸ Time.Tag ▸ Value := rtr.raw.acts
 def state (rtr : Reactor) : ID ▸ Value            := rtr.raw.state
 def rcns  (rtr : Reactor) : ID ▸ Reaction         := rtr.raw.rcns
 
-def nest  (rtr : Reactor) : ID ▸ Reactor :=
+def nest (rtr : Reactor) : ID ▸ Reactor :=
   let raw : ID ▸ Raw.Reactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
   raw.attach.map (λ ⟨_, h⟩ => Reactor.fromRaw _ (by
       have ⟨_, hm⟩ := Finmap.values_def.mp h
       exact rtr.rawWF.ancestor $ Raw.Reactor.Ancestor.nest hm
     )
   )  
-
-theorem nest_raw_eq_raw_nest (rtr : Reactor) : (rtr.nest.map Reactor.raw) = rtr.raw.nest := 
-  sorry
 
 -- A raw-based extensionality theorem for `Reactor`.
 -- We also define a proper extensionality theorem called `ext_iff`.
@@ -78,6 +75,36 @@ private theorem raw_ext_iff {rtr₁ rtr₂ : Reactor} : rtr₁ = rtr₂ ↔ rtr�
     simp at h
     simp [h]
   )
+
+theorem nest_raw_eq_raw_nest (rtr : Reactor) : Finmap.forall₂' (·.raw = ·) rtr.nest rtr.raw.nest := {
+  eqIDs := by
+    intro i
+    simp only [Reactor.nest, Finmap.map_mem_ids, Finmap.attach_mem_ids]
+    exact Finmap.ids_def,
+  rel := by
+    intro _ _ _ hr hr'
+    simp only [nest] at hr
+    have ⟨⟨m, hm⟩, ⟨h₁, h₂⟩⟩ := Finmap.map_def hr
+    simp [←h₂, Option.some_inj.mp $ (Finmap.attach_def h₁).symm.trans hr']
+}
+
+theorem nest_mem_raw_iff {rtr rtr' : Reactor} {i} : rtr.nest i = rtr' ↔ rtr.raw.nest i = rtr'.raw := by
+  constructor
+  case mp =>
+    intro h
+    have ⟨hi, hv⟩ := nest_raw_eq_raw_nest rtr
+    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mpr ⟨rtr', h.symm⟩
+    have ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
+    have he := hv h hx.symm
+    simp [←hx, he]
+  case mpr =>
+    intro h
+    have ⟨hi, hv⟩ := nest_raw_eq_raw_nest rtr
+    have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, h.symm⟩)
+    have ⟨x, hx⟩ := Finmap.ids_def'.mp hi
+    have he := hv hx.symm h
+    simp [←hx]
+    exact raw_ext_iff.mpr he  
 
 theorem ext_iff {rtr₁ rtr₂ : Reactor} : 
   rtr₁ = rtr₂ ↔ 
@@ -93,11 +120,40 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor} :
     intro h
     apply raw_ext_iff.mpr
     apply Raw.Reactor.ext_iff.mpr
-    simp [ports, rcns, acts, state] at h
-    simp only [h]
+    simp only [ports, rcns, acts, state] at h
+    simp [h]
     have ⟨_, _, _, _, h⟩ := h
-    sorry -- simp [nest_ext h]
-
+    funext i
+    have h₁ :=  nest_raw_eq_raw_nest rtr₁
+    have h₁₁ := nest_raw_eq_raw_nest rtr₁
+    have h₂ :=  nest_raw_eq_raw_nest rtr₂
+    have h₂₂ := nest_raw_eq_raw_nest rtr₂
+    cases hc : rtr₁.raw.nest i
+    case h.none =>
+      rw [h] at h₁
+      have h₁' := mt (h₁.eqIDs i).mp 
+      simp only [Ne.def, not_not] at h₁'
+      have h₂' := mt (h₂.eqIDs i).mpr $ h₁' hc
+      simp only [Ne.def, not_not] at h₂'
+      simp [h₂']
+    case h.some rcn =>
+      rw [←h] at h₂
+      have h₁' := (h₁.eqIDs i).mpr
+      simp only [Option.ne_none_iff_exists] at h₁'
+      have h₁' := h₁' ⟨rcn, hc.symm⟩
+      simp only [Finmap.ids_def'] at h₁'
+      have ⟨x, hx⟩ := h₁'
+      rw [h] at h₁
+      have h₂' := (h₁.eqIDs i).mpr
+      simp only [Option.ne_none_iff_exists] at h₂'
+      have h₂' := h₂' ⟨rcn, hc.symm⟩
+      have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
+      have ⟨y, hy⟩ := h₂₂'
+      rw [←hy]
+      have hr₁ := h₁₁.rel hx.symm hc
+      have hr₂ := h₂.rel hx.symm hy.symm
+      simp [←hr₁, ←hr₂]
+    
 @[ext]
 theorem ext {rtr₁ rtr₂ : Reactor} : 
   rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts  ∧ 
@@ -254,33 +310,31 @@ inductive Lineage : Reactor → ID → Type _
   | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
   | nest {σ i rtr j} : (Lineage rtr i) → (σ.nest j = some rtr) → Lineage σ i
 
-/-
 private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
   | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
   | Lineage.act h => Raw.Reactor.Lineage.act σ.raw i h
   | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
-  | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i $ ((RawEquiv.rcns σ).eqIDs i).mp h
-  | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((RawEquiv.nest σ).eqIDs i).mp h
+  | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i h
+  | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_raw_eq_raw_nest σ).eqIDs i).mp h
   | Lineage.nest l hn => Raw.Reactor.Lineage.nest (toRaw l) (nest_mem_raw_iff.mp hn)
--/
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.
 -- We define this property in terms of `Lineage`s, since a components is
 -- addressable by an ID in a reactor iff it has a lineage in that reactor
 -- (by construction of `Lineage`).
-theorem uniqueIDs {σ : Reactor} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by sorry
-/-  have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
+theorem uniqueIDs {σ : Reactor} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
+  have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
   induction l₁
-  case nest _ σ₂ _ _ _ _ hi =>
+  case nest rtr₁ _ _ _ hi =>
     cases l₂ 
-    case nest σ' _ _ _ =>
+    case nest rtr₂ _ _ _ =>
       simp [Lineage.toRaw] at h
-      have hσ : σ₂ = σ' := by apply Reactor.raw_ext_iff.mpr; exact h.left
+      have hσ : rtr₁ = rtr₂ := by apply Reactor.raw_ext_iff.mpr; exact h.left
       subst hσ
       simp [h.right.left]
       exact hi _ $ eq_of_heq h.right.right
     all_goals { contradiction }
   all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
--/
+
 
 end Reactor

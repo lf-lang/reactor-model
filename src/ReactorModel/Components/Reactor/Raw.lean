@@ -31,15 +31,8 @@ noncomputable def ports' (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Port :=
 noncomputable def portVals (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Value := 
   (rtr.ports' r).map Port.val
 
-noncomputable def nestedPortIDs (rtr : Raw.Reactor) (r : Port.Role) : Finset ID :=
-  let description := { i | ∃ j n, rtr.nest j = some n ∧ i ∈ (n.ports' r).ids }
-  let finite : description.finite := by
-    /-let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.ports' r).ids)
-    suffices h : description ⊆ ↑f 
-      from Set.finite.subset (Finset.finite_to_set _) h
-    simp [Set.subset_def]-/
-    sorry
-  finite.toFinset
+def nestedPortIDs (rtr : Raw.Reactor) (r : Port.Role) : Set ID :=
+  { i | ∃ j n, rtr.nest j = some n ∧ i ∈ (n.ports' r).ids }
 
 inductive Lineage : Raw.Reactor → ID → Type _ 
   | rtr σ i : σ.nest i ≠ none → Lineage σ i
