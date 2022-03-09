@@ -27,9 +27,6 @@ theorem time_lt_nextTag {s : State} {g : Time.Tag} :
   simp only [nextTag] at h
   exact Finset.mem_of_min h |> (Finset.mem_filter _).mp |> And.right
 
-noncomputable def freshID (s : State) : ID := s.ctx.freshID.val s.rtr.allIDs
-
-theorem freshID_fresh (s : State) : s.freshID ∉ s.rtr.allIDs :=
-  s.ctx.freshID.property s.rtr.allIDs
+def freshID (s : State) : Cmp → Rooted ID → ID := s.ctx.freshID.func s.rtr
 
 end Execution.State 

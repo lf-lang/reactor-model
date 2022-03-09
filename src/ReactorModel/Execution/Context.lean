@@ -1,9 +1,20 @@
 import ReactorModel.Components
 
+structure Execution.Context.FreshIDFunc where
+  func : Reactor → Cmp → Rooted ID → ID
+  fresh : ∀ σ cmp i, func σ cmp i ∉ σ.allIDs
+  resilient : 
+    ∀ {σ₁ σ₂ cmp i rtr₁ rtr₂},
+      σ₁ *[Cmp.rtr:i]= rtr₁ →
+      σ₂ *[Cmp.rtr:i]= rtr₂ → 
+      rtr₁.cmp cmp = rtr₂.cmp cmp → 
+      func σ₁ cmp i = func σ₂ cmp i
+
+open Execution.Context in
 structure Execution.Context where
   executedRcns : Time.Tag ▸ Finset ID
   execedNonempty : executedRcns.nonempty
-  freshID : { f : Finset ID → ID // ∀ is, f is ∉ is }
+  freshID : FreshIDFunc
 
 namespace Execution.Context
 

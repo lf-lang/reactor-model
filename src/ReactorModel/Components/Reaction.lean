@@ -19,15 +19,6 @@ structure Reaction.Input where
 -- This field is used to define when a reaction triggers (cf. `triggersOn`).
 --
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
---
--- The `children` are a concept that only applies to mutations. When mutations
--- produce a `Change.create <reactor> <id>`, they need to remember the `<id>`
--- of the reactor they created (for reasons that are related to the execution model). 
--- These IDs are recorded in their `children` field. Since "normal" reactions can't 
--- create reactors (since this is a mutating change), they can't have children. 
--- This is enforced by `normNoChild` (the condition `∀ i s c, c ∈ (body i s) → ¬c.mutates` 
--- is precisely the definition of `isNorm`, but we couldn't use `isNorm` in the definition 
--- of `Reaction` yet, as this would be circular).
 open Reaction in
 @[ext] structure Reaction where
   deps :          Port.Role → Finset ID
@@ -63,7 +54,7 @@ def isMut (rcn : Reaction) : Prop := ¬rcn.isNorm
 
 -- A reaction is pure if it does not interact with its parent reactor's state.
 structure isPure (rcn : Reaction) : Prop where
-  input : ∀ p a s₁ s₂ t, rcn ⟨p, a, s₁, t⟩ = rcn ⟨p, a, s₂, t⟩ 
+  input : ∀ i s, rcn i = rcn { i with state := s }
   output : ∀ i c, c ∈ rcn.body i → ∃ p v, c = Change.port p v
 
 theorem muts_not_pure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
