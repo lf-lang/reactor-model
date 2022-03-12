@@ -1,14 +1,15 @@
 import ReactorModel.Components
 
 structure Execution.Context.FreshIDFunc where
-  func : Reactor → Cmp → Rooted ID → ID
-  fresh : ∀ σ cmp i, func σ cmp i ∉ σ.allIDs
+  func : Reactor → Rooted ID → ID
+  fresh : ∀ σ i, func σ i ∉ σ.allIDs
   resilient : 
-    ∀ {σ₁ σ₂ cmp i rtr₁ rtr₂},
+    ∀ {σ₁ σ₂ i rtr₁ rtr₂},
+      σ₁ %[Cmp.rtr:i]= σ₂ →       
       σ₁ *[Cmp.rtr:i]= rtr₁ →
       σ₂ *[Cmp.rtr:i]= rtr₂ → 
-      rtr₁.cmp cmp = rtr₂.cmp cmp → 
-      func σ₁ cmp i = func σ₂ cmp i
+      rtr₁.allIDs = rtr₂.allIDs → 
+      func σ₁ i = func σ₂ i
 
 open Execution.Context in
 structure Execution.Context where
