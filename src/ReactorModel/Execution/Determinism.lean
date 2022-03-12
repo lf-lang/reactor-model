@@ -72,13 +72,47 @@ theorem ChangeStep.unique {s s₁ s₂ : State} {rcn : ID} {c : Change} :
   case' port.port h₁ _ h₂, state.state h₁ _ h₂, action.action h₁ _ h₂ => simp [Reactor.Update.unique' h₁ h₂]
   all_goals { rfl }
 
-theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
-  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) → 
-  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) → 
+ /- Fo each cmp:i, the change of value either happens in cs₁ or in cs₂.
+    This is expressed in the following two lemmas, that say that one of the two
+    ChangeLists is a noop for cmp:i, one for the first step and one for the second
+    step.
+ -/
+theorem ChangeListStep.first_step_noop {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
+  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
+  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  s₁₂ = s₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ ht
-  sorry -- TODO (Andrés)
+  ∀ cmp i v, (s.rtr *[cmp:i]= v → s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
+  sorry
+
+theorem ChangeListStep.first_step_op {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
+  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
+  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
+  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
+  ∀ cmp i v, (s₁₂.rtr *[cmp:i]= v → s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
+  sorry
+
+theorem ChangeListStep.value_identical {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
+  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
+  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
+  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
+  ∀ cmp i v, s₁₂.rtr *[cmp:i]= v → s₂₁.rtr *[cmp:i]= v := by
+  intros h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
+  have Hop_step := first_step_op h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
+  cases Hop_step
+  case inl Hv =>
+   cases h₁₂v
+   case root hr => sorry
+   case nest s hs => sorry
+  case inr Hv => sorry
+
+ -- This will be much more interesting once mutations are in the game!
+theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State}{rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
+  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
+  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
+  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
+  s₁₂.rtr.allIDs = s₂₁.rtr.allIDs := by
+  intros hσσ₁ hσ₁σ₁₂ hσσ₂ hσ₂σ₂₁ his
+  sorry
 
 theorem ChangeListStep.eq_ctx {s s' : State} {rcn : ID} {cs : List Change} : 
   (s -[rcn:cs]→* s') → s.ctx = s'.ctx := by
@@ -86,6 +120,21 @@ theorem ChangeListStep.eq_ctx {s s' : State} {rcn : ID} {cs : List Change} :
   induction h
   case nil => rfl
   case cons => sorry
+
+theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
+  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) → 
+  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) → 
+  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
+  s₁₂ = s₂₁ := by
+  intro h₁ h₁₂ h₂ h₂₁ ht
+  have hIDs := ChangeListStep.indep_comm_ids h₁ h₁₂ h₂ h₂₁ ht
+  apply State.ext
+  case rtr =>
+    apply Reactor.Object.ext hIDs
+    intros cmp i v h₁₂v
+    apply ChangeListStep.value_identical h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
+  case ctx =>
+    sorry -- follows from ChangeListStep.eq_ctx
 
 theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
   cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩

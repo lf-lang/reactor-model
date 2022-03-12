@@ -215,4 +215,9 @@ noncomputable def allIDs (σ : Reactor) : Finset ID :=
   let finite : description.finite := sorry
   finite.toFinset
 
+theorem Object.ext {σ₁ σ₂ : Reactor} (hi : σ₁.allIDs = σ₂.allIDs) (hv : ∀ cmp i v, σ₁ *[cmp:i]= v → σ₂ *[cmp:i]= v) : 
+  σ₁ = σ₂ := by
+    sorry
+
+
 end Reactor

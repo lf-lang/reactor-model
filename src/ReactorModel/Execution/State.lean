@@ -1,6 +1,7 @@
 import ReactorModel.Execution.Context
 import ReactorModel.Execution.Dependency
 
+@[ext]
 structure Execution.State where
   rtr : Reactor
   ctx : Context
