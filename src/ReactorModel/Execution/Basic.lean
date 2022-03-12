@@ -37,13 +37,13 @@ notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep rcn s₁ 
 inductive InstStep (s : State) : State → Prop 
   | execReaction {rcn} {i : ID} {s'} : 
     (s.rtr *[Cmp.rcn:i]= rcn) →
-    (s.couldExec i) →
+    (s.isReady i) →
     (s.triggers rcn) →
     (s -[i:rcn (s.rcnInput rcn)]→* s') →
     InstStep s ⟨s'.rtr, s'.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn} {i : ID} :
     (s.rtr *[Cmp.rcn:i]= rcn) →
-    (s.couldExec i) →
+    (s.isReady i) →
     (¬ s.triggers rcn) →
     InstStep s ⟨s.rtr, s.ctx.addCurrentExecuted i⟩
 

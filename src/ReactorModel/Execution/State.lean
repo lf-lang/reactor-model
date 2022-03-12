@@ -7,10 +7,9 @@ structure Execution.State where
 
 namespace Execution.State
 
-structure couldExec (s : State) (i : ID) : Prop where
+structure isReady (s : State) (i : ID) : Prop where
   deps : s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns
   unexeced : i ∉ s.ctx.currentExecutedRcns
-  mutsBeforeNorms : ∃ iₚ p rcn, (s.rtr &[Cmp.rcn:i]= iₚ) ∧ (s.rtr *[Cmp.rtr:iₚ]= p) ∧ (p.rcns i = some rcn) ∧ (rcn.isNorm → p.muts.ids ⊆ s.ctx.currentExecutedRcns)
 
 noncomputable def rcnInput (s : State) (rcn : Reaction) : Reaction.Input :=
   s.rtr.inputForRcn rcn s.ctx.time
