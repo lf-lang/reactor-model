@@ -1,9 +1,6 @@
 macro "exists " t:term : tactic =>
   `(apply Exists.intro $t)
 
-macro "unfold " l:many1(ident) : tactic =>
-  `(simp only [$l,*])
-
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Collapse.20cases
 syntax "case' " ((ident <|> "_")*),* " => " tacticSeq : tactic
 macro_rules

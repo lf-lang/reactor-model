@@ -8,7 +8,7 @@ def Multiset.toFinset [DecidableEq α] (s : Multiset α) : Finset α := ⟨_, no
 
 namespace Finset
 
-instance : Mem α (Finset α) := ⟨λ a f => a ∈ f.val⟩
+instance : Membership α (Finset α) := ⟨λ a f => a ∈ f.val⟩
 
 instance : Union (Finset α) := sorry
 

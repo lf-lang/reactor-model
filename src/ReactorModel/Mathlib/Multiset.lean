@@ -26,7 +26,7 @@ def eraseDup [DecidableEq α] (s : Multiset α) : Multiset α := sorry
 
 theorem nodupEraseDup [DecidableEq α] (s : Multiset α) : s.eraseDup.nodup := sorry
 
-instance : Mem α (Multiset α) := ⟨Multiset.mem⟩
+instance : Membership α (Multiset α) := ⟨Multiset.mem⟩
 
 instance : EmptyCollection (Multiset α) := ⟨@List.nil α⟩
 
