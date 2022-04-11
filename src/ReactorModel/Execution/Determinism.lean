@@ -149,7 +149,7 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
     intros cmp i v h₁₂v
     apply ChangeListStep.value_identical h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
   case ctx =>
-    sorry -- follows from ChangeListStep.eq_ctx
+    sorry -- follows from ChangeListStep.preserves_ctx
 
 theorem InstStep.preserves_freshID {s₁ s₂ : State} :
   (s₁ ⇓ᵢ s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
@@ -164,6 +164,13 @@ theorem InstStep.preserves_rcns {s₁ s₂ : State} :
   cases h with
   | execReaction _ _ _ h => simp [h.preserves_rcns]
   | skipReaction => rfl
+
+theorem InstStep.preserves_ctx_past_future {s₁ s₂ : State} :
+  (s₁ ⇓ᵢ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
+  intro h g hg
+  cases h
+  case execReaction h => simp [←h.preserves_ctx, s₁.ctx.addCurrentExecuted_preserves_ctx_past_future _ _ hg]
+  case skipReaction => simp [s₁.ctx.addCurrentExecuted_preserves_ctx_past_future _ _ hg]
 
 theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
   cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
@@ -191,12 +198,11 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
   intro h g hg
   induction h
-  case single h => sorry -- cases h <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
-  case trans s₁ s₂ _ he _ hi =>
-    have hc : s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := sorry -- by cases he <;> simp [Context.addCurrentExecuted, Finmap.update_ne _ _ _ hg.symm]
+  case single h => exact h.preserves_ctx_past_future _ hg
+  case trans s₁ s₂ sₘ he _ hi =>
     rw [InstExecution.preserves_time $ single he] at hg
-    simp [hc, hi hg]
-
+    exact (he.preserves_ctx_past_future _ hg).trans $ hi hg
+    
 -- NOTE: This won't hold once we introduce mutations.
 theorem InstExecution.preserves_rcns {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by

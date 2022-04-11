@@ -100,7 +100,7 @@ noncomputable def update' (f : α ▸ β) (a : α) (b : β) : α ▸ β := f.upd
 
 theorem update_nonempty (f : α ▸ β) (a : α) (b : β) : f.nonempty → (f.update a b).nonempty := sorry
 
-theorem update_ne (f : α ▸ β) (a a' : α) (h : a ≠ a') (b : Option β) : (f.update a b) a' = f a' :=
+theorem update_ne (f : α ▸ β) {a a' : α} (h : a ≠ a') (b : Option β) : (f.update a b) a' = f a' :=
   sorry
 
 -- The finmap that combines a given finmap `f` with a function `g`

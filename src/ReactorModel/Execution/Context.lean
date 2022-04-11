@@ -80,6 +80,10 @@ noncomputable def addCurrentExecuted (ctx : Context) (i : ID) : Context := {
 @[simp]
 theorem addCurrentExecuted_preserves_freshID (ctx : Context) (i : ID) : (ctx.addCurrentExecuted i).freshID = ctx.freshID := rfl
 
+theorem addCurrentExecuted_preserves_ctx_past_future (ctx : Context) (i : ID) : ∀ g, g ≠ ctx.time → (ctx.addCurrentExecuted i).executedRcns g = ctx.executedRcns g := by
+  intro g h
+  simp [addCurrentExecuted, Finmap.update_ne _ h.symm]
+
 theorem addCurrentExecuted_same_time (ctx : Context) (i : ID) : (ctx.addCurrentExecuted i).time = ctx.time := by 
   suffices h : (ctx.addCurrentExecuted i).executedRcns.ids = ctx.executedRcns.ids by 
     simp [time, h]
