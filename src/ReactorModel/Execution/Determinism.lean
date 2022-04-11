@@ -76,6 +76,10 @@ theorem ChangeStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {c : Change} :
   (s₁ -[rcn:c]→ s₂) → s₁.ctx = s₂.ctx := 
   λ h => by cases h <;> rfl
 
+theorem ChangeStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} {c : Change} :
+  (s₁ -[rcn:c]→ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := 
+  λ h => by cases h <;> rfl
+
  /- For each cmp:i, the change of value either happens in cs₁ or in cs₂.
     This is expressed in the following two lemmas, that say that one of the two
     ChangeLists is a noop for cmp:i, one for the first step and one for the second
@@ -118,12 +122,19 @@ theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State}{rcn�
   intros hσσ₁ hσ₁σ₁₂ hσσ₂ hσ₂σ₂₁ his
   sorry
 
-theorem ChangeListStep.preserves_ctx {s s' : State} {rcn : ID} {cs : List Change} : 
-  (s -[rcn:cs]→* s') → s.ctx = s'.ctx := by
+theorem ChangeListStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {cs : List Change} : 
+  (s₁ -[rcn:cs]→* s₂) → s₁.ctx = s₂.ctx := by
   intro h
   induction h with
   | nil => rfl
   | cons h₁₂ _ h₂₃ => exact h₁₂.preserves_ctx.trans h₂₃
+
+theorem ChangeListStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} {cs : List Change} : 
+  (s₁ -[rcn:cs]→* s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+  intro h
+  induction h with
+  | nil => rfl
+  | cons h₁₂ _ h₂₃ => exact h₁₂.preserves_rcns.trans h₂₃
 
 theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) → 
@@ -145,6 +156,13 @@ theorem InstStep.preserves_freshID {s₁ s₂ : State} :
   intro h
   cases h with
   | execReaction _ _ _ h => simp [h.preserves_ctx]
+  | skipReaction => rfl
+  
+theorem InstStep.preserves_rcns {s₁ s₂ : State} :
+  (s₁ ⇓ᵢ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+  intro h
+  cases h with
+  | execReaction _ _ _ h => simp [h.preserves_rcns]
   | skipReaction => rfl
 
 theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
@@ -179,6 +197,14 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
     rw [InstExecution.preserves_time $ single he] at hg
     simp [hc, hi hg]
 
+-- NOTE: This won't hold once we introduce mutations.
+theorem InstExecution.preserves_rcns {s₁ s₂ : State} :
+  (s₁ ⇓ᵢ+ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+  intro h
+  induction h with
+  | single h => exact h.preserves_rcns
+  | trans h₁₂ _ h₂₃ => exact h₁₂.preserves_rcns.trans h₂₃
+
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
@@ -201,8 +227,8 @@ theorem CompleteInstExecution.preserves_freshID {s₁ s₂ : State} :
   λ h => h.exec.preserves_freshID
 
 theorem CompleteInstExecution.convergent_rcns {s s₁ s₂ : State} :
-  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
-  sorry
+  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn :=
+  λ h₁ h₂ => h₁.exec.preserves_rcns.symm.trans h₂.exec.preserves_rcns
 
 theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
