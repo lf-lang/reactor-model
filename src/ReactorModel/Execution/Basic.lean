@@ -15,7 +15,7 @@ inductive ChangeStep (rcn : ID) (s : State) : State → Change → Prop
   | action {σ' i t v} : (s.rtr -[Cmp.act:i (schedule · t v)]→ σ') → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.action i t v)
   -- | connect {σ' src dst r} :    (s.rtr &[Cmp.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.update (s.freshID Cmp.rcn r) (Reaction.relay src dst))]→ σ') → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.connect src dst)
   -- | disconnect {σ' src dst r} : (s.rtr &[Cmp.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.filter' (· ≠ Reaction.relay src dst))]→ σ')                  → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.disconnect src dst)
-  -- TODO: create via reactor class instantiation function
+  -- TODO: `create` via reactor class instantiation function
   -- | delete {σ' i r} :           (s.rtr &[Cmp.rcn:rcn]= r) → (s.rtr -[Cmp.rtr|r (·.update i none)]→ σ')                                         → ChangeStep rcn s ⟨σ', s.ctx⟩ (Change.delete i)
   -- Mutations are (temporarily) no-ops:
   | connect {i₁ i₂} :    ChangeStep rcn s s (Change.connect i₁ i₂)
@@ -37,13 +37,13 @@ notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep rcn s₁ 
 inductive InstStep (s : State) : State → Prop 
   | execReaction {rcn} {i : ID} {s'} : 
     (s.rtr *[Cmp.rcn:i]= rcn) →
-    (s.isReady i) →
+    (s.allows i) →
     (s.triggers rcn) →
     (s -[i:rcn (s.rcnInput rcn)]→* s') →
     InstStep s ⟨s'.rtr, s'.ctx.addCurrentExecuted i⟩
   | skipReaction {rcn} {i : ID} :
     (s.rtr *[Cmp.rcn:i]= rcn) →
-    (s.isReady i) →
+    (s.allows i) →
     (¬ s.triggers rcn) →
     InstStep s ⟨s.rtr, s.ctx.addCurrentExecuted i⟩
 
@@ -66,7 +66,7 @@ structure CompleteInstExecution (s₁ s₂ : State) : Prop where
 notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
 
 def clearingPorts (σ₁ σ₂ : Reactor) : Prop := sorry -- TODO: Define this via MultiUpdate if that is realized.
-theorem clearingPorts_unique {σ σ₁ σ₂ : Reactor} : clearingPorts σ σ₁ → clearingPorts σ σ₂ → σ₁ = σ₂ :=  sorry
+theorem clearingPorts_unique {σ σ₁ σ₂ : Reactor} : clearingPorts σ σ₁ → clearingPorts σ σ₂ → σ₁ = σ₂ := sorry
 
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.

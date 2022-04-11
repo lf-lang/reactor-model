@@ -4,7 +4,7 @@ open Classical
 
 -- This file defines (and proves) determinism for the reactor model.
 -- Determinism can be understood in multiple ways.
--- Primarily, we say the execution is deterministic if there is always ot most one timed
+-- Primarily, we say the execution is deterministic if there is always at most one timed
 -- step that can be taken.
 namespace Execution
 
@@ -72,7 +72,11 @@ theorem ChangeStep.unique {s s₁ s₂ : State} {rcn : ID} {c : Change} :
   case' port.port h₁ _ h₂, state.state h₁ _ h₂, action.action h₁ _ h₂ => simp [Reactor.Update.unique' h₁ h₂]
   all_goals { rfl }
 
- /- Fo each cmp:i, the change of value either happens in cs₁ or in cs₂.
+theorem ChangeStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {c : Change} :
+  (s₁ -[rcn:c]→ s₂) → s₁.ctx = s₂.ctx := 
+  λ h => by cases h <;> rfl
+
+ /- For each cmp:i, the change of value either happens in cs₁ or in cs₂.
     This is expressed in the following two lemmas, that say that one of the two
     ChangeLists is a noop for cmp:i, one for the first step and one for the second
     step.
@@ -114,12 +118,12 @@ theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State}{rcn�
   intros hσσ₁ hσ₁σ₁₂ hσσ₂ hσ₂σ₂₁ his
   sorry
 
-theorem ChangeListStep.eq_ctx {s s' : State} {rcn : ID} {cs : List Change} : 
+theorem ChangeListStep.preserves_ctx {s s' : State} {rcn : ID} {cs : List Change} : 
   (s -[rcn:cs]→* s') → s.ctx = s'.ctx := by
   intro h
-  induction h
-  case nil => rfl
-  case cons => sorry
+  induction h with
+  | nil => rfl
+  | cons h₁₂ _ h₂₃ => exact h₁₂.preserves_ctx.trans h₂₃
 
 theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) → 
@@ -136,8 +140,22 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
   case ctx =>
     sorry -- follows from ChangeListStep.eq_ctx
 
+theorem InstStep.preserves_freshID {s₁ s₂ : State} :
+  (s₁ ⇓ᵢ s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
+  intro h
+  cases h with
+  | execReaction _ _ _ h => simp [h.preserves_ctx]
+  | skipReaction => rfl
+
 theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
   cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
+
+theorem InstExecution.preserves_freshID {s₁ s₂ : State} :
+  (s₁ ⇓ᵢ+ s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
+  intro h
+  induction h with
+  | single h => exact h.preserves_freshID
+  | trans h₁₂ _ h₂₃ => exact h₁₂.preserves_freshID.trans h₂₃
 
 theorem InstExecution.preserves_time {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → s₁.ctx.time = s₂.ctx.time := by
@@ -145,11 +163,11 @@ theorem InstExecution.preserves_time {s₁ s₂ : State} :
   induction h
   case single h => 
     cases h <;> simp only [Context.addCurrentExecuted_same_time]
-    case execReaction h => simp [ChangeListStep.eq_ctx h]
+    case execReaction h => simp [h.preserves_ctx]
   case trans s₁ s₂ _ h₁₂ h₂₃ hi =>
     rw [←hi] 
     cases h₁₂ <;> simp only [Context.addCurrentExecuted_same_time]
-    case execReaction h => simp [ChangeListStep.eq_ctx h]
+    case execReaction h => simp [h.preserves_ctx]
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
@@ -178,6 +196,10 @@ theorem State.instComplete_to_inst_stuck {s : State} :
     rw [←h] at h'
     exact absurd h' he.unexeced
 
+theorem CompleteInstExecution.preserves_freshID {s₁ s₂ : State} :
+  (s₁ ⇓ᵢ| s₂) → s₁.ctx.freshID = s₂.ctx.freshID := 
+  λ h => h.exec.preserves_freshID
+
 theorem CompleteInstExecution.convergent_rcns {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
   sorry
@@ -186,7 +208,7 @@ theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hc₁ hc₂
   apply Context.ext_iff.mpr
-  refine ⟨?_, sorry⟩
+  refine ⟨?_, hc₁.preserves_freshID.symm.trans hc₂.preserves_freshID⟩
   apply Finmap.ext
   intro g
   by_cases hg : g = s.ctx.time
@@ -195,12 +217,12 @@ theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
     have h₂ := hc₂.complete |> Option.some_inj.mpr
     rw [Context.currentExecutedRcns_def] at h₁ h₂
     simp only [←hc₁.exec.preserves_time, ←hc₂.exec.preserves_time, ←hg] at h₁ h₂
-    simp only [h₁, h₂, CompleteInstExecution.convergent_rcns hc₁ hc₂]
+    simp only [h₁, h₂, hc₁.convergent_rcns hc₂]
   case neg => simp only [←hc₁.exec.preserves_ctx_past_future g hg, hc₂.exec.preserves_ctx_past_future g hg]
 
 theorem CompleteInstExecution.convergent {s s₁ s₂ : State} :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
-  λ hc₁ hc₂ => InstExecution.deterministic hc₁.exec hc₂.exec $ CompleteInstExecution.convergent_ctx hc₁ hc₂
+  λ hc₁ hc₂ => hc₁.exec.deterministic hc₂.exec $ hc₁.convergent_ctx hc₂
 
 end Execution
 

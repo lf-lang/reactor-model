@@ -8,7 +8,7 @@ structure Execution.State where
 
 namespace Execution.State
 
-structure isReady (s : State) (i : ID) : Prop where
+structure allows (s : State) (i : ID) : Prop where
   deps : s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns
   unexeced : i ∉ s.ctx.currentExecutedRcns
 

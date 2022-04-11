@@ -3,8 +3,8 @@ import Mathlib
 namespace List
 
 def empty : List α → Bool
-| []       => true
-| (_ :: _) => false
+  | []       => true
+  | (_ :: _) => false
 
 def findIndex (p : α → Prop) [DecidablePred p] : List α → Nat
   | []     => 0
