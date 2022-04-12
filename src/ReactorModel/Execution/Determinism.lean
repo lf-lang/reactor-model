@@ -89,32 +89,36 @@ theorem ChangeListStep.first_step_noop {s s₁ s₂ s₁₂ s₂₁ : State} {rc
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
   (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  ∀ cmp i v, (s.rtr *[cmp:i]= v → s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
-  sorry
+  ∀ cmp i v, (s.rtr *[cmp:i]= v) → (s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
+  intro h₁ h₁₂ h₂ h₂₁ hi cmp i v hv
+  sorry -- s₁₂ and s₂₁ are completely irrelevant
+
+
 
 theorem ChangeListStep.first_step_op {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
   (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  ∀ cmp i v, (s₁₂.rtr *[cmp:i]= v → s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
-  sorry
+  ∀ cmp i v, (s₁₂.rtr *[cmp:i]= v) → (s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
+  sorry  
 
 theorem ChangeListStep.value_identical {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
   (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
   ∀ cmp i v, s₁₂.rtr *[cmp:i]= v → s₂₁.rtr *[cmp:i]= v := by
-  intros h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
-  have Hop_step := first_step_op h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
-  cases Hop_step
-  case inl Hv =>
-   cases h₁₂v
-   case root hr => sorry
-   case nest s hs => sorry
-  case inr Hv => sorry
+  intros h₁ h₁₂ h₂ h₂₁ hi cmp i v hv₁₂
+  cases first_step_op h₁ h₁₂ h₂ h₂₁ hi cmp i v hv₁₂
+  case inl hv₁ =>
+    cases hv₁
+    case root hr => sorry
+    case nest s hs => sorry
+  case inr hv₂ =>
+    sorry
+
 
  -- This will be much more interesting once mutations are in the game!
-theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State}{rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
+theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
   (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
   (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
@@ -151,51 +155,48 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
   case ctx =>
     sorry -- follows from ChangeListStep.preserves_ctx
 
-theorem InstStep.preserves_freshID {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
+theorem InstStep.preserves_freshID {s₁ s₂ : State} {rcn : ID} :
+  (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
   intro h
   cases h with
   | execReaction _ _ _ h => simp [h.preserves_ctx]
   | skipReaction => rfl
   
-theorem InstStep.preserves_rcns {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+theorem InstStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} :
+  (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
   intro h
   cases h with
   | execReaction _ _ _ h => simp [h.preserves_rcns]
   | skipReaction => rfl
 
-theorem InstStep.preserves_ctx_past_future {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
+theorem InstStep.preserves_ctx_past_future {s₁ s₂ : State} {rcn : ID} :
+  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
   intro h g hg
   cases h
-  case execReaction h => simp [←h.preserves_ctx, s₁.ctx.addCurrentExecuted_preserves_ctx_past_future _ _ hg]
-  case skipReaction => simp [s₁.ctx.addCurrentExecuted_preserves_ctx_past_future _ _ hg]
+  case execReaction h => simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
+  case skipReaction => simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
-theorem InstExecution.first_step {s₁ s₂ : State} (he : s₁ ⇓ᵢ+ s₂) : ∃ sₘ, s₁ ⇓ᵢ sₘ := by 
-  cases he; case' single h, trans s₂ h _ => exact ⟨s₂, h⟩
-
-theorem InstExecution.preserves_freshID {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ+ s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
+theorem InstExecution.preserves_freshID {s₁ s₂ rcns} :
+  (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
   intro h
   induction h with
   | single h => exact h.preserves_freshID
   | trans h₁₂ _ h₂₃ => exact h₁₂.preserves_freshID.trans h₂₃
 
-theorem InstExecution.preserves_time {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ+ s₂) → s₁.ctx.time = s₂.ctx.time := by
+theorem InstExecution.preserves_time {s₁ s₂ rcns} :
+  (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.time = s₂.ctx.time := by
   intro h
   induction h
   case single h => 
-    cases h <;> simp only [Context.addCurrentExecuted_same_time]
+    cases h <;> simp only [Context.addCurrentProcessed_same_time]
     case execReaction h => simp [h.preserves_ctx]
   case trans s₁ s₂ _ h₁₂ h₂₃ hi =>
     rw [←hi] 
-    cases h₁₂ <;> simp only [Context.addCurrentExecuted_same_time]
+    cases h₁₂ <;> simp only [Context.addCurrentProcessed_same_time]
     case execReaction h => simp [h.preserves_ctx]
 
-theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.executedRcns g = s₂.ctx.executedRcns g := by
+theorem InstExecution.preserves_ctx_past_future {s₁ s₂ rcns} :
+  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
   intro h g hg
   induction h
   case single h => exact h.preserves_ctx_past_future _ hg
@@ -204,57 +205,74 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ : State} :
     exact (he.preserves_ctx_past_future _ hg).trans $ hi hg
     
 -- NOTE: This won't hold once we introduce mutations.
-theorem InstExecution.preserves_rcns {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ+ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+theorem InstExecution.preserves_rcns {s₁ s₂ rcns} :
+  (s₁ ⇓ᵢ+[rcns] s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
   intro h
   induction h with
   | single h => exact h.preserves_rcns
   | trans h₁₂ _ h₂₃ => exact h₁₂.preserves_rcns.trans h₂₃
 
+/-
+theorem InstExecution.processes_rcns {s₁ s₂ : State} :
+  (s₁ ⇓ᵢ+ s₂) → ∃ rcns : List ID, ...
+-/
+
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
-protected theorem InstExecution.deterministic {s s₁ s₂ : State} : 
-  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
+protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} : 
+  (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
   intro he₁ he₂ hc
+  refine State.ext _ _ ?_ hc
+  -- Then:
+  -- · The same reactions must have been processed to reach s₁ and s₂ (otherwise their contexts' currentProcessedRcns wouldn't be the same).
+  -- · Those reactions must have been processed in an order that respects dependencies.
+  -- 
+  -- Main Lemma:
+  -- If we have two InstExecutions that contain the same reaction executions/skips, 
+  -- if we reorder the execution of reactions s.t. the dependencies are respected,
+  -- then we preserve the result.
+  -- The proof should be akin to run_topo_comm/run_topo_swap in Marcus' thesis.
   sorry
 
-theorem State.instComplete_to_inst_stuck {s : State} :
-  s.instComplete → ∀ s', ¬(s ⇓ᵢ s') := by
-  intro h s' he
+theorem State.instComplete_to_inst_stuck :
+  s.instComplete → ∀ s' rcn, ¬(s ⇓ᵢ[rcn] s') := by
+  intro h s' _ he 
   cases he
   case' execReaction hi he _ _, skipReaction hi he _ =>
     have h' := Reactor.ids_def.mp ⟨_, hi⟩
     rw [←h] at h'
     exact absurd h' he.unexeced
 
-theorem CompleteInstExecution.preserves_freshID {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ| s₂) → s₁.ctx.freshID = s₂.ctx.freshID := 
-  λ h => h.exec.preserves_freshID
+theorem CompleteInstExecution.preserves_freshID : 
+  (s₁ ⇓ᵢ| s₂) → s₁.ctx.freshID = s₂.ctx.freshID
+  | .mk _ e _ => e.preserves_freshID
 
-theorem CompleteInstExecution.convergent_rcns {s s₁ s₂ : State} :
-  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn :=
-  λ h₁ h₂ => h₁.exec.preserves_rcns.symm.trans h₂.exec.preserves_rcns
+theorem CompleteInstExecution.convergent_rcns :
+  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn
+  | .mk _ e₁ _, .mk _ e₂ _ => e₁.preserves_rcns.symm.trans e₂.preserves_rcns
 
-theorem CompleteInstExecution.convergent_ctx {s s₁ s₂ : State} :
+theorem CompleteInstExecution.convergent_ctx : 
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hc₁ hc₂
   apply Context.ext_iff.mpr
   refine ⟨?_, hc₁.preserves_freshID.symm.trans hc₂.preserves_freshID⟩
   apply Finmap.ext
   intro g
+  have hc₁₂ := hc₁.convergent_rcns hc₂
+  cases hc₁ with | mk _ e₁ hc₁ => 
+  cases hc₂ with | mk _ e₂ hc₂ => 
   by_cases hg : g = s.ctx.time
   case pos => 
-    have h₁ := hc₁.complete |> Option.some_inj.mpr
-    have h₂ := hc₂.complete |> Option.some_inj.mpr
-    rw [Context.currentExecutedRcns_def] at h₁ h₂
-    simp only [←hc₁.exec.preserves_time, ←hc₂.exec.preserves_time, ←hg] at h₁ h₂
-    simp only [h₁, h₂, hc₁.convergent_rcns hc₂]
-  case neg => simp only [←hc₁.exec.preserves_ctx_past_future g hg, hc₂.exec.preserves_ctx_past_future g hg]
+    have h₁ := hc₁ |> Option.some_inj.mpr
+    have h₂ := hc₂ |> Option.some_inj.mpr
+    rw [Context.currentProcessedRcns_def] at h₁ h₂
+    simp only [←e₁.preserves_time, ←e₂.preserves_time, ←hg] at h₁ h₂
+    simp only [h₁, h₂, hc₁₂]
+  case neg => simp only [←e₁.preserves_ctx_past_future g hg, e₂.preserves_ctx_past_future g hg]
 
-theorem CompleteInstExecution.convergent {s s₁ s₂ : State} :
-  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
-  λ hc₁ hc₂ => hc₁.exec.deterministic hc₂.exec $ hc₁.convergent_ctx hc₂
+theorem CompleteInstExecution.convergent : (hc₁ : s ⇓ᵢ| s₁) → (hc₂ : s ⇓ᵢ| s₂) → s₁ = s₂ :=
+  λ hc₁ hc₂ => match hc₁, hc₂ with | mk _ e₁ _, mk _ e₂ _ => e₁.deterministic e₂ $ hc₁.convergent_ctx hc₂
 
 end Execution
 
@@ -262,7 +280,7 @@ theorem Execution.Step.time_monotone {s₁ s₂ : State} :
   (s₁ ⇓ s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
   intro h
   cases h
-  case completeInst h => exact le_of_eq h.exec.preserves_time
+  case completeInst h => cases h with | mk _ e _ => exact le_of_eq e.preserves_time
   case advanceTime hg _ _ => exact le_of_lt $ s₁.ctx.advanceTime_strictly_increasing _ (s₁.time_lt_nextTag hg)
 
 protected theorem Execution.Step.deterministic {s s₁ s₂ : State} : 
@@ -275,9 +293,10 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State} :
     simp only [hg₁, Option.some_inj] at hg₂
     simp [clearingPorts_unique h₁ h₂, Context.advanceTime, hg₂]  
   case' completeInst.advanceTime hc _ _ _ hic _, advanceTime.completeInst _ _ _ hic _ hc => 
-    cases hc.exec; case' single hi, trans hi _ => exact False.elim $ impossible_case_aux hi hic
+    cases hc with | mk _ e _ => 
+    cases e; case' single hi, trans hi _ => exact False.elim $ impossible_case_aux hi hic
 where
-  impossible_case_aux {s₁ s₂ : State} (hi : s₁ ⇓ᵢ s₂) (hic : s₁.instComplete) : False := by
+  impossible_case_aux {s₁ s₂ rcn} (hi : s₁ ⇓ᵢ[rcn] s₂) (hic : s₁.instComplete) : False := by
     cases hi 
     case' execReaction hl hce _ _, skipReaction hl hce _ =>
       exact absurd (Reactor.ids_def.mp ⟨_, hl⟩) $ mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
@@ -305,8 +324,9 @@ where
     intro h₁₂ h₂₃
     cases h₁₂
     case completeInst hi =>
-      have ⟨sₘ, h⟩ := hi.exec.first_step
-      exact absurd h $ (State.instComplete_to_inst_stuck hc) sₘ
+      cases hi with | mk _ e _ =>
+      cases e 
+      case' single h, trans h _ => exact absurd h $ State.instComplete_to_inst_stuck hc _ _
     case advanceTime g hg _ _ => 
       have h := time_monotone h₂₃
       rw [←ht] at h

@@ -42,12 +42,10 @@ abbrev Equiv : Change → Change → Prop
 
 notation c₁ " ≈ " c₂ => Equiv c₁ c₂
 
-def target : Change → Option ID 
-  | port t ..   => t
-  | state t ..  => t
-  | action t .. => t
-  | _           => none
-  
+def target : Change → Option ID
+  | port t .. | state t .. | action t .. => t
+  | _                                    => none
+
 -- Instances of `Change` can be split into two groups: 
 -- those which express a mutation to the structure of a reactor system, 
 -- and those which don't.

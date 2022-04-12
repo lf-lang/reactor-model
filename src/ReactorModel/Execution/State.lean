@@ -9,8 +9,8 @@ structure Execution.State where
 namespace Execution.State
 
 structure allows (s : State) (i : ID) : Prop where
-  deps : s.rtr.dependencies i ⊆ s.ctx.currentExecutedRcns
-  unexeced : i ∉ s.ctx.currentExecutedRcns
+  deps : s.rtr.dependencies i ⊆ s.ctx.currentProcessedRcns
+  unexeced : i ∉ s.ctx.currentProcessedRcns
 
 noncomputable def rcnInput (s : State) (rcn : Reaction) : Reaction.Input :=
   s.rtr.inputForRcn rcn s.ctx.time

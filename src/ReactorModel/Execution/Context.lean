@@ -40,8 +40,8 @@ structure Execution.Context.FreshIDFunc where
 
 open Execution.Context in
 structure Execution.Context where
-  executedRcns : Time.Tag ▸ Finset ID
-  execedNonempty : executedRcns.nonempty
+  processedRcns : Time.Tag ▸ Finset ID
+  processedNonempty : processedRcns.nonempty
   freshID : FreshIDFunc
 
 namespace Execution.Context
@@ -49,50 +49,53 @@ namespace Execution.Context
 -- An extensionality theorem for `Context`.
 theorem ext_iff {ctx₁ ctx₂ : Context} : 
   ctx₁ = ctx₂ ↔ 
-  ctx₁.executedRcns = ctx₂.executedRcns ∧ ctx₁.freshID = ctx₂.freshID := by
+  ctx₁.processedRcns = ctx₂.processedRcns ∧ ctx₁.freshID = ctx₂.freshID := by
   constructor
   case mp => intro h; simp [h]
   case mpr => intro h; cases ctx₁; cases ctx₂; simp [h]
 
 def time (ctx : Context) : Time.Tag :=
-  ctx.executedRcns.ids.max' ⟨ctx.execedNonempty.choose, Finmap.ids_def.mpr ctx.execedNonempty.choose_spec⟩
+  ctx.processedRcns.ids.max' ⟨ctx.processedNonempty.choose, Finmap.ids_def.mpr ctx.processedNonempty.choose_spec⟩
 
-theorem executedRcns_at_time_isSome (ctx : Context) :
-  (ctx.executedRcns ctx.time).isSome := by
+theorem processedRcns_at_time_isSome (ctx : Context) :
+  (ctx.processedRcns ctx.time).isSome := by
   simp only [Option.isSome_iff_exists]
-  have h : ∀ a, ctx.executedRcns.lookup (time ctx) = some a ↔ some a = ctx.executedRcns.lookup (time ctx) := by
+  have h : ∀ a, ctx.processedRcns.lookup (time ctx) = some a ↔ some a = ctx.processedRcns.lookup (time ctx) := by
     intro a; constructor <;> (intro h; exact h.symm)
   simp only [h, ←Finmap.ids_def']
   exact Finset.max'_mem _ _
 
-def currentExecutedRcns (ctx : Context) : Finset ID :=
-  (ctx.executedRcns ctx.time).get ctx.executedRcns_at_time_isSome
+def currentProcessedRcns (ctx : Context) : Finset ID :=
+  (ctx.processedRcns ctx.time).get ctx.processedRcns_at_time_isSome
 
-theorem currentExecutedRcns_def (ctx : Context) : some ctx.currentExecutedRcns = ctx.executedRcns ctx.time := by
-  simp [currentExecutedRcns, Option.get_some $ ctx.executedRcns ctx.time]
+theorem currentProcessedRcns_def (ctx : Context) : some ctx.currentProcessedRcns = ctx.processedRcns ctx.time := by
+  simp [currentProcessedRcns, Option.get_some $ ctx.processedRcns ctx.time]
 
-noncomputable def addCurrentExecuted (ctx : Context) (i : ID) : Context := {
-  executedRcns := ctx.executedRcns.update ctx.time $ ctx.currentExecutedRcns.insert i,
-  execedNonempty := ctx.executedRcns.update_nonempty _ _ ctx.execedNonempty,
+noncomputable def addCurrentProcessed (ctx : Context) (i : ID) : Context := {
+  processedRcns := ctx.processedRcns.update ctx.time $ ctx.currentProcessedRcns.insert i,
+  processedNonempty := ctx.processedRcns.update_nonempty _ _ ctx.processedNonempty,
   freshID := ctx.freshID
 }
 
 @[simp]
-theorem addCurrentExecuted_preserves_freshID (ctx : Context) (i : ID) : (ctx.addCurrentExecuted i).freshID = ctx.freshID := rfl
+theorem addCurrentProcessed_preserves_freshID (ctx : Context) (i : ID) : (ctx.addCurrentProcessed i).freshID = ctx.freshID := rfl
 
-theorem addCurrentExecuted_preserves_ctx_past_future (ctx : Context) (i : ID) : ∀ g, g ≠ ctx.time → (ctx.addCurrentExecuted i).executedRcns g = ctx.executedRcns g := by
+theorem addCurrentProcessed_preserves_ctx_past_future (ctx : Context) (i : ID) : ∀ g, g ≠ ctx.time → (ctx.addCurrentProcessed i).processedRcns g = ctx.processedRcns g := by
   intro g h
-  simp [addCurrentExecuted, Finmap.update_ne _ h.symm]
+  simp [addCurrentProcessed, Finmap.update_ne _ h.symm]
 
-theorem addCurrentExecuted_same_time (ctx : Context) (i : ID) : (ctx.addCurrentExecuted i).time = ctx.time := by 
-  suffices h : (ctx.addCurrentExecuted i).executedRcns.ids = ctx.executedRcns.ids by 
+theorem addCurrentProcessed_same_time (ctx : Context) (i : ID) : (ctx.addCurrentProcessed i).time = ctx.time := by 
+  suffices h : (ctx.addCurrentProcessed i).processedRcns.ids = ctx.processedRcns.ids by 
     simp [time, h]
     sorry
   sorry
 
+theorem addCurrentProcessed_mem_currentProcessedRcns (ctx : Context) (i : ID) : i ∈ (ctx.addCurrentProcessed i).currentProcessedRcns := by
+  sorry
+
 noncomputable def advanceTime (ctx : Context) (g : Time.Tag) (h : ctx.time < g) : Context := {
-  executedRcns := ctx.executedRcns.update' g ∅,
-  execedNonempty := ctx.executedRcns.update_nonempty _ _ ctx.execedNonempty,
+  processedRcns := ctx.processedRcns.update' g ∅,
+  processedNonempty := ctx.processedRcns.update_nonempty _ _ ctx.processedNonempty,
   freshID := ctx.freshID
 }
 
