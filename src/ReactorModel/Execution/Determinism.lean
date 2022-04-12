@@ -176,6 +176,21 @@ theorem InstStep.preserves_ctx_past_future {s₁ s₂ : State} {rcn : ID} :
   case execReaction h => simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
   case skipReaction => simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
+theorem InstStep.currentProcessedRcns_monotonic :
+  (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.currentProcessedRcns ⊆ s₂.ctx.currentProcessedRcns := by
+  intro h
+  apply Finset.subset_iff.mpr
+  intro rcn hr
+  cases h 
+  case execReaction h => simp [←h.preserves_ctx, Context.addCurrentProcessed_monotonic hr]
+  case skipReaction => exact Context.addCurrentProcessed_monotonic hr
+
+theorem InstStep.processes_rcn {s₁ s₂ : State} {rcn : ID} :
+  (s₁ ⇓ᵢ[rcn] s₂) → rcn ∉ s₁.ctx.currentProcessedRcns ∧ rcn ∈ s₂.ctx.currentProcessedRcns := by
+  intro h
+  cases h
+  case' execReaction h _ _, skipReaction h _ => simp [Context.addCurrentProcessed_mem_currentProcessedRcns, h.unexeced]
+
 theorem InstExecution.preserves_freshID {s₁ s₂ rcns} :
   (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
   intro h
@@ -212,10 +227,46 @@ theorem InstExecution.preserves_rcns {s₁ s₂ rcns} :
   | single h => exact h.preserves_rcns
   | trans h₁₂ _ h₂₃ => exact h₁₂.preserves_rcns.trans h₂₃
 
-/-
-theorem InstExecution.processes_rcns {s₁ s₂ : State} :
-  (s₁ ⇓ᵢ+ s₂) → ∃ rcns : List ID, ...
--/
+theorem InstExecution.currentProcessedRcns_monotonic :
+  (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.currentProcessedRcns ⊆ s₂.ctx.currentProcessedRcns := by
+  intro h
+  apply Finset.subset_iff.mpr
+  intro rcn hr
+  induction h
+  case single h => exact Finset.subset_iff.mp h.currentProcessedRcns_monotonic hr
+  case trans h _ hi => exact hi $ Finset.subset_iff.mp h.currentProcessedRcns_monotonic hr
+
+-- TODO: This should probably be an iff, which then solves eq_ctx_same_processed_rcns
+theorem InstExecution.processes_rcns :
+  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn ∈ rcns, rcn ∉ s₁.ctx.currentProcessedRcns ∧ rcn ∈ s₂.ctx.currentProcessedRcns := by
+  intro h rcn hr
+  induction h
+  case single h => simp [List.eq_of_mem_singleton hr, h.processes_rcn]
+  case trans h ht hi =>
+    cases List.mem_cons.mp hr
+    case inl hr => 
+      have ⟨hn, hm⟩ := h.processes_rcn
+      have hm' := Finset.subset_iff.mp ht.currentProcessedRcns_monotonic hm
+      simp [hr, hn, hm']
+    case inr hr => 
+      have ⟨hn, hm⟩ := hi hr
+      refine ⟨?_, hm⟩
+      exact (mt $ Finset.subset_iff.mp h.currentProcessedRcns_monotonic) hn
+
+theorem InstExecution.eq_ctx_same_processed_rcns : 
+  (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → ∀ rcn, rcn ∈ rcns₁ ↔ rcn ∈ rcns₂ := by
+  intro h₁ h₂ hc rcn
+  have hp₁ := h₁.processes_rcns rcn
+  have hp₂ := h₂.processes_rcns rcn
+  rw [hc] at hp₁
+  constructor
+  case mp => -- use processes_rcns and possibly currentProcessedRcns_monotonic
+    intro h
+
+  case mpr =>
+    sorry
+
+-- theorem: (s₁ ⇓ᵢ+[rcns] s₂) → the reactions in rcns respect dependency order
 
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
