@@ -14,6 +14,10 @@ instance : Union (Finset α) := sorry
 
 instance : Inter (Finset α) := sorry
 
+class Diff (α) where diff : α → α → α
+notation a " \\ " b => Diff a b
+instance : Diff (Finset α) := sorry
+
 instance : EmptyCollection (Finset α) := ⟨{ val := ∅, nodup := Multiset.nodupEmpty }⟩
 
 instance : Inhabited (Finset α) where

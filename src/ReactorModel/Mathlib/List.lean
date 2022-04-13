@@ -1,5 +1,8 @@
 import Mathlib
 
+-- Logic.lean
+lemma ne_of_mem_of_not_mem [Membership α β] {a : α} {s : β} (h : a ∈ s) : b ∉ s → a ≠ b := sorry
+
 namespace List
 
 def empty : List α → Bool
@@ -32,6 +35,10 @@ theorem index_of_erase_lt {α : Type _} [DecidableEq α] {l : List α} {e x x' :
   sorry
 
 theorem nodupEraseDup [DecidableEq α] : ∀ l : List α, Nodup l.eraseDup := pairwisePWFilter
+
+lemma nodup_singleton (a : α) : Nodup [a] := sorry
+
+theorem nodup_cons {a : α} {l : List α} : Nodup (a::l) ↔ a ∉ l ∧ Nodup l := sorry
 
 theorem perm_ext {l₁ l₂ : List α} (d₁ : Nodup l₁) (d₂ : Nodup l₂) : 
   l₁ ~ l₂ ↔ ∀a, a ∈ l₁ ↔ a ∈ l₂ := 

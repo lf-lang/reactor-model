@@ -90,10 +90,7 @@ theorem addCurrentProcessed_same_time (ctx : Context) (i : ID) : (ctx.addCurrent
     sorry
   sorry
 
-theorem addCurrentProcessed_monotonic {ctx : Context} {i j} : (i ∈ ctx.currentProcessedRcns) → i ∈ (ctx.addCurrentProcessed j).currentProcessedRcns := by
-  sorry
-
-theorem addCurrentProcessed_mem_currentProcessedRcns (ctx : Context) (i : ID) : i ∈ (ctx.addCurrentProcessed i).currentProcessedRcns := by
+theorem addCurrentProcessed_mem_currentProcessedRcns {ctx : Context} {i j : ID} : i ∈ (ctx.addCurrentProcessed j).currentProcessedRcns ↔ (i = j ∨ i ∈ ctx.currentProcessedRcns) := by
   sorry
 
 noncomputable def advanceTime (ctx : Context) (g : Time.Tag) (h : ctx.time < g) : Context := {

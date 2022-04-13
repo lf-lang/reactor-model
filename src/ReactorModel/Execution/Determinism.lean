@@ -116,7 +116,6 @@ theorem ChangeListStep.value_identical {s s₁ s₂ s₁₂ s₂₁ : State} {rc
   case inr hv₂ =>
     sorry
 
-
  -- This will be much more interesting once mutations are in the game!
 theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
@@ -176,20 +175,47 @@ theorem InstStep.preserves_ctx_past_future {s₁ s₂ : State} {rcn : ID} :
   case execReaction h => simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
   case skipReaction => simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
-theorem InstStep.currentProcessedRcns_monotonic :
-  (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.currentProcessedRcns ⊆ s₂.ctx.currentProcessedRcns := by
-  intro h
-  apply Finset.subset_iff.mpr
-  intro rcn hr
-  cases h 
-  case execReaction h => simp [←h.preserves_ctx, Context.addCurrentProcessed_monotonic hr]
-  case skipReaction => exact Context.addCurrentProcessed_monotonic hr
+theorem InstStep.ctx_adds_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed rcn
+  | execReaction _ _ _ h => by simp [h.preserves_ctx]
+  | skipReaction .. => rfl
 
-theorem InstStep.processes_rcn {s₁ s₂ : State} {rcn : ID} :
-  (s₁ ⇓ᵢ[rcn] s₂) → rcn ∉ s₁.ctx.currentProcessedRcns ∧ rcn ∈ s₂.ctx.currentProcessedRcns := by
+theorem InstStep.rcn_unprocessed : (s₁ ⇓ᵢ[rcn] s₂) → rcn ∉ s₁.ctx.currentProcessedRcns
+  | execReaction _ h _ _ | skipReaction _ h _ => h.unprocessed
+  
+theorem InstStep.mem_currentProcessedRcns :
+  (s₁ ⇓ᵢ[rcn] s₂) → (rcn' ∈ s₂.ctx.currentProcessedRcns ↔ rcn' = rcn ∨ rcn' ∈ s₁.ctx.currentProcessedRcns) := by
   intro h
-  cases h
-  case' execReaction h _ _, skipReaction h _ => simp [Context.addCurrentProcessed_mem_currentProcessedRcns, h.unexeced]
+  constructor
+  case mp =>
+    intro ho
+    by_cases hc : rcn' = rcn
+    case pos => exact .inl hc
+    case neg =>
+      rw [h.ctx_adds_rcn] at ho
+      simp [Context.addCurrentProcessed_mem_currentProcessedRcns.mp ho]
+  case mpr =>
+    intro ho
+    by_cases hc : rcn' = rcn
+    case pos =>
+      simp [hc]
+      cases h <;> exact Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inl rfl)
+    case neg =>
+      simp [h.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inr $ ho.resolve_left hc)]
+
+-- Corollary of `InstStep.mem_currentProcessedRcns`.
+theorem InstStep.not_mem_currentProcessedRcns :
+  (s₁ ⇓ᵢ[rcn] s₂) → (rcn' ≠ rcn) → rcn' ∉ s₁.ctx.currentProcessedRcns → rcn' ∉ s₂.ctx.currentProcessedRcns := 
+  λ h hn hm => (mt h.mem_currentProcessedRcns.mp) $ (not_or _ _).mpr ⟨hn, hm⟩
+
+-- Corollary of `InstStep.mem_currentProcessedRcns`.
+theorem InstStep.monotonic_currentProcessedRcns :
+  (s₁ ⇓ᵢ[rcn] s₂) → rcn' ∈ s₁.ctx.currentProcessedRcns → rcn' ∈ s₂.ctx.currentProcessedRcns := 
+  λ h hm => h.mem_currentProcessedRcns.mpr $ .inr hm
+
+-- Corollary of `InstStep.mem_currentProcessedRcns`.
+theorem InstStep.self_currentProcessedRcns : 
+  (s₁ ⇓ᵢ[rcn] s₂) → rcn ∈ s₂.ctx.currentProcessedRcns := 
+  λ h => h.mem_currentProcessedRcns.mpr $ .inl rfl
 
 theorem InstExecution.preserves_freshID {s₁ s₂ rcns} :
   (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
@@ -227,46 +253,131 @@ theorem InstExecution.preserves_rcns {s₁ s₂ rcns} :
   | single h => exact h.preserves_rcns
   | trans h₁₂ _ h₂₃ => exact h₁₂.preserves_rcns.trans h₂₃
 
+theorem InstExecution.rcns_unprocessed : 
+  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn ∈ rcns, rcn ∉ s₁.ctx.currentProcessedRcns := by
+  intro h rcn hr
+  induction h
+  case single h => simp [List.mem_singleton.mp hr, h.rcn_unprocessed]
+  case trans hi =>
+    cases List.mem_cons.mp hr
+    case inl h _ hc => simp [hc, h.rcn_unprocessed]
+    case inr h₁ _ h => 
+      specialize hi h
+      exact ((not_or _ _).mp $ (mt h₁.mem_currentProcessedRcns.mpr) hi).right
+
+theorem InstExecution.rcns_nodup : (s₁ ⇓ᵢ+[rcns] s₂) → List.Nodup rcns := by
+  intro h
+  induction h
+  case single h => exact List.nodup_singleton _
+  case trans h₁ h₂ hi => 
+    apply List.nodup_cons.mpr
+    exact ⟨(mt $ h₂.rcns_unprocessed _) $ not_not.mpr h₁.self_currentProcessedRcns, hi⟩
+
 theorem InstExecution.currentProcessedRcns_monotonic :
   (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.currentProcessedRcns ⊆ s₂.ctx.currentProcessedRcns := by
   intro h
   apply Finset.subset_iff.mpr
   intro rcn hr
   induction h
-  case single h => exact Finset.subset_iff.mp h.currentProcessedRcns_monotonic hr
-  case trans h _ hi => exact hi $ Finset.subset_iff.mp h.currentProcessedRcns_monotonic hr
+  case single h => exact h.monotonic_currentProcessedRcns hr
+  case trans h _ hi => exact hi $ h.monotonic_currentProcessedRcns hr
 
--- TODO: This should probably be an iff, which then solves eq_ctx_same_processed_rcns
-theorem InstExecution.processes_rcns :
-  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn ∈ rcns, rcn ∉ s₁.ctx.currentProcessedRcns ∧ rcn ∈ s₂.ctx.currentProcessedRcns := by
-  intro h rcn hr
+theorem InstExecution.mem_currentProcessedRcns :
+  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn, rcn ∈ s₂.ctx.currentProcessedRcns ↔ rcn ∈ rcns ∨ rcn ∈ s₁.ctx.currentProcessedRcns := by
+  intro h rcn
+  have hn := h.rcns_nodup
   induction h
-  case single h => simp [List.eq_of_mem_singleton hr, h.processes_rcn]
-  case trans h ht hi =>
-    cases List.mem_cons.mp hr
-    case inl hr => 
-      have ⟨hn, hm⟩ := h.processes_rcn
-      have hm' := Finset.subset_iff.mp ht.currentProcessedRcns_monotonic hm
-      simp [hr, hn, hm']
-    case inr hr => 
-      have ⟨hn, hm⟩ := hi hr
-      refine ⟨?_, hm⟩
-      exact (mt $ Finset.subset_iff.mp h.currentProcessedRcns_monotonic) hn
+  case single h => simp [List.mem_singleton, h.mem_currentProcessedRcns]
+  case trans hd _ _ _ h₁ _ hi => 
+    have ⟨_, hn⟩ := List.nodup_cons.mp hn
+    specialize hi hn
+    constructor
+    case mp =>
+      intro hc
+      cases hi.mp hc with
+      | inl h => exact .inl $ List.mem_cons_of_mem _ h
+      | inr h => 
+        by_cases hc : rcn ≠ hd
+        case pos => exact .inr $ (h₁.mem_currentProcessedRcns.mp h).resolve_left hc
+        case neg =>
+          simp at hc 
+          sorry
+    case mpr =>
+      sorry
 
-theorem InstExecution.eq_ctx_same_processed_rcns : 
-  (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → ∀ rcn, rcn ∈ rcns₁ ↔ rcn ∈ rcns₂ := by
-  intro h₁ h₂ hc rcn
-  have hp₁ := h₁.processes_rcns rcn
-  have hp₂ := h₂.processes_rcns rcn
+-- Corollary of `InstExecution.mem_currentProcessedRcns`.
+theorem InstExecution.self_currentProcessedRcns : 
+  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn ∈ rcns, rcn ∈ s₂.ctx.currentProcessedRcns := 
+  λ h _ hm => (h.mem_currentProcessedRcns _).mpr $ .inl hm
+
+/-
+theorem InstExecution.processes_exactly_rcns :
+  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn, (rcn ∉ s₁.ctx.currentProcessedRcns ∧ rcn ∈ s₂.ctx.currentProcessedRcns) ↔ rcn ∈ rcns := by
+  intro h rcn 
+  constructor <;> intro hr
+  case mp =>
+    by_contra hc
+    induction h
+    case h.single h =>
+      have hn := (mt List.mem_singleton.mpr) hc
+      exact absurd hr.right (h.not_mem_currentProcessedRcns hn hr.left)
+    case h.trans h _ hi => 
+      have ⟨hd, ht⟩ := (not_or _ _).mp $ (mt List.mem_cons.mpr) hc
+      exact hi ⟨h.not_mem_currentProcessedRcns hd hr.left, hr.right⟩ ht
+  case mpr => 
+    induction h
+    case single h => 
+      rw [List.eq_of_mem_singleton hr]
+      exact ⟨h.rcn_unprocessed, h.self_currentProcessedRcns⟩
+    case trans h ht hi =>
+      cases List.mem_cons.mp hr
+      case inl hr => 
+        have hn := h.rcn_unprocessed
+        have hm := h.self_currentProcessedRcns
+        have hm' := Finset.subset_iff.mp ht.currentProcessedRcns_monotonic hm
+        simp [hr, hn, hm']
+      case inr hr => 
+        -- nodup implies rcn ≠ head
+        -- then you can use mem_currentProcessedRcns.mpr
+        have ⟨hn, hm⟩ := hi hr
+        refine ⟨?_, hm⟩
+        exact (mt $ Finset.subset_iff.mp h.currentProcessedRcns_monotonic) hn
+-/
+  
+theorem InstExecution.eq_ctx_processed_rcns_perm : 
+  (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → rcns₁ ~ rcns₂ := by
+  intro h₁ h₂ he
+  apply (List.perm_ext h₁.rcns_nodup h₂.rcns_nodup).mpr
+  intro rcn
+  by_cases hc : rcn ∈ s.ctx.currentProcessedRcns
+  case pos =>
+    have h₁ := (mt $ h₁.rcns_unprocessed rcn) (not_not.mpr hc)
+    have h₂ := (mt $ h₂.rcns_unprocessed rcn) (not_not.mpr hc)
+    exact iff_of_false h₁ h₂ 
+  case neg =>
+    constructor <;> intro hm
+    case mp => 
+      have h := h₁.self_currentProcessedRcns _ hm
+      rw [he] at h
+      exact ((h₂.mem_currentProcessedRcns _).mp h).resolve_right hc
+    case mpr =>
+      have h := h₂.self_currentProcessedRcns _ hm
+      rw [←he] at h
+      exact ((h₁.mem_currentProcessedRcns _).mp h).resolve_right hc
+  /-have hp₁ := h₁.processes_exactly_rcns rcn
+  have hp₂ := h₂.processes_exactly_rcns rcn
   rw [hc] at hp₁
-  constructor
-  case mp => -- use processes_rcns and possibly currentProcessedRcns_monotonic
-    intro h
+  exact Iff.intro (hp₂.mp $ hp₁.mpr ·) (hp₁.mp $ hp₂.mpr ·)
+  -/
 
-  case mpr =>
-    sorry
-
--- theorem: (s₁ ⇓ᵢ+[rcns] s₂) → the reactions in rcns respect dependency order
+theorem InstExecution.rcns_respect_dependencies : 
+  (s₁ ⇓ᵢ+[rcns] s₂) → 
+    ∀ i₁ i₂ rcn₁ rcn₂, 
+      rcns.get? i₁ = some rcn₁ → rcns.get? i₂ = some rcn₂ → 
+      rcn₁ >[s₁.rtr] rcn₂ → i₁ < i₂ 
+  := by
+  intro h i₁ i₂ rcn₁ rcn₂ h₁ h₂ hd
+  sorry
 
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
@@ -275,10 +386,6 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
   intro he₁ he₂ hc
   refine State.ext _ _ ?_ hc
-  -- Then:
-  -- · The same reactions must have been processed to reach s₁ and s₂ (otherwise their contexts' currentProcessedRcns wouldn't be the same).
-  -- · Those reactions must have been processed in an order that respects dependencies.
-  -- 
   -- Main Lemma:
   -- If we have two InstExecutions that contain the same reaction executions/skips, 
   -- if we reorder the execution of reactions s.t. the dependencies are respected,
@@ -293,7 +400,7 @@ theorem State.instComplete_to_inst_stuck :
   case' execReaction hi he _ _, skipReaction hi he _ =>
     have h' := Reactor.ids_def.mp ⟨_, hi⟩
     rw [←h] at h'
-    exact absurd h' he.unexeced
+    exact absurd h' he.unprocessed
 
 theorem CompleteInstExecution.preserves_freshID : 
   (s₁ ⇓ᵢ| s₂) → s₁.ctx.freshID = s₂.ctx.freshID
@@ -350,14 +457,14 @@ where
   impossible_case_aux {s₁ s₂ rcn} (hi : s₁ ⇓ᵢ[rcn] s₂) (hic : s₁.instComplete) : False := by
     cases hi 
     case' execReaction hl hce _ _, skipReaction hl hce _ =>
-      exact absurd (Reactor.ids_def.mp ⟨_, hl⟩) $ mt (Finset.ext_iff.mp hic _).mpr <| hce.unexeced
+      exact absurd (Reactor.ids_def.mp ⟨_, hl⟩) $ mt (Finset.ext_iff.mp hic _).mpr <| hce.unprocessed
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 
   (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
   intro h
-  induction h 
-  case refl => simp
-  case step h _ hi => exact le_trans h.time_monotone hi
+  induction h with
+  | refl => simp
+  | step _ _ h _ hi => exact le_trans h.time_monotone hi
 
 protected theorem Execution.deterministic {s s₁ s₂ : State} (hc₁ : s₁.instComplete) (hc₂ : s₂.instComplete) : 
   (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
