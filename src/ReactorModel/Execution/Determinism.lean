@@ -285,64 +285,29 @@ theorem InstExecution.currentProcessedRcns_monotonic :
 theorem InstExecution.mem_currentProcessedRcns :
   (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn, rcn ∈ s₂.ctx.currentProcessedRcns ↔ rcn ∈ rcns ∨ rcn ∈ s₁.ctx.currentProcessedRcns := by
   intro h rcn
-  have hn := h.rcns_nodup
   induction h
   case single h => simp [List.mem_singleton, h.mem_currentProcessedRcns]
-  case trans hd _ _ _ h₁ _ hi => 
-    have ⟨_, hn⟩ := List.nodup_cons.mp hn
-    specialize hi hn
-    constructor
+  case trans hd _ tl _ h₁ _ hi => 
+    constructor <;> intro hc 
     case mp =>
-      intro hc
       cases hi.mp hc with
       | inl h => exact .inl $ List.mem_cons_of_mem _ h
       | inr h => 
-        by_cases hc : rcn ≠ hd
-        case pos => exact .inr $ (h₁.mem_currentProcessedRcns.mp h).resolve_left hc
-        case neg =>
-          simp at hc 
-          sorry
+        by_cases hc : rcn ∈ (hd::tl)
+        case pos => exact .inl hc
+        case neg => exact .inr $ (h₁.mem_currentProcessedRcns.mp h).resolve_left $ List.ne_of_not_mem_cons hc
     case mpr =>
-      sorry
+      cases hc with
+      | inl h => 
+        cases (List.mem_cons_iff ..).mp h with
+        | inl h => rw [←h] at h₁; exact hi.mpr $ .inr h₁.self_currentProcessedRcns
+        | inr h => exact hi.mpr $ .inl h
+      | inr h => exact hi.mpr $ .inr $ h₁.monotonic_currentProcessedRcns h
 
 -- Corollary of `InstExecution.mem_currentProcessedRcns`.
 theorem InstExecution.self_currentProcessedRcns : 
   (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn ∈ rcns, rcn ∈ s₂.ctx.currentProcessedRcns := 
   λ h _ hm => (h.mem_currentProcessedRcns _).mpr $ .inl hm
-
-/-
-theorem InstExecution.processes_exactly_rcns :
-  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ rcn, (rcn ∉ s₁.ctx.currentProcessedRcns ∧ rcn ∈ s₂.ctx.currentProcessedRcns) ↔ rcn ∈ rcns := by
-  intro h rcn 
-  constructor <;> intro hr
-  case mp =>
-    by_contra hc
-    induction h
-    case h.single h =>
-      have hn := (mt List.mem_singleton.mpr) hc
-      exact absurd hr.right (h.not_mem_currentProcessedRcns hn hr.left)
-    case h.trans h _ hi => 
-      have ⟨hd, ht⟩ := (not_or _ _).mp $ (mt List.mem_cons.mpr) hc
-      exact hi ⟨h.not_mem_currentProcessedRcns hd hr.left, hr.right⟩ ht
-  case mpr => 
-    induction h
-    case single h => 
-      rw [List.eq_of_mem_singleton hr]
-      exact ⟨h.rcn_unprocessed, h.self_currentProcessedRcns⟩
-    case trans h ht hi =>
-      cases List.mem_cons.mp hr
-      case inl hr => 
-        have hn := h.rcn_unprocessed
-        have hm := h.self_currentProcessedRcns
-        have hm' := Finset.subset_iff.mp ht.currentProcessedRcns_monotonic hm
-        simp [hr, hn, hm']
-      case inr hr => 
-        -- nodup implies rcn ≠ head
-        -- then you can use mem_currentProcessedRcns.mpr
-        have ⟨hn, hm⟩ := hi hr
-        refine ⟨?_, hm⟩
-        exact (mt $ Finset.subset_iff.mp h.currentProcessedRcns_monotonic) hn
--/
   
 theorem InstExecution.eq_ctx_processed_rcns_perm : 
   (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → rcns₁ ~ rcns₂ := by
@@ -364,11 +329,6 @@ theorem InstExecution.eq_ctx_processed_rcns_perm :
       have h := h₂.self_currentProcessedRcns _ hm
       rw [←he] at h
       exact ((h₁.mem_currentProcessedRcns _).mp h).resolve_right hc
-  /-have hp₁ := h₁.processes_exactly_rcns rcn
-  have hp₂ := h₂.processes_exactly_rcns rcn
-  rw [hc] at hp₁
-  exact Iff.intro (hp₂.mp $ hp₁.mpr ·) (hp₁.mp $ hp₂.mpr ·)
-  -/
 
 theorem InstExecution.rcns_respect_dependencies : 
   (s₁ ⇓ᵢ+[rcns] s₂) → 

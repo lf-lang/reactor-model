@@ -40,6 +40,8 @@ lemma nodup_singleton (a : α) : Nodup [a] := sorry
 
 theorem nodup_cons {a : α} {l : List α} : Nodup (a::l) ↔ a ∉ l ∧ Nodup l := sorry
 
+lemma mem_cons_iff (a y : α) (l : List α) : a ∈ y :: l ↔ (a = y ∨ a ∈ l) := sorry
+
 theorem perm_ext {l₁ l₂ : List α} (d₁ : Nodup l₁) (d₂ : Nodup l₂) : 
   l₁ ~ l₂ ↔ ∀a, a ∈ l₁ ↔ a ∈ l₂ := 
   sorry
