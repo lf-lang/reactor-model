@@ -2,6 +2,9 @@ import ReactorModel.Execution.Basic
 
 open Classical
 
+def List.lastSome? (l : List α) (p : α → Option β) : Option β :=
+  l.reverse.findSome? p
+
 -- This file defines (and proves) determinism for the reactor model.
 -- Determinism can be understood in multiple ways.
 -- Primarily, we say the execution is deterministic if there is always at most one timed
@@ -153,6 +156,25 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
     apply ChangeListStep.value_identical h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
   case ctx =>
     sorry -- follows from ChangeListStep.preserves_ctx
+
+
+
+------------------------------------------------------------------------------------------------------
+
+
+
+structure ChangeListEquiv (cs₁ cs₂ : List Change) : Prop where
+  ports   : ∀ i,   cs₁.lastSome? (·.portValue? i)     = cs₂.lastSome? (·.portValue? i)
+  state   : ∀ i,   cs₁.lastSome? (·.stateValue? i)    = cs₂.lastSome? (·.stateValue? i)
+  actions : ∀ i t, cs₁.filterMap (·.actionValue? i t) = cs₂.filterMap (·.actionValue? i t)
+  -- NOTE: Mutations are currently noops, and can therefore be ignored.
+
+notation cs₁:max " ⋈ " cs₂:max => ChangeListEquiv cs₁ cs₂
+
+theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
+  (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
+  intro h₁ h₂ he
+  sorry
 
 theorem InstStep.preserves_freshID {s₁ s₂ : State} {rcn : ID} :
   (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
@@ -370,6 +392,12 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   --
   -- 5. by 1. and 4. and hp and `InstExecution.rcns_respect_dependencies`: 
   --    `InstExecution.deterministic` holds
+  --
+  -- I think this approach should solve the "intermediate reactor" problem, as we reason at the 
+  -- level of change lists. Changes are "fully realized", i.e. their behaviour does not depend
+  -- on the state of a reactor - thus we don't need to consider any intermediate reactors.
+  -- In constrast, reasoning at the level of reactions always reaquires an associated reactor,
+  -- as the behaviour of a reaction depends on its parent reactor.
   sorry
 
 theorem State.instComplete_to_inst_stuck :

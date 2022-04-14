@@ -21,6 +21,24 @@ inductive Change
 
 namespace Change
 
+section
+
+variable [DecidableEq ID]
+
+def portValue? (t : ID) : Change → Option Value
+  | port t' v => if t' = t then some v else none
+  | _ => none
+
+def stateValue? (t : ID) : Change → Option Value
+  | state t' v => if t' = t then some v else none
+  | _ => none
+
+def actionValue? (t : ID) (tm : Time) : Change → Option Value
+  | action t' tm' v  => if t' = t ∧ tm' = tm then some v else none
+  | _ => none
+
+end 
+
 def image (f : ID → ID) : Change → Change
   | port t v       => port (f t) v
   | state t v      => state (f t) v
