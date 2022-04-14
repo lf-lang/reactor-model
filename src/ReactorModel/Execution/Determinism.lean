@@ -331,12 +331,10 @@ theorem InstExecution.eq_ctx_processed_rcns_perm :
       exact ((h₁.mem_currentProcessedRcns _).mp h).resolve_right hc
 
 theorem InstExecution.rcns_respect_dependencies : 
-  (s₁ ⇓ᵢ+[rcns] s₂) → 
-    ∀ i₁ i₂ rcn₁ rcn₂, 
-      rcns.get? i₁ = some rcn₁ → rcns.get? i₂ = some rcn₂ → 
-      rcn₁ >[s₁.rtr] rcn₂ → i₁ < i₂ 
-  := by
-  intro h i₁ i₂ rcn₁ rcn₂ h₁ h₂ hd
+  (s₁ ⇓ᵢ+[rcns] s₂) →
+  rcns.get? i₁ = some rcn₁ → rcns.get? i₂ = some rcn₂ → 
+  rcn₁ >[s₁.rtr] rcn₂ → i₁ < i₂ := by
+  intro h h₁ h₂ hd
   sorry
 
 -- This theorem is the main theorem about determinism in an instantaneous setting.
@@ -344,13 +342,34 @@ theorem InstExecution.rcns_respect_dependencies :
 -- reactor.
 protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} : 
   (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
-  intro he₁ he₂ hc
+  intro h₁ h₂ hc
   refine State.ext _ _ ?_ hc
-  -- Main Lemma:
-  -- If we have two InstExecutions that contain the same reaction executions/skips, 
-  -- if we reorder the execution of reactions s.t. the dependencies are respected,
-  -- then we preserve the result.
-  -- The proof should be akin to run_topo_comm/run_topo_swap in Marcus' thesis.
+  have hp := h₁.eq_ctx_processed_rcns_perm h₂ hc
+  -- PLAN:
+  --
+  -- two change lists are equivalent if they produce the same effects
+  -- e.g. [.prt A 3, .prt A 5] ~ [.prt A 5]
+  -- importantly: you have to define this not in terms of the execution relations,
+  -- but rather by the order of changes in the lists (otherwise the following theorem
+  -- would hold by definition) - that is, the relation itself should be structural,
+  -- the following lemma then ties that into behaviour:
+  --
+  -- 1. equivalent change lists produce equal reactors
+  -- (s -[cs₁]→ s₁) → (s -[cs₂]→ s₂) → cs₁ ~ cs₂ → s₁ = s₂
+  -- ... to prove this we will need to solve the theorems relating to `Change(List)Step`.
+  --
+  -- 2. swapping independent reactions produces equivalent change lists:
+  -- (s ⇓ᵢ[r₁]→ s₁) → (s -[r₂]→ s₂) → /r₁ indep r₂/ → /r₁ and r₂ correspond to rcn₁ and rcn₂/ →
+  -- (rcn₁ $ s.rcnInput rcn₁) ++ (rcn₂ $ s₁.rcnInput rcn₂) ~ (rcn₂ $ s.rcnInput rcn₂) ++ (rcn₁ $ s₂.rcnInput rcn₁)
+  --
+  -- 3. dependency respecting reaction lists that are permutations of eachother are
+  -- equal up to swapping of independent reactions
+  --
+  -- 4. by 2. and 3. and induction: dependency respecting reaction lists that are permutations
+  -- of eachother produce equivalent change lists
+  --
+  -- 5. by 1. and 4. and hp and `InstExecution.rcns_respect_dependencies`: 
+  --    `InstExecution.deterministic` holds
   sorry
 
 theorem State.instComplete_to_inst_stuck :
