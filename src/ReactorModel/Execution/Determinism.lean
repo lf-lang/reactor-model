@@ -163,6 +163,22 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
 
 
 
+
+-- NOTE: This only holds without mutations.
+theorem ChangeStep.rcn_agnostic :
+  (s -[rcn₁:c]→ s₁) → (s -[rcn₂:c]→ s₂) → s₁ = s₂ := by
+  intro h₁ h₂
+  cases h₁ <;> cases h₂ <;> simp
+  case' port.port h₁ _ h₂, state.state h₁ _ h₂, action.action h₁ _ h₂ => exact Reactor.Update.unique' h₁ h₂
+
+-- NOTE: This only holds without mutations.
+theorem ChangeListStep.rcn_agnostic :
+  (s -[rcn₁:cs]→* s₁) → (s -[rcn₂:cs]→* s₂) → s₁ = s₂ := by
+  intro h₁ h₂
+  induction h₁ <;> cases h₂
+  case nil.nil => rfl
+  case cons.cons h₁ _ hi _ h₁' h₂'  => rw [h₁.rcn_agnostic h₁'] at hi; exact hi h₂'
+
 structure ChangeListEquiv (cs₁ cs₂ : List Change) : Prop where
   ports   : ∀ i,   cs₁.lastSome? (·.portValue? i)     = cs₂.lastSome? (·.portValue? i)
   state   : ∀ i,   cs₁.lastSome? (·.stateValue? i)    = cs₂.lastSome? (·.stateValue? i)
@@ -174,6 +190,7 @@ notation cs₁:max " ⋈ " cs₂:max => ChangeListEquiv cs₁ cs₂
 theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
   intro h₁ h₂ he
+  -- *[] extensionality should work here.
   sorry
 
 theorem InstStep.preserves_freshID {s₁ s₂ : State} {rcn : ID} :
