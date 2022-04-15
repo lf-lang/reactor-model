@@ -1,6 +1,6 @@
 import ReactorModel.Components.Reactor.Basic
 
-open Classical 
+open Classical Port
 
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
 inductive Cmp
@@ -118,6 +118,13 @@ theorem Container.unique {σ : Reactor} {cmp : Cmp} {i : ID} {c₁ c₂ : Rooted
   intro ⟨l₁, h₁, _⟩ ⟨l₂, h₂, _⟩
   simp [←h₁, ←h₂, σ.uniqueIDs l₁ l₂]
 
+def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
+  ∃ c, σ &[cmp:i]= c
+
+-- NOTE: As we have `Container.unique`, the choice of object is always unique.
+noncomputable def container? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Rooted ID) := 
+  if h : ∃ c, σ &[cmp:i]= c then h.choose else none
+
 -- The `Object` relation is used to determine whether a given ID `i` identifies
 -- an object `o` of component type `cmp`.
 --
@@ -197,13 +204,22 @@ theorem Object.unique_obj {σ : Reactor} {i : Rooted ID} {cmp : Cmp} {o₁ o₂ 
     rw [σ.uniqueIDs l₁ l₂] at h₁
     exact Option.some_inj.mp $ h₁.symm.trans h₂
 
+-- NOTE: As we have `Object.unique_obj`, the choice of object is always unique.
+noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := {
+  lookup := λ i => if h : ∃ o, σ *[cmp:i]= o then h.choose else none,
+  finite := sorry
+}
+
+noncomputable def containerObj? (σ : Reactor) (cmp : Cmp) (i : ID) : Option Reactor :=
+  σ.container? cmp i >>= (σ.obj? .rtr ·)
+
 noncomputable def ids (σ : Reactor) (cmp : Cmp) : Finset ID :=
-  let description := { i : ID | ∃ v, σ *[cmp:i]= v }
+  let description := { i : ID | σ.contains cmp i }
   let finite : description.finite := sorry
   finite.toFinset
 
 theorem ids_def {σ : Reactor} {cmp : Cmp} {i : ID} : 
-  (∃ v, σ *[cmp:i]= v) ↔ i ∈ σ.ids cmp := by
+  (σ.contains cmp i) ↔ i ∈ σ.ids cmp := by
   constructor <;> (
     intro h
     simp only [ids, Set.finite.mem_to_finset] at *
@@ -218,6 +234,5 @@ noncomputable def allIDs (σ : Reactor) : Finset ID :=
 theorem Object.ext {σ₁ σ₂ : Reactor} (hi : σ₁.allIDs = σ₂.allIDs) (hv : ∀ cmp i v, σ₁ *[cmp:i]= v → σ₂ *[cmp:i]= v) : 
   σ₁ = σ₂ := by
     sorry
-
 
 end Reactor

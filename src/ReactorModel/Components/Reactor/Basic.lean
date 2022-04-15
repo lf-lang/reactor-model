@@ -183,9 +183,10 @@ noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=
     simp [Set.subset_def]
   finite.toFinset
 
-noncomputable def inputForRcn (σ : Reactor) (rcn : Reaction) (g : Time.Tag) : Reaction.Input := {
-  portVals := (σ.portVals Role.in).restrict $ rcn.deps Role.in,
-  acts := (σ.acts.filterMap (· g)).restrict $ rcn.deps Role.in,
+-- NOTE: This only makes sense when σ is the immediate parent of rcn!
+noncomputable def rcnInput (σ : Reactor) (rcn : Reaction) (g : Time.Tag) : Reaction.Input := {
+  portVals := σ.portVals Role.in |>.restrict (rcn.deps Role.in),
+  acts := σ.acts |>.filterMap (· g) |>.restrict (rcn.deps Role.in),
   state := σ.state,
   time := g
 }

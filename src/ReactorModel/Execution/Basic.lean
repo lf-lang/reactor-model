@@ -34,18 +34,18 @@ notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep rcn s₁ 
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
-inductive InstStep (s : State) (i : ID) : State → Prop 
-  | execReaction {rcn} {s'} : 
-    (s.rtr *[.rcn:i]= rcn) →
-    (s.allows i) →
+inductive InstStep (s : State) (rcn : ID) : State → Prop 
+  | execReaction {s' o} : 
+    (s.allows rcn) →
     (s.triggers rcn) →
-    (s -[i:rcn (s.rcnInput rcn)]→* s') →
-    InstStep s i ⟨s'.rtr, s'.ctx.addCurrentProcessed i⟩
-  | skipReaction {rcn} :
-    (s.rtr *[.rcn:i]= rcn) →
-    (s.allows i) →
+    (s.rcnOutput rcn = some o) →
+    (s -[rcn:o]→* s') →
+    InstStep s rcn ⟨s'.rtr, s'.ctx.addCurrentProcessed rcn⟩
+  | skipReaction :
+    (s.rtr.contains .rcn rcn) →
+    (s.allows rcn) →
     (¬ s.triggers rcn) →
-    InstStep s i ⟨s.rtr, s.ctx.addCurrentProcessed i⟩
+    InstStep s rcn ⟨s.rtr, s.ctx.addCurrentProcessed rcn⟩
 
 notation s₁:max " ⇓ᵢ[" rcn "] " s₂:max => InstStep s₁ rcn s₂
 

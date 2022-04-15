@@ -171,6 +171,10 @@ def filterMap (f : α ▸ β) (g : β → Option γ) : α ▸ γ := {
 noncomputable def restrict (f : α ▸ β) (as : Finset α) : α ▸ β :=
   f.filter (λ a => a ∈ as)
 
+theorem restrict_ext {f₁ f₂ : α ▸ β} {as : Finset α} : 
+  (∀ a ∈ as, f₁ a = f₂ a) → f₁.restrict as = f₂.restrict as := 
+  sorry
+
 -- This relation is true if two given finmaps are defined on the same IDs,
 -- and each pair of values for a given ID fulfills a relation `r`.
 --

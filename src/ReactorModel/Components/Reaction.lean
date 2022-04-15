@@ -2,6 +2,7 @@ import ReactorModel.Components.Change
 
 open Port Classical
 
+@[ext]
 structure Reaction.Input where
   portVals : ID ▸ Value
   acts : ID ▸ Value

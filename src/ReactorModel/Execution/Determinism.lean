@@ -1,6 +1,6 @@
 import ReactorModel.Execution.Basic
 
-open Classical
+open Classical Port
 
 def List.lastSome? (l : List α) (p : α → Option β) : Option β :=
   l.reverse.findSome? p
@@ -179,6 +179,14 @@ theorem ChangeListStep.rcn_agnostic :
   case nil.nil => rfl
   case cons.cons h₁ _ hi _ h₁' h₂'  => rw [h₁.rcn_agnostic h₁'] at hi; exact hi h₂'
 
+-- IDEA:
+-- Is it simpler to express this notion somehow by first defining a function that collapses
+-- "absorbed" changes and then require the resulting lists be permutations of eachother
+-- (this won't work for actions, but will for ports and states)?
+-- We could then also prove a "small" lemma first, that states that the collapsed list produces
+-- the same ChangeList result as the non-collapsed one.
+-- Then we can use that lemma to show that ChangeListEquiv lists produce equal
+-- ChangeList results.
 structure ChangeListEquiv (cs₁ cs₂ : List Change) : Prop where
   ports   : ∀ i,   cs₁.lastSome? (·.portValue? i)     = cs₂.lastSome? (·.portValue? i)
   state   : ∀ i,   cs₁.lastSome? (·.stateValue? i)    = cs₂.lastSome? (·.stateValue? i)
@@ -193,6 +201,43 @@ theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
   -- *[] extensionality should work here.
   sorry
 
+
+
+
+------------------------------------------------------------------------------------------------------
+
+
+
+
+theorem ChangeStep.preserves_unchanged_port :
+  (s₁ -[rcn:c]→ s₂) → (∀ p, Change.port i p ≠ c) → (s₁.rtr *[.prt:i]= p) → (s₂.rtr *[.prt:i]= p) := by
+  intro h hc hv 
+  cases h <;> simp [hv]
+  case port h =>
+    -- derive i ≠ i✝ from hc
+    sorry -- Reactor.Update lemma on h with hc
+  case' state h, action h => 
+    sorry -- Reactor.Update lemma on h with hc
+
+theorem ChangeListStep.preserves_unchanged_ports :
+  (s₁ -[rcn:cs]→* s₂) → (∀ p, Change.port i p ∉ cs) → (s₁.rtr *[.prt:i]= p) → (s₂.rtr *[.prt:i]= p) := by
+  intro h hc hv 
+  induction h
+  case nil => exact hv
+  case cons h _ hi => 
+    refine hi ?_ $ h.preserves_unchanged_port ?_ hv <;> (
+      intro p
+      have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc p
+      assumption
+    )
+
+theorem InstStep.rtr_contains_rcn :
+  (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.contains .rcn rcn := by
+  intro h
+  cases h 
+  case skipReaction h _ _ => exact h
+  case execReaction _ h _ => exact State.rtr_contains_rcn_if_rcnOutput_some h
+  
 theorem InstStep.preserves_freshID {s₁ s₂ : State} {rcn : ID} :
   (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
   intro h
@@ -214,12 +259,17 @@ theorem InstStep.preserves_ctx_past_future {s₁ s₂ : State} {rcn : ID} :
   case execReaction h => simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
   case skipReaction => simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
+theorem InstStep.preserves_time : (s₁ ⇓ᵢ[rcns] s₂) → s₁.ctx.time = s₂.ctx.time := by
+  intro h
+  cases h <;> simp [Context.addCurrentProcessed_same_time]
+  case execReaction h => simp [h.preserves_ctx]
+
 theorem InstStep.ctx_adds_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed rcn
   | execReaction _ _ _ h => by simp [h.preserves_ctx]
   | skipReaction .. => rfl
 
 theorem InstStep.rcn_unprocessed : (s₁ ⇓ᵢ[rcn] s₂) → rcn ∉ s₁.ctx.currentProcessedRcns
-  | execReaction _ h _ _ | skipReaction _ h _ => h.unprocessed
+  | execReaction h _ _ _ | skipReaction _ h _ => h.unprocessed
   
 theorem InstStep.mem_currentProcessedRcns :
   (s₁ ⇓ᵢ[rcn] s₂) → (rcn' ∈ s₂.ctx.currentProcessedRcns ↔ rcn' = rcn ∨ rcn' ∈ s₁.ctx.currentProcessedRcns) := by
@@ -256,6 +306,63 @@ theorem InstStep.self_currentProcessedRcns :
   (s₁ ⇓ᵢ[rcn] s₂) → rcn ∈ s₂.ctx.currentProcessedRcns := 
   λ h => h.mem_currentProcessedRcns.mpr $ .inl rfl
 
+-- If a port is not in the output-dependencies of a given reaction,
+-- then any instantaneous step of the reaction will keep that port
+-- unchanged.
+theorem InstStep.preserves_nondep_ports : 
+  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr *[.rcn:i]= rcn) → 
+  (p ∉ rcn.deps Role.out) → (s₁.rtr *[.prt:p]= v) → 
+  s₂.rtr *[.prt:p]= v := by
+  intro h hr hd hv
+  cases h 
+  case skipReaction => exact hv
+  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · hr ho hd) hv
+
+theorem InstStep.indep_rcns_indep_input :
+  (s ⇓ᵢ[rcn'] s') → (s.rtr.independent rcn rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
+  intro h hi
+  simp [State.rcnInput]
+  cases hc : s.rtr.containerObj? .rcn rcn <;> cases hc' : s'.rtr.containerObj? .rcn rcn
+  case none.none => simp
+  case' none.some, some.none => sorry -- by preserves_rcns: hc and hc' are contradictions
+  case some.some σ σ' => 
+    simp
+    cases hs : σ.rcns rcn <;> cases hs' : σ'.rcns rcn
+    case none.none => simp
+    case' none.some, some.none => sorry -- by preserves_rcns and hc and hc' the σ.rcns = σ'.rcns, thus hs and hs' are contradictions
+    case some.some rcn rcn' =>
+      simp [h.preserves_time]
+      -- TODO: Prove that rcn and rcn' are the same, so you can apply Finmap.restrict_ext later.
+      ext1 <;> simp [Reactor.rcnInput]
+      case portVals =>
+        -- apply Finmap.restrict_ext -- Cf: TODO above.
+        -- intro p hp
+        -- refine h.preserves_nondep_ports
+        sorry
+      case state =>
+        have ⟨H1, H2⟩ := hi
+        sorry
+      case acts =>
+        sorry
+
+-- Corollary of `InstStep.indep_rcns_indep_changes`.
+theorem InstStep.indep_rcns_indep_changes :
+  (s ⇓ᵢ[rcn'] s') → (s.rtr.independent rcn rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := 
+  λ h hi => State.rcnInput_eq_rcnOutput_eq $ h.indep_rcns_indep_input hi
+
+-- TODO: This is step 2 of the determinism proof plan.
+theorem InstStep.indep_rcns_changes_comm_equiv :
+  (s ⇓ᵢ[rcn₁] s₁) → (s ⇓ᵢ[rcn₂] s₂) → (s.rtr.independent rcn₁ rcn₂) →
+  (s.rcnOutput rcn₁ = some o₁) → (s₁.rcnOutput rcn₂ = some o₁₂) → 
+  (s.rcnOutput rcn₂ = some o₂) → (s₂.rcnOutput rcn₁ = some o₂₁) → 
+  (o₁ ++ o₁₂) ⋈ (o₂ ++ o₂₁) := by
+  intro h₁ h₂ hi ho₁ ho₁₂ ho₂ ho₂₁
+  apply ChangeListEquiv.mk <;> intro i
+  -- Use `indep_rcns_indep_changes`?
+  case ports => sorry
+  case state => sorry
+  case actions => sorry
+
 theorem InstExecution.preserves_freshID {s₁ s₂ rcns} :
   (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
   intro h
@@ -263,17 +370,11 @@ theorem InstExecution.preserves_freshID {s₁ s₂ rcns} :
   | single h => exact h.preserves_freshID
   | trans h₁₂ _ h₂₃ => exact h₁₂.preserves_freshID.trans h₂₃
 
-theorem InstExecution.preserves_time {s₁ s₂ rcns} :
-  (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.time = s₂.ctx.time := by
+theorem InstExecution.preserves_time : (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.time = s₂.ctx.time := by
   intro h
   induction h
-  case single h => 
-    cases h <;> simp only [Context.addCurrentProcessed_same_time]
-    case execReaction h => simp [h.preserves_ctx]
-  case trans s₁ s₂ _ h₁₂ h₂₃ hi =>
-    rw [←hi] 
-    cases h₁₂ <;> simp only [Context.addCurrentProcessed_same_time]
-    case execReaction h => simp [h.preserves_ctx]
+  case single h => exact h.preserves_time
+  case trans h _ hi => simp [←hi, h.preserves_time] 
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂ rcns} :
   (s₁ ⇓ᵢ+[rcns] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
@@ -386,20 +487,21 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   have hp := h₁.eq_ctx_processed_rcns_perm h₂ hc
   -- PLAN:
   --
-  -- two change lists are equivalent if they produce the same effects
-  -- e.g. [.prt A 3, .prt A 5] ~ [.prt A 5]
-  -- importantly: you have to define this not in terms of the execution relations,
-  -- but rather by the order of changes in the lists (otherwise the following theorem
-  -- would hold by definition) - that is, the relation itself should be structural,
-  -- the following lemma then ties that into behaviour:
+  -- ✔︎ `ChangeListEquiv`
+  -- | two change lists are equivalent if they produce the same effects
+  -- | e.g. [.prt A 3, .prt A 5] ⋈ [.prt A 5]
+  -- | importantly: you have to define this not in terms of the execution relations,
+  -- | but rather by the order of changes in the lists (otherwise the following theorem
+  -- | would hold by definition) - that is, the relation itself should be structural,
+  -- | the following lemma then ties that into behaviour:
   --
   -- 1. equivalent change lists produce equal reactors
   -- (s -[cs₁]→ s₁) → (s -[cs₂]→ s₂) → cs₁ ~ cs₂ → s₁ = s₂
   -- ... to prove this we will need to solve the theorems relating to `Change(List)Step`.
   --
   -- 2. swapping independent reactions produces equivalent change lists:
-  -- (s ⇓ᵢ[r₁]→ s₁) → (s -[r₂]→ s₂) → /r₁ indep r₂/ → /r₁ and r₂ correspond to rcn₁ and rcn₂/ →
-  -- (rcn₁ $ s.rcnInput rcn₁) ++ (rcn₂ $ s₁.rcnInput rcn₂) ~ (rcn₂ $ s.rcnInput rcn₂) ++ (rcn₁ $ s₂.rcnInput rcn₁)
+  -- (s ⇓ᵢ[r₁] s₁) → (s ⇓ᵢ[r₂] s₂) → /r₁ indep r₂/ → /r₁ and r₂ correspond to rcn₁ and rcn₂/ →
+  -- (rcn₁ $ s.rcnInput rcn₁) ++ (rcn₂ $ s₁.rcnInput rcn₂) ⋈ (rcn₂ $ s.rcnInput rcn₂) ++ (rcn₁ $ s₂.rcnInput rcn₁)
   --
   -- 3. dependency respecting reaction lists that are permutations of eachother are
   -- equal up to swapping of independent reactions
@@ -420,11 +522,9 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
 theorem State.instComplete_to_inst_stuck :
   s.instComplete → ∀ s' rcn, ¬(s ⇓ᵢ[rcn] s') := by
   intro h s' _ he 
-  cases he
-  case' execReaction hi he _ _, skipReaction hi he _ =>
-    have h' := Reactor.ids_def.mp ⟨_, hi⟩
-    rw [←h] at h'
-    exact absurd h' he.unprocessed
+  have h' := Reactor.ids_def.mp he.rtr_contains_rcn
+  rw [←h] at h'
+  exact absurd h' he.rcn_unprocessed
 
 theorem CompleteInstExecution.preserves_freshID : 
   (s₁ ⇓ᵢ| s₂) → s₁.ctx.freshID = s₂.ctx.freshID
@@ -479,9 +579,7 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State} :
     cases e; case' single hi, trans hi _ => exact False.elim $ impossible_case_aux hi hic
 where
   impossible_case_aux {s₁ s₂ rcn} (hi : s₁ ⇓ᵢ[rcn] s₂) (hic : s₁.instComplete) : False := by
-    cases hi 
-    case' execReaction hl hce _ _, skipReaction hl hce _ =>
-      exact absurd (Reactor.ids_def.mp ⟨_, hl⟩) $ mt (Finset.ext_iff.mp hic _).mpr <| hce.unprocessed
+    exact absurd (Reactor.ids_def.mp hi.rtr_contains_rcn) $ mt (Finset.ext_iff.mp hic _).mpr <| hi.rcn_unprocessed
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 
   (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
