@@ -39,5 +39,10 @@ notation i₁:max " >[" σ "] " i₂:max => Dependency σ i₁ i₂
 
 def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
 
-def Reactor.independent (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
+def Reactor.Indep (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ >[σ] rcn₂) ∧ ¬(rcn₂ >[σ] rcn₁)
+
+notation i₁:max " >[" σ "]< " i₂:max => Reactor.Indep σ i₁ i₂
+
+theorem Reactor.Indep.symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
+  And.symm

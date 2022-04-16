@@ -35,6 +35,7 @@ theorem ChangeStep.mutates_comm' {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ r
   case inl h => exact ChangeStep.mutates_comm h₁ h₁₂ h₂ h₂₁ h
   case inr h => exact (ChangeStep.mutates_comm h₂ h₂₁ h₁ h₁₂ h).symm
 
+/-
 theorem ChangeStep.ne_cmp_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
   (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
   (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
@@ -67,6 +68,7 @@ theorem ChangeStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn�
       cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
       sorry -- exact Reactor.Update.ne_id_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ ht'' (by intro; contradiction)
     all_goals { exact ChangeStep.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) }
+-/
 
 theorem ChangeStep.unique {s s₁ s₂ : State} {rcn : ID} {c : Change} :
   (s -[rcn:c]→ s₁) → (s -[rcn:c]→ s₂) → s₁ = s₂ := by
@@ -213,11 +215,13 @@ theorem ChangeStep.preserves_unchanged_port :
   (s₁ -[rcn:c]→ s₂) → (∀ p, Change.port i p ≠ c) → (s₁.rtr *[.prt:i]= p) → (s₂.rtr *[.prt:i]= p) := by
   intro h hc hv 
   cases h <;> simp [hv]
-  case port h =>
-    -- derive i ≠ i✝ from hc
-    sorry -- Reactor.Update lemma on h with hc
-  case' state h, action h => 
-    sorry -- Reactor.Update lemma on h with hc
+  case port i' v h =>
+    refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp) hv
+    by_contra hi
+    specialize hc v
+    rw [hi] at hc
+    contradiction
+  case' state h, action h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp) hv
 
 theorem ChangeListStep.preserves_unchanged_ports :
   (s₁ -[rcn:cs]→* s₂) → (∀ p, Change.port i p ∉ cs) → (s₁.rtr *[.prt:i]= p) → (s₂.rtr *[.prt:i]= p) := by
@@ -231,33 +235,23 @@ theorem ChangeListStep.preserves_unchanged_ports :
       assumption
     )
 
-theorem InstStep.rtr_contains_rcn :
-  (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.contains .rcn rcn := by
-  intro h
-  cases h 
-  case skipReaction h _ _ => exact h
-  case execReaction _ h _ => exact State.rtr_contains_rcn_if_rcnOutput_some h
+theorem InstStep.rtr_contains_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.contains .rcn rcn
+  | skipReaction h _ _ => h
+  | execReaction _ _ h _ => State.rtr_contains_rcn_if_rcnOutput_some h
   
-theorem InstStep.preserves_freshID {s₁ s₂ : State} {rcn : ID} :
-  (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
-  intro h
-  cases h with
-  | execReaction _ _ _ h => simp [h.preserves_ctx]
-  | skipReaction => rfl
+theorem InstStep.preserves_freshID : (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshID = s₂.ctx.freshID
+  | execReaction _ _ _ h => by simp [h.preserves_ctx]
+  | skipReaction .. => rfl
   
-theorem InstStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} :
-  (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
-  intro h
-  cases h with
-  | execReaction _ _ _ h => simp [h.preserves_rcns]
-  | skipReaction => rfl
+theorem InstStep.preserves_rcns : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn
+  | execReaction _ _ _ h => by simp [h.preserves_rcns]
+  | skipReaction .. => rfl
 
-theorem InstStep.preserves_ctx_past_future {s₁ s₂ : State} {rcn : ID} :
-  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
-  intro h g hg
-  cases h
-  case execReaction h => simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
-  case skipReaction => simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
+theorem InstStep.preserves_ctx_past_future :
+  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g :=
+  λ h g hg => match h with
+  | execReaction _ _ _ h => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
+  | skipReaction .. => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
 theorem InstStep.preserves_time : (s₁ ⇓ᵢ[rcns] s₂) → s₁.ctx.time = s₂.ctx.time := by
   intro h
@@ -299,12 +293,12 @@ theorem InstStep.not_mem_currentProcessedRcns :
 -- Corollary of `InstStep.mem_currentProcessedRcns`.
 theorem InstStep.monotonic_currentProcessedRcns :
   (s₁ ⇓ᵢ[rcn] s₂) → rcn' ∈ s₁.ctx.currentProcessedRcns → rcn' ∈ s₂.ctx.currentProcessedRcns := 
-  λ h hm => h.mem_currentProcessedRcns.mpr $ .inr hm
+  (·.mem_currentProcessedRcns.mpr $ .inr ·)
 
 -- Corollary of `InstStep.mem_currentProcessedRcns`.
 theorem InstStep.self_currentProcessedRcns : 
   (s₁ ⇓ᵢ[rcn] s₂) → rcn ∈ s₂.ctx.currentProcessedRcns := 
-  λ h => h.mem_currentProcessedRcns.mpr $ .inl rfl
+  (·.mem_currentProcessedRcns.mpr $ .inl rfl)
 
 -- If a port is not in the output-dependencies of a given reaction,
 -- then any instantaneous step of the reaction will keep that port
@@ -319,7 +313,7 @@ theorem InstStep.preserves_nondep_ports :
   case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · hr ho hd) hv
 
 theorem InstStep.indep_rcns_indep_input :
-  (s ⇓ᵢ[rcn'] s') → (s.rtr.independent rcn rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
+  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
   intro h hi
   simp [State.rcnInput]
   cases hc : s.rtr.containerObj? .rcn rcn <;> cases hc' : s'.rtr.containerObj? .rcn rcn
@@ -345,23 +339,52 @@ theorem InstStep.indep_rcns_indep_input :
       case acts =>
         sorry
 
--- Corollary of `InstStep.indep_rcns_indep_changes`.
-theorem InstStep.indep_rcns_indep_changes :
-  (s ⇓ᵢ[rcn'] s') → (s.rtr.independent rcn rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := 
+-- Corollary of `InstStep.indep_rcns_indep_input`.
+theorem InstStep.indep_rcns_indep_output :
+  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := 
   λ h hi => State.rcnInput_eq_rcnOutput_eq $ h.indep_rcns_indep_input hi
 
--- TODO: This is step 2 of the determinism proof plan.
-theorem InstStep.indep_rcns_changes_comm_equiv :
-  (s ⇓ᵢ[rcn₁] s₁) → (s ⇓ᵢ[rcn₂] s₂) → (s.rtr.independent rcn₁ rcn₂) →
+theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
+  (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 
+  (o₁ ++ o₂) ⋈ (o₂ ++ o₁) := by
+  intro hi ho₁ ho₂
+  constructor <;> intro i 
+  case ports =>
+    -- consequence of hi: 
+    -- either rcn₁ and rcn₂ and don't live in the same reactor,
+    -- or if they do Reactor.rcnsTotal implies that they can't share any
+    -- output dependencies. By the constraints on Reaction they thus can't
+    -- produces changes to the same port.
+    sorry
+  case state =>
+    -- consequence of hi: 
+    -- either rcn₁ and rcn₂ and don't live in the same reactor,
+    -- or if they do Reactor.rcnsTotal implies that they must be pure,
+    -- i.e. don't produce changes to state, thus making bother sides of
+    -- the equality none.
+    sorry
+  case actions =>
+    intro t
+    -- consequence of hi: 
+    -- either rcn₁ and rcn₂ and don't live in the same reactor,
+    -- or if they do Reactor.rcnsTotal implies that they can't share any
+    -- output dependencies. By the constraints on Reaction they thus can't
+    -- produces changes to the same action.
+    sorry
+
+theorem InstStep.indep_rcns_changes_equiv :
+  (s ⇓ᵢ[rcn₁] s₁) → (s ⇓ᵢ[rcn₂] s₂) → (rcn₁ >[s.rtr]< rcn₂) →
   (s.rcnOutput rcn₁ = some o₁) → (s₁.rcnOutput rcn₂ = some o₁₂) → 
   (s.rcnOutput rcn₂ = some o₂) → (s₂.rcnOutput rcn₁ = some o₂₁) → 
   (o₁ ++ o₁₂) ⋈ (o₂ ++ o₂₁) := by
   intro h₁ h₂ hi ho₁ ho₁₂ ho₂ ho₂₁
-  apply ChangeListEquiv.mk <;> intro i
-  -- Use `indep_rcns_indep_changes`?
-  case ports => sorry
-  case state => sorry
-  case actions => sorry
+  rw [h₂.indep_rcns_indep_output hi] at ho₁
+  rw [ho₁.symm.trans ho₂₁ |> Option.some_inj.mp]
+  rw [h₁.indep_rcns_indep_output hi.symm] at ho₂
+  rw [ho₂.symm.trans ho₁₂ |> Option.some_inj.mp]
+  rw [←h₁.indep_rcns_indep_output hi.symm] at ho₁₂
+  rw [←h₂.indep_rcns_indep_output hi] at ho₂₁
+  exact InstStep.indep_rcns_changes_comm_equiv hi ho₂₁ ho₁₂
 
 theorem InstExecution.preserves_freshID {s₁ s₂ rcns} :
   (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.freshID = s₂.ctx.freshID := by
@@ -499,6 +522,7 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   -- (s -[cs₁]→ s₁) → (s -[cs₂]→ s₂) → cs₁ ~ cs₂ → s₁ = s₂
   -- ... to prove this we will need to solve the theorems relating to `Change(List)Step`.
   --
+  -- WIP: `InstStep.indep_rcns_changes_equiv`
   -- 2. swapping independent reactions produces equivalent change lists:
   -- (s ⇓ᵢ[r₁] s₁) → (s ⇓ᵢ[r₂] s₂) → /r₁ indep r₂/ → /r₁ and r₂ correspond to rcn₁ and rcn₂/ →
   -- (rcn₁ $ s.rcnInput rcn₁) ++ (rcn₂ $ s₁.rcnInput rcn₂) ⋈ (rcn₂ $ s.rcnInput rcn₂) ++ (rcn₁ $ s₂.rcnInput rcn₁)

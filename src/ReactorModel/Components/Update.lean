@@ -212,19 +212,16 @@ theorem Update.funcs_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cm
   rw [hc] at hc₂
   exact Update.unique' hc₁ hc₂
 
-theorem Update.ne_cmp_ne_rtr_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp₁ cmp₂ : Cmp} {i₁ i₂ : ID} {f₁ : cmp₁.type → cmp₁.type} {f₂ : cmp₂.type → cmp₂.type} :
-  (σ -[cmp₁:i₁ f₁]→ σ₁) → (σ₁ -[cmp₂:i₂ f₂]→ σ₁₂) →
-  (σ -[cmp₂:i₂ f₂]→ σ₂) → (σ₂ -[cmp₁:i₁ f₁]→ σ₂₁) →
-  (cmp₁ ≠ cmp₂) → (cmp₁ ≠ Cmp.rtr) → (cmp₂ ≠ Cmp.rtr) → 
-  σ₁₂ = σ₂₁ :=
-  sorry
-
-theorem Update.ne_id_ne_rtr_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cmp} {i₁ i₂ : ID} {f₁ f₂ : cmp.type → cmp.type} :
-  (σ -[cmp:i₁ f₁]→ σ₁) → (σ₁ -[cmp:i₂ f₂]→ σ₁₂) →
-  (σ -[cmp:i₂ f₂]→ σ₂) → (σ₂ -[cmp:i₁ f₁]→ σ₂₁) →
-  (i₁ ≠ i₂) → (cmp ≠ Cmp.rtr) → 
-  σ₁₂ = σ₂₁ :=
-  sorry
+theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
+  (σ₁ -[cmp:i f]→ σ₂) → (cmp' ≠ cmp ∨ i' ≠ i) → (cmp ≠ .rtr) → (cmp' ≠ .rtr) → (σ₁ *[cmp':i']= v) → (σ₂ *[cmp':i']= v) := by
+  intro h ho hr hr' hv
+  induction h
+  case top he _ _ _ =>
+    have H := he _ _ ho
+    sorry -- Argument about lineages and EqModID.
+  case nest he _ _ _ hi =>
+    -- have H := he _ _ ho
+    sorry
 
 structure Mutation.rtrRel (cmp : Cmp) (cmpRel : (ID ▸ cmp.type) → (ID ▸ cmp.type) → Prop) (σ₁ σ₂ : Reactor) : Prop where
   eqCmps : ∀ cmp', (cmp' ≠ cmp) → σ₁.cmp cmp' = σ₂.cmp cmp'
@@ -241,31 +238,3 @@ set_option quotPrecheck false in
 notation σ₁:max " -[" cmp:max "|" r:max f "]→ " σ₂:max => Reactor.Mutation σ₁ σ₂ cmp (λ c c' => c' = f c) r
 
 end Reactor
-
--- EXPERIMENT
-/-
-namespace Reactor
-
-structure Chg where
-  cmp : Cmp
-  id : ID
-  func : cmp.type → cmp.type
-
-def Chg.target (c : Chg) : Cmp × ID := (c.cmp, c.id)
-
-def MultiEqModID (σ₁ σ₂ : Reactor) (ts : Finset $ Cmp × ID) : Prop :=
-  ∀ (cmp' i'), (¬ (cmp', i') ∈ ts) → σ₁.cmp cmp' i' = σ₂.cmp cmp' i'
-
-notation σ₁:max " %[" ts "]= " σ₂:max => MultiEqModID σ₁ σ₂ ts
-
-inductive MultiUpdate : Reactor → Reactor → Finset Chg → Prop :=
-  | mk {σ₁ σ₂} {cs hds : Finset Chg} {tls : Finset $ Finset Chg} {js : Finset ID} : 
-    (cs = hds ∪ tls.bUnion (.)) →
-    (σ₁ %[hds.image (·.target) ∪ js.image ((Cmp.rtr, ·))]= σ₂) →
-    (∀ tl ∈ tls, ∃ j r₁ r₂, (j ∈ js) ∧ (σ₁.nest j = some r₁) ∧ (σ₂.nest j = some r₂) ∧ (MultiUpdate r₁ r₂ tl)) →
-    (∀ hd ∈ hds, ∃ v, (σ₁.cmp hd.cmp hd.id = some v) ∧ (σ₂.cmp hd.cmp hd.id = hd.func v)) → 
-    MultiUpdate σ₁ σ₂ cs
-
-end Reactor
--/
-
