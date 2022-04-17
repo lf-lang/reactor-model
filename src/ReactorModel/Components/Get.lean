@@ -125,6 +125,18 @@ def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
 noncomputable def container? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Rooted ID) := 
   if h : ∃ c, σ &[cmp:i]= c then h.choose else none
 
+theorem container?_some_iff_container {σ : Reactor} {cmp : Cmp} : 
+  (σ.container? cmp i = some c) ↔ (σ &[cmp:i]= c) := by
+  constructor <;> (intro h; simp [container?] at *) 
+  case mp => 
+    split at h
+    case inl hc => simp at h; rw [←h]; exact hc.choose_spec
+    case inr => contradiction
+  case mpr =>
+    split
+    case inl hc => simp [h.unique hc.choose_spec]
+    case inr hc => exact absurd h (not_exists.mp hc $ c)
+
 -- The `Object` relation is used to determine whether a given ID `i` identifies
 -- an object `o` of component type `cmp`.
 --

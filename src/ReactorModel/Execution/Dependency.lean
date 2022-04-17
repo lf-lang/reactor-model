@@ -44,5 +44,21 @@ def Reactor.Indep (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
 
 notation i₁:max " >[" σ "]< " i₂:max => Reactor.Indep σ i₁ i₂
 
-theorem Reactor.Indep.symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
+namespace Reactor.Indep
+
+protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
   And.symm
+
+theorem ne_rtr_or_ne_out_deps : 
+  (i₁ >[σ]< i₂) → (σ *[.rcn:i₁]= rcn₁) → (σ *[.rcn:i₂]= rcn₂) →
+  (σ.container? .rcn i₁ ≠ σ.container? .rcn i₂) ∨ (rcn₁.deps Role.out ∩ rcn₂.deps Role.out) = ∅ := by
+  intro h h₁ h₂ 
+  by_contra hc
+  have ⟨hc, hd⟩ := (not_or ..).mp hc
+  simp [Finset.eq_empty_iff_forall_not_mem, Finset.mem_inter] at hd hc
+  sorry
+  -- create an instance of Dependency rcn₁ rcn₂
+
+  
+
+end Reactor.Indep

@@ -532,6 +532,8 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   --
   -- 4. by 2. and 3. and induction: dependency respecting reaction lists that are permutations
   -- of eachother produce equivalent change lists
+  -- .. how do you even state this though? 
+  -- Naively we would need to lift a reaction's change list into the type level of InstStep as well (called `o` there).
   --
   -- 5. by 1. and 4. and hp and `InstExecution.rcns_respect_dependencies`: 
   --    `InstExecution.deterministic` holds
