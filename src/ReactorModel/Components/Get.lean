@@ -10,75 +10,74 @@ inductive Cmp
   | act -- Actions
   | stv -- State variables
 
-namespace Cmp 
-
 -- The *type* corresponding to the component labeled by a given `Cmp`.
 -- 
 -- Note that the types for `prt` and `stv` are just `υ`, because IDs don't refer to
 -- the entire entire mappinngs, but rather the single values within them.
-abbrev type : Cmp → Type _
-  | rtr => Reactor
-  | rcn => Reaction
-  | prt => Port
-  | act => Time.Tag ▸ Value
-  | stv => Value
-
--- Associates each type of component with the finmap in which it can be found inside
--- of a reactor. We use this in `objFor` to generically resolve the lookup for *some*
--- component and *some* ID.
-private abbrev accessor : (cmp : Cmp) → Reactor → ID ▸ cmp.type
-  | rtr => Reactor.nest
-  | rcn => Reactor.rcns
-  | prt => Reactor.ports
-  | act => Reactor.acts
-  | stv => Reactor.state
-
-end Cmp
+abbrev Cmp.type : Cmp → Type _
+  | .rtr => Reactor
+  | .rcn => Reaction
+  | .prt => Port
+  | .act => Time.Tag ▸ Value
+  | .stv => Value
 
 namespace Reactor
 
-abbrev cmp (σ : Reactor) (cmp : Cmp) : ID ▸ cmp.type := 
-  cmp.accessor σ
+-- Associates each type of component with the finmap in which it can be found inside
+-- of a reactor. We use this in `Object` to generically resolve the lookup for *some*
+-- component and *some* ID.
+abbrev cmp : (cmp : Cmp) → Reactor → ID ▸ cmp.type
+  | .rtr => Reactor.nest
+  | .rcn => Reactor.rcns
+  | .prt => Reactor.ports
+  | .act => Reactor.acts
+  | .stv => Reactor.state
 
 namespace Lineage
 
 def target {σ i} : Lineage σ i → Cmp 
-  | rtr _ => Cmp.rtr
-  | rcn _ => Cmp.rcn
-  | prt _ => Cmp.prt
-  | act _ => Cmp.act
-  | stv _ => Cmp.stv
-  | nest l _ => target l
+  | .rtr _ => .rtr
+  | .rcn _ => .rcn
+  | .prt _ => .prt
+  | .act _ => .act
+  | .stv _ => .stv
+  | .nest l _ => target l
 
 def cmp {σ i} : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) → Lineage σ i
-  | Cmp.rtr, h => Lineage.rtr h
-  | Cmp.rcn, h => Lineage.rcn h
-  | Cmp.prt, h => Lineage.prt h
-  | Cmp.act, h => Lineage.act h
-  | Cmp.stv, h => Lineage.stv h
+  | .rtr, h => .rtr h
+  | .rcn, h => .rcn h
+  | .prt, h => .prt h
+  | .act, h => .act h
+  | .stv, h => .stv h
 
 -- The "parent" in a lineage is the reactor which contains the target of the lineage.
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
-def parent {σ i} : Lineage σ i → (Rooted ID × Reactor)
-  | @nest _ _ r j l _ => 
-    match l with 
-    | nest .. => parent l
-    | _ => (j, r)
-  | _ => (⊤, σ)
+def containerID : Lineage σ i → Rooted ID 
+  | .nest l@(.nest ..) _ => containerID l
+  | @nest _ j .. => j
+  | _ => ⊤
+decreasing_by sorry 
 
-@[simp] theorem cmp_parent {σ i cmp} (h : i ∈ (σ.cmp cmp).ids) : (Lineage.cmp cmp h).parent.snd = σ := by
-  cases Reactor.Lineage.cmp cmp h <;> sorry -- simp [parent]: failed to generate equality theorems for `match` expression
+def container : Lineage σ i → Reactor
+  | .nest l@(.nest ..) _ => container l
+  | @nest r .. => r
+  | _ => σ
+decreasing_by sorry 
 
-@[simp] theorem nest_parent {σ : Reactor} {rtr i j} (l : Lineage rtr i) (h : σ.nest j = some rtr) : (Lineage.nest l h).parent.snd = l.parent.snd := by
-  cases l <;> sorry -- simp [parent]: failed to generate equality theorems for `match` expression
+theorem cmp_container {cmp} : (h : i ∈ (σ.cmp cmp).ids) → (Lineage.cmp cmp h).container = σ := by
+  sorry
 
-private def retarget {σ i} : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (l.parent.snd.cmp cmp).ids → Lineage σ i
+theorem nest_container {σ rtr : Reactor} (l : Lineage rtr i) (h : σ.nest j = rtr) : (Lineage.nest l h).container = l.container := by
+  sorry
+
+private def retarget : (l : Lineage σ i) → (cmp : Cmp) → i ∈ (l.container.cmp cmp).ids → Lineage σ i
   | nest l' h', cmp, h => Lineage.nest (retarget l' cmp h) h'
   | _, cmp, h => Lineage.cmp cmp h
 
-private theorem retarget_target {σ i} (l : Lineage σ i) (cmp h) :
-  (l.retarget cmp h).target = cmp := sorry
+private theorem retarget_target (l : Lineage σ i) (cmp h) :
+  (l.retarget cmp h).target = cmp :=
+  sorry
 
 private theorem retarget_ne {σ i cmp} (l : Lineage σ i) (h) :
   cmp ≠ l.target → l ≠ l.retarget cmp h := by 
@@ -107,7 +106,7 @@ end Lineage
 -- and yield `False` in that case (as the top-level reactor will never have a
 -- parent container).
 inductive Container (σ : Reactor) (cmp : Cmp) (i : ID) (c : Rooted ID) : Prop
-  | intro (l : Lineage σ i) : (l.parent.fst = c) → (l.target = cmp) → Container σ cmp i c
+  | intro (l : Lineage σ i) : (l.containerID = c) → (l.target = cmp) → Container σ cmp i c
 
 -- In the `Container` relation, any given ID can have at most one parent.
 theorem Container.unique {σ : Reactor} {cmp : Cmp} {i : ID} {c₁ c₂ : Rooted ID} :
@@ -162,7 +161,7 @@ def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
 -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/.E2.9C.94.20Exfalso.20HEq
 inductive Object (σ : Reactor) : Rooted ID → (cmp : Cmp) → cmp.type → Prop
   | root {o} : (o = σ) → Object σ ⊤ Cmp.rtr o
-  | nest {i cmp o} (l : Lineage σ i) : (l.parent.snd.cmp cmp i = some o) → Object σ (Rooted.nest i) cmp o 
+  | nest {i cmp o} (l : Lineage σ i) : (l.container.cmp cmp i = some o) → Object σ (Rooted.nest i) cmp o 
 
 -- In the `Object` relation, any given ID can have associated objects of at most one component type.
 -- E.g. an ID cannot have associated objects of type `Cmp.rcn` *and* `Cmp.prt`.

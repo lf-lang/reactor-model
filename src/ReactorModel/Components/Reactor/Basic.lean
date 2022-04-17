@@ -303,21 +303,21 @@ theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
 --
 -- We use this structure to define ID-uniqueness (`uniqueIDs`) in reactors as
 -- well as hierarchy accessors in Components>Reactor>Hierarchy.lean.
-inductive Lineage : Reactor → ID → Type _ 
-  | rtr {σ i} : i ∈ σ.nest.ids  → Lineage σ i
-  | rcn {σ i} : i ∈ σ.rcns.ids  → Lineage σ i
-  | prt {σ i} : i ∈ σ.ports.ids → Lineage σ i
-  | act {σ i} : i ∈ σ.acts.ids  → Lineage σ i
-  | stv {σ i} : i ∈ σ.state.ids → Lineage σ i
-  | nest {σ i rtr j} : (Lineage rtr i) → (σ.nest j = some rtr) → Lineage σ i
+inductive Lineage : Reactor → ID → Type _
+  | rtr : i ∈ σ.nest.ids  → Lineage σ i
+  | rcn : i ∈ σ.rcns.ids  → Lineage σ i
+  | prt : i ∈ σ.ports.ids → Lineage σ i
+  | act : i ∈ σ.acts.ids  → Lineage σ i
+  | stv : i ∈ σ.state.ids → Lineage σ i
+  | nest : (Lineage rtr i) → (σ.nest j = some rtr) → Lineage σ i
 
 private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
-  | Lineage.prt h => Raw.Reactor.Lineage.prt σ.raw i h
-  | Lineage.act h => Raw.Reactor.Lineage.act σ.raw i h
-  | Lineage.stv h => Raw.Reactor.Lineage.stv σ.raw i h
-  | Lineage.rcn h => Raw.Reactor.Lineage.rcn σ.raw i h
-  | Lineage.rtr h => Raw.Reactor.Lineage.rtr σ.raw i $ ((nest_raw_eq_raw_nest σ).eqIDs i).mp h
-  | Lineage.nest l hn => Raw.Reactor.Lineage.nest (toRaw l) (nest_mem_raw_iff.mp hn)
+  | .prt h => .prt σ.raw i h
+  | .act h => .act σ.raw i h
+  | .stv h => .stv σ.raw i h
+  | .rcn h => .rcn σ.raw i h
+  | .rtr h => .rtr σ.raw i $ ((nest_raw_eq_raw_nest σ).eqIDs i).mp h
+  | .nest l hn => .nest (toRaw l) (nest_mem_raw_iff.mp hn)
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.
 -- We define this property in terms of `Lineage`s, since a components is
@@ -336,6 +336,5 @@ theorem uniqueIDs {σ : Reactor} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ :=
       exact hi _ $ eq_of_heq h.right.right
     all_goals { contradiction }
   all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
-
 
 end Reactor

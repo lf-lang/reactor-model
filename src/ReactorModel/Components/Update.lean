@@ -150,10 +150,10 @@ theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type
     refine ⟨v, v', ?top.object₁, ?top.object₂, hu⟩
     case top.object₁ =>
       apply Object.nest $ Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨v, hv.symm⟩
-      simp [Lineage.cmp_parent, hv]
+      simp [Lineage.cmp_container, hv]
     case top.object₂ =>
       apply Object.nest $ Lineage.cmp cmp $ Finmap.ids_def'.mpr ⟨v', hv'.symm⟩
-      simp [Lineage.cmp_parent, hv']
+      simp [Lineage.cmp_container, hv']
   case nest _ σ₂ j rtr₁ rtr₂ _ hr₁ hr₂ _ hi =>
     have ⟨v, v', ho₁, ho₂, hu⟩ := hi
     refine ⟨v, v', ?nest.object₁, ?nest.object₂, hu⟩ 
@@ -161,12 +161,12 @@ theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type
       cases ho₁
       case nest l hl => 
         apply Object.nest $ Lineage.nest l hr₁
-        simp [Lineage.nest_parent, hl]
+        simp [Lineage.nest_container, hl]
     case nest.object₂ =>
       cases ho₂
       case nest l hl =>
         apply Object.nest $ Lineage.nest l hr₂
-        simp [Lineage.nest_parent, hl]
+        simp [Lineage.nest_container, hl]
 
 notation u₂ " ● " u₁ => λ v₁ v₂ => ∃ v, (u₁ v₁ v) ∧ (u₂ v v₂)
 
