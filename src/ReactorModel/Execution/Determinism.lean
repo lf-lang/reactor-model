@@ -85,6 +85,7 @@ theorem ChangeStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} {c : Change} :
   (s₁ -[rcn:c]→ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := 
   λ h => by cases h <;> rfl
 
+/-
  /- For each cmp:i, the change of value either happens in cs₁ or in cs₂.
     This is expressed in the following two lemmas, that say that one of the two
     ChangeLists is a noop for cmp:i, one for the first step and one for the second
@@ -120,6 +121,7 @@ theorem ChangeListStep.value_identical {s s₁ s₂ s₁₂ s₂₁ : State} {rc
     case nest s hs => sorry
   case inr hv₂ =>
     sorry
+-/
 
  -- This will be much more interesting once mutations are in the game!
 theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
@@ -144,6 +146,7 @@ theorem ChangeListStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} {cs : List 
   | nil => rfl
   | cons h₁₂ _ h₂₃ => exact h₁₂.preserves_rcns.trans h₂₃
 
+/-
 theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) → 
   (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) → 
@@ -158,7 +161,7 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
     apply ChangeListStep.value_identical h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
   case ctx =>
     sorry -- follows from ChangeListStep.preserves_ctx
-
+-/
 
 
 ------------------------------------------------------------------------------------------------------
@@ -212,24 +215,24 @@ theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
 
 
 theorem ChangeStep.preserves_unchanged_port :
-  (s₁ -[rcn:c]→ s₂) → (∀ p, Change.port i p ≠ c) → (s₁.rtr *[.prt:i]= p) → (s₂.rtr *[.prt:i]= p) := by
-  intro h hc hv 
-  cases h <;> simp [hv]
+  (s₁ -[rcn:c]→ s₂) → (∀ p, Change.port i p ≠ c) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
+  intro h hc 
+  cases h <;> simp
   case port i' v h =>
-    refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp) hv
+    refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp)
     by_contra hi
     specialize hc v
     rw [hi] at hc
     contradiction
-  case' state h, action h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp) hv
+  case' state h, action h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
 
 theorem ChangeListStep.preserves_unchanged_ports :
-  (s₁ -[rcn:cs]→* s₂) → (∀ p, Change.port i p ∉ cs) → (s₁.rtr *[.prt:i]= p) → (s₂.rtr *[.prt:i]= p) := by
-  intro h hc hv 
+  (s₁ -[rcn:cs]→* s₂) → (∀ p, Change.port i p ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
+  intro h hc 
   induction h
-  case nil => exact hv
+  case nil => rfl
   case cons h _ hi => 
-    refine hi ?_ $ h.preserves_unchanged_port ?_ hv <;> (
+    refine (h.preserves_unchanged_port ?_).trans (hi ?_) <;> (
       intro p
       have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc p
       assumption
@@ -304,13 +307,12 @@ theorem InstStep.self_currentProcessedRcns :
 -- then any instantaneous step of the reaction will keep that port
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr *[.rcn:i]= rcn) → 
-  (p ∉ rcn.deps Role.out) → (s₁.rtr *[.prt:p]= v) → 
-  s₂.rtr *[.prt:p]= v := by
-  intro h hr hd hv
+  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → 
+  (p ∉ rcn.deps Role.out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p) := by
+  intro h hr hd
   cases h 
-  case skipReaction => exact hv
-  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · hr ho hd) hv
+  case skipReaction => rfl
+  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · hr ho hd)
 
 theorem InstStep.indep_rcns_indep_input :
   (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnInput rcn = s'.rcnInput rcn := by

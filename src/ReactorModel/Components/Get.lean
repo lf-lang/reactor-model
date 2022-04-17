@@ -163,15 +163,12 @@ def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
 inductive Object (σ : Reactor) : Rooted ID → (cmp : Cmp) → cmp.type → Prop
   | root {o} : (o = σ) → Object σ ⊤ Cmp.rtr o
   | nest {i cmp o} (l : Lineage σ i) : (l.parent.snd.cmp cmp i = some o) → Object σ (Rooted.nest i) cmp o 
-  
--- This notation is chosen to be akin to the dereference notation in C.
-notation σ:max " *[" cmp ":" i "]= " o:max => Reactor.Object σ i cmp o
 
 -- In the `Object` relation, any given ID can have associated objects of at most one component type.
 -- E.g. an ID cannot have associated objects of type `Cmp.rcn` *and* `Cmp.prt`.
 -- Cf. `objFor_unique_obj` for further information.
 theorem Object.unique_cmp {σ : Reactor} {i : Rooted ID} {cmp₁ cmp₂ : Cmp} {o₁ : cmp₁.type} {o₂ : cmp₂.type} :
-  (σ *[cmp₁:i]= o₁) → (σ *[cmp₂:i]= o₂) → cmp₁ = cmp₂ := by
+  (Object σ i cmp₁ o₁) → (Object σ i cmp₂ o₂) → cmp₁ = cmp₂ := by
   intro h₁ h₂
   cases h₁ <;> cases h₂ <;> simp only
   case nest.nest l₁ h₁ l₂ h₂ =>
@@ -205,7 +202,7 @@ theorem Object.unique_cmp {σ : Reactor} {i : Rooted ID} {cmp₁ cmp₂ : Cmp} {
 -- After appropriate type casting (using the previous result), `objFor_unique_obj` can be used to show
 -- object equality. X
 theorem Object.unique_obj {σ : Reactor} {i : Rooted ID} {cmp : Cmp} {o₁ o₂ : cmp.type} : 
-  (σ *[cmp:i]= o₁) → (σ *[cmp:i]= o₂) → o₁ = o₂ := by
+  (Object σ i cmp o₁) → (Object σ i cmp o₂) → o₁ = o₂ := by
   intro h₁ h₂
   cases h₁ <;> cases h₂
   case root.root h₁ h₂ => exact h₁.trans h₂.symm
@@ -215,9 +212,21 @@ theorem Object.unique_obj {σ : Reactor} {i : Rooted ID} {cmp : Cmp} {o₁ o₂ 
 
 -- NOTE: As we have `Object.unique_obj`, the choice of object is always unique.
 noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := {
-  lookup := λ i => if h : ∃ o, σ *[cmp:i]= o then h.choose else none,
+  lookup := λ i => if h : ∃ o, Object σ i cmp o then h.choose else none,
   finite := sorry
 }
+
+theorem Object.iff_obj?_some {σ : Reactor} {cmp : Cmp} {o : cmp.type} : 
+  (Object σ i cmp o) ↔ (σ.obj? cmp i = some o) := by
+  constructor <;> (intro h; simp [obj?] at *) 
+  case mp =>
+    split
+    case inl hc => simp [h.unique_obj hc.choose_spec]
+    case inr hc => exact absurd h (not_exists.mp hc $ o)
+  case mpr => 
+    split at h
+    case inl hc => simp at h; rw [←h]; exact hc.choose_spec
+    case inr => contradiction
 
 noncomputable def containerObj? (σ : Reactor) (cmp : Cmp) (i : ID) : Option Reactor :=
   σ.con? cmp i >>= (σ.obj? .rtr ·)
@@ -240,7 +249,7 @@ noncomputable def allIDs (σ : Reactor) : Finset ID :=
   let finite : description.finite := sorry
   finite.toFinset
 
-theorem Object.ext {σ₁ σ₂ : Reactor} (hi : σ₁.allIDs = σ₂.allIDs) (hv : ∀ cmp i v, σ₁ *[cmp:i]= v → σ₂ *[cmp:i]= v) : 
+theorem Object.ext {σ₁ σ₂ : Reactor} (hi : σ₁.allIDs = σ₂.allIDs) (hv : ∀ cmp i, σ₁.obj? cmp i = σ₂.obj? cmp i) : 
   σ₁ = σ₂ := by
     sorry
 

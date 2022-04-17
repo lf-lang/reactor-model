@@ -142,8 +142,9 @@ theorem Update.unique' {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.
   λ h₁ h₂ => Update.unique h₁ h₂ λ _ _ _ hv₁ hv₂ => hv₁.trans hv₂.symm
 
 theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} :
-  (σ₁ -[cmp;i u]→ σ₂) → ∃ v v', (σ₁ *[cmp:i]= v) ∧ (σ₂ *[cmp:i]= v') ∧ (u v v') := by
+  (σ₁ -[cmp;i u]→ σ₂) → ∃ v v', (σ₁.obj? cmp i = some v) ∧ (σ₂.obj? cmp i = some v') ∧ (u v v') := by
   intro h
+  simp only [←Object.iff_obj?_some]
   induction h
   case top σ₁ σ₂ v v' he hv hv' hu =>
     refine ⟨v, v', ?top.object₁, ?top.object₂, hu⟩
@@ -213,8 +214,8 @@ theorem Update.funcs_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cm
   exact Update.unique' hc₁ hc₂
 
 theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
-  (σ₁ -[cmp:i f]→ σ₂) → (cmp' ≠ cmp ∨ i' ≠ i) → (cmp ≠ .rtr) → (cmp' ≠ .rtr) → (σ₁ *[cmp':i']= v) → (σ₂ *[cmp':i']= v) := by
-  intro h ho hr hr' hv
+  (σ₁ -[cmp:i f]→ σ₂) → (cmp' ≠ cmp ∨ i' ≠ i) → (cmp ≠ .rtr) → (cmp' ≠ .rtr) → (σ₁.obj? cmp' i' = σ₂.obj? cmp' i') := by
+  intro h ho hr hr'
   induction h
   case top he _ _ _ =>
     have H := he _ _ ho

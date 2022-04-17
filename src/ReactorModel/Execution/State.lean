@@ -32,7 +32,7 @@ noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
   | _, _ => none
 
 theorem rcnOutput_dep_only {s : State} {i : ID} (v) : 
-  (s.rtr *[.rcn:i]= rcn) → (s.rcnOutput i = some o) → (p ∉ rcn.deps Role.out) → Change.port p v ∉ o :=
+  (s.rtr.obj? .rcn i = some rcn) → (s.rcnOutput i = some o) → (p ∉ rcn.deps Role.out) → Change.port p v ∉ o :=
   sorry -- this might be simpler to prove if rcnOutput's matches are sequential
 
 theorem rtr_contains_rcn_if_rcnOutput_some {s : State} :
