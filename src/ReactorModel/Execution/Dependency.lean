@@ -51,7 +51,7 @@ protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
 
 theorem ne_rtr_or_ne_out_deps : 
   (i₁ >[σ]< i₂) → (σ *[.rcn:i₁]= rcn₁) → (σ *[.rcn:i₂]= rcn₂) →
-  (σ.container? .rcn i₁ ≠ σ.container? .rcn i₂) ∨ (rcn₁.deps Role.out ∩ rcn₂.deps Role.out) = ∅ := by
+  (σ.con? .rcn i₁ ≠ σ.con? .rcn i₂) ∨ (rcn₁.deps Role.out ∩ rcn₂.deps Role.out) = ∅ := by
   intro h h₁ h₂ 
   by_contra hc
   have ⟨hc, hd⟩ := (not_or ..).mp hc

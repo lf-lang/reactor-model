@@ -109,33 +109,30 @@ end Lineage
 inductive Container (σ : Reactor) (cmp : Cmp) (i : ID) (c : Rooted ID) : Prop
   | intro (l : Lineage σ i) : (l.parent.fst = c) → (l.target = cmp) → Container σ cmp i c
 
--- This notation is chosen to be akin to the address notation in C.
-notation σ:max " &[" cmp ":" i "]= " c:max => Reactor.Container σ cmp i c
-
 -- In the `Container` relation, any given ID can have at most one parent.
 theorem Container.unique {σ : Reactor} {cmp : Cmp} {i : ID} {c₁ c₂ : Rooted ID} :
-  (σ &[cmp:i]= c₁) → (σ &[cmp:i]= c₂) → c₁ = c₂ := by
+  (Container σ cmp i c₁) → (Container σ cmp i c₂) → c₁ = c₂ := by
   intro ⟨l₁, h₁, _⟩ ⟨l₂, h₂, _⟩
   simp [←h₁, ←h₂, σ.uniqueIDs l₁ l₂]
 
-def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
-  ∃ c, σ &[cmp:i]= c
-
 -- NOTE: As we have `Container.unique`, the choice of object is always unique.
-noncomputable def container? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Rooted ID) := 
-  if h : ∃ c, σ &[cmp:i]= c then h.choose else none
+noncomputable def con? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Rooted ID) := 
+  if h : ∃ c, Container σ cmp i c then h.choose else none
 
-theorem container?_some_iff_container {σ : Reactor} {cmp : Cmp} : 
-  (σ.container? cmp i = some c) ↔ (σ &[cmp:i]= c) := by
-  constructor <;> (intro h; simp [container?] at *) 
-  case mp => 
-    split at h
-    case inl hc => simp at h; rw [←h]; exact hc.choose_spec
-    case inr => contradiction
-  case mpr =>
+theorem Container.iff_con?_some {σ : Reactor} {cmp : Cmp} : 
+  (Container σ cmp i c) ↔ (σ.con? cmp i = some c) := by
+  constructor <;> (intro h; simp [con?] at *) 
+  case mp =>
     split
     case inl hc => simp [h.unique hc.choose_spec]
     case inr hc => exact absurd h (not_exists.mp hc $ c)
+  case mpr => 
+    split at h
+    case inl hc => simp at h; rw [←h]; exact hc.choose_spec
+    case inr => contradiction
+
+def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
+  σ.con? cmp i ≠ none
 
 -- The `Object` relation is used to determine whether a given ID `i` identifies
 -- an object `o` of component type `cmp`.
@@ -223,7 +220,7 @@ noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := 
 }
 
 noncomputable def containerObj? (σ : Reactor) (cmp : Cmp) (i : ID) : Option Reactor :=
-  σ.container? cmp i >>= (σ.obj? .rtr ·)
+  σ.con? cmp i >>= (σ.obj? .rtr ·)
 
 noncomputable def ids (σ : Reactor) (cmp : Cmp) : Finset ID :=
   let description := { i : ID | σ.contains cmp i }
