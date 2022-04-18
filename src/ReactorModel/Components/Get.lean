@@ -54,13 +54,13 @@ def cmp {σ i} : (cmp : Cmp) → (h : i ∈ (σ.cmp cmp).ids) → Lineage σ i
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
 def containerID : Lineage σ i → Rooted ID 
-  | .nest l@(.nest ..) _ => containerID l
+  | .nest l@(.nest ..) _ => l.containerID
   | @nest _ j .. => j
   | _ => ⊤
 decreasing_by sorry 
 
 def container : Lineage σ i → Reactor
-  | .nest l@(.nest ..) _ => container l
+  | .nest l@(.nest ..) _ => l.container
   | @nest r .. => r
   | _ => σ
 decreasing_by sorry 
@@ -215,7 +215,7 @@ noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := 
   finite := sorry
 }
 
-theorem Object.iff_obj?_some {σ : Reactor} {cmp : Cmp} {o : cmp.type} : 
+theorem Object.iff_obj?_some {σ cmp o} : 
   (Object σ i cmp o) ↔ (σ.obj? cmp i = some o) := by
   constructor <;> (intro h; simp [obj?] at *) 
   case mp =>
@@ -226,6 +226,21 @@ theorem Object.iff_obj?_some {σ : Reactor} {cmp : Cmp} {o : cmp.type} :
     split at h
     case inl hc => simp at h; rw [←h]; exact hc.choose_spec
     case inr => contradiction
+
+theorem Object.iff_container {i : ID} {cmp} : 
+  (∃ o, Object σ i cmp o) ↔ (∃ c, Container σ cmp i c) := by
+  constructor
+  sorry
+  sorry
+
+-- Corollary of `Object.iff_container`.
+theorem obj?_some_iff_con?_some {σ : Reactor} {i : ID} {cmp} : 
+  (∃ o, σ.obj? cmp i = some o) ↔ (∃ c, σ.con? cmp i = some c) := by
+  simp [←Object.iff_obj?_some, ←Container.iff_con?_some, Object.iff_container]
+
+theorem obj?_some_to_cmp_some {σ : Reactor} {i : ID} {cmp o} :
+  (σ.obj? cmp i = some o) → (∃ rtr c, σ.obj? .rtr c = some rtr ∧ rtr.cmp cmp i = some o) := by
+  sorry
 
 noncomputable def containerObj? (σ : Reactor) (cmp : Cmp) (i : ID) : Option Reactor :=
   σ.con? cmp i >>= (σ.obj? .rtr ·)

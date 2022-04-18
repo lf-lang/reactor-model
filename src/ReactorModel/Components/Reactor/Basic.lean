@@ -275,6 +275,9 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
       case h.right =>
         simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
         exact h₂
+-/
+-/
+-/
 
 inductive rcnsNeedTotalOrder (rtr : Reactor) (rcn₁ rcn₂ : Reaction) 
   | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
@@ -284,10 +287,6 @@ inductive rcnsNeedTotalOrder (rtr : Reactor) (rcn₁ rcn₂ : Reaction)
 theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
   (rtr.rcnsNeedTotalOrder rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio) := by
   sorry
-
--/
--/
--/
 
 -- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
 -- structure that traces a path through the nested reactors of `σ` that lead
@@ -323,7 +322,7 @@ private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Li
 -- We define this property in terms of `Lineage`s, since a components is
 -- addressable by an ID in a reactor iff it has a lineage in that reactor
 -- (by construction of `Lineage`).
-theorem uniqueIDs {σ : Reactor} {i} (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
+theorem uniqueIDs (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
   induction l₁
   case nest rtr₁ _ _ _ hi =>
