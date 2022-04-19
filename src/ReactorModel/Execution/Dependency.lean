@@ -67,11 +67,11 @@ theorem ne_rtr_or_ne_out_deps :
   by_contra hc
   have ⟨hc, hd⟩ := (not_or ..).mp hc
   simp at hc
-  have ⟨rtr₁, c₁, hc₁, hr₁⟩ := Reactor.obj?_some_to_cmp_some h₁
-  have ⟨rtr₂, c₂, hc₂, hr₂⟩ := Reactor.obj?_some_to_cmp_some h₂
+  have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? h₁
+  have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
   have H : rtr₁ = rtr₂ := sorry -- consequence of hc
   rw [←H] at hr₂
-  cases rtr₁.rcnsTotalOrder (.output hr₁ hr₂ h.ne_rcns hd)
+  cases rtr₁.obj.rcnsTotalOrder (.output hr₁ hr₂ h.ne_rcns hd)
   case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
 
@@ -92,11 +92,11 @@ theorem ne_rtr_or_pure :
   by_contra hc
   have ⟨hc, hd⟩ := (not_or ..).mp hc
   simp [not_or] at hd hc
-  have ⟨rtr₁, c₁, hc₁, hr₁⟩ := Reactor.obj?_some_to_cmp_some h₁
-  have ⟨rtr₂, c₂, hc₂, hr₂⟩ := Reactor.obj?_some_to_cmp_some h₂
+  have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? h₁
+  have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
   have H : rtr₁ = rtr₂ := sorry -- consequence of hc
   rw [←H] at hr₂
-  cases rtr₁.rcnsTotalOrder (.impure hr₁ hr₂ h.ne_rcns hd.left hd.right)
+  cases rtr₁.obj.rcnsTotalOrder (.impure hr₁ hr₂ h.ne_rcns hd.left hd.right)
   case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
 

@@ -30,6 +30,8 @@ def nonempty (s : Finset α) : Prop := ∃ x : α, x ∈ s
 protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : Finset β :=
   (s.val.bind (λ a => (t a).val)).toFinset
 
+def erase_none : Finset (Option α) → Finset α := sorry
+
 def image (f : α → β) (s : Finset α) : Finset β := sorry
 
 def singleton (a : α) : Finset α := ⟨[a], sorry⟩

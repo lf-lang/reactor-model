@@ -29,7 +29,7 @@ D.h. eine `freshID` Funktion die den einen gegebenen `resilient` Constraint einh
 
 structure Execution.Context.FreshIDFunc where
   func : Reactor → Rooted ID → ID
-  fresh : ∀ σ i, func σ i ∉ σ.allIDs
+  -- fresh : ∀ σ i, func σ i ∉ σ.allIDs
   resilient : sorry
 
 open Execution.Context in

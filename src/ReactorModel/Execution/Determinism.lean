@@ -123,6 +123,7 @@ theorem ChangeListStep.value_identical {s s₁ s₂ s₁₂ s₂₁ : State} {rc
     sorry
 -/
 
+/-
  -- This will be much more interesting once mutations are in the game!
 theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
   (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
@@ -131,6 +132,7 @@ theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State} {rcn
   s₁₂.rtr.allIDs = s₂₁.rtr.allIDs := by
   intros hσσ₁ hσ₁σ₁₂ hσσ₂ hσ₂σ₂₁ his
   sorry
+-/
 
 theorem ChangeListStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {cs : List Change} : 
   (s₁ -[rcn:cs]→* s₂) → s₁.ctx = s₂.ctx := by
@@ -318,7 +320,8 @@ theorem InstStep.indep_rcns_indep_input :
   (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
   intro h hi
   simp [State.rcnInput]
-  cases hc : s.rtr.objs? .rcn rcn <;> cases hc' : s'.rtr.objs? .rcn rcn
+  sorry
+  /-cases hc : s.rtr.objs? .rcn rcn <;> cases hc' : s'.rtr.objs? .rcn rcn
   case none.none => simp
   case' none.some, some.none => sorry -- by preserves_rcns: hc and hc' are contradictions
   case some.some os₁ os₂ => 
@@ -346,6 +349,7 @@ theorem InstStep.indep_rcns_indep_input :
         sorry
       case acts =>
         sorry
+    -/
 
 -- Corollary of `InstStep.indep_rcns_indep_input`.
 theorem InstStep.indep_rcns_indep_output :
@@ -556,7 +560,7 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
 theorem State.instComplete_to_inst_stuck :
   s.instComplete → ∀ s' rcn, ¬(s ⇓ᵢ[rcn] s') := by
   intro h s' _ he 
-  have h' := Reactor.ids_def.mp he.rtr_contains_rcn
+  have h' := Reactor.ids_mem_iff_contains.mpr he.rtr_contains_rcn
   rw [←h] at h'
   exact absurd h' he.rcn_unprocessed
 
@@ -613,7 +617,7 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State} :
     cases e; case' single hi, trans hi _ => exact False.elim $ impossible_case_aux hi hic
 where
   impossible_case_aux {s₁ s₂ rcn} (hi : s₁ ⇓ᵢ[rcn] s₂) (hic : s₁.instComplete) : False := by
-    exact absurd (Reactor.ids_def.mp hi.rtr_contains_rcn) $ mt (Finset.ext_iff.mp hic _).mpr <| hi.rcn_unprocessed
+    exact absurd (Reactor.ids_mem_iff_contains.mpr hi.rtr_contains_rcn) $ mt (Finset.ext_iff.mp hic _).mpr <| hi.rcn_unprocessed
 
 theorem Execution.time_monotone {s₁ s₂ : State} : 
   (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by

@@ -15,14 +15,14 @@ structure allows (s : State) (i : ID) : Prop where
   unprocessed : i ∉ s.ctx.currentProcessedRcns
 
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
-  match s.rtr.objs? .rcn i with
-  | none => none
-  | some ⟨rcn, rtr⟩ => some {
+  match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
+  | some ⟨_, rtr⟩, some rcn => some {
       portVals := rtr.ports.restrict (rcn.deps Role.in) |>.map (·.val),
       acts :=     rtr.acts.filterMap (· s.ctx.time) |>.restrict (rcn.deps Role.in),
       state :=    rtr.state,
       time :=     s.ctx.time
     }
+  | _, _ => none
 
 theorem rcnInput_some_iff_rtr_contains_rcn {s : State} :
   (s.rcnInput i = some j) ↔ s.rtr.contains .rcn i := 

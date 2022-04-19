@@ -19,6 +19,14 @@ notation "⊤" => Rooted.root
 instance : Coe ID (Rooted ID) where
   coe := Rooted.nest 
 
+def Rooted.nest? : Rooted ID → Option ID
+  | ⊤ => none
+  | nest i => i
+
+structure Identified (α) where
+  id : Rooted ID
+  obj : α
+
 def Priority := Option Nat
 
 instance : PartialOrder Priority := {
