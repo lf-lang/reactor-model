@@ -308,7 +308,7 @@ theorem InstStep.self_currentProcessedRcns :
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → 
-  (p ∉ rcn.deps Role.out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p) := by
+  (p ∉ rcn.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p) := by
   intro h hr hd
   cases h 
   case skipReaction => rfl
@@ -318,22 +318,28 @@ theorem InstStep.indep_rcns_indep_input :
   (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
   intro h hi
   simp [State.rcnInput]
-  cases hc : s.rtr.containerObj? .rcn rcn <;> cases hc' : s'.rtr.containerObj? .rcn rcn
+  cases hc : s.rtr.objs? .rcn rcn <;> cases hc' : s'.rtr.objs? .rcn rcn
   case none.none => simp
   case' none.some, some.none => sorry -- by preserves_rcns: hc and hc' are contradictions
-  case some.some σ σ' => 
-    simp
-    cases hs : σ.rcns rcn <;> cases hs' : σ'.rcns rcn
-    case none.none => simp
-    case' none.some, some.none => sorry -- by preserves_rcns and hc and hc' the σ.rcns = σ'.rcns, thus hs and hs' are contradictions
-    case some.some rcn rcn' =>
-      simp [h.preserves_time]
-      -- TODO: Prove that rcn and rcn' are the same, so you can apply Finmap.restrict_ext later.
-      ext1 <;> simp [Reactor.rcnInput]
-      case portVals =>
-        -- apply Finmap.restrict_ext -- Cf: TODO above.
-        -- intro p hp
-        -- refine h.preserves_nondep_ports
+  case some.some os₁ os₂ => 
+    cases os₁ <;> cases os₂
+    case mk.mk o₁ c₁ o₂ c₂ =>
+      simp [h.preserves_time] 
+      refine ⟨?ports, ?acts, ?state⟩
+      case ports =>
+        refine congr_arg2 _ ?_ rfl
+        have H0 : o₁ = o₂ := sorry
+        rw [H0]
+        apply Finmap.restrict_ext
+        intro p hp
+        have ⟨x, H⟩ := Reactor.obj?_some_iff_con?_some.mpr h.rtr_contains_rcn
+        have := hi.symm.no_chain H (Reactor.objs?_to_obj? hc)
+        rw [←H0] at hp
+        have HH : p ∉ x.deps .out := sorry -- by hp and `this`
+        have := h.preserves_nondep_ports H HH
+        have H2 :  ∃ x,  s.rtr.obj? .prt p = some x := sorry -- by hp, hc and Reactor.normDeps
+        have H2' : ∃ x, s'.rtr.obj? .prt p = some x := sorry -- by H0, hp, hc' and Reactor.normDeps
+        -- TODO: we also need to connect that p's parent reactor is e₁.con in s.rtr and e₂.con in s.rtr'
         sorry
       case state =>
         have ⟨H1, H2⟩ := hi

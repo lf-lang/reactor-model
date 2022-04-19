@@ -14,13 +14,15 @@ structure allows (s : State) (i : ID) : Prop where
   deps : s.rtr.dependencies i ⊆ s.ctx.currentProcessedRcns
   unprocessed : i ∉ s.ctx.currentProcessedRcns
 
-noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input :=
-  match s.rtr.containerObj? .rcn i with
+noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
+  match s.rtr.objs? .rcn i with
   | none => none
-  | some σ => 
-    match σ.rcns i with
-    | none => none
-    | some rcn => σ.rcnInput rcn s.ctx.time
+  | some ⟨rcn, rtr⟩ => some {
+      portVals := rtr.ports.restrict (rcn.deps Role.in) |>.map (·.val),
+      acts :=     rtr.acts.filterMap (· s.ctx.time) |>.restrict (rcn.deps Role.in),
+      state :=    rtr.state,
+      time :=     s.ctx.time
+    }
 
 theorem rcnInput_some_iff_rtr_contains_rcn {s : State} :
   (s.rcnInput i = some j) ↔ s.rtr.contains .rcn i := 
@@ -33,7 +35,7 @@ noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
 
 theorem rcnOutput_dep_only {s : State} {i : ID} (v) : 
   (s.rtr.obj? .rcn i = some rcn) → (s.rcnOutput i = some o) → (p ∉ rcn.deps Role.out) → Change.port p v ∉ o :=
-  sorry -- this might be simpler to prove if rcnOutput's matches are sequential
+  sorry 
 
 theorem rtr_contains_rcn_if_rcnOutput_some {s : State} :
   (s.rcnOutput rcn = some o) → s.rtr.contains .rcn rcn :=

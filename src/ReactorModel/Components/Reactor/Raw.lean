@@ -44,7 +44,7 @@ inductive Lineage : Raw.Reactor → ID → Type _
 
 inductive rcnsNeedTotalOrder (rtr : Raw.Reactor) (rcn₁ rcn₂ : Reaction) 
   | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps Role.out ∩ rcn₂.deps Role.out).nonempty → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → rcnsNeedTotalOrder rtr rcn₁ rcn₂
   | muts   {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
 
 theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} : 

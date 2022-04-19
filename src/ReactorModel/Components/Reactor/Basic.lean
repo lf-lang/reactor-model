@@ -7,9 +7,9 @@ namespace Raw.Reactor
 protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
   nestFinite : { i | rtr.nest i ≠ none }.finite
   uniqueIDs :  ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
-  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' Role.in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps Role.out) → iₚ ∉ rcn₂.deps Role.out
+  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' Role.in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
   normDeps :   ∀ {n r}, (n ∈ rtr.norms.values) → ↑(n.deps r) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.portVals r).ids ∪ (rtr.nestedPortIDs r.opposite))
-  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ ↑(m.deps Role.out) ⊆ ↑(rtr.portVals Role.out).ids ∪ (rtr.nestedPortIDs Role.in)
+  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ ↑(m.deps .out) ⊆ ↑(rtr.portVals .out).ids ∪ (rtr.nestedPortIDs Role.in)
   rcnsTotal :  ∀ {rcn₁ rcn₂}, rtr.rcnsNeedTotalOrder rcn₁ rcn₂ → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
 
 -- To define properties of reactors recursively, we need a concept of containment.
@@ -171,9 +171,6 @@ noncomputable def muts (rtr : Reactor) : ID ▸ Reaction :=
 noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ▸ Port := 
   rtr.ports.filter' (·.role = r)
 
-noncomputable def portVals (rtr : Reactor) (r : Port.Role) : ID ▸ Value := 
-  (rtr.ports' r).map Port.val
-
 noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=
   let description := { i | ∃ n, n ∈ rtr.nest.values ∧ i ∈ (n.ports' r).ids }
   let finite : description.finite := by
@@ -182,14 +179,6 @@ noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=
       from Set.finite.subset (Finset.finite_to_set _) h
     simp [Set.subset_def]
   finite.toFinset
-
--- NOTE: This only makes sense when σ is the immediate parent of rcn!
-noncomputable def rcnInput (σ : Reactor) (rcn : Reaction) (g : Time.Tag) : Reaction.Input := {
-  portVals := σ.portVals Role.in |>.restrict (rcn.deps Role.in),
-  acts := σ.acts |>.filterMap (· g) |>.restrict (rcn.deps Role.in),
-  state := σ.state,
-  time := g
-}
 
 noncomputable def scheduledTags (σ : Reactor) : Finset Time.Tag := 
   σ.acts.values.bUnion (·.ids)
@@ -281,7 +270,7 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
 
 inductive rcnsNeedTotalOrder (rtr : Reactor) (rcn₁ rcn₂ : Reaction) 
   | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps Role.out ∩ rcn₂.deps Role.out ≠ ∅) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out ≠ ∅) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
   | muts   {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
 
 theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :

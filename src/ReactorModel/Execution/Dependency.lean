@@ -21,7 +21,7 @@ inductive Dependency.External (σ : Reactor) : ID → ID → Prop
   | port {i₁ i₂ : ID} :
     (hr₁ : σ.obj? .rcn i₁ = some rcn₁) →
     (hr₂ : σ.obj? .rcn i₂ = some rcn₂) →
-    (hp₁ : iₚ ∈ rcn₁.deps Role.out) →
+    (hp₁ : iₚ ∈ rcn₁.deps .out) →
     (hp₂ : iₚ ∈ rcn₂.deps Role.in) →
     External σ i₁ i₂
   | «mut» :
@@ -62,7 +62,7 @@ theorem ne_rcns : (rcn₁ >[σ]< rcn₂) → rcn₁ ≠ rcn₂ := by
 
 theorem ne_rtr_or_ne_out_deps : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
-  (σ.con? .rcn i₁ ≠ σ.con? .rcn i₂) ∨ (rcn₁.deps Role.out ∩ rcn₂.deps Role.out) = ∅ := by
+  (σ.con? .rcn i₁ ≠ σ.con? .rcn i₂) ∨ (rcn₁.deps .out ∩ rcn₂.deps .out) = ∅ := by
   intro h h₁ h₂ 
   by_contra hc
   have ⟨hc, hd⟩ := (not_or ..).mp hc
@@ -74,6 +74,16 @@ theorem ne_rtr_or_ne_out_deps :
   cases rtr₁.rcnsTotalOrder (.output hr₁ hr₂ h.ne_rcns hd)
   case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
+
+theorem ne_out_deps :
+  (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
+  (rcn₁.deps .out ∩ rcn₂.deps .out) = ∅ := by
+  sorry -- Corollary of ne_rtr_or_ne_out_deps
+
+theorem no_chain : 
+  (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
+  (rcn₁.deps .out ∩ rcn₂.deps Role.in) = ∅ :=
+  sorry
 
 theorem ne_rtr_or_pure : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →

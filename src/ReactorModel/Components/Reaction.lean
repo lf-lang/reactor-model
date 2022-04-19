@@ -27,8 +27,8 @@ open Reaction in
   prio :          Priority
   body :          Input → List Change
   tsSubInDeps :   triggers ⊆ deps Role.in
-  prtOutDepOnly : ∀ i {o} v,   (o ∉ deps Role.out) → Change.port o v ∉ body i
-  actOutDepOnly : ∀ i {o} t v, (o ∉ deps Role.out) → Change.action o t v ∉ body i
+  prtOutDepOnly : ∀ i {o} v,   (o ∉ deps .out) → Change.port o v ∉ body i
+  actOutDepOnly : ∀ i {o} t v, (o ∉ deps .out) → Change.action o t v ∉ body i
   actNotPast :    ∀ {i a t v}, (Change.action a t v) ∈ body i → i.time.t ≤ t
   
 namespace Reaction

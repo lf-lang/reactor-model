@@ -131,7 +131,7 @@ theorem Container.iff_con?_some {σ : Reactor} {cmp : Cmp} :
     case inr => contradiction
 
 def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
-  σ.con? cmp i ≠ none
+  ∃ c, σ.con? cmp i = some c
 
 -- The `Object` relation is used to determine whether a given ID `i` identifies
 -- an object `o` of component type `cmp`.
@@ -242,8 +242,28 @@ theorem obj?_some_to_cmp_some {σ : Reactor} {i : ID} {cmp o} :
   (σ.obj? cmp i = some o) → (∃ rtr c, σ.obj? .rtr c = some rtr ∧ rtr.cmp cmp i = some o) := by
   sorry
 
-noncomputable def containerObj? (σ : Reactor) (cmp : Cmp) (i : ID) : Option Reactor :=
-  σ.con? cmp i >>= (σ.obj? .rtr ·)
+theorem con?_some_to_cmp_some {σ : Reactor} {cmp} :
+  (σ.con? cmp i = some c) → (∃ rtr o, σ.obj? .rtr c = some rtr ∧ rtr.cmp cmp i = some o) := by
+  sorry
+
+noncomputable def objs? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (cmp.type × Reactor) := 
+  match σ.con? cmp i with
+  | none => none
+  | some c =>
+    match σ.obj? .rtr c with
+    | none => none
+    | some rtr =>
+      match rtr.cmp cmp i with
+      | none => none
+      | some o => some ⟨o, rtr⟩
+
+theorem objs?_to_cmp {σ : Reactor} {cmp x rtr} :
+  (σ.objs? cmp i = some ⟨x, rtr⟩) → (∃ o, σ.obj? cmp i = some o ∧ rtr.cmp cmp i = some o) :=
+  sorry
+
+theorem objs?_to_obj? {σ : Reactor} {cmp o x} :
+  (σ.objs? cmp i = some ⟨o, x⟩) → (σ.obj? cmp i = some o) := 
+  sorry
 
 noncomputable def ids (σ : Reactor) (cmp : Cmp) : Finset ID :=
   let description := { i : ID | σ.contains cmp i }

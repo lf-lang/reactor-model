@@ -17,7 +17,7 @@ inductive Rooted (ID)
 notation "⊤" => Rooted.root
 
 instance : Coe ID (Rooted ID) where
-  coe (i : ID) := Rooted.nest i
+  coe := Rooted.nest 
 
 def Priority := Option Nat
 
