@@ -123,7 +123,7 @@ noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := 
 
 variable {σ : Reactor} {cmp : Cmp} 
 
-theorem obj?_to_con?_and_cmp? {o} {i : ID} : 
+theorem obj?_to_con?_and_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (∃ c, σ.con? cmp i = some c ∧ c.obj.cmp? cmp i = some o) :=
   Option.bind_eq_some.mp
 
@@ -142,7 +142,7 @@ theorem con?_and_cmp?_to_obj? :
   have ⟨_, ho, hm'⟩ := con?_to_obj?_and_cmp? hc
   simp [hm.symm.trans hm', ho]
 
-theorem obj?_and_con?_to_cmp? {o} {i : ID} : 
+theorem obj?_and_con?_to_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (σ.con? cmp i = some c) → (c.obj.cmp? cmp i = some o) := by
   intro ho hc
   have ⟨_, hc', hm⟩ := obj?_to_con?_and_cmp? ho
@@ -179,36 +179,20 @@ theorem contains_iff_obj? : (σ.contains cmp i) ↔ (∃ o, σ.obj? cmp i = some
   case mp =>  have ⟨_, h, _⟩ := con?_to_obj?_and_cmp? h; exact ⟨_, h⟩
   case mpr => have ⟨_, h, _⟩ := obj?_to_con?_and_cmp? h; exact ⟨_, h⟩
 
-
-
-
-
-/-
-noncomputable def objs? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (cmp.type × Reactor) := 
-  match σ.con? cmp i with
-  | none => none
-  | some c =>
-    match σ.obj? .rtr c with
-    | none => none
-    | some rtr =>
-      match rtr.cmp cmp i with
-      | none => none
-      | some o => some ⟨o, rtr⟩
-
-theorem objs?_to_cmp {σ : Reactor} {cmp x rtr} :
-  (σ.objs? cmp i = some ⟨x, rtr⟩) → (∃ o, σ.obj? cmp i = some o ∧ rtr.cmp cmp i = some o) :=
-  sorry
-
-theorem objs?_to_obj? {σ : Reactor} {cmp o x} :
-  (σ.objs? cmp i = some ⟨o, x⟩) → (σ.obj? cmp i = some o) := 
-  sorry
--/
-
 noncomputable def ids (σ : Reactor) (cmp : Cmp) := 
   (σ.obj? cmp).ids.image (·.nest?) |>.erase_none
 
-theorem ids_mem_iff_contains {σ : Reactor} {cmp : Cmp} {i : ID} : 
+theorem ids_mem_iff_contains : 
   (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
-  sorry
+  constructor <;> (intro h; simp [ids, Finset.mem_erase_none] at *)
+  case mp =>
+    simp [Finmap.ids_def'] at h
+    have ⟨j, ⟨_ , h⟩, hj⟩ := h
+    cases j <;> simp [Rooted.nest?] at hj
+    rw [←hj]
+    exact ⟨_, (obj?_to_con?_and_cmp? h.symm).choose_spec.left⟩
+  case mpr =>
+    have ⟨_, h, _⟩ := con?_to_obj?_and_cmp? h.choose_spec
+    exact ⟨_, Finmap.ids_def'.mpr ⟨_, h.symm⟩, by simp [Rooted.nest?]⟩  
 
 end Reactor

@@ -384,6 +384,10 @@ theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
     -- produces changes to the same action.
     sorry
 
+-- WARNING: I think this brings us into reaction-swap and hence
+--          intermediate reactor territory again.
+--          I think what we want instead is an extension of 
+--          InstStep.indep_rcns_changes_comm_equiv to reaction lists.
 theorem InstStep.indep_rcns_changes_equiv :
   (s ⇓ᵢ[rcn₁] s₁) → (s ⇓ᵢ[rcn₂] s₂) → (rcn₁ >[s.rtr]< rcn₂) →
   (s.rcnOutput rcn₁ = some o₁) → (s₁.rcnOutput rcn₂ = some o₁₂) → 

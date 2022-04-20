@@ -32,6 +32,8 @@ protected def bUnion [DecidableEq β] (s : Finset α) (t : α → Finset β) : F
 
 def erase_none : Finset (Option α) → Finset α := sorry
 
+lemma mem_erase_none {s : Finset (Option α)} {x : α} : x ∈ s.erase_none ↔ some x ∈ s := sorry
+
 def image (f : α → β) (s : Finset α) : Finset β := sorry
 
 def singleton (a : α) : Finset α := ⟨[a], sorry⟩

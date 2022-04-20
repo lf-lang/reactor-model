@@ -16,10 +16,10 @@ structure allows (s : State) (i : ID) : Prop where
 
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
   match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
-  | some ⟨_, rtr⟩, some rcn => some {
-      portVals := rtr.ports.restrict (rcn.deps Role.in) |>.map (·.val),
-      acts :=     rtr.acts.filterMap (· s.ctx.time) |>.restrict (rcn.deps Role.in),
-      state :=    rtr.state,
+  | some con, some rcn => some {
+      portVals := con.obj.ports.restrict (rcn.deps Role.in) |>.map (·.val),
+      acts :=     con.obj.acts.filterMap (· s.ctx.time) |>.restrict (rcn.deps Role.in),
+      state :=    con.obj.state,
       time :=     s.ctx.time
     }
   | _, _ => none
