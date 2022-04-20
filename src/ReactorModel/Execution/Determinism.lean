@@ -242,7 +242,7 @@ theorem ChangeListStep.preserves_unchanged_ports :
 
 theorem InstStep.rtr_contains_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.contains .rcn rcn
   | skipReaction h _ _ => h
-  | execReaction _ _ h _ => State.rtr_contains_rcn_if_rcnOutput_some h
+  | execReaction _ _ h _ => State.rcnOutput_to_contains h
   
 theorem InstStep.preserves_freshID : (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshID = s₂.ctx.freshID
   | execReaction _ _ _ h => by simp [h.preserves_ctx]

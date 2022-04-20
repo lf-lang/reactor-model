@@ -36,6 +36,13 @@ theorem rcnInput_to_rcnOutput {s : State} :
   case none => simp [rcnInput, ho] at h
   case some rcn => exact ⟨rcn, rfl, by simp [rcnOutput, ho, h]⟩ 
     
+theorem rcnOutput_to_contains {s : State} :
+  (s.rcnOutput rcn = some o) → (s.rtr.contains .rcn rcn) := by
+  intro h
+  cases ho : s.rtr.obj? .rcn rcn
+  case none => simp [rcnOutput, ho] at h
+  case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
+
 /-
 theorem rcnInput_iff_rcnOutput {s : State} : 
   (∃ i, s.rcnInput j = some i) ↔ (∃ o, s.rcnOutput j = some o) := by
@@ -50,10 +57,6 @@ theorem rcnInput_iff_rcnOutput {s : State} :
 theorem rcnOutput_dep_only {s : State} {i : ID} (v) : 
   (s.rtr.obj? .rcn i = some rcn) → (s.rcnOutput i = some o) → (p ∉ rcn.deps Role.out) → Change.port p v ∉ o :=
   sorry 
-
-theorem rtr_contains_rcn_if_rcnOutput_some {s : State} :
-  (s.rcnOutput rcn = some o) → s.rtr.contains .rcn rcn :=
-  sorry
   
 theorem rcnInput_eq_rcnOutput_eq {s₁ s₂ : State} :
   (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) := 
