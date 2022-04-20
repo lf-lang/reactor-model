@@ -29,12 +29,31 @@ noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
   | some rcn, some i => rcn i 
   | _, _ => none
 
+-- NOTE: This is a helper lemma for the theorems below.
+private theorem rcnInput_iff_obj? {s : State} : 
+  (∃ i, s.rcnInput rcn = some i) ↔ (∃ o, s.rtr.obj? .rcn rcn = some o) := by
+  constructor <;> intro ⟨_, h⟩
+  case mp =>
+    cases hc : s.rtr.obj? .rcn rcn <;> simp [rcnInput, hc] at *
+  case mpr =>
+    have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? h
+    simp [rcnInput, hc, h]
+
+-- NOTE: This is a helper lemma for the theorems below.
+private theorem rcnInput_iff_rcnOutput {s : State} : 
+  (∃ i, s.rcnInput j = some i) ↔ (∃ o, s.rcnOutput j = some o) := by
+  constructor <;> (
+    intro h; simp [rcnInput, rcnOutput] at *
+    cases ho : s.rtr.obj? .rcn j
+    case none => simp [ho] at h
+    case some => have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
+  )
+
 theorem rcnInput_to_rcnOutput {s : State} : 
   (s.rcnInput j = some i) → (∃ rcn, s.rtr.obj? .rcn j = some rcn ∧ s.rcnOutput j = rcn i) := by
   intro h
-  cases ho : s.rtr.obj? .rcn j
-  case none => simp [rcnInput, ho] at h
-  case some rcn => exact ⟨rcn, rfl, by simp [rcnOutput, ho, h]⟩ 
+  have ⟨_, ho⟩ := rcnInput_iff_obj?.mp ⟨_, h⟩
+  exact ⟨_, ho, by simp [rcnOutput, ho, h]⟩
     
 theorem rcnOutput_to_contains {s : State} :
   (s.rcnOutput rcn = some o) → (s.rtr.contains .rcn rcn) := by
@@ -43,24 +62,13 @@ theorem rcnOutput_to_contains {s : State} :
   case none => simp [rcnOutput, ho] at h
   case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
 
-/-
-theorem rcnInput_iff_rcnOutput {s : State} : 
-  (∃ i, s.rcnInput j = some i) ↔ (∃ o, s.rcnOutput j = some o) := by
-  constructor <;> (
-    intro h; simp [rcnInput, rcnOutput] at *
-    cases ho : s.rtr.obj? .rcn j
-    case none => simp [ho] at h
-    case some => have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
-  )
--/
-
 theorem rcnOutput_dep_only {s : State} {i : ID} (v) : 
   (s.rtr.obj? .rcn i = some rcn) → (s.rcnOutput i = some o) → (p ∉ rcn.deps Role.out) → Change.port p v ∉ o :=
   sorry 
   
-theorem rcnInput_eq_rcnOutput_eq {s₁ s₂ : State} :
-  (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) := 
-  sorry
+theorem rcnOutput_congr {s₁ s₂ : State} :
+  (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rtr.obj? .rcn rcn = s₂.rtr.obj? .rcn rcn) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) :=
+  λ h ho => by simp [rcnOutput, ←h, ho]
 
 def triggers (s : State) (i : ID) : Prop :=
   match s.rtr.obj? .rcn i, s.rcnInput i with

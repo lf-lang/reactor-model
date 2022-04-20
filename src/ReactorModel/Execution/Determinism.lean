@@ -81,9 +81,9 @@ theorem ChangeStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {c : Change} :
   (s₁ -[rcn:c]→ s₂) → s₁.ctx = s₂.ctx := 
   λ h => by cases h <;> rfl
 
-theorem ChangeStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} {c : Change} :
-  (s₁ -[rcn:c]→ s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := 
-  λ h => by cases h <;> rfl
+theorem ChangeStep.preserves_rcns {i : ID} :
+  (s₁ -[rcn:c]→ s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) :=
+  λ h => by cases h <;> simp <;> simp [Reactor.Update.preserves_ne_cmp_or_id (by assumption)]
 
 /-
  /- For each cmp:i, the change of value either happens in cs₁ or in cs₂.
@@ -141,8 +141,8 @@ theorem ChangeListStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {cs : List C
   | nil => rfl
   | cons h₁₂ _ h₂₃ => exact h₁₂.preserves_ctx.trans h₂₃
 
-theorem ChangeListStep.preserves_rcns {s₁ s₂ : State} {rcn : ID} {cs : List Change} : 
-  (s₁ -[rcn:cs]→* s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+theorem ChangeListStep.preserves_rcns {i : ID} : 
+  (s₁ -[rcn:cs]→* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) := by
   intro h
   induction h with
   | nil => rfl
@@ -248,7 +248,8 @@ theorem InstStep.preserves_freshID : (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshI
   | execReaction _ _ _ h => by simp [h.preserves_ctx]
   | skipReaction .. => rfl
   
-theorem InstStep.preserves_rcns : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn
+theorem InstStep.preserves_rcns {i : ID} : 
+  (s₁ ⇓ᵢ[rcn] s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) 
   | execReaction _ _ _ h => by simp [h.preserves_rcns]
   | skipReaction .. => rfl
 
@@ -354,7 +355,7 @@ theorem InstStep.indep_rcns_indep_input :
 -- Corollary of `InstStep.indep_rcns_indep_input`.
 theorem InstStep.indep_rcns_indep_output :
   (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := 
-  λ h hi => State.rcnInput_eq_rcnOutput_eq $ h.indep_rcns_indep_input hi
+  λ h hi => State.rcnOutput_congr (h.indep_rcns_indep_input hi) h.preserves_rcns
 
 theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 
@@ -425,8 +426,8 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ rcns} :
     exact (he.preserves_ctx_past_future _ hg).trans $ hi hg
     
 -- NOTE: This won't hold once we introduce mutations.
-theorem InstExecution.preserves_rcns {s₁ s₂ rcns} :
-  (s₁ ⇓ᵢ+[rcns] s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn := by
+theorem InstExecution.preserves_rcns {i : ID} :
+  (s₁ ⇓ᵢ+[rcns] s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) := by
   intro h
   induction h with
   | single h => exact h.preserves_rcns
@@ -573,8 +574,8 @@ theorem CompleteInstExecution.preserves_freshID :
   | .mk _ e _ => e.preserves_freshID
 
 theorem CompleteInstExecution.convergent_rcns :
-  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids Cmp.rcn = s₂.rtr.ids Cmp.rcn
-  | .mk _ e₁ _, .mk _ e₂ _ => e₁.preserves_rcns.symm.trans e₂.preserves_rcns
+  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids .rcn = s₂.rtr.ids .rcn
+  | .mk _ e₁ _, .mk _ e₂ _ => by simp [Finset.ext_iff, Reactor.ids_mem_iff_contains, Reactor.contains_iff_obj?, ←e₁.preserves_rcns, e₂.preserves_rcns]
 
 theorem CompleteInstExecution.convergent_ctx : 
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
