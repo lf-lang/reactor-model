@@ -24,14 +24,28 @@ noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input :=
     }
   | _, _ => none
 
-theorem rcnInput_some_iff_rtr_contains_rcn {s : State} :
-  (s.rcnInput i = some j) ↔ s.rtr.contains .rcn i := 
-  sorry
-
 noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
   match s.rtr.obj? .rcn i, s.rcnInput i with
   | some rcn, some i => rcn i 
   | _, _ => none
+
+theorem rcnInput_to_rcnOutput {s : State} : 
+  (s.rcnInput j = some i) → (∃ rcn, s.rtr.obj? .rcn j = some rcn ∧ s.rcnOutput j = rcn i) := by
+  intro h
+  cases ho : s.rtr.obj? .rcn j
+  case none => simp [rcnInput, ho] at h
+  case some rcn => exact ⟨rcn, rfl, by simp [rcnOutput, ho, h]⟩ 
+    
+/-
+theorem rcnInput_iff_rcnOutput {s : State} : 
+  (∃ i, s.rcnInput j = some i) ↔ (∃ o, s.rcnOutput j = some o) := by
+  constructor <;> (
+    intro h; simp [rcnInput, rcnOutput] at *
+    cases ho : s.rtr.obj? .rcn j
+    case none => simp [ho] at h
+    case some => have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
+  )
+-/
 
 theorem rcnOutput_dep_only {s : State} {i : ID} (v) : 
   (s.rtr.obj? .rcn i = some rcn) → (s.rcnOutput i = some o) → (p ∉ rcn.deps Role.out) → Change.port p v ∉ o :=
