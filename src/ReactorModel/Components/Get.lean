@@ -101,7 +101,7 @@ theorem Container.unique {cmp} : (Container σ cmp i c₁) → (Container σ cmp
 noncomputable def con? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Identified Reactor) := 
   if h : ∃ c, Container σ cmp i c then h.choose else none
 
-theorem Container.iff_con?_some {cmp} : (Container σ cmp i c) ↔ (σ.con? cmp i = some c) := by
+theorem Container.iff_con? {cmp} : (Container σ cmp i c) ↔ (σ.con? cmp i = some c) := by
   constructor <;> (intro h; simp [con?] at *) 
   case mp =>
     split
@@ -130,7 +130,7 @@ theorem obj?_to_con?_and_cmp? {i : ID} :
 theorem con?_to_obj?_and_cmp? : 
   (σ.con? cmp i = some c) → (∃ o, σ.obj? cmp i = some o ∧ c.obj.cmp? cmp i = o) := by
   intro h
-  cases Container.iff_con?_some.mpr h
+  cases Container.iff_con?.mpr h
   case intro l hl =>
     subst hl
     have ⟨o, ho⟩ := l.container_target_mem
@@ -152,7 +152,7 @@ theorem cmp?_to_obj? : (σ.cmp? cmp i = some o) → (σ.obj? cmp i = some o) := 
   intro h
   let l := Lineage.cmp _ $ Finmap.ids_def'.mpr ⟨_, h.symm⟩
   have hc := Container.intro l rfl
-  have hc' := Container.iff_con?_some.mp hc
+  have hc' := Container.iff_con?.mp hc
   have ⟨o', ho, hm⟩ := con?_to_obj?_and_cmp? hc'
   simp [Lineage.cmp_container] at hm
   sorry
@@ -163,12 +163,12 @@ theorem obj?_nest {j : ID} :
   (σ.nest i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp j = some o) := by
   intro hn ho
   have ⟨c, hc, hm⟩ := obj?_to_con?_and_cmp? ho
-  cases Container.iff_con?_some.mpr hc
+  cases Container.iff_con?.mpr hc
   case intro l hl =>
     let l' := Lineage.nest l hn
     have hc' := Container.intro l' (Lineage.nest_target l hn)
     apply con?_and_cmp?_to_obj?
-    · simp [←hl]; exact Container.iff_con?_some.mp hc'
+    · simp [←hl]; exact Container.iff_con?.mp hc'
     · simp [Lineage.nest_container l hn, hm]
 
 def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop := 

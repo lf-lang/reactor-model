@@ -1,35 +1,35 @@
 import ReactorModel.Components
 
-open Port
+open Classical Port
 
 inductive Dependency.Internal (σ : Reactor) : ID → ID → Prop
   | rcns :
-    (hc  : σ.con? .rcn i₁ = σ.con? .rcn i₂) →
-    (hr₁ : σ.obj? .rcn i₁ = some rcn₁) →
-    (hr₂ : σ.obj? .rcn i₂ = some rcn₂) →
-    (hi  : rcn₁.prio > rcn₂.prio) →
+    (σ.con? .rcn i₁ = σ.con? .rcn i₂) →
+    (σ.obj? .rcn i₁ = some rcn₁) →
+    (σ.obj? .rcn i₂ = some rcn₂) →
+    (rcn₁.prio > rcn₂.prio) →
     Internal σ i₁ i₂
   | mutNorm :
-    -- TODO: It might be nicer here to change the structure to 
-    --       be akin to the `rcns` constructor.
-    (hc : σ.obj? .rtr j = some rtr) →
-    (hm : iₘ ∈ rtr.muts.ids) →
-    (hn : iₙ ∈ rtr.norms.ids) →
+    (σ.con? .rcn iₘ = σ.con? .rcn iₙ) →
+    (σ.obj? .rcn iₘ = some m) →
+    (σ.obj? .rcn iₙ = some n) →
+    (m.isMut) → 
+    (n.isNorm) → 
     Internal σ iₘ iₙ
 
 inductive Dependency.External (σ : Reactor) : ID → ID → Prop
   | port {i₁ i₂ : ID} :
-    (hr₁ : σ.obj? .rcn i₁ = some rcn₁) →
-    (hr₂ : σ.obj? .rcn i₂ = some rcn₂) →
-    (hp₁ : iₚ ∈ rcn₁.deps .out) →
-    (hp₂ : iₚ ∈ rcn₂.deps Role.in) →
+    (σ.obj? .rcn i₁ = some rcn₁) →
+    (σ.obj? .rcn i₂ = some rcn₂) →
+    ((rcn₁.deps .out ∩ rcn₂.deps .«in»).nonempty) →
     External σ i₁ i₂
-  | «mut» :
-    (hc  : σ.obj? .rtr j = some rtr₁) →
-    (hm  : iₘ ∈ rtr₁.muts.ids) → 
-    (hr₁ : rtr₂ ∈ rtr₁.nest.values) →
-    (hr₂ : iᵣ ∈ rtr₂.ids Cmp.rcn) → 
-    External σ iₘ iₙ
+  | «mut» {iₘ : ID} :
+    (σ.obj? .rcn iₘ = some m) → 
+    (m.isMut) → 
+    (σ.con? .rcn iₘ = some rtr₁) →
+    (rtr₂ ∈ rtr₁.obj.nest.values) → 
+    (iᵣ ∈ rtr₂.rcns.ids) → 
+    External σ iₘ iᵣ
 
 open Dependency in
 inductive Dependency (σ : Reactor) : ID → ID → Prop
@@ -39,26 +39,52 @@ inductive Dependency (σ : Reactor) : ID → ID → Prop
 
 notation i₁:max " >[" σ "] " i₂:max => Dependency σ i₁ i₂
 
+protected theorem Dependency.irreflexive : ¬(rcn >[σ] rcn) := by
+  by_contra h
+  cases h
+  case internal h => 
+    cases h
+    case rcns h₁ h₂ hp =>
+      rw [Option.some_inj.mp $ h₁.symm.trans h₂] at hp
+      sorry -- contradiction should work here, but doesn't ¯\_(ツ)_/¯  
+    case mutNorm hrm hrn hm hn =>
+      rw [Option.some_inj.mp $ hrm.symm.trans hrn, Reaction.isMut] at hm
+      contradiction
+  case external h =>
+    cases h
+    case port rcn _ hi h₁ h₂ =>
+      simp [←Option.some_inj.mp $ h₁.symm.trans h₂, Finset.nonempty, Finset.mem_inter] at hi
+      have ⟨p, ho, hi⟩ := hi
+      simp
+      by_cases hc : rcn.isNorm
+      case pos => sorry -- Use Reactor.wfNormDeps
+      case neg => sorry -- Use Reactor.wfMutDeps
+    case «mut» rtr₁ _ _ hn _ hc hr =>
+      have ⟨_, _, hm₁⟩ := Reactor.con?_to_obj?_and_cmp? hc
+      let l₁ := Reactor.Lineage.rcn $ Finmap.ids_def'.mpr ⟨_, hm₁.symm⟩
+      let l₂ := Reactor.Lineage.nest (.rcn hr) (Finmap.values_def.mp hn).choose_spec
+      have := rtr₁.obj.uniqueIDs l₁ l₂
+      contradiction
+  case trans h₁ h₂ => 
+    sorry -- either this should work by induction, or it's going to be a brutal cases h₁ <;> cases h₂
+
 def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
 
-def Reactor.Indep (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
+def Indep (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ >[σ] rcn₂) ∧ ¬(rcn₂ >[σ] rcn₁)
 
-notation i₁:max " >[" σ "]< " i₂:max => Reactor.Indep σ i₁ i₂
+notation i₁:max " >[" σ "]< " i₂:max => Indep σ i₁ i₂
 
-namespace Reactor.Indep
+namespace Indep
 
 protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
   And.symm
 
-protected theorem irreflexive : ¬(rcn >[σ]< rcn) := by
-  sorry
+protected theorem refl : rcn >[σ]< rcn := by
+  simp [Indep, Dependency.irreflexive]
 
--- Corollary of `irreflexive`.
-theorem ne_rcns : (rcn₁ >[σ]< rcn₂) → rcn₁ ≠ rcn₂ := by
-  intro h hc
-  rw [hc] at h
-  exact h.irreflexive
+-- TODO: Since ne_rcns is false, make the outcome of the theorem:
+--       (1.deps ∩ 2.deps = ∅) ∨ (1 = 2)
 
 theorem ne_rtr_or_ne_out_deps : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
@@ -100,4 +126,4 @@ theorem ne_rtr_or_pure :
   case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
 
-end Reactor.Indep
+end Indep

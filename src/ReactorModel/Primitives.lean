@@ -16,8 +16,7 @@ inductive Rooted (ID)
 
 notation "⊤" => Rooted.root
 
-instance : Coe ID (Rooted ID) where
-  coe := Rooted.nest 
+instance : Coe ID (Rooted ID) := ⟨Rooted.nest⟩
 
 def Rooted.nest? : Rooted ID → Option ID
   | ⊤ => none
@@ -26,6 +25,8 @@ def Rooted.nest? : Rooted ID → Option ID
 structure Identified (α) where
   id : Rooted ID
   obj : α
+
+instance : CoeHead (Identified α) α := ⟨Identified.obj⟩
 
 def Priority := Option Nat
 

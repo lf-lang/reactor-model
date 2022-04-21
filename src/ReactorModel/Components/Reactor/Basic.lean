@@ -165,8 +165,14 @@ theorem ext {rtr₁ rtr₂ : Reactor} :
 noncomputable def norms (rtr : Reactor) : ID ▸ Reaction :=
   rtr.rcns.filter' (Reaction.isNorm)
 
+theorem mem_muts_isNorm {rtr: Reactor} : (rtr.norms i = some n) → n.isNorm :=
+  λ h => Finmap.filter'_mem.mp h |>.right
+
 noncomputable def muts (rtr : Reactor) : ID ▸ Reaction :=
   rtr.rcns.filter' (Reaction.isMut)  
+
+theorem mem_muts_isMut {rtr: Reactor} : (rtr.muts i = some m) → m.isMut :=
+  λ h => Finmap.filter'_mem.mp h |>.right
 
 noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ▸ Port := 
   rtr.ports.filter' (·.role = r)
