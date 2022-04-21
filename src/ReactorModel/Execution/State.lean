@@ -54,7 +54,7 @@ theorem rcnInput_to_rcnOutput {s : State} :
   intro h
   have ⟨_, ho⟩ := rcnInput_iff_obj?.mp ⟨_, h⟩
   exact ⟨_, ho, by simp [rcnOutput, ho, h]⟩
-    
+
 theorem rcnOutput_to_contains {s : State} :
   (s.rcnOutput rcn = some o) → (s.rtr.contains .rcn rcn) := by
   intro h
@@ -63,17 +63,24 @@ theorem rcnOutput_to_contains {s : State} :
   case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
 
 theorem rcnOutput_dep_only {s : State} {i : ID} (v) : 
-  (s.rtr.obj? .rcn i = some rcn) → (s.rcnOutput i = some o) → (p ∉ rcn.deps Role.out) → Change.port p v ∉ o :=
-  sorry 
+  (s.rcnOutput i = some o) → (s.rtr.obj? .rcn i = some rcn) → (p ∉ rcn.deps .out) → .port p v ∉ o := by
+  intro ho hr hp
+  have ⟨x, _, hr', hb⟩ := aux ho
+  simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
+  exact rcn.prtOutDepOnly x v hp
+where 
+  aux {j : ID} : (s.rcnOutput j = some o) → (∃ i rcn, s.rtr.obj? .rcn j = some rcn ∧ rcn i = o) := by
+    intro h
+    have ⟨_, hi⟩ := rcnInput_iff_rcnOutput.mpr ⟨_, h⟩
+    have ⟨_, ho, hb⟩ := rcnInput_to_rcnOutput hi
+    exact ⟨_, _, ho, Option.some_inj.mp $ hb.symm.trans h⟩
   
 theorem rcnOutput_congr {s₁ s₂ : State} :
   (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rtr.obj? .rcn rcn = s₂.rtr.obj? .rcn rcn) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) :=
   λ h ho => by simp [rcnOutput, ←h, ho]
 
-def triggers (s : State) (i : ID) : Prop :=
-  match s.rtr.obj? .rcn i, s.rcnInput i with
-  | some rcn, some i => rcn.triggersOn i 
-  | _, _ => False
+def triggers (s : State) (r : ID) :=
+  ∃ rcn i, (s.rtr.obj? .rcn r = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.triggersOn i)
 
 def nextTag (s : State) : Option Time.Tag :=
   s.rtr.scheduledTags.filter (s.ctx.time < ·) |>.min

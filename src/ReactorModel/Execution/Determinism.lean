@@ -315,7 +315,7 @@ theorem InstStep.preserves_nondep_ports :
   intro h hr hd
   cases h 
   case skipReaction => rfl
-  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · hr ho hd)
+  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · ho hr hd)
 
 theorem InstStep.indep_rcns_indep_input :
   (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
