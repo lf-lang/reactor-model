@@ -121,35 +121,13 @@ namespace Indep
 protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
   And.symm
 
--- TODO: Since ne_rcns is false, make the outcome of the theorem:
---       (1.deps ∩ 2.deps = ∅) ∨ (1 = 2)
-
-theorem ne_rtr_or_ne_out_deps : 
+theorem ports : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
-  (σ.con? .rcn i₁ ≠ σ.con? .rcn i₂) ∨ (rcn₁.deps .out ∩ rcn₂.deps .out) = ∅ := by
-  intro h h₁ h₂ 
+  (rcn₁.deps .out ∩ rcn₂.deps Role.in) = ∅ := by
+  intro ⟨hi, _⟩ ho₁ ho₂
   by_contra hc
-  have ⟨hc, hd⟩ := (not_or ..).mp hc
-  simp at hc
-  have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? h₁
-  have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
-  have H : rtr₁ = rtr₂ := sorry -- consequence of hc
-  rw [←H] at hr₂
-  sorry
-  /-cases rtr₁.obj.rcnsTotalOrder (.output hr₁ hr₂ h.ne_rcns hd)
-  case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
-  case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
-  -/
-
-theorem ne_out_deps :
-  (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
-  (rcn₁.deps .out ∩ rcn₂.deps .out) = ∅ := by
-  sorry -- Corollary of ne_rtr_or_ne_out_deps
-
-theorem no_chain : 
-  (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
-  (rcn₁.deps .out ∩ rcn₂.deps Role.in) = ∅ :=
-  sorry
+  simp [Finset.eq_empty_iff_forall_not_mem] at hc
+  exact absurd (Dependency.external $ .port ho₁ ho₂ hc) hi
 
 theorem ne_rtr_or_pure : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →

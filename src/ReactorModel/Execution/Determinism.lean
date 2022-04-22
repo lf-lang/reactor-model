@@ -340,7 +340,7 @@ theorem InstStep.indep_rcns_indep_input :
         apply Finmap.restrict_ext
         intro p hp
         have ⟨x, H⟩ := Reactor.obj?_some_iff_con?_some.mpr h.rtr_contains_rcn
-        have := hi.symm.no_chain H (Reactor.objs?_to_obj? hc)
+        have := hi.symm.ports H (Reactor.objs?_to_obj? hc)
         rw [←H0] at hp
         have HH : p ∉ x.deps .out := sorry -- by hp and `this`
         have := h.preserves_nondep_ports H HH
