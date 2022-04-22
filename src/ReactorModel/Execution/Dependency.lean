@@ -2,11 +2,18 @@ import ReactorModel.Components
 
 open Classical Port
 
+-- About the norm-condition in prio: 
+-- We want to establish a dependency between mutations with priorities 
+-- as well normal reactions with priorities, but not between normal reactions
+-- and mutations. Otherwise a normal reaction might take precedence over
+-- a mutation. Also the precedence of mutations over normal reactions is
+-- handled by mutNorm - so this would potentially just create a redundancy.
 inductive Dependency.Internal (σ : Reactor) : ID → ID → Prop
-  | rcns :
+  | prio :
     (σ.con? .rcn i₁ = σ.con? .rcn i₂) →
     (σ.obj? .rcn i₁ = some rcn₁) →
     (σ.obj? .rcn i₂ = some rcn₂) →
+    (rcn₁.isMut ↔ rcn₂.isMut) → 
     (rcn₁.prio > rcn₂.prio) →
     Internal σ i₁ i₂
   | mutNorm :
@@ -16,6 +23,17 @@ inductive Dependency.Internal (σ : Reactor) : ID → ID → Prop
     (m.isMut) → 
     (n.isNorm) → 
     Internal σ iₘ iₙ
+
+theorem Dependency.Internal.irreflexive : ¬(Dependency.Internal σ i i) := by
+  intro h
+  cases h
+  case prio h₁ h₂ _ hp =>
+    rw [Option.some_inj.mp $ h₁.symm.trans h₂] at hp
+    -- TODO: This is probably related to `instance : PartialOrder Priority`.
+    sorry -- contradiction should work on hp, but doesn't ¯\_(ツ)_/¯  
+  case mutNorm hrm hrn hm hn =>
+    rw [Option.some_inj.mp $ hrm.symm.trans hrn, Reaction.isMut] at hm
+    contradiction
 
 inductive Dependency.External (σ : Reactor) : ID → ID → Prop
   | port {i₁ i₂ : ID} :
@@ -31,6 +49,23 @@ inductive Dependency.External (σ : Reactor) : ID → ID → Prop
     (iᵣ ∈ rtr₂.rcns.ids) → 
     External σ iₘ iᵣ
 
+theorem Dependency.External.irreflexive : ¬(Dependency.External σ i i) := by
+  intro h
+  cases h
+  case port rcn _ hi h₁ h₂ =>
+    simp [←Option.some_inj.mp $ h₁.symm.trans h₂, Finset.nonempty, Finset.mem_inter] at hi
+    have ⟨p, ho, hi⟩ := hi
+    simp
+    by_cases hc : rcn.isNorm
+    case pos => sorry -- Use Reactor.wfNormDeps
+    case neg => sorry -- Use Reactor.wfMutDeps
+  case «mut» rtr₁ _ _ hn _ hc hr =>
+    have ⟨_, _, hm₁⟩ := Reactor.con?_to_obj?_and_cmp? hc
+    let l₁ := Reactor.Lineage.rcn $ Finmap.ids_def'.mpr ⟨_, hm₁.symm⟩
+    let l₂ := Reactor.Lineage.nest (.rcn hr) (Finmap.values_def.mp hn).choose_spec
+    have := rtr₁.obj.uniqueIDs l₁ l₂
+    contradiction
+
 open Dependency in
 inductive Dependency (σ : Reactor) : ID → ID → Prop
   | internal : Internal σ i₁ i₂ → Dependency σ i₁ i₂
@@ -39,34 +74,38 @@ inductive Dependency (σ : Reactor) : ID → ID → Prop
 
 notation i₁:max " >[" σ "] " i₂:max => Dependency σ i₁ i₂
 
+-- WARNING: This is false for transitive port dependencies.
 protected theorem Dependency.irreflexive : ¬(rcn >[σ] rcn) := by
   by_contra h
   cases h
-  case internal h => 
-    cases h
-    case rcns h₁ h₂ hp =>
-      rw [Option.some_inj.mp $ h₁.symm.trans h₂] at hp
-      sorry -- contradiction should work here, but doesn't ¯\_(ツ)_/¯  
-    case mutNorm hrm hrn hm hn =>
-      rw [Option.some_inj.mp $ hrm.symm.trans hrn, Reaction.isMut] at hm
-      contradiction
-  case external h =>
-    cases h
-    case port rcn _ hi h₁ h₂ =>
-      simp [←Option.some_inj.mp $ h₁.symm.trans h₂, Finset.nonempty, Finset.mem_inter] at hi
-      have ⟨p, ho, hi⟩ := hi
-      simp
-      by_cases hc : rcn.isNorm
-      case pos => sorry -- Use Reactor.wfNormDeps
-      case neg => sorry -- Use Reactor.wfMutDeps
-    case «mut» rtr₁ _ _ hn _ hc hr =>
-      have ⟨_, _, hm₁⟩ := Reactor.con?_to_obj?_and_cmp? hc
-      let l₁ := Reactor.Lineage.rcn $ Finmap.ids_def'.mpr ⟨_, hm₁.symm⟩
-      let l₂ := Reactor.Lineage.nest (.rcn hr) (Finmap.values_def.mp hn).choose_spec
-      have := rtr₁.obj.uniqueIDs l₁ l₂
-      contradiction
-  case trans h₁ h₂ => 
-    sorry -- either this should work by induction, or it's going to be a brutal cases h₁ <;> cases h₂
+  case' internal h, external h => exact h.irreflexive
+  case trans rcn' h₁ h₂ => 
+    cases h₁ <;> cases h₂
+    case internal.internal h₁ h₂ =>
+      cases h₁ <;> cases h₂
+      case prio.prio h₁ h₂ _ hp _ _ _ h₁' h₂' _ hp' =>
+        rw [Option.some_inj.mp $ h₁.symm.trans h₂'] at hp
+        rw [Option.some_inj.mp $ h₁'.symm.trans h₂] at hp'
+        sorry -- contradiction should work on hp and hp', but doesn't ¯\_(ツ)_/¯ 
+      case mutNorm.mutNorm h₁ h₂ hm _ _ _ _ h₁' h₂' _ hn =>
+        rw [Option.some_inj.mp $ h₁.symm.trans h₂'] at hm
+        contradiction
+      case' prio.mutNorm h₁ h₂ he _ _ _ _ h₁' h₂' hm hn, mutNorm.prio h₁' h₂' hm hn _ _ _ h₁ h₂ he _ =>
+        rw [Option.some_inj.mp $ h₁.symm.trans h₂'] at he
+        rw [←Option.some_inj.mp $ h₁'.symm.trans h₂] at he
+        exact absurd hn (he.mpr hm)
+    case external.external h₁ h₂ =>
+      cases h₁ <;> cases h₂ 
+      case port.port =>
+        sorry -- WARNING: This is case isn't provable.
+      case mut.mut =>
+        sorry -- contradiction: rcn contains rcn' and vice versa
+      case' port.mut, mut.port =>
+        sorry
+    case' internal.external, external.internal =>
+      sorry
+      
+
 
 def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
 
