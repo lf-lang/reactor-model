@@ -121,6 +121,11 @@ noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := 
   finite := sorry
 }
 
+noncomputable def obj?' (σ : Reactor) (cmp : Cmp) : ID ▸ cmp.type := {
+  lookup := (σ.obj? cmp ·),
+  finite := sorry
+}
+
 variable {σ : Reactor} {cmp : Cmp} 
 
 theorem obj?_to_con?_and_cmp? {i : ID} : 
