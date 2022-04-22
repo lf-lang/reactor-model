@@ -14,6 +14,13 @@ structure allows (s : State) (i : ID) : Prop where
   deps : s.rtr.dependencies i ⊆ s.ctx.currentProcessedRcns
   unprocessed : i ∉ s.ctx.currentProcessedRcns
 
+theorem allows_requires_acyclic_deps {s : State} : (s.allows rcn) → (rcn >[s.rtr]< rcn) := by
+  intro ⟨hd, hu⟩
+  by_contra h
+  simp [Set.subset_def, Reactor.dependencies] at hd
+  simp [Indep] at h
+  exact absurd (hd _ h) hu
+
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
   match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
   | some con, some rcn => some {

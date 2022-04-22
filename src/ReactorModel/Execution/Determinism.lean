@@ -317,6 +317,9 @@ theorem InstStep.preserves_nondep_ports :
   case skipReaction => rfl
   case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · ho hr hd)
 
+theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
+  λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
+
 theorem InstStep.indep_rcns_indep_input :
   (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
   intro h hi

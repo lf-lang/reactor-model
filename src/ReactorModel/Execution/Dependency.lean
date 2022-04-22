@@ -75,11 +75,13 @@ inductive Dependency (σ : Reactor) : ID → ID → Prop
 notation i₁:max " >[" σ "] " i₂:max => Dependency σ i₁ i₂
 
 -- WARNING: This is false for transitive port dependencies.
-protected theorem Dependency.irreflexive : ¬(rcn >[σ] rcn) := by
+/-
+protected theorem Dependency.irreflexive (he : rcn = rcn') : ¬(rcn >[σ] rcn') := by
   by_contra h
-  cases h
-  case' internal h, external h => exact h.irreflexive
-  case trans rcn' h₁ h₂ => 
+  induction h
+  case' internal h, external h => simp [he] at h; exact h.irreflexive
+  case trans rcn' h₁ h₂ _ _ => 
+    simp [he] at h₁
     cases h₁ <;> cases h₂
     case internal.internal h₁ h₂ =>
       cases h₁ <;> cases h₂
@@ -104,8 +106,8 @@ protected theorem Dependency.irreflexive : ¬(rcn >[σ] rcn) := by
         sorry
     case' internal.external, external.internal =>
       sorry
-      
-
+    case internal.trans
+-/
 
 def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
 
@@ -118,9 +120,6 @@ namespace Indep
 
 protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
   And.symm
-
-protected theorem refl : rcn >[σ]< rcn := by
-  simp [Indep, Dependency.irreflexive]
 
 -- TODO: Since ne_rcns is false, make the outcome of the theorem:
 --       (1.deps ∩ 2.deps = ∅) ∨ (1 = 2)
@@ -136,9 +135,11 @@ theorem ne_rtr_or_ne_out_deps :
   have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
   have H : rtr₁ = rtr₂ := sorry -- consequence of hc
   rw [←H] at hr₂
-  cases rtr₁.obj.rcnsTotalOrder (.output hr₁ hr₂ h.ne_rcns hd)
+  sorry
+  /-cases rtr₁.obj.rcnsTotalOrder (.output hr₁ hr₂ h.ne_rcns hd)
   case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
+  -/
 
 theorem ne_out_deps :
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
@@ -161,8 +162,11 @@ theorem ne_rtr_or_pure :
   have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
   have H : rtr₁ = rtr₂ := sorry -- consequence of hc
   rw [←H] at hr₂
+  sorry
+  /-
   cases rtr₁.obj.rcnsTotalOrder (.impure hr₁ hr₂ h.ne_rcns hd.left hd.right)
   case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
+  -/
 
 end Indep
