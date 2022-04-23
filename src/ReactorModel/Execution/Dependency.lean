@@ -121,7 +121,7 @@ namespace Indep
 protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
   And.symm
 
-theorem ports : 
+theorem nonoverlapping_ports : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
   (rcn₁.deps .out ∩ rcn₂.deps Role.in) = ∅ := by
   intro ⟨hi, _⟩ ho₁ ho₂

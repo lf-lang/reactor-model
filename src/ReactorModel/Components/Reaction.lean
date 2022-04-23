@@ -58,7 +58,7 @@ structure isPure (rcn : Reaction) : Prop where
   input : ∀ i s, rcn i = rcn { i with state := s }
   output : ∀ i c, c ∈ rcn.body i → ∃ p v, c = Change.port p v
 
-theorem muts_not_pure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
+theorem isMut_not_isPure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
   intro hm ⟨_, ho⟩
   simp [isMut, isNorm] at hm
   have ⟨i, c, hb, hm⟩ := hm

@@ -85,7 +85,7 @@ open Execution
 -- An execution of a reactor model is a series of execution steps.
 -- We model this with a reflexive transitive closure:
 inductive Execution : State → State → Prop
-  | refl (s) : Execution s s
-  | step (s₁) {s₂} (s₃) : s₁ ⇓ s₂ → Execution s₂ s₃ → Execution s₁ s₃
+  | refl : Execution s s
+  | step : s₁ ⇓ s₂ → Execution s₂ s₃ → Execution s₁ s₃
 
 notation s₁ " ⇓* " s₂ => Execution s₁ s₂
