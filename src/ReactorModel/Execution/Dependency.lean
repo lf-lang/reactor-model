@@ -36,7 +36,7 @@ theorem Dependency.Internal.irreflexive : ¬(Dependency.Internal σ i i) := by
     contradiction
 
 inductive Dependency.External (σ : Reactor) : ID → ID → Prop
-  | port {i₁ i₂ : ID} :
+  | port {i₁ i₂ : ID} : -- TODO: This also works for actions, doesn't
     (σ.obj? .rcn i₁ = some rcn₁) →
     (σ.obj? .rcn i₂ = some rcn₂) →
     ((rcn₁.deps .out ∩ rcn₂.deps .«in»).nonempty) →
@@ -121,9 +121,11 @@ namespace Indep
 protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
   And.symm
 
-theorem nonoverlapping_ports : 
+-- TODO: Come up with better names for these theorems.
+
+theorem nonoverlapping_deps : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
-  (rcn₁.deps .out ∩ rcn₂.deps Role.in) = ∅ := by
+  (rcn₁.deps .out ∩ rcn₂.deps .«in») = ∅ := by
   intro ⟨hi, _⟩ ho₁ ho₂
   by_contra hc
   simp [Finset.eq_empty_iff_forall_not_mem] at hc
@@ -138,11 +140,10 @@ theorem ne_rtr_or_pure :
   simp [not_or] at hd hc
   have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? h₁
   have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
-  have H : rtr₁ = rtr₂ := sorry -- consequence of hc
-  rw [←H] at hr₂
+  rw [hc] at hc₁
+  rw [Option.some_inj.mp $ hc₁.symm.trans hc₂] at hr₁
   sorry
-  /-
-  cases rtr₁.obj.rcnsTotalOrder (.impure hr₁ hr₂ h.ne_rcns hd.left hd.right)
+  /-cases rtr₁.obj.rcnsTotalOrder (.impure hr₁ hr₂ h.ne_rcns hd.left hd.right)
   case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
   -/

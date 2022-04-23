@@ -24,8 +24,8 @@ theorem allows_requires_acyclic_deps {s : State} : (s.allows rcn) → (rcn >[s.r
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
   match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
   | some con, some rcn => some {
-      portVals := (s.rtr.obj?' .prt).restrict (rcn.deps Role.in) |>.map (·.val),
-      acts :=     (s.rtr.obj?' .act).filterMap (· s.ctx.time) |>.restrict (rcn.deps Role.in),
+      portVals := s.rtr.obj?' .prt |>.restrict (rcn.deps .«in») |>.map (·.val),
+      acts :=     s.rtr.obj?' .act |>.filterMap (· s.ctx.time) |>.restrict (rcn.deps .«in»),
       state :=    con.obj.state,
       time :=     s.ctx.time
     }
@@ -69,12 +69,25 @@ theorem rcnOutput_to_contains {s : State} :
   case none => simp [rcnOutput, ho] at h
   case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
 
-theorem rcnOutput_dep_only {s : State} {i : ID} (v) : 
+theorem rcnOutput_port_dep_only {s : State} {i : ID} (v) : 
   (s.rcnOutput i = some o) → (s.rtr.obj? .rcn i = some rcn) → (p ∉ rcn.deps .out) → .port p v ∉ o := by
   intro ho hr hp
   have ⟨x, _, hr', hb⟩ := aux ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
   exact rcn.prtOutDepOnly x v hp
+where 
+  aux {j : ID} : (s.rcnOutput j = some o) → (∃ i rcn, s.rtr.obj? .rcn j = some rcn ∧ rcn i = o) := by
+    intro h
+    have ⟨_, hi⟩ := rcnInput_iff_rcnOutput.mpr ⟨_, h⟩
+    have ⟨_, ho, hb⟩ := rcnInput_to_rcnOutput hi
+    exact ⟨_, _, ho, Option.some_inj.mp $ hb.symm.trans h⟩
+
+theorem rcnOutput_action_dep_only {s : State} {i : ID} (t v) : 
+  (s.rcnOutput i = some o) → (s.rtr.obj? .rcn i = some rcn) → (a ∉ rcn.deps .out) → .action a t v ∉ o := by
+  intro ho hr hp
+  have ⟨x, _, hr', hb⟩ := aux ho
+  simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
+  exact rcn.actOutDepOnly x t v hp
 where 
   aux {j : ID} : (s.rcnOutput j = some o) → (∃ i rcn, s.rtr.obj? .rcn j = some rcn ∧ rcn i = o) := by
     intro h

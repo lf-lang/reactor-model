@@ -22,6 +22,9 @@ def Rooted.nest? : Rooted ID → Option ID
   | ⊤ => none
   | nest i => i
 
+theorem Rooted.nest?_inj : nest?.injective :=
+  λ i j => by cases i <;> cases j <;> simp [nest?]
+
 structure Identified (α) where
   id : Rooted ID
   obj : α

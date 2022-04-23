@@ -7,9 +7,9 @@ namespace Raw.Reactor
 protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
   nestFinite : { i | rtr.nest i ≠ none }.finite
   uniqueIDs :  ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
-  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' Role.in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
+  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' .«in» iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
   normDeps :   ∀ {n r}, (n ∈ rtr.norms.values) → ↑(n.deps r) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.portVals r).ids ∪ (rtr.nestedPortIDs r.opposite))
-  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps Role.in ⊆ (rtr.portVals Role.in).ids) ∧ ↑(m.deps .out) ⊆ ↑(rtr.portVals .out).ids ∪ (rtr.nestedPortIDs Role.in)
+  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps .«in» ⊆ rtr.acts.ids ∪ (rtr.portVals .«in»).ids) ∧ ↑(m.deps .out) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.portVals .out).ids ∪ (rtr.nestedPortIDs .«in»)
   rcnsTotal :  ∀ {rcn₁ rcn₂}, rtr.rcnsNeedTotalOrder rcn₁ rcn₂ → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
 
 -- To define properties of reactors recursively, we need a concept of containment.

@@ -121,12 +121,13 @@ noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := 
   finite := sorry
 }
 
-noncomputable def obj?' (σ : Reactor) (cmp : Cmp) : ID ▸ cmp.type := {
-  lookup := (σ.obj? cmp ·),
-  finite := sorry
-}
+noncomputable def obj?' (σ : Reactor) (cmp : Cmp) : ID ▸ cmp.type := 
+  σ.obj? cmp |>.map' (·.nest?) Rooted.nest?_inj
 
 variable {σ : Reactor} {cmp : Cmp} 
+
+theorem obj?'_eq_obj? {i : ID} : σ.obj?' cmp i = σ.obj? cmp i :=
+  Finmap.map'_def rfl
 
 theorem obj?_to_con?_and_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (∃ c, σ.con? cmp i = some c ∧ c.obj.cmp? cmp i = some o) :=

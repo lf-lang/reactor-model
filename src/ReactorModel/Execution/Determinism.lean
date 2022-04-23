@@ -212,8 +212,8 @@ theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
 
 
 
-theorem ChangeStep.preserves_unchanged_port :
-  (s₁ -[rcn:c]→ s₂) → (∀ p, Change.port i p ≠ c) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
+theorem ChangeStep.preserves_unchanged_port {i : ID} :
+  (s₁ -[rcn:c]→ s₂) → (∀ v, .port i v ≠ c) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
   intro h hc 
   cases h <;> simp
   case port i' v h =>
@@ -224,15 +224,39 @@ theorem ChangeStep.preserves_unchanged_port :
     contradiction
   case' state h, action h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
 
-theorem ChangeListStep.preserves_unchanged_ports :
-  (s₁ -[rcn:cs]→* s₂) → (∀ p, Change.port i p ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
+theorem ChangeStep.preserves_unchanged_action {i : ID} :
+  (s₁ -[rcn:c]→ s₂) → (∀ t v, .action i t v ≠ c) → (s₁.rtr.obj? .act i = s₂.rtr.obj? .act i) := by
+  intro h hc 
+  cases h <;> simp
+  case action i' t v h =>
+    refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp)
+    by_contra hi
+    specialize hc t v
+    rw [hi] at hc
+    contradiction
+  case' state h, port h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
+
+theorem ChangeListStep.preserves_unchanged_ports {i : ID} :
+  (s₁ -[rcn:cs]→* s₂) → (∀ v, .port i v ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
   intro h hc 
   induction h
   case nil => rfl
   case cons h _ hi => 
     refine (h.preserves_unchanged_port ?_).trans (hi ?_) <;> (
-      intro p
-      have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc p
+      intro v
+      have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc v
+      assumption
+    )
+
+theorem ChangeListStep.preserves_unchanged_actions {i : ID} :
+  (s₁ -[rcn:cs]→* s₂) → (∀ t v, .action i t v ∉ cs) → (s₁.rtr.obj? .act i = s₂.rtr.obj? .act i) := by
+  intro h hc 
+  induction h
+  case nil => rfl
+  case cons h _ hi => 
+    refine (h.preserves_unchanged_action ?_).trans (hi ?_) <;> (
+      intro t v
+      have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc t v
       assumption
     )
 
@@ -311,7 +335,15 @@ theorem InstStep.preserves_nondep_ports :
   intro h hr hd
   cases h 
   case skipReaction => rfl
-  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_dep_only · ho hr hd)
+  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · ho hr hd)
+
+theorem InstStep.preserves_nondep_actions : 
+  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → 
+  (a ∉ rcn.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a) := by
+  intro h hr hd
+  cases h 
+  case skipReaction => rfl
+  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · ho hr hd)
 
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
@@ -336,13 +368,20 @@ theorem InstStep.indep_rcns_indep_input :
       apply Finmap.restrict_ext
       intro p hp
       have ⟨_, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
-      have hd := hi.symm.nonoverlapping_ports hr ho'
+      have hd := hi.symm.nonoverlapping_deps hr ho'
       simp [Finset.eq_empty_iff_forall_not_mem, Finset.mem_inter] at hd
       have hd := mt (hd p) $ not_not.mpr hp
-      exact h.preserves_nondep_ports hr hd
-    case state =>
-      sorry
+      simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_ports hr hd]
     case acts =>
+      apply Finmap.restrict_ext
+      intro a ha
+      apply Finmap.filterMap_congr
+      have ⟨_, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
+      have hd := hi.symm.nonoverlapping_deps hr ho'
+      simp [Finset.eq_empty_iff_forall_not_mem, Finset.mem_inter] at hd
+      have hd := mt (hd a) $ not_not.mpr ha
+      simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_actions hr hd]
+    case state =>
       sorry
 
 -- Corollary of `InstStep.indep_rcns_indep_input`.

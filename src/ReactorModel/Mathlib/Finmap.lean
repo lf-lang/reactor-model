@@ -121,6 +121,17 @@ theorem map_mem_ids {f : α ▸ β} {g : β → γ} {i} : i ∈ (f.map g).ids �
 theorem map_def {f : α ▸ β} {g : β → γ} {i v} (h : (f.map g) i = some v) : ∃ m, f i = some m ∧ g m = v :=
   sorry
 
+noncomputable def map' (f : α ▸ γ) (g : α → Option β) (h : g.injective) : β ▸ γ := {
+  lookup := λ b => 
+    if h : ∃ a ∈ f.ids, g a = b -- This is unique because of h.
+    then f h.choose
+    else none
+  finite := sorry
+}
+
+theorem map'_def {f : α ▸ γ} : (g a = some b) → (f.map' g h b = f a) :=
+  sorry   
+
 def attach (f : α ▸ β) : α ▸ { b // b ∈ f.values } := {
   lookup := λ a =>
     match h:(f a) with
@@ -165,6 +176,9 @@ def filterMap (f : α ▸ β) (g : β → Option γ) : α ▸ γ := {
   lookup := λ a => (f a) >>= g,
   finite := sorry
 }
+
+theorem filterMap_congr {f₁ f₂ : α ▸ β} : (f₁ a = f₂ a) → (f₁.filterMap g a = f₂.filterMap g a) :=
+  sorry
 
 -- The finmap that containts only those entries from `f`, whose identifiers
 -- are in a given set `as`.
