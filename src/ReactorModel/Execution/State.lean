@@ -65,14 +65,28 @@ theorem rcnInput_portVals_def {s : State} :
 theorem rcnInput_actions_def {s : State} :
   (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.ctx.time) |>.restrict (rcn.deps .«in»))) := by
   intro hi ho
-  have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+  have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
   simp [rcnInput, hc, ho] at hi
   exact hi.right.left.symm
 
+theorem rcnInput_state_def {s : State} : 
+  (s.rcnInput j = some ⟨x, y, q, z⟩) → (s.rtr.con? .rcn j = some c) → (q = c.obj.state) := by
+  intro hi hc
+  have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+  simp [rcnInput, hc, ho] at hi
+  exact hi.right.right.left.symm
+
 theorem rcnInput_time_def {s : State} :
   (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.ctx.time) := by
-  sorry
-
+  intro hi
+  simp [rcnInput] at hi
+  cases hc : s.rtr.con? .rcn j
+  case none => simp [hc] at hi
+  case some => 
+    have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+    simp [rcnInput, hc, ho] at hi
+    exact hi.right.right.right.symm
+    
 theorem rcnInput_to_rcnOutput {s : State} : 
   (s.rcnInput j = some i) → (∃ rcn, s.rtr.obj? .rcn j = some rcn ∧ s.rcnOutput j = rcn i) := by
   intro h
