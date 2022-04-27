@@ -348,22 +348,21 @@ theorem InstStep.preserves_nondep_actions :
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
 
-theorem InstStep.indep_rcns_indep_input :
-  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnInput rcn = s'.rcnInput rcn := by
+theorem InstStep.indep_rcns_indep_output :
+  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := by
   intro h hi
-  simp [State.rcnInput]
   have hp := h.preserves_rcns (i := rcn)
   cases ho : s.rtr.obj? .rcn rcn <;> cases ho' : s'.rtr.obj? .rcn rcn 
-  case none.none => simp
+  case none.none => simp [State.rcnOutput, ho, ho']
   case' none.some, some.none => simp [hp, ho'] at ho
   case some.some => 
-    have ⟨_, hc, hm⟩ := Reactor.obj?_to_con?_and_cmp? ho
-    have ⟨_, hc', hm'⟩ := Reactor.obj?_to_con?_and_cmp? ho'
-    rw [←hp] at ho'
-    have he := Option.some_inj.mp $ ho.symm.trans ho'
-    simp [ho, hc, ho', hc', h.preserves_time, he]
-    refine ⟨?ports, ?acts, ?state⟩
-    case ports =>
+    have ⟨⟨p, a, x, t⟩, hj⟩ := State.rcnInput_iff_obj?.mpr ⟨_, ho⟩
+    have ⟨⟨p', a', x', t'⟩, hj'⟩ := State.rcnInput_iff_obj?.mpr ⟨_, ho'⟩
+    have H1 : p = p' := by
+      simp [s.rcnInput_portVals_def hj ho, s'.rcnInput_portVals_def hj' ho']
+      rw [←hp] at ho'
+      have he := Option.some_inj.mp $ ho.symm.trans ho'
+      simp [he]
       refine congr_arg2 _ ?_ rfl
       apply Finmap.restrict_ext
       intro p hp
@@ -372,7 +371,11 @@ theorem InstStep.indep_rcns_indep_input :
       simp [Finset.eq_empty_iff_forall_not_mem, Finset.mem_inter] at hd
       have hd := mt (hd p) $ not_not.mpr hp
       simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_ports hr hd]
-    case acts =>
+    have H2 : a = a' := by
+      simp [s.rcnInput_actions_def hj ho, s'.rcnInput_actions_def hj' ho']
+      rw [←hp] at ho'
+      have he := Option.some_inj.mp $ ho.symm.trans ho'
+      simp [he]
       apply Finmap.restrict_ext
       intro a ha
       apply Finmap.filterMap_congr
@@ -381,13 +384,12 @@ theorem InstStep.indep_rcns_indep_input :
       simp [Finset.eq_empty_iff_forall_not_mem, Finset.mem_inter] at hd
       have hd := mt (hd a) $ not_not.mpr ha
       simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_actions hr hd]
-    case state =>
-      sorry
-
--- Corollary of `InstStep.indep_rcns_indep_input`.
-theorem InstStep.indep_rcns_indep_output :
-  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := 
-  λ h hi => State.rcnOutput_congr (h.indep_rcns_indep_input hi) h.preserves_rcns
+    have H3 : t = t' := by 
+      simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.preserves_time]
+    simp [H1, H2, H3] at hj
+    have := State.rcnOutput_pure_congr hj hj' ho sorry /-this is hj'-/
+    -- TODO: Apply Dependency.ne_rtr_or_pure and proceed by case distinction on the result.
+    sorry
 
 theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 

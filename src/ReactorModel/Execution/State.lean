@@ -36,8 +36,7 @@ noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
   | some rcn, some i => rcn i 
   | _, _ => none
 
--- NOTE: This is a helper lemma for the theorems below.
-private theorem rcnInput_iff_obj? {s : State} : 
+theorem rcnInput_iff_obj? {s : State} : 
   (∃ i, s.rcnInput rcn = some i) ↔ (∃ o, s.rtr.obj? .rcn rcn = some o) := by
   constructor <;> intro ⟨_, h⟩
   case mp =>
@@ -55,6 +54,24 @@ private theorem rcnInput_iff_rcnOutput {s : State} :
     case none => simp [ho] at h
     case some => have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
   )
+
+theorem rcnInput_portVals_def {s : State} :
+  (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (p = (s.rtr.obj?' .prt |>.restrict (rcn.deps .«in») |>.map (·.val))) := by
+  intro hi ho
+  have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+  simp [rcnInput, hc, ho] at hi
+  exact hi.left.symm
+
+theorem rcnInput_actions_def {s : State} :
+  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.ctx.time) |>.restrict (rcn.deps .«in»))) := by
+  intro hi ho
+  have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+  simp [rcnInput, hc, ho] at hi
+  exact hi.right.left.symm
+
+theorem rcnInput_time_def {s : State} :
+  (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.ctx.time) := by
+  sorry
 
 theorem rcnInput_to_rcnOutput {s : State} : 
   (s.rcnInput j = some i) → (∃ rcn, s.rtr.obj? .rcn j = some rcn ∧ s.rcnOutput j = rcn i) := by
@@ -99,6 +116,12 @@ theorem rcnOutput_congr {s₁ s₂ : State} :
   (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rtr.obj? .rcn rcn = s₂.rtr.obj? .rcn rcn) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) :=
   λ h ho => by simp [rcnOutput, ←h, ho]
 
+theorem rcnOutput_pure_congr {s₁ s₂ : State} :
+  (s₁.rcnInput i = some ⟨p, a, x₁, t⟩) → (s₂.rcnInput i = some ⟨p, a, x₂, t⟩) → 
+  (s₁.rtr.obj? .rcn i = some rcn) → (s₂.rtr.obj? .rcn i = some rcn) → (rcn.isPure) →
+  (s₁.rcnOutput i = s₂.rcnOutput i) :=
+  λ hi₁ hi₂ ho₁ ho₂ hp => by simp [rcnOutput, ho₁, ho₂, hi₁, hi₂, hp.input _ x₁, hp.input _ x₂]
+  
 def triggers (s : State) (r : ID) :=
   ∃ rcn i, (s.rtr.obj? .rcn r = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.triggersOn i)
 

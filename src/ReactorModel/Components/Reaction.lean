@@ -53,17 +53,17 @@ def isNorm (rcn : Reaction) : Prop :=
 -- mutating changes for some input.
 def isMut (rcn : Reaction) : Prop := ¬rcn.isNorm
 
--- A reaction is pure if it does not interact with its parent reactor's state.
+-- A reaction is pure if it does not interact with its container's state.
 structure isPure (rcn : Reaction) : Prop where
   input : ∀ i s, rcn i = rcn { i with state := s }
-  output : ∀ i c, c ∈ rcn.body i → ∃ p v, c = Change.port p v
+  output : ∀ i c, c ∈ rcn.body i → c.isPort ∨ c.isAction
 
 theorem isMut_not_isPure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
   intro hm ⟨_, ho⟩
   simp [isMut, isNorm] at hm
   have ⟨i, c, hb, hm⟩ := hm
-  have ho := ho i c hb
-  cases c <;> (have ⟨_, _, _⟩ := ho; contradiction)
+  specialize ho i c hb
+  cases ho <;> cases c <;> (simp [Change.mutates] at *)    
   
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction) (i : Input) : Prop :=
@@ -100,6 +100,6 @@ theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
   case output =>
     intro i c h
     cases hc : i.portVals[i₁] <;> simp [relay, hc] at h
-    exact ⟨_, _, h⟩
+    simp [h]
     
 end Reaction

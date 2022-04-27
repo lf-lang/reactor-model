@@ -136,15 +136,15 @@ theorem ne_rtr_or_pure :
   (σ.con? .rcn i₁ ≠ σ.con? .rcn i₂) ∨ rcn₁.isPure ∨ rcn₂.isPure := by
   intro h h₁ h₂ 
   by_contra hc
-  have ⟨hc, hd⟩ := (not_or ..).mp hc
-  simp [not_or] at hd hc
+  have ⟨hc, hp⟩ := (not_or ..).mp hc
+  simp [not_or] at hp hc
   have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? h₁
   have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
   rw [hc] at hc₁
-  rw [Option.some_inj.mp $ hc₁.symm.trans hc₂] at hr₁
+  simp [Option.some_inj.mp $ hc₁.symm.trans hc₂, Reactor.cmp?] at hr₁ hr₂
   sorry
-  /-cases rtr₁.obj.rcnsTotalOrder (.impure hr₁ hr₂ h.ne_rcns hd.left hd.right)
-  case h.inl hp => exact absurd (.internal $ .rcns hc.symm h₂ h₁ hp) h.right
+  /-cases rtr₂.obj.rcnsTotalOrder (.impure hr₁ hr₂ sorry hp.left hp.right)
+  case h.inl hp => exact absurd (.internal $ .prio hc.symm h₂ h₁ hp) h.right
   case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
   -/
 

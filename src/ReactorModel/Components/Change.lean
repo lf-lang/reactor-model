@@ -25,6 +25,14 @@ section
 
 variable [DecidableEq ID]
 
+abbrev isPort : Change → Bool 
+  | port .. => true
+  | _ => false
+
+abbrev isAction : Change → Bool 
+  | action .. => true
+  | _ => false
+
 def portValue? (t : ID) : Change → Option Value
   | port t' v => if t' = t then some v else none
   | _ => none
