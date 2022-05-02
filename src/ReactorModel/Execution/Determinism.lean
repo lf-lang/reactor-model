@@ -206,7 +206,6 @@ theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
 
 
 
-
 ------------------------------------------------------------------------------------------------------
 
 
@@ -347,13 +346,21 @@ theorem InstStep.preserves_nondep_actions :
 
 theorem InstStep.pure_preserves_state : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (rcn.isPure) → 
-  (s₁.rtr.con? .rcn i = some c₁) → (s₂.rtr.con? .rcn i = some c₂) →
+  (s₁.rtr.con? cmp j = some c₁) → (s₂.rtr.con? cmp j = some c₂) →
   (c₁.obj.state = c₂.obj.state) := by
   intro h hr hp hc₁ hc₂
   cases h 
-  case skipReaction => rfl
-  case execReaction hr' _ ho hs => 
-    sorry
+  case skipReaction => sorry
+  case execReaction hr' _ ho hs => sorry
+
+theorem InstStep.preserves_external_state : 
+  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.con? .rcn i = some c) → 
+  (s₁.rtr.con? cmp j = some c₁) → (s₂.rtr.con? cmp j = some c₂) → (c.id ≠ c₁.id) →
+  (c₁.obj.state = c₂.obj.state) := by
+  intro h hr hp hc₁ hc₂
+  cases h 
+  case skipReaction => sorry
+  case execReaction hr' _ ho hs => sorry
 
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
@@ -398,29 +405,29 @@ theorem InstStep.indep_rcns_indep_output :
       simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.preserves_time]
     simp [H1, H2, H3] at hj
     have ⟨r, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
-    cases hi.ne_rtr_or_pure ho hr
+    have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+    have ⟨_, hr', _⟩ := Reactor.obj?_to_con?_and_cmp? hr
+    cases hi.ne_rtr_or_pure ho hr hc hr'
     case inl he => 
-      have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
-      have ⟨c', hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
+      have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
       have hs := State.rcnInput_state_def hj hc
       have hs' := State.rcnInput_state_def hj' hc'
-      have HH : c.obj.state = c'.obj.state := sorry -- This follows from `he` and some lemma akin to `preserves_nondep_actions`
-      rw [HH] at hs
+      rw [h.preserves_external_state hr' hc hc' he.symm] at hs
       rw [hs.trans hs'.symm] at hj
       exact State.rcnOutput_congr (hj.trans hj'.symm) hp
     case inr hc =>
       cases hc
-      case inl hp' => exact State.rcnOutput_pure_congr hj hj' ho sorry /-this is ho'-/ hp'
+      case inl hp' => 
+        rw [ho'.symm.trans (h.preserves_rcns ▸ ho)] at ho'
+        exact State.rcnOutput_pure_congr hj hj' ho ho' hp'
       case inr hp' => 
-        have ⟨hp₁, hp₂⟩ := hp'
-        -- Follows from x = x' which follows from hp₂
-        -- Create a `preserves_nondep_actions`-type of lemma for this.
-        have ⟨_, hro, _⟩ := Reactor.obj?_to_con?_and_cmp? hr
-        have ⟨_, hro'⟩ : ∃ c, s'.rtr.con? .rcn rcn' = some c := sorry
-        have := h.pure_preserves_state hr hp' hro hro'
-        -- TODO: Turn `this` into H:
-        have H : s.rcnInput rcn = s'.rcnInput rcn := sorry 
-        exact State.rcnOutput_congr H hp
+        have ⟨_, hco, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+        have ⟨_, hco', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
+        have hs := State.rcnInput_state_def hj hco
+        have hs' := State.rcnInput_state_def hj' hco'
+        rw [h.pure_preserves_state hr hp' hco hco'] at hs
+        rw [hs.trans hs'.symm] at hj
+        exact State.rcnOutput_congr (hj.trans hj'.symm) hp
 
 theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 
@@ -579,6 +586,8 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   intro h₁ h₂ hc
   refine State.ext _ _ ?_ hc
   have hp := h₁.eq_ctx_processed_rcns_perm h₂ hc
+  have hd : True := .intro
+
   -- PLAN:
   --
   -- ✔︎ `ChangeListEquiv`
@@ -614,6 +623,11 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   -- on the state of a reactor - thus we don't need to consider any intermediate reactors.
   -- In constrast, reasoning at the level of reactions always reaquires an associated reactor,
   -- as the behaviour of a reaction depends on its parent reactor.
+
+  -- Theorem: In the permuted reaction list, each reaction still produces the exact same output as before.
+  -- Implies: Change lists are permutations.
+  --      r1       ...        rn          |      π1        ...     πn    
+  -- c11 ... c1m   ...   cn1 ... cnk      | p11 ... p1l    ...   pn1 ... pnj
   sorry
 
 theorem State.instComplete_to_inst_stuck : s.instComplete → ∀ s' rcn, ¬(s ⇓ᵢ[rcn] s') := by

@@ -133,15 +133,16 @@ theorem nonoverlapping_deps :
 
 theorem ne_rtr_or_pure : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
-  (σ.con? .rcn i₁ ≠ σ.con? .rcn i₂) ∨ rcn₁.isPure ∨ rcn₂.isPure := by
-  intro h h₁ h₂ 
+  (σ.con? .rcn i₁ = some c₁) → (σ.con? .rcn i₂ = some c₂) →
+  (c₁.id ≠ c₂.id) ∨ rcn₁.isPure ∨ rcn₂.isPure := by
+  intro h ho₁ ho₂ hc₁ hc₂ 
   by_contra hc
   have ⟨hc, hp⟩ := (not_or ..).mp hc
   simp [not_or] at hp hc
-  have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? h₁
-  have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? h₂
-  rw [hc] at hc₁
-  simp [Option.some_inj.mp $ hc₁.symm.trans hc₂, Reactor.cmp?] at hr₁ hr₂
+  -- have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? ho₁
+  -- have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? ho₂
+  -- rw [hc] at hc₁
+  -- simp [Option.some_inj.mp $ hc₁.symm.trans hc₂, Reactor.cmp?] at hr₁ hr₂
   sorry
   /-cases rtr₂.obj.rcnsTotalOrder (.impure hr₁ hr₂ sorry hp.left hp.right)
   case h.inl hp => exact absurd (.internal $ .prio hc.symm h₂ h₁ hp) h.right

@@ -1,27 +1,38 @@
 # Whiteboard
 
-Execution				| rfl
-						| transitive exec steps
+## Andrés' Update
 
-Execution.Step			| inst exec
-						| advance time
+* Pure reactions (`Reaction.isPure`), why and how they're used in reactors (its constraints).
 
-CompleteInstExecution	| exec until complete
+* We're at the point where we'd want to use some of the reactor-wf-properties, which have not been lifted yet.
 
--------------------------------------------------------- DETERMINISM ATM					
+* The `Identified` and `Rooted` types.
 
-InstExecution			| inst step												exposes: reaction list
-						| transitive inst steps
+* Explain `Get.lean`:
+  - `Reactor.cmp?`
+  - `Reactor.con?` & `Container`
+  - `Reactor.obj?`
+  - `Reactor.obj?'`
+  - `Reactor.contains`
 
-InstStep				| change list step										exposes: reaction
-						| skip rcn
+* `Dependency.lean`:
+  - What are the possible dependencies and why are they formalized in this way? 
+    (How is obj? and con? used. How does their redundancy manifest itself.)
+  - (ir)reflexivity
+  - `Indep`:
+    - What are the properties derived from Indep.
 
-ChangeListStep			| nil													exposes: reaction, change list
-						| transitive change steps							
+* `State.lean`:
+  - Func fact: `allows_requires_acyclic_deps`
+  - Definitions of `rcnInput` and `rcnOutput`
+    - related theorems
 
-ChangeStep				| port update											exposes: reaction, change
-						| state update
-						| action update
-						| mutation noop
-				
-
+* Determinism:
+  - Plan for `InstExecution.deterministic`
+    - We want to state facts about the reactions/changes in InstExecution, InstStep, ChangeListStep, ChangeStep.
+      Hence, we need to be able to refer to reactions/changes used in those steps.
+      Since the steps live in Prop, we can't define properties like `InstExecution.rcns : InstExecution -> List ID`.
+      The best we could do would be `Exists rcns : List ID, ...`, but the `...` would basically be the def of `InstExecution` again.
+      To fix this we raise the reaction(s)/change(s) (lists) into the type of `InstExecution` etc. 
+  - Current WIP: `InstStep.indep_rcns_indep_output`
+  - Fun fact: `InstStep.acyclic_deps`
