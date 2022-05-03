@@ -29,7 +29,8 @@ open Reaction in
   tsSubInDeps :   triggers ⊆ deps Role.in
   prtOutDepOnly : ∀ i {o} v,   (o ∉ deps .out) → Change.port o v ∉ body i
   actOutDepOnly : ∀ i {o} t v, (o ∉ deps .out) → Change.action o t v ∉ body i
-  actNotPast :    ∀ {i a t v}, (Change.action a t v) ∈ body i → i.time.t ≤ t
+  actNotPast :    ∀ {i a t v}, (.action a t v) ∈ body i → i.time.t ≤ t
+  stateLocal :    ∀ {i s v},   (.state s v) ∈ body i → s ∈ i.state.ids
   
 namespace Reaction
 
@@ -92,6 +93,9 @@ noncomputable def relay (src dst : ID) : Reaction := {
   actNotPast := by
     intro i _ _ _ h
     cases hs : i.portVals[src] <;> (simp [hs] at h),
+  stateLocal := by
+    intro i _ _ h
+    cases hs : i.portVals[src] <;> (simp [hs] at h)
 }
 
 theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by

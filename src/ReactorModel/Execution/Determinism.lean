@@ -209,7 +209,7 @@ theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
 ------------------------------------------------------------------------------------------------------
 
 
-
+-- TODO: Consolidate the 'Change(List)Step.preserves_unchanged_*' theorems.
 
 theorem ChangeStep.preserves_unchanged_port {i : ID} :
   (s₁ -[rcn:c]→ s₂) → (∀ v, .port i v ≠ c) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
@@ -235,27 +235,45 @@ theorem ChangeStep.preserves_unchanged_action {i : ID} :
     contradiction
   case' state h, port h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
 
-theorem ChangeListStep.preserves_unchanged_ports {i : ID} :
-  (s₁ -[rcn:cs]→* s₂) → (∀ v, .port i v ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
+theorem ChangeStep.preserves_unchanged_state {i : ID} :
+  (s₁ -[rcn:c]→ s₂) → (∀ v, .state i v ≠ c) → (s₁.rtr.obj? .stv i = s₂.rtr.obj? .stv i) := by
   intro h hc 
-  induction h
-  case nil => rfl
-  case cons h _ hi => 
-    refine (h.preserves_unchanged_port ?_).trans (hi ?_) <;> (
+  cases h <;> simp
+  case state i' v h =>
+    refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp)
+    by_contra hi
+    specialize hc v
+    rw [hi] at hc
+    contradiction
+  case' action h, port h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
+
+theorem ChangeListStep.preserves_unchanged_ports {i : ID} :
+  (s₁ -[rcn:cs]→* s₂) → (∀ v, .port i v ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i)
+  | nil ..,    _ => rfl
+  | cons h hi, hc => by
+    refine (h.preserves_unchanged_port ?_).trans (hi.preserves_unchanged_ports ?_) <;> (
       intro v
       have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc v
       assumption
     )
 
 theorem ChangeListStep.preserves_unchanged_actions {i : ID} :
-  (s₁ -[rcn:cs]→* s₂) → (∀ t v, .action i t v ∉ cs) → (s₁.rtr.obj? .act i = s₂.rtr.obj? .act i) := by
-  intro h hc 
-  induction h
-  case nil => rfl
-  case cons h _ hi => 
-    refine (h.preserves_unchanged_action ?_).trans (hi ?_) <;> (
+  (s₁ -[rcn:cs]→* s₂) → (∀ t v, .action i t v ∉ cs) → (s₁.rtr.obj? .act i = s₂.rtr.obj? .act i)
+  | nil ..,    _ => rfl
+  | cons h hi, hc => by
+    refine (h.preserves_unchanged_action ?_).trans (hi.preserves_unchanged_actions ?_) <;> (
       intro t v
       have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc t v
+      assumption
+    )
+
+theorem ChangeListStep.preserves_unchanged_state {i : ID} :
+  (s₁ -[rcn:cs]→* s₂) → (∀ v, .state i v ∉ cs) → (s₁.rtr.obj? .stv i = s₂.rtr.obj? .stv i)
+  | nil ..,    _ => rfl
+  | cons h hi, hc => by
+    refine (h.preserves_unchanged_state ?_).trans (hi.preserves_unchanged_state ?_) <;> (
+      intro v
+      have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc v
       assumption
     )
 
@@ -273,10 +291,9 @@ theorem InstStep.preserves_rcns {i : ID} :
   | skipReaction .. => rfl
 
 theorem InstStep.preserves_ctx_past_future :
-  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g :=
-  λ h g hg => match h with
-  | execReaction _ _ _ h => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
-  | skipReaction .. => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
+  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
+  | execReaction _ _ _ h, _, hg => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
+  | skipReaction ..,      _, hg => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
 theorem InstStep.preserves_time : (s₁ ⇓ᵢ[rcns] s₂) → s₁.ctx.time = s₂.ctx.time := by
   intro h
@@ -329,38 +346,31 @@ theorem InstStep.self_currentProcessedRcns :
 -- then any instantaneous step of the reaction will keep that port
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → 
-  (p ∉ rcn.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p) := by
-  intro h hr hd
-  cases h 
-  case skipReaction => rfl
-  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · ho hr hd)
+  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (p ∉ rcn.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p)
+  | skipReaction ..,        _,  _ => rfl
+  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · ho hr hd)
 
 theorem InstStep.preserves_nondep_actions : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → 
-  (a ∉ rcn.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a) := by
-  intro h hr hd
-  cases h 
-  case skipReaction => rfl
-  case execReaction hr' _ ho hs => exact hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · ho hr hd)
+  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (a ∉ rcn.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a)
+  | skipReaction ..,        _,  _ => rfl
+  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · ho hr hd)
 
-theorem InstStep.pure_preserves_state : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (rcn.isPure) → 
-  (s₁.rtr.con? cmp j = some c₁) → (s₂.rtr.con? cmp j = some c₂) →
-  (c₁.obj.state = c₂.obj.state) := by
-  intro h hr hp hc₁ hc₂
-  cases h 
-  case skipReaction => sorry
-  case execReaction hr' _ ho hs => sorry
+theorem InstStep.pure_preserves_state {j : ID} : 
+  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (rcn.isPure) → (s₁.rtr.obj? .stv j = s₂.rtr.obj? .stv j)
+  | skipReaction ..,    _,  _ => rfl
+  | execReaction _ _ ho hs, hr, hp => hs.preserves_unchanged_state (s₁.rcnOutput_pure · ho hr hp)
 
+-- TODO: Think through the statement of this theorem again.
 theorem InstStep.preserves_external_state : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.con? .rcn i = some c) → 
-  (s₁.rtr.con? cmp j = some c₁) → (s₂.rtr.con? cmp j = some c₂) → (c.id ≠ c₁.id) →
-  (c₁.obj.state = c₂.obj.state) := by
-  intro h hr hp hc₁ hc₂
-  cases h 
-  case skipReaction => sorry
-  case execReaction hr' _ ho hs => sorry
+  (s₁.rtr.con? .rcn j = some c₁) → (s₂.rtr.con? .rcn j = some c₂) → (c.id ≠ c₁.id) →
+  (c₁.obj.obj? .stv k = c₂.obj.obj? .stv k)
+  | skipReaction ..,        _,  _,  _,   _ => by simp_all
+  | execReaction _ _ ho hs, hc, hc₁, hc₂, hi => by
+    simp
+    sorry
+    -- have hr := hs.preserves_rcns (i := j)
+    -- have := s₁.rcnOutput_state_local
 
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
@@ -412,9 +422,13 @@ theorem InstStep.indep_rcns_indep_output :
       have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
       have hs := State.rcnInput_state_def hj hc
       have hs' := State.rcnInput_state_def hj' hc'
-      rw [h.preserves_external_state hr' hc hc' he.symm] at hs
-      rw [hs.trans hs'.symm] at hj
-      exact State.rcnOutput_congr (hj.trans hj'.symm) hp
+      sorry
+      -- FIX: Convert the result from preserves_external_state into 
+      --      w✝.obj.state = w✝².obj.state by some extensionality argument.
+      --
+      -- rw [h.preserves_external_state hr' hc hc' he.symm] at hs
+      -- rw [hs.trans hs'.symm] at hj
+      -- exact State.rcnOutput_congr (hj.trans hj'.symm) hp
     case inr hc =>
       cases hc
       case inl hp' => 
@@ -425,9 +439,13 @@ theorem InstStep.indep_rcns_indep_output :
         have ⟨_, hco', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
         have hs := State.rcnInput_state_def hj hco
         have hs' := State.rcnInput_state_def hj' hco'
-        rw [h.pure_preserves_state hr hp' hco hco'] at hs
-        rw [hs.trans hs'.symm] at hj
-        exact State.rcnOutput_congr (hj.trans hj'.symm) hp
+        sorry
+        -- FIX: Convert the result from pure_preserves_state into 
+        --      w✝.obj.state = w✝¹.obj.state by some extensionality argument.
+        --
+        -- rw [h.pure_preserves_state hr hp' hco hco'] at hs
+        -- rw [hs.trans hs'.symm] at hj
+        -- exact State.rcnOutput_congr (hj.trans hj'.symm) hp
 
 theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 
