@@ -1,4 +1,4 @@
-import ReactorModel.Components.Get
+import ReactorModel.Components.Equiv
 
 open Classical
 
@@ -23,6 +23,11 @@ theorem EqModID.ne_cmp_eq {σ₁ σ₂ : Reactor} {cmp cmp' : Cmp} {i : ID} :
     intro i
     exact he _ i (Or.inl hc)
   )
+
+-- TODO: Perhaps redefine EqModID in terms of con? or obj? or something?
+--       Maybe this would yield a simpler definition of Update as well?
+theorem EqModID.preserves_Equiv : (σ₁ %[cmp:i]= σ₂) → (cmp ≠ .rtr) → σ₁ ≈ σ₂ := by
+  sorry
 
 theorem EqModID.trans {σ₁ σ₂ σ₃ : Reactor} {cmp : Cmp} {i : ID} :
   (σ₁ %[cmp:i]= σ₂) → (σ₂ %[cmp:i]= σ₃) → σ₁ %[cmp:i]= σ₃ :=
@@ -205,6 +210,10 @@ theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
   case nest he _ _ _ hi =>
     -- have H := he _ _ ho
     sorry
+
+-- TODO: Cf. comment on EqModID.preserves_Equiv.
+theorem Update.preserves_Equiv {cmp} {u : cmp.type → cmp.type → Prop} : (σ₁ -[cmp;i u]→ σ₂) → (cmp ≠ .rtr) → σ₁ ≈ σ₂ := by
+  sorry
 
 structure Mutation.rtrRel (cmp : Cmp) (cmpRel : (ID ▸ cmp.type) → (ID ▸ cmp.type) → Prop) (σ₁ σ₂ : Reactor) : Prop where
   eqCmps : ∀ cmp', (cmp' ≠ cmp) → σ₁.cmp? cmp' = σ₂.cmp? cmp'

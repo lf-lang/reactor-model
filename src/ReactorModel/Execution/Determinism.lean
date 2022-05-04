@@ -169,8 +169,6 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
 ------------------------------------------------------------------------------------------------------
 
 
-
-
 -- NOTE: This only holds without mutations.
 theorem ChangeStep.rcn_agnostic : (s -[rcn₁:c]→ s₁) → (s -[rcn₂:c]→ s₂) → s₁ = s₂ := by
   intro h₁ h₂
@@ -209,6 +207,11 @@ theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
 ------------------------------------------------------------------------------------------------------
 
 
+theorem ChangeStep.preserves_Equiv : (s₁ -[rcn:c]→ s₂) → s₁.rtr ≈ s₂.rtr := by
+  intro h
+  cases h <;> simp
+  case' port h, state h, action h => exact h.preserves_Equiv (by simp)
+  
 -- TODO: Consolidate the 'Change(List)Step.preserves_unchanged_*' theorems.
 
 theorem ChangeStep.preserves_unchanged_port {i : ID} :
@@ -247,6 +250,10 @@ theorem ChangeStep.preserves_unchanged_state {i : ID} :
     contradiction
   case' action h, port h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
 
+theorem ChangeListStep.preserves_Equiv : (s₁ -[rcn:cs]→* s₂) → s₁.rtr ≈ s₂.rtr
+  | nil .. => .refl
+  | cons h hi => h.preserves_Equiv.trans hi.preserves_Equiv
+
 theorem ChangeListStep.preserves_unchanged_ports {i : ID} :
   (s₁ -[rcn:cs]→* s₂) → (∀ v, .port i v ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i)
   | nil ..,    _ => rfl
@@ -276,6 +283,10 @@ theorem ChangeListStep.preserves_unchanged_state {i : ID} :
       have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc v
       assumption
     )
+
+theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr ≈ s₂.rtr
+  | skipReaction .. => .refl
+  | execReaction _ _ _ h => h.preserves_Equiv
 
 theorem InstStep.rtr_contains_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.contains .rcn rcn
   | skipReaction h _ _ => h
@@ -360,17 +371,25 @@ theorem InstStep.pure_preserves_state {j : ID} :
   | skipReaction ..,    _,  _ => rfl
   | execReaction _ _ ho hs, hr, hp => hs.preserves_unchanged_state (s₁.rcnOutput_pure · ho hr hp)
 
--- TODO: Think through the statement of this theorem again.
-theorem InstStep.preserves_external_state : 
+theorem InstStep.preserves_external_state {x j : ID} : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.con? .rcn i = some c) → 
-  (s₁.rtr.con? .rcn j = some c₁) → (s₂.rtr.con? .rcn j = some c₂) → (c.id ≠ c₁.id) →
-  (c₁.obj.obj? .stv k = c₂.obj.obj? .stv k)
+  (s₁.rtr.obj? .rtr j = some c₁) → (s₂.rtr.obj? .rtr j = some c₂) → (c.id ≠ j) →
+  (c₁.obj? .stv x = c₂.obj? .stv x)
   | skipReaction ..,        _,  _,  _,   _ => by simp_all
-  | execReaction _ _ ho hs, hc, hc₁, hc₂, hi => by
-    simp
-    sorry
-    -- have hr := hs.preserves_rcns (i := j)
-    -- have := s₁.rcnOutput_state_local
+  | @execReaction _ _ s₂ o _ _ ho hs, hc, hc₁, hc₂, hi => by
+    by_cases hx : x ∈ c.obj.state.ids
+    case neg =>
+      have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hx)
+      exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
+    case pos =>
+      sorry
+      -- TODO: THIS WON'T WORK
+      --       c₁/c₂ might contain c, thus if i updates the state in c,
+      --       c₁.obj? .stv x = c₂.obj? .stv x doesn't hold for all updated x.
+      --
+      -- previous thoughts:
+      -- since c contains x and c₁ and c₂ are some other reactor, they can't contain x too
+      -- thus c₁.obj? .stv x = none = c₂.obj? .stv x
 
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption

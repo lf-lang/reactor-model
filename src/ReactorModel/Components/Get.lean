@@ -177,6 +177,10 @@ theorem obj?_nest {j : ID} :
     · simp [←hl]; exact Container.iff_con?.mp hc'
     · simp [Lineage.nest_container l hn, hm]
 
+theorem obj?_sub : 
+  (σ.obj? .rtr i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp i = some o) := 
+  sorry 
+
 def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop := 
   ∃ c, σ.con? cmp i = some c
 
@@ -188,8 +192,7 @@ theorem contains_iff_obj? : (σ.contains cmp i) ↔ (∃ o, σ.obj? cmp i = some
 noncomputable def ids (σ : Reactor) (cmp : Cmp) := 
   (σ.obj? cmp).ids.image (·.nest?) |>.erase_none
 
-theorem ids_mem_iff_contains : 
-  (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
+theorem ids_mem_iff_contains : (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
   constructor <;> (intro h; simp [ids, Finset.mem_erase_none] at *)
   case mp =>
     simp [Finmap.ids_def'] at h
@@ -200,5 +203,8 @@ theorem ids_mem_iff_contains :
   case mpr =>
     have ⟨_, h, _⟩ := con?_to_obj?_and_cmp? h.choose_spec
     exact ⟨_, Finmap.ids_def'.mpr ⟨_, h.symm⟩, by simp [Rooted.nest?]⟩  
+
+theorem ids_mem_iff_obj? : (i ∈ σ.ids cmp) ↔ (∃ o, σ.obj? cmp i = some o) := by
+  simp [←contains_iff_obj?, ids_mem_iff_contains]
 
 end Reactor
