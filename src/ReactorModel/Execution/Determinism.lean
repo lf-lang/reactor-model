@@ -371,17 +371,21 @@ theorem InstStep.pure_preserves_state {j : ID} :
   | skipReaction ..,    _,  _ => rfl
   | execReaction _ _ ho hs, hr, hp => hs.preserves_unchanged_state (s₁.rcnOutput_pure · ho hr hp)
 
-theorem InstStep.preserves_external_state {x j : ID} : 
+-- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
+--       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
+theorem InstStep.preserves_external_state {j : ID} : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.con? .rcn i = some c) → 
   (s₁.rtr.obj? .rtr j = some c₁) → (s₂.rtr.obj? .rtr j = some c₂) → (c.id ≠ j) →
-  (c₁.obj? .stv x = c₂.obj? .stv x)
+  (c₁.state = c₂.state)
   | skipReaction ..,        _,  _,  _,   _ => by simp_all
   | @execReaction _ _ s₂ o _ _ ho hs, hc, hc₁, hc₂, hi => by
-    by_cases hx : x ∈ c.obj.state.ids
-    case neg =>
-      have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hx)
-      exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
-    case pos =>
+    
+    -- by_cases hx : x ∈ c.obj.state.ids
+    -- case neg =>
+      -- have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hx)
+      -- exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
+      -- sorry
+    -- case pos =>
       sorry
       -- TODO: THIS WON'T WORK
       --       c₁/c₂ might contain c, thus if i updates the state in c,
@@ -441,13 +445,21 @@ theorem InstStep.indep_rcns_indep_output :
       have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
       have hs := State.rcnInput_state_def hj hc
       have hs' := State.rcnInput_state_def hj' hc'
-      sorry
       -- FIX: Convert the result from preserves_external_state into 
       --      w✝.obj.state = w✝².obj.state by some extensionality argument.
-      --
-      -- rw [h.preserves_external_state hr' hc hc' he.symm] at hs
-      -- rw [hs.trans hs'.symm] at hj
-      -- exact State.rcnOutput_congr (hj.trans hj'.symm) hp
+      have hc := Reactor.con?_to_rtr_obj? hc
+      have hc' := Reactor.con?_to_rtr_obj? hc'
+      -- Here we run into the problem that eq_obj?_nest expects IDs instead of Rooted IDs.
+      -- That's why we need the following:
+      rename_i R _ _ _ _ R' _ _ 
+      have ⟨ri, ri', H, H'⟩ : ∃ ri ri', R.id = .nest ri ∧ R'.id = .nest ri' := sorry -- perhaps a case distinction can replace this. cause if ri/ri' = ⊤, then R/R' = s/s'.
+      -- By `he`, this ri and ri' must be the same.
+      have Hri : ri = ri' := sorry
+      rw [H] at hc
+      rw [H', ←Hri] at hc'
+      rw [h.preserves_external_state hr' hc hc' sorry /-consequence of Hri-/] at hs
+      rw [hs.trans hs'.symm] at hj
+      exact State.rcnOutput_congr (hj.trans hj'.symm) hp
     case inr hc =>
       cases hc
       case inl hp' => 
@@ -458,14 +470,28 @@ theorem InstStep.indep_rcns_indep_output :
         have ⟨_, hco', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
         have hs := State.rcnInput_state_def hj hco
         have hs' := State.rcnInput_state_def hj' hco'
+        suffices h : x = x' by 
+          rw [h] at hj
+          exact State.rcnOutput_congr (hj.trans hj'.symm) hp
+        rw [hs, hs']
+        have he := h.preserves_Equiv
+        rename_i R _ R' _
+        have H : ∀ j : ID, R.obj.obj? .stv j = R'.obj.obj? .stv j := by
+          intro j
+          have h := h.pure_preserves_state (j := j) hr hp'
+          -- Here we run into the problem that eq_obj?_nest expects IDs instead of Rooted IDs.
+          -- That's why we need the following:
+          have ⟨ri, ri', H, H'⟩ : ∃ ri ri', R.id = .nest ri ∧ R'.id = .nest ri' := sorry -- perhaps a case distinction can replace this. cause if ri/ri' = ⊤, then R/R' = s/s'.
+          -- By `he`, this ri and ri' must be the same.
+          have Hri : ri = ri' := sorry
+          have hco := Reactor.con?_to_rtr_obj? hco
+          have hco' := Reactor.con?_to_rtr_obj? hco'
+          rw [H] at hco
+          rw [H', ←Hri] at hco'
+          exact he.eq_obj?_nest h hco hco' 
         sorry
-        -- FIX: Convert the result from pure_preserves_state into 
-        --      w✝.obj.state = w✝¹.obj.state by some extensionality argument.
-        --
-        -- rw [h.pure_preserves_state hr hp' hco hco'] at hs
-        -- rw [hs.trans hs'.symm] at hj
-        -- exact State.rcnOutput_congr (hj.trans hj'.symm) hp
-
+        -- FIX: Convert `H` into the result using an extensionality argument.
+        
 theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 
   (o₁ ++ o₂) ⋈ (o₂ ++ o₁) := by

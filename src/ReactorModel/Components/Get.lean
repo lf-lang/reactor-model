@@ -129,6 +129,8 @@ variable {σ : Reactor} {cmp : Cmp}
 theorem obj?'_eq_obj? {i : ID} : σ.obj?' cmp i = σ.obj? cmp i :=
   Finmap.map'_def rfl
 
+theorem obj?_self : σ.obj? .rtr ⊤ = some σ := by simp [obj?]
+
 theorem obj?_to_con?_and_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (∃ c, σ.con? cmp i = some c ∧ c.obj.cmp? cmp i = some o) :=
   Option.bind_eq_some.mp
@@ -147,6 +149,10 @@ theorem con?_and_cmp?_to_obj? :
   intro hc hm
   have ⟨_, ho, hm'⟩ := con?_to_obj?_and_cmp? hc
   simp [hm.symm.trans hm', ho]
+
+theorem con?_to_rtr_obj? :
+  (σ.con? cmp i = some c) → (σ.obj? .rtr c.id = some c.obj) := by
+  sorry
 
 theorem obj?_and_con?_to_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (σ.con? cmp i = some c) → (c.obj.cmp? cmp i = some o) := by
@@ -177,8 +183,40 @@ theorem obj?_nest {j : ID} :
     · simp [←hl]; exact Container.iff_con?.mp hc'
     · simp [Lineage.nest_container l hn, hm]
 
-theorem obj?_sub : 
-  (σ.obj? .rtr i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp i = some o) := 
+theorem obj?_sub {i j : ID} : 
+  (σ.obj? .rtr i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp j = some o) := by
+  intro hr hc
+  have hc' := hc
+  have ⟨c, hc, hmc⟩ := obj?_to_con?_and_cmp? hc
+  have ⟨r, hr, hmr⟩ := obj?_to_con?_and_cmp? hr
+  cases Container.iff_con?.mpr hc <;> cases Container.iff_con?.mpr hr
+  case intro lc hlc lr hlr =>
+    induction lr <;> simp [Lineage.target] at hlr
+    case rtr σ i h _ =>
+      have H : (Lineage.rtr h).container = σ := sorry -- this should hold definitionally
+      simp [cmp?, H] at hmr
+      exact obj?_nest hmr hc'
+    case nest hi _ => 
+      specialize hi sorry sorry sorry sorry
+      simp [Lineage.nest_container] at hmr
+      sorry
+
+-- Note, we could make this an iff by using obj?_sub and cmp?_to_obj? for the other direction.
+theorem obj?_decomposition {i : ID} :
+  (σ.obj? cmp i = some o) → (σ.cmp? cmp i = some o) ∨ (∃ j rtr, σ.obj? .rtr j = some rtr ∧ rtr.cmp? cmp i = some o) := by
+  sorry
+
+theorem obj?_decomposition' {i : ID} :
+  (σ.obj? cmp i = some o) → (σ.cmp? cmp i = some o) ∨ (∃ j rtr, σ.nest j = some rtr ∧ rtr.obj? cmp i = some o) := by
+  sorry
+
+theorem obj?_unique {i j : ID} : 
+  (σ.cmp? cmp i = some o) → (σ.obj? .rtr j = some rtr) → (rtr.obj? cmp i = none) := 
+  sorry    
+
+-- Corollary of obj?_sub.
+theorem obj?_not_sub : 
+  (σ.obj? .rtr i = some rtr) → (σ.obj? cmp j = none) → (rtr.obj? cmp j = none) := 
   sorry 
 
 def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop := 
@@ -206,5 +244,10 @@ theorem ids_mem_iff_contains : (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
 
 theorem ids_mem_iff_obj? : (i ∈ σ.ids cmp) ↔ (∃ o, σ.obj? cmp i = some o) := by
   simp [←contains_iff_obj?, ids_mem_iff_contains]
+
+theorem obj?_and_mem_ids_to_cmp? {i : ID} : 
+  (σ.obj? cmp i = some o) → (i ∈ (σ.cmp? cmp).ids) → (σ.cmp? cmp i = some o) := by
+  intro ho hi
+  sorry
 
 end Reactor
