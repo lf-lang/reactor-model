@@ -54,21 +54,24 @@ def cmp {σ i} : (cmp : Cmp) → (h : i ∈ (σ.cmp? cmp).ids) → Lineage σ i
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
 def container : Lineage σ i → Identified Reactor 
-  | .nest l@(.nest ..) _ => l.container
-  | @nest r j .. =>         { id := j, obj := r }
-  | _ =>                    { id := ⊤, obj := σ }
-decreasing_by sorry 
+  | .nest (.nest l h) _ => (Lineage.nest l h).container -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Structural.20Recursion.20Problem
+  | @nest r j .. =>        { id := j, obj := r }
+  | _ =>                   { id := ⊤, obj := σ }
 
-theorem container_target_mem (l : Lineage σ i) : ∃ o, l.container.obj.cmp? l.target i = some o :=
+theorem container_target_mem (l : Lineage σ i) : ∃ o, l.container.obj.cmp? l.target i = some o := by
   sorry
 
-theorem cmp_container {cmp} : (h : i ∈ (σ.cmp? cmp).ids) → (Lineage.cmp cmp h).container.obj = σ := by
-  sorry
+theorem cmp_container_eq_root {cmp} (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.cmp cmp h).container.obj = σ := by
+  cases cmp
+  case rtr =>
+    simp [Lineage.cmp]
+    sorry
+  all_goals sorry
 
-theorem nest_target {σ : Reactor} {rtr i j} (l : Lineage rtr i) (h : σ.nest j = some rtr) : (Lineage.nest l h).target = l.target := by
-  sorry
+theorem nest_preserves_target {σ rtr : Reactor} (l : Lineage rtr i) (h : σ.nest j = rtr) : (Lineage.nest l h).target = l.target := by
+  simp [target]
 
-theorem nest_container {σ rtr : Reactor} (l : Lineage rtr i) (h : σ.nest j = rtr) : (Lineage.nest l h).container = l.container := by
+theorem nest_preserves_container {σ rtr : Reactor} (l : Lineage rtr i) (h : σ.nest j = rtr) : (Lineage.nest l h).container = l.container := by
   sorry
 
 end Lineage
@@ -166,7 +169,7 @@ theorem cmp?_to_obj? : (σ.cmp? cmp i = some o) → (σ.obj? cmp i = some o) := 
   have hc := Container.intro l rfl
   have hc' := Container.iff_con?.mp hc
   have ⟨o', ho, hm⟩ := con?_to_obj?_and_cmp? hc'
-  simp [Lineage.cmp_container] at hm
+  simp [Lineage.cmp_container_eq_root] at hm
   sorry
   -- o and o' are equal as cmp = l.target
   -- this ho is exactly the goal
@@ -178,10 +181,10 @@ theorem obj?_nest {j : ID} :
   cases Container.iff_con?.mpr hc
   case intro l hl =>
     let l' := Lineage.nest l hn
-    have hc' := Container.intro l' (Lineage.nest_target l hn)
+    have hc' := Container.intro l' (Lineage.nest_preserves_target l hn)
     apply con?_and_cmp?_to_obj?
     · simp [←hl]; exact Container.iff_con?.mp hc'
-    · simp [Lineage.nest_container l hn, hm]
+    · simp [Lineage.nest_preserves_container l hn, hm]
 
 theorem obj?_sub {i j : ID} : 
   (σ.obj? .rtr i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp j = some o) := by
@@ -198,7 +201,7 @@ theorem obj?_sub {i j : ID} :
       exact obj?_nest hmr hc'
     case nest hi _ => 
       specialize hi sorry sorry sorry sorry
-      simp [Lineage.nest_container] at hmr
+      simp [Lineage.nest_preserves_container] at hmr
       sorry
 
 -- Note, we could make this an iff by using obj?_sub and cmp?_to_obj? for the other direction.
@@ -248,6 +251,16 @@ theorem ids_mem_iff_obj? : (i ∈ σ.ids cmp) ↔ (∃ o, σ.obj? cmp i = some o
 theorem obj?_and_mem_ids_to_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (i ∈ (σ.cmp? cmp).ids) → (σ.cmp? cmp i = some o) := by
   intro ho hi
+  have ⟨c, hc, hm⟩ := obj?_to_con?_and_cmp? ho
+  rw [←hm]
+  suffices h : σ = c.obj by simp [h]
+  have ⟨l, hl⟩ := Container.iff_con?.mpr hc
+  clear hc
+  have hm := Finmap.ids_def'.mpr ⟨_, hm.symm⟩
+  simp [←Lineage.cmp_container_eq_root hm, ←Lineage.cmp_container_eq_root hi]
+  apply congr_arg
+  -- TODO: This obviously holds, but has a problem with Lineage's types again.
   sorry
+
 
 end Reactor
