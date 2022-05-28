@@ -377,23 +377,13 @@ theorem InstStep.preserves_external_state {j : ID} :
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.con? .rcn i = some c) → 
   (s₁.rtr.obj? .rtr j = some c₁) → (s₂.rtr.obj? .rtr j = some c₂) → (c.id ≠ j) →
   (c₁.state = c₂.state)
-  | skipReaction ..,        _,  _,  _,   _ => by simp_all
-  | @execReaction _ _ s₂ o _ _ ho hs, hc, hc₁, hc₂, hi => by
-    
-    -- by_cases hx : x ∈ c.obj.state.ids
-    -- case neg =>
-      -- have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hx)
-      -- exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
-      -- sorry
-    -- case pos =>
-      sorry
-      -- TODO: THIS WON'T WORK
-      --       c₁/c₂ might contain c, thus if i updates the state in c,
-      --       c₁.obj? .stv x = c₂.obj? .stv x doesn't hold for all updated x.
-      --
-      -- previous thoughts:
-      -- since c contains x and c₁ and c₂ are some other reactor, they can't contain x too
-      -- thus c₁.obj? .stv x = none = c₂.obj? .stv x
+  | skipReaction ..,         _,   _,   _,  _ => by simp_all
+  | execReaction _ _ ho hs, hc, hc₁, hc₂, hi => by
+    apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cmp := .stv)
+    intro x hx
+    have hm := Reactor.local_mem_exclusive hc₁ (Reactor.con?_to_rtr_obj? hc) hi.symm hx
+    have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hm)
+    exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
 
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
@@ -489,8 +479,7 @@ theorem InstStep.indep_rcns_indep_output :
           rw [H] at hco
           rw [H', ←Hri] at hco'
           exact he.eq_obj?_nest h hco hco' 
-        sorry
-        -- FIX: Convert `H` into the result using an extensionality argument.
+        exact (he.for_con? hco hco').obj?_ext (cmp := .stv) (λ i _ => H i)
         
 theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 

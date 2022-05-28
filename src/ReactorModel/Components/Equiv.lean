@@ -49,12 +49,22 @@ theorem top' : (σ₁ ≈ σ₂) → (σ₁.ids = σ₂.ids) := by
         exact ⟨_, obj?_nest hm.symm h'⟩
     )
 
-theorem nest' {i : ID} : 
+theorem nest' : 
   (σ₁ ≈ σ₂) → (σ₁.obj? .rtr i = some rtr₁) → (σ₂.obj? .rtr i = some rtr₂) → (rtr₁ ≈ rtr₂) := by
   intro he ho₁ ho₂
   induction he
   case intro hi =>
     sorry
+
+theorem for_con? :
+  (σ₁ ≈ σ₂) → (σ₁.con? cmp i = some c₁) → (σ₂.con? cmp i = some c₂) → (c₁.obj ≈ c₂.obj) := by
+  intro he hc₁ hc₂
+  have h₁ := con?_to_rtr_obj? hc₁
+  have h₂ := con?_to_rtr_obj? hc₂
+  have := con?_to_obj?_and_cmp? hc₁
+  have : c₁.id = c₂.id := sorry
+  rw [this] at h₁
+  exact he.nest' h₁ h₂
 
 theorem obj?_iff {i : ID} : 
   (σ₁ ≈ σ₂) → ((∃ o₁, σ₁.obj? cmp i = some o₁) ↔ (∃ o₂, σ₂.obj? cmp i = some o₂)) := by 
@@ -113,7 +123,7 @@ theorem obj?_ext :
     have hs := Reactor.cmp?_to_obj? ho
     first | rw [h hm] at hs   | rw [←h hm] at hs
     first | rw [he.top] at hm | rw [←he.top] at hm
-    exact Reactor.obj?_and_mem_ids_to_cmp? hs hm
+    exact Reactor.obj?_and_local_mem_to_cmp? hs hm
   )
 
 end Equiv

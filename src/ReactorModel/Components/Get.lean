@@ -222,6 +222,11 @@ theorem obj?_not_sub :
   (σ.obj? .rtr i = some rtr) → (σ.obj? cmp j = none) → (rtr.obj? cmp j = none) := 
   sorry 
 
+theorem local_mem_exclusive : 
+  (σ.obj? .rtr i₁ = some c₁) → (σ.obj? .rtr i₂ = some c₂) → (i₁ ≠ i₂) →
+  (j ∈ (c₁.cmp? cmp).ids) → (j ∉ (c₂.cmp? cmp).ids) := 
+  sorry
+
 def contains (σ : Reactor) (cmp : Cmp) (i : ID) : Prop := 
   ∃ c, σ.con? cmp i = some c
 
@@ -248,7 +253,7 @@ theorem ids_mem_iff_contains : (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
 theorem ids_mem_iff_obj? : (i ∈ σ.ids cmp) ↔ (∃ o, σ.obj? cmp i = some o) := by
   simp [←contains_iff_obj?, ids_mem_iff_contains]
 
-theorem obj?_and_mem_ids_to_cmp? {i : ID} : 
+theorem obj?_and_local_mem_to_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (i ∈ (σ.cmp? cmp).ids) → (σ.cmp? cmp i = some o) := by
   intro ho hi
   have ⟨c, hc, hm⟩ := obj?_to_con?_and_cmp? ho
