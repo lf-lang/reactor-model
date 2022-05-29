@@ -52,13 +52,13 @@ structure Reactor where
 
 namespace Reactor
 
-def ports (rtr : Reactor) : ID ▸ Port             := rtr.raw.ports
-def acts  (rtr : Reactor) : ID ▸ Time.Tag ▸ Value := rtr.raw.acts
-def state (rtr : Reactor) : ID ▸ Value            := rtr.raw.state
-def rcns  (rtr : Reactor) : ID ▸ Reaction         := rtr.raw.rcns
+def ports (rtr : Reactor) : ID ⇉ Port             := rtr.raw.ports
+def acts  (rtr : Reactor) : ID ⇉ Time.Tag ⇉ Value := rtr.raw.acts
+def state (rtr : Reactor) : ID ⇉ Value            := rtr.raw.state
+def rcns  (rtr : Reactor) : ID ⇉ Reaction         := rtr.raw.rcns
 
-def nest (rtr : Reactor) : ID ▸ Reactor :=
-  let raw : ID ▸ Raw.Reactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
+def nest (rtr : Reactor) : ID ⇉ Reactor :=
+  let raw : ID ⇉ Raw.Reactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
   raw.attach.map (λ ⟨_, h⟩ => Reactor.fromRaw _ (by
       have ⟨_, hm⟩ := Finmap.values_def.mp h
       exact rtr.rawWF.ancestor $ Raw.Reactor.Ancestor.nest hm
@@ -162,19 +162,19 @@ theorem ext {rtr₁ rtr₂ : Reactor} :
   rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h
 
-noncomputable def norms (rtr : Reactor) : ID ▸ Reaction :=
+noncomputable def norms (rtr : Reactor) : ID ⇉ Reaction :=
   rtr.rcns.filter' (Reaction.isNorm)
 
 theorem mem_muts_isNorm {rtr: Reactor} : (rtr.norms i = some n) → n.isNorm :=
   λ h => Finmap.filter'_mem.mp h |>.right
 
-noncomputable def muts (rtr : Reactor) : ID ▸ Reaction :=
+noncomputable def muts (rtr : Reactor) : ID ⇉ Reaction :=
   rtr.rcns.filter' (Reaction.isMut)  
 
 theorem mem_muts_isMut {rtr: Reactor} : (rtr.muts i = some m) → m.isMut :=
   λ h => Finmap.filter'_mem.mp h |>.right
 
-noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ▸ Port := 
+noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ⇉ Port := 
   rtr.ports.filter' (·.role = r)
 
 noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=

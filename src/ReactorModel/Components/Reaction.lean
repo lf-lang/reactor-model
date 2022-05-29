@@ -4,9 +4,9 @@ open Port Classical
 
 @[ext]
 structure Reaction.Input where
-  portVals : ID ▸ Value
-  acts : ID ▸ Value
-  state : ID ▸ Value
+  portVals : ID ⇉ Value
+  acts : ID ⇉ Value
+  state : ID ⇉ Value
   time : Time.Tag
 
 -- Reactions are the components that can produce changes in a reactor system.

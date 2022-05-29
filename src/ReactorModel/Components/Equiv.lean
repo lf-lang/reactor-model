@@ -56,14 +56,17 @@ theorem nest' :
   case intro hi =>
     sorry
 
-theorem for_con? :
+theorem con?_id_eq : 
+  (σ₁ ≈ σ₂) → (σ₁.con? cmp i = some c₁) → (σ₂.con? cmp i = some c₂) → (c₁.id = c₂.id) :=
+  sorry
+
+theorem con?_obj_equiv :
   (σ₁ ≈ σ₂) → (σ₁.con? cmp i = some c₁) → (σ₂.con? cmp i = some c₂) → (c₁.obj ≈ c₂.obj) := by
   intro he hc₁ hc₂
   have h₁ := con?_to_rtr_obj? hc₁
   have h₂ := con?_to_rtr_obj? hc₂
   have := con?_to_obj?_and_cmp? hc₁
-  have : c₁.id = c₂.id := sorry
-  rw [this] at h₁
+  rw [he.con?_id_eq hc₁ hc₂] at h₁
   exact he.nest' h₁ h₂
 
 theorem obj?_iff {i : ID} : 
@@ -96,21 +99,24 @@ protected theorem trans : (σ₁ ≈ σ₂) → (σ₂ ≈ σ₃) → (σ₁ ≈
     sorry
 
 -- For equivalent reactors, obj?-equality propagates to nested reactors.
-theorem eq_obj?_nest {i j : ID} :
+theorem eq_obj?_nest {i : ID} :
   (σ₁ ≈ σ₂) → (σ₁.obj? cmp i = σ₂.obj? cmp i) → 
   (σ₁.obj? .rtr j = some rtr₁) → (σ₂.obj? .rtr j = some rtr₂) → 
   rtr₁.obj? cmp i = rtr₂.obj? cmp i := by
   intro he ho hr₁ hr₂ 
-  have he' := he.nest' hr₁ hr₂
-  cases hc : σ₁.obj? cmp i <;> rw [hc] at ho
-  case none => rw [obj?_not_sub hr₁ hc, obj?_not_sub hr₂ ho.symm]
-  case some =>
-    cases obj?_decomposition hc
-    case inl hc => 
-      have ⟨_, hc'⟩ := (cmp?_iff he obj?_self obj?_self).mp ⟨_, hc⟩
-      rw [obj?_unique hc hr₁, obj?_unique hc' hr₂]
-    case inr _ _ =>
-      sorry
+  cases j
+  case root => simp at hr₁ hr₂; simp [←hr₁, ←hr₂, ho]
+  case nest =>
+    have he' := he.nest' hr₁ hr₂
+    cases hc : σ₁.obj? cmp i <;> rw [hc] at ho
+    case none => rw [obj?_not_sub hr₁ hc, obj?_not_sub hr₂ ho.symm]
+    case some =>
+      cases obj?_decomposition hc
+      case inl hc => 
+        have ⟨_, hc'⟩ := (cmp?_iff he obj?_self obj?_self).mp ⟨_, hc⟩
+        rw [obj?_unique hc hr₁, obj?_unique hc' hr₂]
+      case inr _ _ =>
+        sorry
 
 theorem obj?_ext :
   (σ₁ ≈ σ₂) → (∀ i ∈ (σ₁.cmp? cmp).ids, σ₁.obj? cmp i = σ₂.obj? cmp i) → (σ₁.cmp? cmp = σ₂.cmp? cmp) := by

@@ -373,11 +373,11 @@ theorem InstStep.pure_preserves_state {j : ID} :
 
 -- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
 --       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
-theorem InstStep.preserves_external_state {j : ID} : 
+theorem InstStep.preserves_external_state : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.con? .rcn i = some c) → 
   (s₁.rtr.obj? .rtr j = some c₁) → (s₂.rtr.obj? .rtr j = some c₂) → (c.id ≠ j) →
   (c₁.state = c₂.state)
-  | skipReaction ..,         _,   _,   _,  _ => by simp_all
+  | skipReaction ..,        _,  _,   _,   _ => by simp_all
   | execReaction _ _ ho hs, hc, hc₁, hc₂, hi => by
     apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cmp := .stv)
     intro x hx
@@ -435,19 +435,12 @@ theorem InstStep.indep_rcns_indep_output :
       have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
       have hs := State.rcnInput_state_def hj hc
       have hs' := State.rcnInput_state_def hj' hc'
-      -- FIX: Convert the result from preserves_external_state into 
-      --      w✝.obj.state = w✝².obj.state by some extensionality argument.
+      have hq := h.preserves_Equiv
+      have hh := hq.con?_id_eq hc hc'
       have hc := Reactor.con?_to_rtr_obj? hc
       have hc' := Reactor.con?_to_rtr_obj? hc'
-      -- Here we run into the problem that eq_obj?_nest expects IDs instead of Rooted IDs.
-      -- That's why we need the following:
-      rename_i R _ _ _ _ R' _ _ 
-      have ⟨ri, ri', H, H'⟩ : ∃ ri ri', R.id = .nest ri ∧ R'.id = .nest ri' := sorry -- perhaps a case distinction can replace this. cause if ri/ri' = ⊤, then R/R' = s/s'.
-      -- By `he`, this ri and ri' must be the same.
-      have Hri : ri = ri' := sorry
-      rw [H] at hc
-      rw [H', ←Hri] at hc'
-      rw [h.preserves_external_state hr' hc hc' sorry /-consequence of Hri-/] at hs
+      rw [←hh] at hc'
+      rw [h.preserves_external_state hr' hc hc' he.symm] at hs
       rw [hs.trans hs'.symm] at hj
       exact State.rcnOutput_congr (hj.trans hj'.symm) hp
     case inr hc =>
@@ -465,21 +458,15 @@ theorem InstStep.indep_rcns_indep_output :
           exact State.rcnOutput_congr (hj.trans hj'.symm) hp
         rw [hs, hs']
         have he := h.preserves_Equiv
-        rename_i R _ R' _
-        have H : ∀ j : ID, R.obj.obj? .stv j = R'.obj.obj? .stv j := by
-          intro j
+        exact (he.con?_obj_equiv hco hco').obj?_ext (cmp := .stv) (by
+          intro j _
           have h := h.pure_preserves_state (j := j) hr hp'
-          -- Here we run into the problem that eq_obj?_nest expects IDs instead of Rooted IDs.
-          -- That's why we need the following:
-          have ⟨ri, ri', H, H'⟩ : ∃ ri ri', R.id = .nest ri ∧ R'.id = .nest ri' := sorry -- perhaps a case distinction can replace this. cause if ri/ri' = ⊤, then R/R' = s/s'.
-          -- By `he`, this ri and ri' must be the same.
-          have Hri : ri = ri' := sorry
+          have hh := he.con?_id_eq hco hco'
           have hco := Reactor.con?_to_rtr_obj? hco
           have hco' := Reactor.con?_to_rtr_obj? hco'
-          rw [H] at hco
-          rw [H', ←Hri] at hco'
+          rw [←hh] at hco'
           exact he.eq_obj?_nest h hco hco' 
-        exact (he.for_con? hco hco').obj?_ext (cmp := .stv) (λ i _ => H i)
+        )
         
 theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 

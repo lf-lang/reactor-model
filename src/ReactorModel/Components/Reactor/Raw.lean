@@ -4,31 +4,31 @@ open Port
 
 protected inductive Raw.Reactor 
   | mk 
-    (ports : ID ▸ Port )
-    (acts :  ID ▸ Time.Tag ▸ Value)
-    (state : ID ▸ Value)
-    (rcns :  ID ▸ Reaction)
+    (ports : ID ⇉ Port )
+    (acts :  ID ⇉ Time.Tag ⇉ Value)
+    (state : ID ⇉ Value)
+    (rcns :  ID ⇉ Reaction)
     (nest :  ID → Option Raw.Reactor)
 
 namespace Raw.Reactor
 
 -- These definitions give us the projections that would usually be generated for a structure.
-def ports : Raw.Reactor → ID ▸ Port               | mk p _ _ _ _ => p
-def acts :  Raw.Reactor → ID ▸ Time.Tag ▸ Value   | mk _ a _ _ _ => a
-def state : Raw.Reactor → ID ▸ Value              | mk _ _ s _ _ => s 
-def rcns :  Raw.Reactor → ID ▸ Reaction           | mk _ _ _ r _ => r
+def ports : Raw.Reactor → ID ⇉ Port               | mk p _ _ _ _ => p
+def acts :  Raw.Reactor → ID ⇉ Time.Tag ⇉ Value   | mk _ a _ _ _ => a
+def state : Raw.Reactor → ID ⇉ Value              | mk _ _ s _ _ => s 
+def rcns :  Raw.Reactor → ID ⇉ Reaction           | mk _ _ _ r _ => r
 def nest :  Raw.Reactor → ID → Option Raw.Reactor | mk _ _ _ _ n => n
 
-noncomputable def norms (rtr : Raw.Reactor) : ID ▸ Reaction :=
+noncomputable def norms (rtr : Raw.Reactor) : ID ⇉ Reaction :=
   rtr.rcns.filter' (Reaction.isNorm)
 
-noncomputable def muts (rtr : Raw.Reactor) : ID ▸ Reaction :=
+noncomputable def muts (rtr : Raw.Reactor) : ID ⇉ Reaction :=
   rtr.rcns.filter' (Reaction.isMut)  
 
-noncomputable def ports' (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Port := 
+noncomputable def ports' (rtr : Raw.Reactor) (r : Port.Role) : ID ⇉ Port := 
   rtr.ports.filter' (·.role = r)
 
-noncomputable def portVals (rtr : Raw.Reactor) (r : Port.Role) : ID ▸ Value := 
+noncomputable def portVals (rtr : Raw.Reactor) (r : Port.Role) : ID ⇉ Value := 
   (rtr.ports' r).map Port.val
 
 def nestedPortIDs (rtr : Raw.Reactor) (r : Port.Role) : Set ID :=

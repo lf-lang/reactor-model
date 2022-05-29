@@ -4,7 +4,7 @@ open Port
 
 namespace Execution
 
-noncomputable def schedule (act : Time.Tag ▸ Value) (t : Time) (v : Value) : Time.Tag ▸ Value :=
+noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
   match act.ids.filter (·.t = t) |>.max with
   | none => act.update ⟨t, 0⟩ v
   | some g => act.update ⟨t, g.microsteps + 1⟩ v

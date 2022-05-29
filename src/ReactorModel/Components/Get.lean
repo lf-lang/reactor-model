@@ -18,7 +18,7 @@ abbrev Cmp.type : Cmp → Type _
   | .rtr => Reactor
   | .rcn => Reaction
   | .prt => Port
-  | .act => Time.Tag ▸ Value
+  | .act => Time.Tag ⇉ Value
   | .stv => Value
 
 namespace Reactor
@@ -26,7 +26,7 @@ namespace Reactor
 -- Associates each type of component with the finmap in which it can be found inside
 -- of a reactor. We use this in `Object` to generically resolve the lookup for *some*
 -- component and *some* ID.
-abbrev cmp? : (cmp : Cmp) → Reactor → ID ▸ cmp.type
+abbrev cmp? : (cmp : Cmp) → Reactor → ID ⇉ cmp.type
   | .rtr => Reactor.nest
   | .rcn => Reactor.rcns
   | .prt => Reactor.ports
@@ -54,9 +54,10 @@ def cmp {σ i} : (cmp : Cmp) → (h : i ∈ (σ.cmp? cmp).ids) → Lineage σ i
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
 def container : Lineage σ i → Identified Reactor 
-  | .nest (.nest l h) _ => (Lineage.nest l h).container -- https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Structural.20Recursion.20Problem
-  | @nest r j .. =>        { id := j, obj := r }
-  | _ =>                   { id := ⊤, obj := σ }
+  | .nest l@h:(.nest ..) _ => l.container
+  | @nest r j .. =>           { id := j, obj := r }
+  | _ =>                      { id := ⊤, obj := σ }
+decreasing_by sorry -- TODO: Update to nightly 2022-05-29
 
 theorem container_target_mem (l : Lineage σ i) : ∃ o, l.container.obj.cmp? l.target i = some o := by
   sorry
@@ -115,7 +116,7 @@ theorem Container.iff_con? {cmp} : (Container σ cmp i c) ↔ (σ.con? cmp i = s
     case inl hc => simp at h; rw [←h]; exact hc.choose_spec
     case inr => contradiction
 
-noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := {
+noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ⇉ cmp.type := {
   lookup := λ i => 
     match i, cmp with 
     | ⊤, .rtr => σ
@@ -124,7 +125,7 @@ noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ▸ cmp.type := 
   finite := sorry
 }
 
-noncomputable def obj?' (σ : Reactor) (cmp : Cmp) : ID ▸ cmp.type := 
+noncomputable def obj?' (σ : Reactor) (cmp : Cmp) : ID ⇉ cmp.type := 
   σ.obj? cmp |>.map' (·.nest?) Rooted.nest?_inj
 
 variable {σ : Reactor} {cmp : Cmp} 
@@ -132,7 +133,14 @@ variable {σ : Reactor} {cmp : Cmp}
 theorem obj?'_eq_obj? {i : ID} : σ.obj?' cmp i = σ.obj? cmp i :=
   Finmap.map'_def rfl
 
+@[simp]
 theorem obj?_self : σ.obj? .rtr ⊤ = some σ := by simp [obj?]
+
+theorem obj?_root : (σ.obj? cmp ⊤ = some o) → (cmp = .rtr ∧ HEq o σ) := by 
+  intro h
+  cases cmp
+  case rtr => simp [obj?] at h; simp [h]
+  all_goals simp [obj?] at h
 
 theorem obj?_to_con?_and_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (∃ c, σ.con? cmp i = some c ∧ c.obj.cmp? cmp i = some o) :=

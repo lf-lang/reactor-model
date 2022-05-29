@@ -34,7 +34,7 @@ structure Execution.Context.FreshIDFunc where
 
 open Execution.Context in
 structure Execution.Context where
-  processedRcns : Time.Tag ▸ Finset ID
+  processedRcns : Time.Tag ⇉ Finset ID
   processedNonempty : processedRcns.nonempty
   freshID : FreshIDFunc
 
