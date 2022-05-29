@@ -25,11 +25,16 @@ inductive ChangeStep (rcn : ID) (s : State) : State → Change → Prop
 
 notation s₁:max " -[" rcn ":" c "]→ " s₂:max => ChangeStep rcn s₁ s₂ c
 
-inductive ChangeListStep (rcn : ID) : State → State → List Change → Prop
-  | nil (s) : ChangeListStep rcn s s []
-  | cons {s₁ s₂ s₃ hd tl} : (s₁ -[rcn:hd]→ s₂) → (ChangeListStep rcn s₂ s₃ tl) → ChangeListStep rcn s₁ s₃ (hd::tl)
+inductive ChangeListStep : State → State → List (Identified Change) → Prop
+  | nil (s) : ChangeListStep s s []
+  | cons {s₁ s₂ s₃ rcn hd tl} : (s₁ -[rcn:hd]→ s₂) → (ChangeListStep s₂ s₃ tl) → ChangeListStep s₁ s₃ (⟨rcn, hd⟩::tl)
 
-notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep rcn s₁ s₂ cs
+notation s₁:max " -[" rcs "]→* " s₂:max => ChangeListStep s₁ s₂ rcs
+
+abbrev ChangeListStep.uniform (s₁ s₂ : State) (rcn : ID) (cs : List Change) : Prop :=
+  s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂
+
+notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep.uniform s₁ s₂ rcn cs
 
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the

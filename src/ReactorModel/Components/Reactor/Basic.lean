@@ -320,12 +320,12 @@ private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Li
 theorem uniqueIDs (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
   induction l₁
-  case nest rtr₁ _ _ _ hi =>
+  case nest rtr₁ _ _ _ _ _ hi =>
     cases l₂ 
     case nest rtr₂ _ _ _ =>
       simp [Lineage.toRaw] at h
-      have hσ : rtr₁ = rtr₂ := by apply Reactor.raw_ext_iff.mpr; exact h.left
-      subst hσ
+      have hr := Reactor.raw_ext_iff.mpr h.left
+      subst hr
       simp [h.right.left]
       exact hi _ $ eq_of_heq h.right.right
     all_goals { contradiction }

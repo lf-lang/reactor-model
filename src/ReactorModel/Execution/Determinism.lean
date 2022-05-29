@@ -134,19 +134,13 @@ theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State} {rcn
   sorry
 -/
 
-theorem ChangeListStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {cs : List Change} : 
-  (s₁ -[rcn:cs]→* s₂) → s₁.ctx = s₂.ctx := by
-  intro h
-  induction h with
-  | nil => rfl
-  | cons h₁₂ _ h₂₃ => exact h₁₂.preserves_ctx.trans h₂₃
+theorem ChangeListStep.preserves_ctx : (s₁ -[cs]→* s₂) → s₁.ctx = s₂.ctx 
+  | .nil .. => rfl
+  | .cons h₁₂ h₂₃ => h₁₂.preserves_ctx.trans h₂₃.preserves_ctx
 
-theorem ChangeListStep.preserves_rcns {i : ID} : 
-  (s₁ -[rcn:cs]→* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) := by
-  intro h
-  induction h with
-  | nil => rfl
-  | cons h₁₂ _ h₂₃ => exact h₁₂.preserves_rcns.trans h₂₃
+theorem ChangeListStep.preserves_rcns {i : ID} : (s₁ -[cs]→* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
+  | .nil .. => rfl
+  | .cons h₁₂ h₂₃ => h₁₂.preserves_rcns.trans h₂₃.preserves_rcns
 
 /-
 theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
@@ -170,15 +164,22 @@ theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ 
 
 
 -- NOTE: This only holds without mutations.
+/-
 theorem ChangeStep.rcn_agnostic : (s -[rcn₁:c]→ s₁) → (s -[rcn₂:c]→ s₂) → s₁ = s₂ := by
   intro h₁ h₂
   cases h₁ <;> cases h₂ <;> simp
   case' port.port h₁ _ h₂, state.state h₁ _ h₂, action.action h₁ _ h₂ => exact Reactor.Update.unique' h₁ h₂
 
 -- NOTE: This only holds without mutations.
-theorem ChangeListStep.rcn_agnostic : (s -[rcn₁:cs]→* s₁) → (s -[rcn₂:cs]→* s₂) → s₁ = s₂
-  | nil .., nil .. => rfl
-  | cons h₁ hi₁ , cons h₂ hi₂ => by rw [h₁.rcn_agnostic h₂] at hi₁; exact hi₁.rcn_agnostic hi₂
+theorem ChangeListStep.rcn_agnostic {rcs₁ rcs₂ : List (ID × Change)} : 
+  rcs₁.map (·.snd) = rcs₂.map (·.snd) → (s -[rcns₁]→* s₁) → (s -[rcns₂]→* s₂) → s₁ = s₂ := by
+  intro he hs₁ hs₂
+  match hs₁, hs₂ with
+  | .nil .., .nil .. => rfl
+  | .cons h₁ hi₁, .cons h₂ hi₂ => 
+    rw [h₁.rcn_agnostic h₂] at hi₁
+    exact hi₁.rcn_agnostic hi₂
+-/
 
 -- IDEA:
 -- Is it simpler to express this notion somehow by first defining a function that collapses
@@ -250,12 +251,12 @@ theorem ChangeStep.preserves_unchanged_state {i : ID} :
     contradiction
   case' action h, port h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
 
-theorem ChangeListStep.preserves_Equiv : (s₁ -[rcn:cs]→* s₂) → s₁.rtr ≈ s₂.rtr
+theorem ChangeListStep.preserves_Equiv : (s₁ -[cs]→* s₂) → s₁.rtr ≈ s₂.rtr
   | nil .. => .refl
   | cons h hi => h.preserves_Equiv.trans hi.preserves_Equiv
 
 theorem ChangeListStep.preserves_unchanged_ports {i : ID} :
-  (s₁ -[rcn:cs]→* s₂) → (∀ v, .port i v ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i)
+  (s₁ -[cs]→* s₂) → (∀ v, .port i v ∉ cs) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i)
   | nil ..,    _ => rfl
   | cons h hi, hc => by
     refine (h.preserves_unchanged_port ?_).trans (hi.preserves_unchanged_ports ?_) <;> (
@@ -265,7 +266,7 @@ theorem ChangeListStep.preserves_unchanged_ports {i : ID} :
     )
 
 theorem ChangeListStep.preserves_unchanged_actions {i : ID} :
-  (s₁ -[rcn:cs]→* s₂) → (∀ t v, .action i t v ∉ cs) → (s₁.rtr.obj? .act i = s₂.rtr.obj? .act i)
+  (s₁ -[cs]→* s₂) → (∀ t v, .action i t v ∉ cs) → (s₁.rtr.obj? .act i = s₂.rtr.obj? .act i)
   | nil ..,    _ => rfl
   | cons h hi, hc => by
     refine (h.preserves_unchanged_action ?_).trans (hi.preserves_unchanged_actions ?_) <;> (
@@ -275,7 +276,7 @@ theorem ChangeListStep.preserves_unchanged_actions {i : ID} :
     )
 
 theorem ChangeListStep.preserves_unchanged_state {i : ID} :
-  (s₁ -[rcn:cs]→* s₂) → (∀ v, .state i v ∉ cs) → (s₁.rtr.obj? .stv i = s₂.rtr.obj? .stv i)
+  (s₁ -[cs]→* s₂) → (∀ v, .state i v ∉ cs) → (s₁.rtr.obj? .stv i = s₂.rtr.obj? .stv i)
   | nil ..,    _ => rfl
   | cons h hi, hc => by
     refine (h.preserves_unchanged_state ?_).trans (hi.preserves_unchanged_state ?_) <;> (
@@ -359,17 +360,17 @@ theorem InstStep.self_currentProcessedRcns :
 theorem InstStep.preserves_nondep_ports : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (p ∉ rcn.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p)
   | skipReaction ..,        _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · ho hr hd)
+  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · (by simp [ho]; sorry /-This is a List.map id-/) hr hd)
 
 theorem InstStep.preserves_nondep_actions : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (a ∉ rcn.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a)
   | skipReaction ..,        _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · ho hr hd)
+  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · (by simp [ho]; sorry /-This is a List.map id-/) hr hd)
 
 theorem InstStep.pure_preserves_state {j : ID} : 
   (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (rcn.isPure) → (s₁.rtr.obj? .stv j = s₂.rtr.obj? .stv j)
   | skipReaction ..,    _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hp => hs.preserves_unchanged_state (s₁.rcnOutput_pure · ho hr hp)
+  | execReaction _ _ ho hs, hr, hp => hs.preserves_unchanged_state (s₁.rcnOutput_pure · (by simp [ho]; sorry /-This is a List.map id-/) hr hp)
 
 -- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
 --       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
@@ -382,7 +383,7 @@ theorem InstStep.preserves_external_state :
     apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cmp := .stv)
     intro x hx
     have hm := Reactor.local_mem_exclusive hc₁ (Reactor.con?_to_rtr_obj? hc) hi.symm hx
-    have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hm)
+    have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · (by simp [ho]; sorry /-This is a List.map id-/) hc hm)
     exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
 
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
@@ -625,7 +626,6 @@ protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} :
   intro h₁ h₂ hc
   refine State.ext _ _ ?_ hc
   have hp := h₁.eq_ctx_processed_rcns_perm h₂ hc
-  have hd : True := .intro
 
   -- PLAN:
   --

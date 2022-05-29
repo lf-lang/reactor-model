@@ -57,24 +57,27 @@ def container : Lineage σ i → Identified Reactor
   | .nest l@h:(.nest ..) _ => l.container
   | @nest r j .. =>           { id := j, obj := r }
   | _ =>                      { id := ⊤, obj := σ }
-decreasing_by sorry -- TODO: Update to nightly 2022-05-29
-
-theorem container_target_mem (l : Lineage σ i) : ∃ o, l.container.obj.cmp? l.target i = some o := by
-  sorry
 
 theorem cmp_container_eq_root {cmp} (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.cmp cmp h).container.obj = σ := by
-  cases cmp
-  case rtr =>
-    simp [Lineage.cmp]
-    sorry
-  all_goals sorry
+  cases cmp <;> simp [Lineage.cmp, Lineage.container]
+
+theorem cmp_target {σ : Reactor} {cmp} (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.cmp cmp h).target = cmp := by
+  cases cmp <;> simp [target]
 
 theorem nest_preserves_target {σ rtr : Reactor} (l : Lineage rtr i) (h : σ.nest j = rtr) : (Lineage.nest l h).target = l.target := by
   simp [target]
 
-theorem nest_preserves_container {σ rtr : Reactor} (l : Lineage rtr i) (h : σ.nest j = rtr) : (Lineage.nest l h).container = l.container := by
-  sorry
+theorem nest_preserves_container_obj {σ rtr : Reactor} (l : Lineage rtr i) (h : σ.nest j = rtr) : (Lineage.nest l h).container.obj = l.container.obj := by
+  cases l <;> simp [container]
 
+theorem container_target_mem (l : Lineage σ i) : ∃ o, l.container.obj.cmp? l.target i = some o := by
+  induction l
+  case' rtr h, rcn h, prt h, act h, stv h =>
+    have ⟨_, h⟩ := Finmap.ids_def'.mp h
+    simp [container, target, h.symm]
+  case nest hi =>
+    simp [target, nest_preserves_container_obj, hi]
+    
 end Lineage
 
 -- The `Container` relation is used to determine whether a given ID `c`
@@ -174,13 +177,12 @@ theorem obj?_and_con?_to_cmp? {i : ID} :
 theorem cmp?_to_obj? : (σ.cmp? cmp i = some o) → (σ.obj? cmp i = some o) := by
   intro h
   let l := Lineage.cmp _ $ Finmap.ids_def'.mpr ⟨_, h.symm⟩
-  have hc := Container.intro l rfl
-  have hc' := Container.iff_con?.mp hc
-  have ⟨o', ho, hm⟩ := con?_to_obj?_and_cmp? hc'
-  simp [Lineage.cmp_container_eq_root] at hm
-  sorry
-  -- o and o' are equal as cmp = l.target
-  -- this ho is exactly the goal
+  have h' := Container.iff_con?.mp $ .intro l rfl
+  have hc : l.container = σ := Lineage.cmp_container_eq_root _
+  have ht : l.target = cmp := Lineage.cmp_target _
+  simp [←hc] at h
+  simp [ht] at h'
+  exact con?_and_cmp?_to_obj? h' h
 
 theorem obj?_nest {j : ID} : 
   (σ.nest i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp j = some o) := by
@@ -192,7 +194,7 @@ theorem obj?_nest {j : ID} :
     have hc' := Container.intro l' (Lineage.nest_preserves_target l hn)
     apply con?_and_cmp?_to_obj?
     · simp [←hl]; exact Container.iff_con?.mp hc'
-    · simp [Lineage.nest_preserves_container l hn, hm]
+    · simp [Lineage.nest_preserves_container_obj l hn, hm]
 
 theorem obj?_sub {i j : ID} : 
   (σ.obj? .rtr i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp j = some o) := by
@@ -204,12 +206,11 @@ theorem obj?_sub {i j : ID} :
   case intro lc hlc lr hlr =>
     induction lr <;> simp [Lineage.target] at hlr
     case rtr σ i h _ =>
-      have H : (Lineage.rtr h).container = σ := sorry -- this should hold definitionally
-      simp [cmp?, H] at hmr
+      simp [cmp?, Lineage.container] at hmr
       exact obj?_nest hmr hc'
     case nest hi _ => 
       specialize hi sorry sorry sorry sorry
-      simp [Lineage.nest_preserves_container] at hmr
+      simp [Lineage.nest_preserves_container_obj] at hmr
       sorry
 
 -- Note, we could make this an iff by using obj?_sub and cmp?_to_obj? for the other direction.
@@ -272,7 +273,7 @@ theorem obj?_and_local_mem_to_cmp? {i : ID} :
   have hm := Finmap.ids_def'.mpr ⟨_, hm.symm⟩
   simp [←Lineage.cmp_container_eq_root hm, ←Lineage.cmp_container_eq_root hi]
   apply congr_arg
-  -- TODO: This obviously holds, but has a problem with Lineage's types again.
+  -- TODO: This holds, but has a problem with hm and hi not having the same type.
   sorry
 
 

@@ -31,6 +31,9 @@ structure Identified (α) where
 
 instance : CoeHead (Identified α) α := ⟨Identified.obj⟩
 
+instance : Membership α (List $ Identified α) where 
+  mem a as := a ∈ as.map (·.obj)
+
 def Priority := Option Nat
 
 instance : PartialOrder Priority := {
