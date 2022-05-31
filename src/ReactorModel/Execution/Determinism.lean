@@ -8,8 +8,18 @@ def List.lastSome? (f : α → Option β) : List α → Option β
     | some b => some b
     | none   => f a
 
+theorem List.lastSome?_empty_eq_none : [].lastSome? f = none := rfl
+
 theorem List.lastSome?_eq_some_iff {l : List α} : 
   (∃ b, l.lastSome? f = some b) ↔ (∃ b a, a ∈ l ∧ (f a) = some b) := 
+  sorry
+
+theorem List.lastSome?_head : 
+  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = none) → some b = f hd :=
+  sorry
+
+theorem List.lastSome?_tail : 
+  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = some b') → b = b' :=
   sorry
 
 -- This file defines (and proves) determinism for the reactor model.
@@ -310,11 +320,6 @@ theorem ChangeListStep.preserves_port_role {i : ID} :
   | nil ..,     ho => ⟨_, ho⟩
   | cons hd tl, ho => by simp [tl.preserves_port_role (hd.preserves_port_role ho).choose_spec]
 
-theorem ChangeListStep.last_state_value :
-  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.stateValue? i) = some v) → (s₂.rtr.obj? .stv i = some v) := by
-  intro hs hl 
-  sorry
-
 theorem ChangeListStep.lastSome?_none_preserves_state_value :
   (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.stateValue? i) = none) → (s₁.rtr.obj? .stv i = s₂.rtr.obj? .stv i) := by
   intro hs hl 
@@ -326,10 +331,22 @@ theorem ChangeListStep.lastSome?_none_preserves_state_value :
     simp [Change.stateValue?] at h
   )
 
-theorem ChangeListStep.last_port_value :
-  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = some v) → (∃ r, s₂.rtr.obj? .prt i = some ⟨r, v⟩) := by
-  intro hs hl 
-  sorry
+theorem ChangeListStep.last_state_value :
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.stateValue? i) = some v) → (s₂.rtr.obj? .stv i = some v)
+  | nil ..,                      hl => by simp [List.lastSome?_empty_eq_none] at hl
+  | @cons _ _ _ _ hd tl hhd htl, hl => by
+    by_cases hc : ∃ w, tl.lastSome? (·.stateValue? i) = some w
+    case pos =>
+      have ⟨w, hc⟩ := hc
+      exact htl.last_state_value ((List.lastSome?_tail hl hc).symm ▸ hc)
+    case neg =>
+      simp at hc
+      have hln := Option.eq_none_iff_forall_not_mem.mpr hc
+      simp [←htl.lastSome?_none_preserves_state_value hln]
+      have hv := List.lastSome?_head hl hln
+      rw [Change.stateValue?_some hv.symm] at hhd
+      cases hhd
+      case state hu => have ⟨_, _, h⟩ := hu.change'; simp [h]
 
 theorem ChangeListStep.lastSome?_none_preserves_port_value :
   (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = none) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
@@ -341,6 +358,11 @@ theorem ChangeListStep.lastSome?_none_preserves_port_value :
     specialize h v (.port i v) hn
     simp [Change.portValue?] at h
   )
+
+theorem ChangeListStep.last_port_value :
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = some v) → (∃ r, s₂.rtr.obj? .prt i = some ⟨r, v⟩) := by
+  intro hs hl 
+  sorry
 
 theorem ChangeListStep.equiv_changes_eq_result :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
