@@ -162,6 +162,10 @@ theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type
     have ⟨_, _, ho₁, ho₂, hu⟩ := hi
     exact ⟨_, _, Reactor.obj?_nest hr₁ ho₁, Reactor.obj?_nest hr₂ ho₂, hu⟩ 
 
+theorem Update.change' {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
+  (σ₁ -[cmp:i f]→ σ₂) → ∃ v, (σ₁.obj? cmp i = some v) ∧ (σ₂.obj? cmp i = f v) := by
+  sorry
+
 notation u₂ " ● " u₁ => λ v₁ v₂ => ∃ v, (u₁ v₁ v) ∧ (u₂ v v₂)
 
 theorem Update.compose {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u₁ u₂ : cmp.type → cmp.type → Prop} :
