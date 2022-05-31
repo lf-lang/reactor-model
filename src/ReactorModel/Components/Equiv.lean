@@ -92,6 +92,9 @@ protected theorem refl : σ ≈ σ :=
     sorry -- How do you apply induction here?
   )
 
+protected theorem symm : (σ₁ ≈ σ₂) → (σ₂ ≈ σ₁) := by
+  sorry
+
 protected theorem trans : (σ₁ ≈ σ₂) → (σ₂ ≈ σ₃) → (σ₁ ≈ σ₃) := by
   intro h₁₂ h₂₃
   induction h₁₂
@@ -131,6 +134,15 @@ theorem obj?_ext :
     first | rw [he.top] at hm | rw [←he.top] at hm
     exact Reactor.obj?_and_local_mem_to_cmp? hs hm
   )
+
+theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), σ₁.obj? cmp i = σ₂.obj? cmp i) → (σ₁ = σ₂) :=
+  λ he ho => Reactor.ext ⟨ 
+    he.obj?_ext (cmp := .prt) (by simp [ho]),
+    he.obj?_ext (cmp := .act) (by simp [ho]),
+    he.obj?_ext (cmp := .stv) (by simp [ho]),
+    he.obj?_ext (cmp := .rcn) (by simp [ho]),
+    he.obj?_ext (cmp := .rtr) (by simp [ho])
+  ⟩
 
 end Equiv
 end Reactor

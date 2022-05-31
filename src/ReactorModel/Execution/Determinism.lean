@@ -2,8 +2,11 @@ import ReactorModel.Execution.Basic
 
 open Classical Port
 
-def List.lastSome? (l : List α) (p : α → Option β) : Option β :=
-  l.reverse.findSome? p
+def List.lastSome? (f : α → Option β) : List α → Option β
+  | []    => none
+  | a::as => match lastSome? f as with
+    | some b => some b
+    | none   => f a
 
 -- This file defines (and proves) determinism for the reactor model.
 -- Determinism can be understood in multiple ways.
@@ -197,11 +200,6 @@ structure ChangeListEquiv (cs₁ cs₂ : List Change) : Prop where
 
 notation cs₁:max " ⋈ " cs₂:max => ChangeListEquiv cs₁ cs₂
 
-theorem ChangeListStep.equiv_changes_eq_result {cs₁ cs₂ : List Change} :
-  (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
-  intro h₁ h₂ he
-  -- *[] extensionality should work here.
-  sorry
 
 
 
@@ -284,6 +282,68 @@ theorem ChangeListStep.preserves_unchanged_state {i : ID} :
       have ⟨_, _⟩ := (not_or ..).mp $ (mt List.mem_cons.mpr) $ hc v
       assumption
     )
+
+theorem ChangeListStep.preserves_port_role :
+  (s₁ -[rcn:cs]→* s₂) → (s₁.rtr.obj? .prt i = some p) → (∃ v, s₂.rtr.obj? .prt i = some ⟨p.role, v⟩) := by
+  sorry
+
+theorem ChangeListStep.last_state_value :
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.stateValue? i) = some v) → (s₂.rtr.obj? .stv i = some v) := by
+  intro hs hl 
+  sorry
+
+theorem ChangeListStep.lastSome?_none_preserves_state_value :
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.stateValue? i) = none) → (s₁.rtr.obj? .stv i = s₂.rtr.obj? .stv i) := by
+  intro hs hl 
+  sorry
+
+theorem ChangeListStep.last_port_value :
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = some v) → (∃ r, s₂.rtr.obj? .prt i = some ⟨r, v⟩) := by
+  intro hs hl 
+  sorry
+
+theorem ChangeListStep.lastSome?_none_preserves_port_value :
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = none) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
+  intro hs hl 
+  sorry
+
+theorem ChangeListStep.equiv_changes_eq_result :
+  (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
+  intro h₁ h₂ he
+  refine State.ext _ _ ?_ (h₁.preserves_ctx.symm.trans h₂.preserves_ctx)
+  have hq := h₁.preserves_Equiv.symm.trans h₂.preserves_Equiv
+  apply hq.obj?_ext'
+  intro cmp i
+  cases cmp -- TODO: The `rtr` case is a problem.
+  case rcn => simp [←h₁.preserves_rcns, ←h₂.preserves_rcns]
+  case stv =>
+    have hs := he.state i
+    cases hc : cs₁.lastSome? (·.stateValue? i)
+    case none => simp [←h₁.lastSome?_none_preserves_state_value hc, ←h₂.lastSome?_none_preserves_state_value (hs ▸ hc)]
+    case some => simp [h₁.last_state_value hc, h₂.last_state_value (hs ▸ hc)]
+  case prt =>
+    have hp := he.ports i
+    cases hc : cs₁.lastSome? (·.portValue? i)
+    case none => simp [←h₁.lastSome?_none_preserves_port_value hc, ←h₂.lastSome?_none_preserves_port_value (hp ▸ hc)]
+    case some => 
+      have ⟨_, hl₁⟩ := h₁.last_port_value hc
+      have ⟨_, hl₂⟩ := h₂.last_port_value (hp ▸ hc)
+      cases hc' : s.rtr.obj? .prt i
+      case none => 
+        -- TODO: contradiction (maybe this should be a lemma of its own)
+        -- by definition of Update, any target of a change in cs₁ must be part of s.rtr, otherwise the update wouldnt be allowed
+        -- by hc, an update to port i must be in cs₁
+        sorry
+      case some =>
+        have ⟨_, hr₁⟩ := h₁.preserves_port_role hc'
+        have ⟨_, hr₂⟩ := h₂.preserves_port_role hc'
+        simp [hl₁, hl₂]
+        simp [hr₁] at hl₁
+        simp [hr₂] at hl₂
+        exact hl₁.left.symm.trans hl₂.left
+  case act =>
+    sorry
+  sorry
 
 theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr ≈ s₂.rtr
   | skipReaction .. => .refl

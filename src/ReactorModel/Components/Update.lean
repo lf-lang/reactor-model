@@ -26,6 +26,13 @@ theorem EqModID.ne_cmp_eq {σ₁ σ₂ : Reactor} {cmp cmp' : Cmp} {i : ID} :
 
 -- TODO: Perhaps redefine EqModID in terms of con? or obj? or something?
 --       Maybe this would yield a simpler definition of Update as well?
+--
+-- E.g.:
+-- But we can't express mutations this way:
+-- structure Update' (σ₁ σ₂ : Reactor) (cmp : Cmp) (i : ID) (o : cmp.type) : Prop :=
+--   equiv : σ₁ ≈ σ₂
+--   target : σ₂.obj? cmp i = o
+--   objs : ∀ (cmp' i'), (cmp' ≠ cmp ∨ i' ≠ i) → σ₁.obj? cmp' i' = σ₂.obj? cmp' i'
 theorem EqModID.preserves_Equiv : (σ₁ %[cmp:i]= σ₂) → (cmp ≠ .rtr) → σ₁ ≈ σ₂ := by
   sorry
 
