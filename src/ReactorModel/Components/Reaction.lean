@@ -34,13 +34,6 @@ open Reaction in
   
 namespace Reaction
 
-structure Isomorphism (rcn₁ rcn₂ : Reaction) (iso : ID → ID) : Prop where
-  bij :      Function.bijective iso
-  deps :     ∀ r, rcn₁.deps r = (rcn₂.deps r).image map
-  triggers : rcn₁.triggers = rcn₂.triggers.image map
-  prio :     rcn₁.prio = rcn₂.prio
-  body :     ∀ i, List.forall₂ (·.image iso = ·) (rcn₁.body i) (rcn₂.body i)
-
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
 instance : CoeFun Reaction (λ _ => Input → List Change) where

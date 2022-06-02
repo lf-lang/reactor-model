@@ -818,7 +818,7 @@ theorem CompleteInstExecution.convergent_ctx :
     simp only [h₁, h₂, hc₁₂]
   case neg => simp only [←e₁.preserves_ctx_past_future g hg, e₂.preserves_ctx_past_future g hg]
 
-theorem CompleteInstExecution.convergent : (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
+theorem CompleteInstExecution.deterministic : (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂ :=
   λ hc₁ hc₂ => 
     match hc₁, hc₂ with 
     | mk _ e₁ _, mk _ e₂ _ => e₁.deterministic e₂ $ hc₁.convergent_ctx hc₂
@@ -834,7 +834,7 @@ protected theorem Execution.Step.deterministic {s s₁ s₂ : State} :
   intro he₁ he₂
   cases he₁ <;> cases he₂
   case completeInst.completeInst hc₁ hc₂ => 
-    exact CompleteInstExecution.convergent hc₁ hc₂
+    exact CompleteInstExecution.deterministic hc₁ hc₂
   case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
     simp only [hg₁, Option.some_inj] at hg₂
     simp [clearingPorts_unique h₁ h₂, Context.advanceTime, hg₂]  
