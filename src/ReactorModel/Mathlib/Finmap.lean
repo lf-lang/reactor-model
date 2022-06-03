@@ -201,4 +201,11 @@ structure forall₂' (r : β → γ → Prop) (f₁ : α ⇉ β) (f₂ : α → 
   eqIDs : ∀ a, a ∈ f₁.ids ↔ f₂ a ≠ none
   rel : ∀ {a} {b : β} {c : γ}, (f₁ a = b) → (f₂ a = c) → r b c
 
+def union (f₁ f₂ : α ⇉ β) : α ⇉ β := {
+  lookup := λ a => (f₁ a).elim (f₂ a) .some,
+  finite := sorry
+}
+
+instance : Union (α ⇉ β) := ⟨union⟩
+
 end Finmap

@@ -1,5 +1,4 @@
 import ReactorModel.Primitives
-import ReactorModel.Time
 
 constant Reactor.Class : Type _
 

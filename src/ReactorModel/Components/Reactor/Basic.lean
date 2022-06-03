@@ -7,9 +7,9 @@ namespace Raw.Reactor
 protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
   nestFinite : { i | rtr.nest i ≠ none }.finite
   uniqueIDs :  ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
-  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' .«in» iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
-  normDeps :   ∀ {n r}, (n ∈ rtr.norms.values) → ↑(n.deps r) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.portVals r).ids ∪ (rtr.nestedPortIDs r.opposite))
-  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps .«in» ⊆ rtr.acts.ids ∪ (rtr.portVals .«in»).ids) ∧ ↑(m.deps .out) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.portVals .out).ids ∪ (rtr.nestedPortIDs .«in»)
+  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' .in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
+  normDeps :   ∀ {n k}, (n ∈ rtr.norms.values) → ↑(n.deps k) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.ports' k).ids ∪ (rtr.nestedPortIDs k.opposite))
+  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps .in ⊆ rtr.acts.ids ∪ (rtr.ports' .in).ids) ∧ ↑(m.deps .out) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' .out).ids ∪ (rtr.nestedPortIDs .in)
   rcnsTotal :  ∀ {rcn₁ rcn₂}, rtr.rcnsNeedTotalOrder rcn₁ rcn₂ → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
 
 -- To define properties of reactors recursively, we need a concept of containment.
@@ -21,8 +21,8 @@ protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
 --
 -- The `Ancestor` relation forms the transitive closure over the previous cases.
 inductive Ancestor : Raw.Reactor → Raw.Reactor → Prop 
-  | nest {parent child i} : (parent.nest i = some child) → Ancestor parent child
-  | trans {r₁ r₂ r₃} : (Ancestor r₁ r₂) → (Ancestor r₂ r₃) → (Ancestor r₁ r₃)
+  | nest : (parent.nest i = some child) → Ancestor parent child
+  | trans : (Ancestor rtr₁ rtr₂) → (Ancestor rtr₂ rtr₃) → (Ancestor rtr₁ rtr₃)
 
 -- This property ensures "properness" of a reactor in two steps:
 -- 
@@ -36,7 +36,7 @@ structure WellFormed (σ : Raw.Reactor) : Prop where
 
 theorem WellFormed.ancestor {rtr₁ rtr₂ : Raw.Reactor} (hw : WellFormed rtr₁)  (ha : Ancestor rtr₁ rtr₂) : WellFormed rtr₂ := {
   direct := hw.offspring ha,
-  offspring := λ ha' => hw.offspring $ ha.trans ha'
+  offspring := (hw.offspring $ ha.trans ·)
 }
 
 end Raw.Reactor
@@ -52,10 +52,10 @@ structure Reactor where
 
 namespace Reactor
 
-def ports (rtr : Reactor) : ID ⇉ Port             := rtr.raw.ports
-def acts  (rtr : Reactor) : ID ⇉ Time.Tag ⇉ Value := rtr.raw.acts
-def state (rtr : Reactor) : ID ⇉ Value            := rtr.raw.state
-def rcns  (rtr : Reactor) : ID ⇉ Reaction         := rtr.raw.rcns
+def ports (rtr : Reactor) : ID ⇉ Port              := rtr.raw.ports
+def acts  (rtr : Reactor) : ID ⇉ Time.Tag ⇉ Value  := rtr.raw.acts
+def state (rtr : Reactor) : ID ⇉ Value             := rtr.raw.state
+def rcns  (rtr : Reactor) : ID ⇉ Reaction          := rtr.raw.rcns
 
 def nest (rtr : Reactor) : ID ⇉ Reactor :=
   let raw : ID ⇉ Raw.Reactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
@@ -162,27 +162,26 @@ theorem ext {rtr₁ rtr₂ : Reactor} :
   rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h
 
+noncomputable def ports' (rtr : Reactor) (k : Port.Kind) : ID ⇉ Port :=
+  rtr.ports.filter' (·.kind = k)
+
 noncomputable def norms (rtr : Reactor) : ID ⇉ Reaction :=
-  rtr.rcns.filter' (Reaction.isNorm)
+  rtr.rcns.filter' (·.isNorm)
 
 theorem mem_muts_isNorm {rtr: Reactor} : (rtr.norms i = some n) → n.isNorm :=
   λ h => Finmap.filter'_mem.mp h |>.right
 
 noncomputable def muts (rtr : Reactor) : ID ⇉ Reaction :=
-  rtr.rcns.filter' (Reaction.isMut)  
+  rtr.rcns.filter' (·.isMut)  
 
 theorem mem_muts_isMut {rtr: Reactor} : (rtr.muts i = some m) → m.isMut :=
   λ h => Finmap.filter'_mem.mp h |>.right
 
-noncomputable def ports' (rtr : Reactor) (r : Port.Role) : ID ⇉ Port := 
-  rtr.ports.filter' (·.role = r)
-
-noncomputable def nestedPortIDs (rtr : Reactor) (r : Port.Role) : Finset ID :=
-  let description := { i | ∃ n, n ∈ rtr.nest.values ∧ i ∈ (n.ports' r).ids }
+noncomputable def nestedPortIDs (rtr : Reactor) (k : Port.Kind) : Finset ID :=
+  let description := { i | ∃ n, n ∈ rtr.nest.values ∧ i ∈ (n.ports' k).ids }
   let finite : description.finite := by
-    let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.ports' r).ids)
-    suffices h : description ⊆ ↑f 
-      from Set.finite.subset (Finset.finite_to_set _) h
+    let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.ports' k).ids)
+    suffices h : description ⊆ ↑f from Set.finite.subset (Finset.finite_to_set _) h
     simp [Set.subset_def]
   finite.toFinset
 
@@ -283,6 +282,35 @@ theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
   (rtr.rcnsNeedTotalOrder rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio) := by
   sorry
 
+-- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
+inductive Cmp
+  | rtr -- Nested reactors
+  | rcn -- Reactions
+  | prt -- Port of kind k
+  | act -- Actions
+  | stv -- State variables
+
+-- The *type* corresponding to the component labeled by a given `Cmp`.
+-- 
+-- Note that the types for `prt` and `stv` are just `υ`, because IDs don't refer to
+-- the entire entire mappinngs, but rather the single values within them.
+abbrev Cmp.type : Cmp → Type _
+  | .rtr => Reactor
+  | .rcn => Reaction
+  | .prt => Port
+  | .act => Time.Tag ⇉ Value
+  | .stv => Value
+
+-- Associates each type of component with the finmap in which it can be found inside
+-- of a reactor. We use this in `Object` to generically resolve the lookup for *some*
+-- component and *some* ID.
+abbrev cmp? : (cmp : Cmp) → Reactor → ID ⇉ cmp.type
+  | .rtr => Reactor.nest
+  | .rcn => Reactor.rcns
+  | .prt => Reactor.ports
+  | .act => Reactor.acts
+  | .stv => Reactor.state
+
 -- A `Lineage` for a given ID `i` in the context of a reactor `σ` is a 
 -- structure that traces a path through the nested reactors of `σ` that lead
 -- to the component identified by `i`.
@@ -297,38 +325,40 @@ theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
 --
 -- We use this structure to define ID-uniqueness (`uniqueIDs`) in reactors as
 -- well as hierarchy accessors in Components>Reactor>Hierarchy.lean.
-inductive Lineage : Reactor → ID → Type _
-  | rtr : i ∈ σ.nest.ids  → Lineage σ i
-  | rcn : i ∈ σ.rcns.ids  → Lineage σ i
-  | prt : i ∈ σ.ports.ids → Lineage σ i
-  | act : i ∈ σ.acts.ids  → Lineage σ i
-  | stv : i ∈ σ.state.ids → Lineage σ i
-  | nest : (Lineage rtr i) → (σ.nest j = some rtr) → Lineage σ i
+inductive Lineage : Reactor → Cmp → ID → Type _
+  | «end» cmp : (i ∈ (σ.cmp? cmp).ids) → Lineage σ cmp i
+  | nest {cmp} : (Lineage rtr cmp i) → (σ.nest j = some rtr) → Lineage σ cmp i
 
-private def Lineage.toRaw {σ : Reactor} {i} : (Lineage σ i) → Raw.Reactor.Lineage σ.raw i
-  | .prt h => .prt σ.raw i h
-  | .act h => .act σ.raw i h
-  | .stv h => .stv σ.raw i h
-  | .rcn h => .rcn σ.raw i h
-  | .rtr h => .rtr σ.raw i $ ((nest_raw_eq_raw_nest σ).eqIDs i).mp h
-  | .nest l hn => .nest (toRaw l) (nest_mem_raw_iff.mp hn)
+private def Lineage.toRaw : (Lineage σ cmp i) → Raw.Reactor.Lineage σ.raw i
+  | .end (.prt) h => .prt h
+  | .end (.act) h => .act h
+  | .end (.stv) h => .stv h
+  | .end (.rcn) h => .rcn h
+  | .end (.rtr) h => .rtr (σ.nest_raw_eq_raw_nest.eqIDs i |>.mp h)
+  | .nest l hn => .nest l.toRaw (nest_mem_raw_iff.mp hn)
+
+theorem uniqueIDs (l₁ : Lineage σ cmp₁ i) (l₂ : Lineage σ cmp₂ i) : HEq l₁ l₂ := by
+  sorry
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.
 -- We define this property in terms of `Lineage`s, since a components is
 -- addressable by an ID in a reactor iff it has a lineage in that reactor
 -- (by construction of `Lineage`).
-theorem uniqueIDs (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
+/-theorem uniqueIDs (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
   induction l₁
-  case nest rtr₁ _ _ _ _ _ hi =>
+  case nest hi =>
     cases l₂ 
-    case nest rtr₂ _ _ _ =>
+    case nest =>
       simp [Lineage.toRaw] at h
       have hr := Reactor.raw_ext_iff.mpr h.left
       subst hr
       simp [h.right.left]
       exact hi _ $ eq_of_heq h.right.right
+    case «end» =>
+      sorry
     all_goals { contradiction }
-  all_goals { cases l₂ <;> simp [Lineage.toRaw] at * }
+  all_goals { cases l₂ <;> (simp_all [Lineage.toRaw]; sorry) }
+-/
 
 end Reactor

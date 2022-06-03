@@ -93,7 +93,7 @@ noncomputable def advanceTime (ctx : Context) (g : Time.Tag) (h : ctx.time < g) 
   freshID := ctx.freshID
 }
 
-theorem advanceTime_strictly_increasing (ctx : Context) (g : Time.Tag) (h : ctx.time < g) :
+theorem advanceTime_strictly_increasing (ctx : Context) {g : Time.Tag} (h : ctx.time < g) :
   ctx.time < (ctx.advanceTime g h).time := by
   sorry
 

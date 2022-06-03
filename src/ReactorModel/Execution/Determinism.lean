@@ -231,7 +231,7 @@ theorem ChangeStep.preserves_unchanged_port {i : ID} :
   (s₁ -[rcn:c]→ s₂) → (∀ v, .port i v ≠ c) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
   intro h hc 
   cases h <;> simp
-  case port i' v h =>
+  case port i' v _ h =>
     refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp)
     by_contra hi
     specialize hc v
@@ -243,7 +243,7 @@ theorem ChangeStep.preserves_unchanged_action {i : ID} :
   (s₁ -[rcn:c]→ s₂) → (∀ t v, .action i t v ≠ c) → (s₁.rtr.obj? .act i = s₂.rtr.obj? .act i) := by
   intro h hc 
   cases h <;> simp
-  case action i' t v h =>
+  case action i' t v _ h =>
     refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp)
     by_contra hi
     specialize hc t v
@@ -255,7 +255,7 @@ theorem ChangeStep.preserves_unchanged_state {i : ID} :
   (s₁ -[rcn:c]→ s₂) → (∀ v, .state i v ≠ c) → (s₁.rtr.obj? .stv i = s₂.rtr.obj? .stv i) := by
   intro h hc 
   cases h <;> simp
-  case state i' v h =>
+  case state i' v _ h =>
     refine Reactor.Update.preserves_ne_cmp_or_id h (.inr ?_) (by simp) (by simp)
     by_contra hi
     specialize hc v
@@ -264,10 +264,10 @@ theorem ChangeStep.preserves_unchanged_state {i : ID} :
   case' action h, port h => exact Reactor.Update.preserves_ne_cmp_or_id h (.inl $ by simp) (by simp) (by simp)
 
 theorem ChangeStep.preserves_port_role {i : ID} :
-  (s₁ -[rcn:c]→ s₂) → (s₁.rtr.obj? .prt i = some p) → (∃ v, s₂.rtr.obj? .prt i = some ⟨p.role, v⟩) := by
+  (s₁ -[rcn:c]→ s₂) → (s₁.rtr.obj? .prt i = some p) → (∃ v, s₂.rtr.obj? .prt i = some ⟨v, p.kind⟩) := by
   intro hs ho
   cases hs
-  case port j v h =>
+  case port j v _ h =>
     have ⟨_, ho', hv⟩ := h.change'
     by_cases hi : i = j
     case pos =>
@@ -316,7 +316,7 @@ theorem ChangeListStep.preserves_unchanged_state {i : ID} :
     )
 
 theorem ChangeListStep.preserves_port_role {i : ID} :
-  (s₁ -[rcn:cs]→* s₂) → (s₁.rtr.obj? .prt i = some p) → (∃ v, s₂.rtr.obj? .prt i = some ⟨p.role, v⟩)
+  (s₁ -[rcn:cs]→* s₂) → (s₁.rtr.obj? .prt i = some p) → (∃ v, s₂.rtr.obj? .prt i = some ⟨v, p.kind⟩)
   | nil ..,     ho => ⟨_, ho⟩
   | cons hd tl, ho => by simp [tl.preserves_port_role (hd.preserves_port_role ho).choose_spec]
 
@@ -360,7 +360,7 @@ theorem ChangeListStep.lastSome?_none_preserves_port_value :
   )
 
 theorem ChangeListStep.last_port_value :
-  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = some v) → (∃ r, s₂.rtr.obj? .prt i = some ⟨r, v⟩) := by
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = some v) → (∃ k, s₂.rtr.obj? .prt i = some ⟨v, k⟩) := by
   intro hs hl 
   sorry
 
@@ -397,7 +397,7 @@ theorem ChangeListStep.equiv_changes_eq_result :
         simp [hl₁, hl₂]
         simp [hr₁] at hl₁
         simp [hr₂] at hl₂
-        exact hl₁.left.symm.trans hl₂.left
+        exact hl₁.right.symm.trans hl₂.right
   case act =>
     sorry
   sorry
@@ -826,8 +826,8 @@ theorem CompleteInstExecution.deterministic : (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s�
 end Execution
 
 theorem Execution.Step.time_monotone : (s₁ ⇓ s₂) → s₁.ctx.time ≤ s₂.ctx.time
-  | completeInst _ (.mk _ e _) => le_of_eq e.preserves_time
-  | advanceTime hg _ _ => le_of_lt $ s₁.ctx.advanceTime_strictly_increasing _ (s₁.time_lt_nextTag hg)
+  | completeInst (.mk _ e _) => le_of_eq e.preserves_time
+  | advanceTime hg .. => le_of_lt $ s₁.ctx.advanceTime_strictly_increasing (s₁.time_lt_nextTag hg)
 
 protected theorem Execution.Step.deterministic {s s₁ s₂ : State} : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
@@ -870,9 +870,9 @@ where
       cases hi with | mk _ e _ =>
       cases e 
       case' single h, trans h _ => exact absurd h $ State.instComplete_to_inst_stuck hc _ _
-    case advanceTime g hg _ _ => 
+    case advanceTime hg _ _ => 
       have h := time_monotone h₂₃
       rw [←ht] at h
       simp only at h
-      have h' := s₁.ctx.advanceTime_strictly_increasing g (s₁.time_lt_nextTag hg)
+      have h' := s₁.ctx.advanceTime_strictly_increasing (s₁.time_lt_nextTag hg)
       exact (lt_irrefl _ $ lt_of_le_of_lt h h').elim

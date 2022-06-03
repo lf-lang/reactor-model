@@ -22,11 +22,11 @@ structure Reaction.Input where
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 open Reaction in
 @[ext] structure Reaction where
-  deps :          Port.Role → Finset ID
+  deps :          Port.Kind → Finset ID
   triggers :      Finset ID
   prio :          Priority
   body :          Input → List Change
-  tsSubInDeps :   triggers ⊆ deps Role.in
+  tsSubInDeps :   triggers ⊆ deps .in
   prtOutDepOnly : ∀ i {o} v,   (o ∉ deps .out) → Change.port o v ∉ body i
   actOutDepOnly : ∀ i {o} t v, (o ∉ deps .out) → Change.action o t v ∉ body i
   actNotPast :    ∀ {i a t v}, (.action a t v) ∈ body i → i.time.t ≤ t
@@ -61,7 +61,7 @@ theorem isMut_not_isPure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
   
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction) (i : Input) : Prop :=
-  ∃ t, t ∈ rcn.triggers ∧ i.portVals.isPresent t
+  ∃ t v, (t ∈ rcn.triggers) ∧ (i.portVals t = some v) ∧ (v ≠ ⊥)
   
 -- Relay reactions are a specific kind of reaction that allow us to simplify what
 -- it means for reactors' ports to be connected. We can formalize connections between
@@ -69,26 +69,26 @@ def triggersOn (rcn : Reaction) (i : Input) : Prop :=
 -- ports as dependency and antidependency respectively, and does nothing but relay the
 -- value from its input to its output.
 noncomputable def relay (src dst : ID) : Reaction := {
-  deps := λ r => match r with | Role.in => Finset.singleton src | Role.out => Finset.singleton dst,
+  deps := λ r => match r with | .in => Finset.singleton src | .out => Finset.singleton dst,
   triggers := Finset.singleton src,
   prio := none,
-  body := λ i => match i.portVals[src] with | none => [] | some v => [Change.port dst v],
+  body := λ i => match i.portVals src with | none => [] | some v => [.port dst v],
   tsSubInDeps := by simp,
   prtOutDepOnly := by
     intro i o v h hc
-    cases hs : i.portVals[src] <;> simp [Option.elim, hs] at *
+    cases hs : i.portVals src <;> simp [Option.elim, hs] at *
     case some v' =>
       rw [Finset.not_mem_singleton] at h
       exact absurd hc.left h
   actOutDepOnly := by
     intro i
-    cases hs : i.portVals[src] <;> simp [Option.elim, hs]
+    cases hs : i.portVals src <;> simp [Option.elim, hs]
   actNotPast := by
     intro i _ _ _ h
-    cases hs : i.portVals[src] <;> (simp [hs] at h),
+    cases hs : i.portVals src <;> (simp [hs] at h),
   stateLocal := by
     intro i _ _ h
-    cases hs : i.portVals[src] <;> (simp [hs] at h)
+    cases hs : i.portVals src <;> (simp [hs] at h)
 }
 
 theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
@@ -96,7 +96,7 @@ theorem relay_isPure (i₁ i₂ : ID) : (Reaction.relay i₁ i₂).isPure := by
   case input => simp [relay]
   case output =>
     intro i c h
-    cases hc : i.portVals[i₁] <;> simp [relay, hc] at h
+    cases hc : i.portVals i₁ <;> simp [relay, hc] at h
     simp [h]
     
 end Reaction
