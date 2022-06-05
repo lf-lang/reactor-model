@@ -54,8 +54,8 @@ def time (ctx : Context) : Time.Tag :=
 theorem processedRcns_at_time_isSome (ctx : Context) :
   (ctx.processedRcns ctx.time).isSome := by
   simp only [Option.isSome_iff_exists]
-  have h : ∀ a, ctx.processedRcns.lookup (time ctx) = some a ↔ some a = ctx.processedRcns.lookup (time ctx) := by
-    intro a; constructor <;> (intro h; exact h.symm)
+  have h : ∀ a, ctx.processedRcns.lookup (time ctx) = some a ↔ ctx.processedRcns.lookup (time ctx) = some a := by
+    intro a; constructor <;> (intro h; exact h)
   simp only [h, ←Finmap.ids_def']
   exact Finset.max'_mem _ _
 

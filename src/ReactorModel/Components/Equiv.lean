@@ -33,20 +33,20 @@ theorem top' : (σ₁ ≈ σ₂) → (σ₁.ids = σ₂.ids) := by
       intro ⟨o, ho⟩
       cases obj?_decomposition' ho
       case inl hc =>
-        have hm := Finmap.ids_def'.mpr ⟨_, hc.symm⟩
+        have hm := Finmap.ids_def'.mpr ⟨_, hc⟩
         first | rw [ht cmp] at hm | rw [←ht cmp] at hm
         have ⟨_, hm⟩ := Finmap.ids_def'.mp hm
-        exact ⟨_, cmp?_to_obj? hm.symm⟩
+        exact ⟨_, cmp?_to_obj? hm⟩
       case inr hc =>
         have ⟨_, _, hc, ho'⟩ := hc
-        have hm := Finmap.ids_def'.mpr ⟨_, hc.symm⟩
+        have hm := Finmap.ids_def'.mpr ⟨_, hc⟩
         first | rw [ht .rtr] at hm | rw [←ht .rtr] at hm
         have ⟨_, hm⟩ := Finmap.ids_def'.mp hm
-        first | specialize hi hc hm.symm | specialize hi hm.symm hc
+        first | specialize hi hc hm | specialize hi hm hc
         have h' := ids_mem_iff_obj?.mpr ⟨_, ho'⟩
         first | rw [ hi] at h' | rw [←hi] at h'
         have ⟨_, h'⟩ := ids_mem_iff_obj?.mp h'
-        exact ⟨_, obj?_nest hm.symm h'⟩
+        exact ⟨_, obj?_nest hm h'⟩
     )
 
 theorem nest' : 
@@ -128,7 +128,7 @@ theorem obj?_ext :
   specialize h i
   constructor <;> (
     intro ho
-    have hm := Finmap.ids_def'.mpr ⟨_, ho.symm⟩
+    have hm := Finmap.ids_def'.mpr ⟨_, ho⟩
     have hs := Reactor.cmp?_to_obj? ho
     first | rw [h hm] at hs   | rw [←h hm] at hs
     first | rw [he.top] at hm | rw [←he.top] at hm

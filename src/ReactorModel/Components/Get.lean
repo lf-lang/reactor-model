@@ -22,52 +22,21 @@ theorem nest_container_obj {σ rtr : Reactor} (l : Lineage rtr cmp i) (h : σ.ne
 
 theorem container_cmp_mem (l : Lineage σ cmp i) : ∃ o, l.container.obj.cmp? cmp i = some o := by
   induction l
-  case «end» _ h =>
-    have ⟨_, h⟩ := Finmap.ids_def'.mp h
-    simp [container, h.symm]
-  case nest hi =>
-    simp [nest_container_obj, hi]
-    
+  case «end» _ h => simp [container, Finmap.ids_def'.mp h]
+  case nest hi => simp [nest_container_obj, hi]
+
 end Lineage
 
--- The `Container` relation is used to determine whether a given ID `c`
--- identifies a reactor that contains a given object identified by ID `i`.
--- In other words, whether `c` identifies the parent of `i`.
--- The *kind* of component addressed by `i` is not required, as all IDs in
--- a reactor are unique (by `Reactor.uniqueIDs`).
---
--- Formalization:
--- We use the concept of lineages to "find" the path of reactor-IDs that leads
--- us through `σ` to `i`. If such a lineage exists we check whether `c` is the ID
--- of the last reactor in that path, because by construction (of lineages) *that* 
--- is the reactor that contains `i`.
--- Note that while `c` *can* be the top-level ID `⊤`, `i` can't.
--- We need to restrict `i` in this way, because `Lineage`s are only defined over
--- non-optional IDs. In practice, this isn't really a restriction though, because
--- we could easily extend the definition of `Container` to check whether `i = ⊤`
--- and yield `False` in that case (as the top-level reactor will never have a
--- parent container).
-inductive Container (σ : Reactor) (cmp : Cmp) (i : ID) : Identified Reactor → Prop
-  | intro (l : Lineage σ cmp i) : Container σ cmp i l.container
-
--- In the `Container` relation, any given ID can have at most one parent.
-theorem Container.unique : (Container σ cmp i c₁) → (Container σ cmp i c₂) → c₁ = c₂
-  | ⟨l₁⟩, ⟨l₂⟩ => by simp [eq_of_heq $ σ.uniqueIDs l₁ l₂]
-
--- NOTE: As we have `Container.unique`, the choice of object is always unique.
+-- Note, as we have `Reactor.uniqueIDs`, the choice in `h.some` is always unique.
 noncomputable def con? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Identified Reactor) := 
-  if h : ∃ c, Container σ cmp i c then h.choose else none
+  if h : Nonempty (Lineage σ cmp i) then h.some.container else none
 
-theorem Container.iff_con? {cmp} : (Container σ cmp i c) ↔ (σ.con? cmp i = some c) := by
-  constructor <;> (intro h; simp [con?] at *) 
-  case mp =>
-    split
-    case inl hc => simp [h.unique hc.choose_spec]
-    case inr hc => exact absurd h (not_exists.mp hc $ c)
-  case mpr => 
-    split at h
-    case inl hc => simp at h; rw [←h]; exact hc.choose_spec
-    case inr => contradiction
+theorem con?_def : 
+  (σ.con? cmp i = some c) ↔ (∃ l : Lineage σ cmp i, l.container = c) := by
+  rw [con?]
+  split <;> simp
+  case inl h => exact ⟨λ _ => ⟨h.some, by simp_all⟩, λ ⟨l, hl⟩ => by simp [σ.uniqueIDs h.some l, hl]⟩
+  case inr h => exact (λ l => absurd (Nonempty.intro l) h  )      
 
 noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ⇉ cmp.type := {
   lookup := λ i => 
@@ -102,10 +71,10 @@ theorem obj?_to_con?_and_cmp? {i : ID} :
 theorem con?_to_obj?_and_cmp? : 
   (σ.con? cmp i = some c) → (∃ o, σ.obj? cmp i = some o ∧ c.obj.cmp? cmp i = o) := by
   intro h
-  cases Container.iff_con?.mpr h
-  case intro l =>
-    have ⟨o, ho⟩ := l.container_cmp_mem
-    exact ⟨o, Option.bind_eq_some.mpr ⟨_, h, ho⟩, ho⟩    
+  have ⟨l, hl⟩ := con?_def.mp h
+  have ⟨o, ho⟩ := l.container_cmp_mem
+  rw [hl] at ho
+  exact ⟨o, Option.bind_eq_some.mpr ⟨_, h, ho⟩, ho⟩    
 
 theorem con?_and_cmp?_to_obj? : 
   (σ.con? cmp i = some c) → (c.obj.cmp? cmp i = some o) → (σ.obj? cmp i = some o) := by
@@ -115,6 +84,8 @@ theorem con?_and_cmp?_to_obj? :
 
 theorem con?_to_rtr_obj? :
   (σ.con? cmp i = some c) → (σ.obj? .rtr c.id = some c.obj) := by
+  intro h
+  have ⟨l, hl⟩ := con?_def.mp h
   sorry
 
 theorem obj?_and_con?_to_cmp? {i : ID} : 
@@ -125,8 +96,8 @@ theorem obj?_and_con?_to_cmp? {i : ID} :
 
 theorem cmp?_to_obj? : (σ.cmp? cmp i = some o) → (σ.obj? cmp i = some o) := by
   intro h
-  let l := Lineage.end _ $ Finmap.ids_def'.mpr ⟨_, h.symm⟩
-  have h' := Container.iff_con?.mp $ .intro l
+  let l := Lineage.end _ $ Finmap.ids_def'.mpr ⟨_, h⟩
+  have h' := con?_def.mpr ⟨l, rfl⟩
   have hc : l.container = σ := Lineage.end_container_eq_root _
   simp [←hc] at h
   exact con?_and_cmp?_to_obj? h' h
@@ -135,13 +106,10 @@ theorem obj?_nest {j : ID} :
   (σ.nest i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp j = some o) := by
   intro hn ho
   have ⟨c, hc, hm⟩ := obj?_to_con?_and_cmp? ho
-  cases Container.iff_con?.mpr hc
-  case intro l =>
-    let l' := Lineage.nest l hn
-    have hc' := Container.intro l'
-    apply con?_and_cmp?_to_obj?
-    · exact Container.iff_con?.mp hc'
-    · simp [Lineage.nest_container_obj l hn, hm]
+  have ⟨l, hl⟩ := con?_def.mp hc
+  apply con?_and_cmp?_to_obj?
+  · exact con?_def.mpr ⟨Lineage.nest l hn, rfl⟩
+  · simp [Lineage.nest_container_obj l hn, hm, hl]
 
 theorem obj?_sub {i j : ID} : 
   (σ.obj? .rtr i = some rtr) → (rtr.obj? cmp j = some o) → (σ.obj? cmp j = some o) := by
@@ -149,9 +117,9 @@ theorem obj?_sub {i j : ID} :
   have hc' := hc
   have ⟨c, hc, hmc⟩ := obj?_to_con?_and_cmp? hc
   have ⟨r, hr, hmr⟩ := obj?_to_con?_and_cmp? hr
-  cases Container.iff_con?.mpr hc <;> cases Container.iff_con?.mpr hr
-  case intro.intro lc lr =>
-    sorry
+  have := con?_def.mp hc
+  have := con?_def.mp hr
+  sorry
 
 -- Note, we could make this an iff by using obj?_sub and cmp?_to_obj? for the other direction.
 theorem obj?_decomposition {i : ID} :
@@ -194,10 +162,10 @@ theorem ids_mem_iff_contains : (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
     have ⟨j, ⟨_ , h⟩, hj⟩ := h
     cases j <;> simp [Rooted.nest?] at hj
     rw [←hj]
-    exact ⟨_, (obj?_to_con?_and_cmp? h.symm).choose_spec.left⟩
+    exact ⟨_, (obj?_to_con?_and_cmp? h).choose_spec.left⟩
   case mpr =>
     have ⟨_, h, _⟩ := con?_to_obj?_and_cmp? h.choose_spec
-    exact ⟨_, Finmap.ids_def'.mpr ⟨_, h.symm⟩, by simp [Rooted.nest?]⟩  
+    exact ⟨_, Finmap.ids_def'.mpr ⟨_, h⟩, by simp [Rooted.nest?]⟩  
 
 theorem ids_mem_iff_obj? : (i ∈ σ.ids cmp) ↔ (∃ o, σ.obj? cmp i = some o) := by
   simp [←contains_iff_obj?, ids_mem_iff_contains]
@@ -208,12 +176,9 @@ theorem obj?_and_local_mem_to_cmp? {i : ID} :
   have ⟨c, hc, hm⟩ := obj?_to_con?_and_cmp? ho
   rw [←hm]
   suffices h : σ = c.obj by simp [h]
-  have ⟨l⟩ := Container.iff_con?.mpr hc
-  clear hc
-  have hm := Finmap.ids_def'.mpr ⟨_, hm.symm⟩
+  have ⟨l, hl⟩ := con?_def.mp hc
+  have hm := Finmap.ids_def'.mpr ⟨_, hm⟩
   simp [←Lineage.end_container_eq_root hm, ←Lineage.end_container_eq_root hi]
-  apply congr_arg
-  -- TODO: This holds, but has a problem with hm and hi not having the same type.
   sorry
 
 end Reactor

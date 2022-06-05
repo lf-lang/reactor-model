@@ -93,7 +93,7 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor} {i} : rtr.nest i = rtr' ↔ rtr.ra
   case mp =>
     intro h
     have ⟨hi, hv⟩ := nest_raw_eq_raw_nest rtr
-    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mpr ⟨rtr', h.symm⟩
+    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mpr ⟨rtr', h⟩
     have ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
     have he := hv h hx.symm
     simp [←hx, he]
@@ -102,8 +102,8 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor} {i} : rtr.nest i = rtr' ↔ rtr.ra
     have ⟨hi, hv⟩ := nest_raw_eq_raw_nest rtr
     have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, h.symm⟩)
     have ⟨x, hx⟩ := Finmap.ids_def'.mp hi
-    have he := hv hx.symm h
-    simp [←hx]
+    have he := hv hx h
+    simp [hx]
     exact raw_ext_iff.mpr he  
 
 theorem ext_iff {rtr₁ rtr₂ : Reactor} : 
@@ -150,8 +150,8 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor} :
       have h₂₂' := Option.ne_none_iff_exists.mp $ (h₂₂.eqIDs i).mp h₂'
       have ⟨y, hy⟩ := h₂₂'
       rw [←hy]
-      have hr₁ := h₁₁.rel hx.symm hc
-      have hr₂ := h₂.rel hx.symm hy.symm
+      have hr₁ := h₁₁.rel hx hc
+      have hr₂ := h₂.rel hx hy.symm
       simp [←hr₁, ←hr₂]
     
 @[ext]
@@ -162,7 +162,7 @@ theorem ext {rtr₁ rtr₂ : Reactor} :
   rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h
 
-noncomputable def ports' (rtr : Reactor) (k : Port.Kind) : ID ⇉ Port :=
+noncomputable def ports' (rtr : Reactor) (k : Kind) : ID ⇉ Port :=
   rtr.ports.filter' (·.kind = k)
 
 noncomputable def norms (rtr : Reactor) : ID ⇉ Reaction :=
@@ -177,7 +177,7 @@ noncomputable def muts (rtr : Reactor) : ID ⇉ Reaction :=
 theorem mem_muts_isMut {rtr: Reactor} : (rtr.muts i = some m) → m.isMut :=
   λ h => Finmap.filter'_mem.mp h |>.right
 
-noncomputable def nestedPortIDs (rtr : Reactor) (k : Port.Kind) : Finset ID :=
+noncomputable def nestedPortIDs (rtr : Reactor) (k : Kind) : Finset ID :=
   let description := { i | ∃ n, n ∈ rtr.nest.values ∧ i ∈ (n.ports' k).ids }
   let finite : description.finite := by
     let f : Finset ID := rtr.nest.values.bUnion (λ n => (n.ports' k).ids)
@@ -286,7 +286,7 @@ theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
 inductive Cmp
   | rtr -- Nested reactors
   | rcn -- Reactions
-  | prt -- Port of kind k
+  | prt -- Ports
   | act -- Actions
   | stv -- State variables
 
@@ -337,7 +337,7 @@ private def Lineage.toRaw : (Lineage σ cmp i) → Raw.Reactor.Lineage σ.raw i
   | .end (.rtr) h => .rtr (σ.nest_raw_eq_raw_nest.eqIDs i |>.mp h)
   | .nest l hn => .nest l.toRaw (nest_mem_raw_iff.mp hn)
 
-theorem uniqueIDs (l₁ : Lineage σ cmp₁ i) (l₂ : Lineage σ cmp₂ i) : HEq l₁ l₂ := by
+theorem uniqueIDs (l₁ l₂ : Lineage σ cmp i) : l₁ = l₂ := by
   sorry
 
 -- Any component in a reactor that is addressable by an ID has a unique ID.

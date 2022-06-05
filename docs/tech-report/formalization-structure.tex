@@ -4,7 +4,7 @@ This section gives a high-level overview of the definitions involved in the form
 
 \begin{enumerate}
     \item Components of the Reactor model
-    \item Means of changing and retrieving objects within a hierarchy of reactors
+    \item Means of changing and retrieving objects within a reactor tree
     \item Execution model
     \item Determinism and proof thereof
 \end{enumerate}
@@ -141,7 +141,7 @@ Thus, a reactor consists of:
     \item a set of identified actions, where each action is a mapping from a time tag to a value
 \end{itemize}
 
-Structuring the components of a reactor such that they are all ``hidden'' behind IDs will later allow us to easily change and retrieve components in a reactor hierarchy by referring to their IDs.
+Structuring the components of a reactor such that they are all ``hidden'' behind IDs will later allow us to easily change and retrieve components in a reactor tree by referring to their IDs.
 
 \paragraph{Raw to Proper}
 
@@ -162,3 +162,66 @@ The crux of this process is to perform the lifting in such a way that proper rea
 Thus, any subsequent uses of reactors can completely ignore this workaround.
 
 \subsection{Changing and Retrieving Objects}
+
+As reactors form a rooted tree structure, we will often want to access components located at arbitrary points within this tree.
+We could achieve this by traversing each reactor in the path from the root reactor to our target component and finally accessing the appropriate structure field on the immediate parent reactor. 
+As this is a lot of overhead for what should be a simple access operation we will build an API that allows us to simply specify the ID and kind of the component we're trying to access.
+
+\subsubsection{Unique IDs}
+
+For this arbitrary access of objects to be possible, we need to require each object to have a unique ID (otherwise it wouldn't be clear which object we're trying to access).
+As we will specify which \emph{kind} of component we want to access, this uniqueness only needs to hold within a component kind.
+
+A component kind is given a simple enumeration:
+
+\begin{lstlisting}
+inductive Cmp
+  | rtr -- Nested reactors
+  | rcn -- Reactions
+  | prt -- Ports
+  | act -- Actions
+  | stv -- State variables
+\end{lstlisting}
+
+We then formalize the notion of a path from a root reactor to a target component, which we call a \lstinline{Lineage}:
+
+\begin{lstlisting}
+inductive Lineage : Reactor → Cmp → ID → Type _
+  | «end» cmp : (i ∈ (σ.cmp? cmp).ids) → Lineage σ cmp i
+  | nest {cmp} : (Lineage rtr cmp i) → (σ.nest j = some rtr) → Lineage σ cmp i
+\end{lstlisting}
+
+ID-uniqueness is then achieved by requiring that lineages leading to a given component kind and ID are unique:
+
+\begin{lstlisting}
+theorem uniqueIDs (l₁ l₂ : Lineage σ cmp i) : l₁ = l₂ := ...
+\end{lstlisting}
+
+\subsubsection{Retrieving Objects}
+
+The retrieval of objects from a reactor tree is built upon the concept of lineages.
+The central function in this context is \lstinline{con?}:
+
+\begin{lstlisting}
+noncomputable def con? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Identified Reactor) := 
+  if h : Nonempty (Lineage σ cmp i) then h.some.container else none
+\end{lstlisting}
+
+Given a root reactor and a target object (specified by component and ID), the function returns the immediate parent reactor of the target object if possible -- that is, if the given ID actually specifies an object of the given component kind in the root reactor's tree.
+Based on \lstinline{con?}, we build the \lstinline{obj?} function, which returns the target object itself, if possible.
+
+\subsubsection{Changing Objects}
+
+Changing objects in a reactor tree has the same problem as retrieving objects, in that we need to build an API for conveniently accessing arbitrary objects in the reactor tree.
+
+There's a much more important aspect we need to consider though in how we formalize changes on a reactor:
+Any time we make a change we need to ensure that the reactor constraints aren't violated.
+Note that this isn't a secondary issue we can deal with further down the road -- Lean won't allow us to instantiate a reactor object if we don't prove that it's constraints hold.
+
+As not every change to a reactor is possible (e.g. we can't add a dependency to a reaction that is not an input port of its parent reactor), this isn't simply an annoyance in the implementation of our change-API, but literally makes a generic change-API impossible.
+There are two potential solutions to this:
+
+\begin{enumerate}
+  \item Each call to the change-API needs to be accompanied by a proof term that allows us to prove that the change preserves reactor constraints.
+  \item We formalize changes as a relation ...
+\end{enumerate}

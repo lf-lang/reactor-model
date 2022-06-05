@@ -22,7 +22,7 @@ structure Reaction.Input where
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 open Reaction in
 @[ext] structure Reaction where
-  deps :          Port.Kind → Finset ID
+  deps :          Kind → Finset ID
   triggers :      Finset ID
   prio :          Priority
   body :          Input → List Change
@@ -61,7 +61,7 @@ theorem isMut_not_isPure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
   
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction) (i : Input) : Prop :=
-  ∃ t v, (t ∈ rcn.triggers) ∧ (i.portVals t = some v) ∧ (v ≠ ⊥)
+  ∃ t v, (t ∈ rcn.triggers) ∧ (i.portVals t = some v) ∧ (v.isPresent)
   
 -- Relay reactions are a specific kind of reaction that allow us to simplify what
 -- it means for reactors' ports to be connected. We can formalize connections between

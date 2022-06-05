@@ -61,7 +61,7 @@ theorem Dependency.External.irreflexive : ¬(Dependency.External σ i i) := by
     case neg => sorry -- Use Reactor.wfMutDeps
   case «mut» rtr₁ _ _ hn _ hc hr =>
     have ⟨_, _, hm₁⟩ := Reactor.con?_to_obj?_and_cmp? hc
-    let l₁ := Reactor.Lineage.end .rcn $ Finmap.ids_def'.mpr ⟨_, hm₁.symm⟩
+    let l₁ := Reactor.Lineage.end .rcn $ Finmap.ids_def'.mpr ⟨_, hm₁⟩
     let l₂ := Reactor.Lineage.nest (.end .rcn hr) (Finmap.values_def.mp hn).choose_spec
     have := rtr₁.obj.uniqueIDs l₁ l₂
     contradiction

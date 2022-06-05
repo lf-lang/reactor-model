@@ -19,7 +19,7 @@ def state : Raw.Reactor → ID ⇉ Value              | mk _ _ s _ _ => s
 def rcns :  Raw.Reactor → ID ⇉ Reaction           | mk _ _ _ r _ => r
 def nest :  Raw.Reactor → ID → Option Raw.Reactor | mk _ _ _ _ n => n
 
-noncomputable def ports' (rtr : Raw.Reactor) (k : Port.Kind) : ID ⇉ Port :=
+noncomputable def ports' (rtr : Raw.Reactor) (k : Kind) : ID ⇉ Port :=
   rtr.ports.filter' (·.kind = k)
 
 noncomputable def norms (rtr : Raw.Reactor) : ID ⇉ Reaction :=
@@ -28,14 +28,14 @@ noncomputable def norms (rtr : Raw.Reactor) : ID ⇉ Reaction :=
 noncomputable def muts (rtr : Raw.Reactor) : ID ⇉ Reaction :=
   rtr.rcns.filter' (Reaction.isMut)  
 
-def nestedPortIDs (rtr : Raw.Reactor) (k : Port.Kind) : Set ID :=
+def nestedPortIDs (rtr : Raw.Reactor) (k : Kind) : Set ID :=
   { i | ∃ j n, (rtr.nest j = some n) ∧ (i ∈ (n.ports' k).ids) }
 
 inductive Lineage : Raw.Reactor → ID → Type _ 
   | rtr : σ.nest i ≠ none → Lineage σ i
-  | rcn : i ∈ σ.rcns.ids      → Lineage σ i
-  | act : i ∈ σ.acts.ids      → Lineage σ i
-  | stv : i ∈ σ.state.ids     → Lineage σ i
+  | rcn : i ∈ σ.rcns.ids  → Lineage σ i
+  | act : i ∈ σ.acts.ids  → Lineage σ i
+  | stv : i ∈ σ.state.ids → Lineage σ i
   | prt : i ∈ σ.ports.ids → Lineage σ i
   | nest : (Lineage rtr i) → (σ.nest j = some rtr) → Lineage σ i
 

@@ -1,16 +1,22 @@
 import ReactorModel.Mathlib
 
-constant ID : Type
+private constant PresentValue : Type
 
-constant _Value : Σ V : Type, V := Sigma.mk Unit Unit.unit
-def Value : Type _ := _Value.fst
-constant Value.absent : Value := _Value.snd
+inductive Value 
+  | absent 
+  | present (val : PresentValue)
 
 notation "⊥" => Value.absent
 
-inductive Rooted (ID)
+def Value.isPresent : Value → Bool 
+  | absent => false
+  | present _ => true
+
+constant ID : Type
+
+inductive Rooted (ι)
   | root
-  | nest (i : ID)
+  | nest (i : ι)
 
 notation "⊤" => Rooted.root
 
@@ -68,13 +74,7 @@ instance : PartialOrder Priority := {
       exact Option.some_inj.mpr $ Nat.le_antisymm h₁₂.right.right h₂₁.right.right
 }
 
--- Port kinds are used to differentiate between input and output ports.
--- This is useful for avoiding duplication of definitions that are fundamentally 
--- the same and only differ by the kinds of ports that are referenced/affected.
---
--- E.g. a reaction defines its dependencies as a map `Port.Kind → Finset ID`,
--- instead of two separate fields, each of type `Finset ID`.
-inductive Port.Kind
+inductive Kind
   | «in» 
   | out
 deriving DecidableEq
@@ -85,13 +85,13 @@ deriving DecidableEq
 -- E.g. when connecting ports, it might be possible to connect an
 -- input to an output port, as well as an output port to an input port.
 -- This can be defined generically by using the concept of an opposite kind.
-abbrev Port.Kind.opposite : Kind → Kind
+abbrev Kind.opposite : Kind → Kind
   | .in => .out
   | .out => .in
 
 structure Port where
   val : Value
-  kind : Port.Kind
+  kind : Kind
 
 def Time := Nat
 deriving LinearOrder, Ord, DecidableEq, Inhabited

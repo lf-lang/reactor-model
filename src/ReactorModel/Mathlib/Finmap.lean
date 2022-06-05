@@ -46,14 +46,10 @@ noncomputable def ids (f : α ⇉ β) : Finset α :=
 theorem ids_def {f : α ⇉ β} {i : α} : i ∈ f.ids ↔ f i ≠ none := by
   simp [ids, Set.finite.mem_to_finset, Set.mem_set_of_eq]
 
-theorem ids_def' {f : α ⇉ β} {i : α} : i ∈ f.ids ↔ ∃ b, some b = f i := by
+theorem ids_def' {f : α ⇉ β} {i : α} : i ∈ f.ids ↔ ∃ b, f i = some b := by
   apply Iff.intro
-  case mp => 
-    intro h
-    exact Option.ne_none_iff_exists.mp $ ids_def.mp h
-  case mpr => 
-    intro h
-    exact ids_def.mpr $ Option.ne_none_iff_exists.mpr h
+  case mp =>  exact λ h => ⟨_, (Option.ne_none_iff_exists.mp $ ids_def.mp h).choose_spec.symm⟩
+  case mpr => exact λ ⟨_, h⟩ => ids_def.mpr $ Option.ne_none_iff_exists.mpr ⟨_, h.symm⟩
 
 def nonempty (f : α ⇉ β) : Prop := ∃ i, f i ≠ none
 
