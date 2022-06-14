@@ -26,6 +26,7 @@
   * the `Container` relation and the role of `uniqueIDs` in this
     * Necessity of `Rooted ID` and utility of `Identified Reactor`
   * `con?`, `obj?`, `cmp?` and a vague description of their lemmas
+  * `Update`
 5. Let's define an execution model.
   * First think about what we want the execution model to do in vague terms (or perhaps as pseudo-SOS rules?).
     * E.g. we need to be able to talk about dependencies, we need to capture what reactions have already fired, we need to obtain a reaction's input and output after firing, etc.

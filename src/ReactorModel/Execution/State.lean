@@ -10,9 +10,9 @@ structure Execution.State where
 
 namespace Execution.State
 
-structure allows (s : State) (i : ID) : Prop where
-  deps : s.rtr.dependencies i ⊆ s.ctx.currentProcessedRcns
-  unprocessed : i ∉ s.ctx.currentProcessedRcns
+structure allows (s : State) (rcn : ID) : Prop where
+  deps : s.rtr.dependencies rcn ⊆ s.ctx.currentProcessedRcns
+  unprocessed : rcn ∉ s.ctx.currentProcessedRcns
 
 theorem allows_requires_acyclic_deps {s : State} : (s.allows rcn) → (rcn >[s.rtr]< rcn) := by
   intro ⟨hd, hu⟩

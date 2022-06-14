@@ -4,7 +4,7 @@ This section gives a high-level overview of the definitions involved in the form
 
 \begin{enumerate}
     \item Components of the Reactor model
-    \item Means of changing and retrieving objects within a reactor tree
+    \item Means of changing and retrieving components within a reactor tree
     \item Execution model
     \item Determinism and proof thereof
 \end{enumerate}
@@ -16,7 +16,7 @@ Most code shown in this section is intended purely to aid explanation and will b
 Formalizing reactors will require us to define the following components.
 The first two are rather a technicality, and can be glossed over.
 
-\subsubsection{IDs}
+\subsubsection{Identifiers}
 
 Throughout the Reactor model, we use IDs to reference various kinds of components like ports, reactions, actions, etc.
 The precise nature of IDs isn't relevant, and should remain ``opaque''. \footnote{The definition of reactors will implicitly impose some structure on IDs (the type needs to have at least as many distinct members as there are identifiable components in a reactor), but this does not affect their opaque nature.}
@@ -30,20 +30,22 @@ There are two ways of achieving this:
         Thus, by defining IDs as \lstinline{constant ID : Type}, we can use \lstinline{ID} throughout the model as if it were a generic type, without having to explicitly declare it as a type parameter on various components.
 \end{enumerate}
 
-We opt for the second approach as it reduces notation overhead and as we don't need the option of specifying the precise type of IDs in the model.
+We opt for the second approach as it reduces notation overhead and as we don't need the option of specifying the precise type of IDs anywhere.
 
 \subsubsection{Values}
 
-Values are the objects upon which we perform computations in the Reactor model.
-They are similar to IDs in that their precise structure is irrelevant -- we therefore define them as constants again.
+Values are the objects which are consumed and produced  by reactions and exchanged by reactors.
+They are similar to IDs in that their precise structure is irrelevant.
 One feature we \emph{do} need to impose on values is that they have a special element called the ``absent value'' (denoted by $\bot$).
 This value is used to represent the absence of a value in ports.
-We can still formalize this with constants, giving us an opaque type \lstinline{Value} and opaque element of this type called \lstinline{Value.absent}:
+We therefore formalize non-absent values as a constant type and add on the absent case to get the full \lstinline{Value} type:
 
 \begin{lstlisting}
-constant _Value : Σ V : Type, V := Sigma.mk Unit Unit.unit
-def Value : Type _ := _Value.fst
-constant Value.absent : Value := _Value.snd
+private constant PresentValue : Type
+
+inductive Value 
+  | absent 
+  | present (val : PresentValue)
 
 notation "⊥" => Value.absent
 \end{lstlisting}
@@ -55,12 +57,12 @@ There are two kinds of ports: input and output ports.
 The resulting definition reflects precisely these two aspects:
 
 \begin{lstlisting}
-inductive Port.Kind
+inductive Kind
   | «in» 
   | out
 
 structure Port where
-  kind : Port.Kind
+  kind : Kind
   val : Value
 \end{lstlisting}
 
@@ -83,20 +85,21 @@ inductive Change
   | delete (rtr : ID)
 \end{lstlisting}
 
-If a reaction outputs a \lstinline{Change.port p v} this is analogous to a reaction calling \verb|SET| with port \verb|p| and value \verb|v| in Lingua Franca.
+If a reaction outputs a \lstinline{Change.port p v} this is analogous to a reaction calling \verb|SET| on port \verb|p| and value \verb|v| in Lingua Franca.
 As a reaction can perform multiple API-calls in a single execution of its body, we formalize a reaction's body as producing a \emph{list} of changes:
 
 \begin{lstlisting}
 structure Reaction where
   body :        Input → List Change
-  deps :        Port.Kind → Finset ID
+  deps :        Kind → Finset ID
   triggers :    Finset ID
   prio :        Priority
-  tsSubInDeps : triggers ⊆ deps «.in»
+  tsSubInDeps : triggers ⊆ deps .in
   ... -- Additional constraints omitted.
 \end{lstlisting}
 
 Here we can also see that reactions have anti-/dependencies (which we also refer to as input and output dependencies), triggers and a priority.
+We reuse the previously defined \lstinline{Kind} to distinguish between input and output dependencies.
 The last field \lstinline{tsSubInDeps} shows a feature of dependently types languages like Lean: we can constrain instances of types to fulfill given propositions.
 Here we place the constraint that for any instance of \lstinline{Reaction} it must hold that the set of triggers is a subset of the reaction's input dependencies.
 
@@ -152,10 +155,10 @@ Instead, we will need to perform the following workaround:
 
 \begin{enumerate}
     \item We define a ``raw'' reactor type without constraints (this is \lstinline{Raw.Reactor} as shown above).
-    \item We define the required set of constraints using this raw reactor type. A raw reactor satisfying these constraints is then called ``directly well-formed''.
+    \item We define the required set of reactor constraints with respect to this raw reactor type as a separate definition. A raw reactor satisfying these constraints is then called ``directly well-formed''.
     \item We define a notion of (complete) ``well-formedness'', which holds if the raw reactor itself, as well as all of its nested reactors are directly well-formed.
-    \item We define a ``proper'' \lstinline{Reactor} type as the type of well-formed raw reactors.
-    \item We restate all of the constraints which were previously stated for raw reactors in terms of proper reactors and prove that the \lstinline{Reactor} type satisfies these constraints (we call this process of going from the raw world to the proper world ``lifting'').
+    \item We define the ``proper'' \lstinline{Reactor} type as the type of well-formed raw reactors.
+    \item We restate all of the constraints which were previously stated with respect to raw reactors in terms of proper reactors and prove that the \lstinline{Reactor} type satisfies these constraints (we call this process of going from the raw world to the proper world ``lifting'').
 \end{enumerate}
 
 The crux of this process is to perform the lifting in such a way that proper reactors never leak their raw underpinnings.
@@ -163,16 +166,17 @@ Thus, any subsequent uses of reactors can completely ignore this workaround.
 
 \subsection{Changing and Retrieving Objects}
 
-As reactors form a rooted tree structure, we will often want to access components located at arbitrary points within this tree.
-We could achieve this by traversing each reactor in the path from the root reactor to our target component and finally accessing the appropriate structure field on the immediate parent reactor. 
-As this is a lot of overhead for what should be a simple access operation we will build an API that allows us to simply specify the ID and kind of the component we're trying to access.
+As reactors form a rooted tree structure, we can access any part of the tree by starting at the root reactor.
+Oftentimes we want to access components located at arbitrary points within this tree.
+We could achieve this by traversing each reactor in the path from the root reactor to our target component. 
+As this is a lot of overhead for what should be a simple access operation, we will build an API that allows us to access a component by simply specifying the ID and kind of the component.
 
 \subsubsection{Unique IDs}
 
 For this arbitrary access of objects to be possible, we need to require each object to have a unique ID (otherwise it wouldn't be clear which object we're trying to access).
 As we will specify which \emph{kind} of component we want to access, this uniqueness only needs to hold within a component kind.
-
-A component kind is given a simple enumeration:
+That is, it's ok if a port and a reaction happen to have the same ID, as we can still tell them apart by their component kind.
+Component kinds are formalized by a simple enumeration:
 
 \begin{lstlisting}
 inductive Cmp
@@ -183,45 +187,221 @@ inductive Cmp
   | stv -- State variables
 \end{lstlisting}
 
-We then formalize the notion of a path from a root reactor to a target component, which we call a \lstinline{Lineage}:
-
-\begin{lstlisting}
-inductive Lineage : Reactor → Cmp → ID → Type _
-  | «end» cmp : (i ∈ (σ.cmp? cmp).ids) → Lineage σ cmp i
-  | nest {cmp} : (Lineage rtr cmp i) → (σ.nest j = some rtr) → Lineage σ cmp i
-\end{lstlisting}
-
+Using \lstinline{Cmp} we formalize the notion of a path from a root reactor to a target component, which we call a \lstinline{Lineage}.
 ID-uniqueness is then achieved by requiring that lineages leading to a given component kind and ID are unique:
 
 \begin{lstlisting}
+variable {σ : Reactor} {cmp : Cmp} {i : ID}
 theorem uniqueIDs (l₁ l₂ : Lineage σ cmp i) : l₁ = l₂ := ...
 \end{lstlisting}
 
-\subsubsection{Retrieving Objects}
+\subsubsection{Retrieving Components}
 
 The retrieval of objects from a reactor tree is built upon the concept of lineages.
 The central function in this context is \lstinline{con?}:
 
 \begin{lstlisting}
-noncomputable def con? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Identified Reactor) := 
-  if h : Nonempty (Lineage σ cmp i) then h.some.container else none
+noncomputable def con? (σ cmp i) : Option (Identified Reactor) := ...
 \end{lstlisting}
 
-Given a root reactor and a target object (specified by component and ID), the function returns the immediate parent reactor of the target object if possible -- that is, if the given ID actually specifies an object of the given component kind in the root reactor's tree.
-Based on \lstinline{con?}, we build the \lstinline{obj?} function, which returns the target object itself, if possible.
+Given a root reactor and a target component (specified by its kind and ID), the function returns the immediate parent reactor of the target component.
+Based on \lstinline{con?}, we build the \lstinline{obj?} function, which returns the target component itself.
+From this point on, we tend to also call components "objects".
 
 \subsubsection{Changing Objects}
 
-Changing objects in a reactor tree has the same problem as retrieving objects, in that we need to build an API for conveniently accessing arbitrary objects in the reactor tree.
+When talking about ``changing'' an object in a reactor, we're referring to the process of updating a component's ``data''.
+An example of this would be setting a reactor's port's value, or changing the priority of a reaction.
+This is not related to the previously introduced \lstinline{Change} type.
 
-There's a much more important aspect we need to consider though in how we formalize changes on a reactor:
-Any time we make a change we need to ensure that the reactor constraints aren't violated.
-Note that this isn't a secondary issue we can deal with further down the road -- Lean won't allow us to instantiate a reactor object if we don't prove that it's constraints hold.
+Changing objects in a reactor tree has the same problem as retrieving objects, in that we need to build an API for conveniently changing arbitrary objects in the reactor tree.
 
-As not every change to a reactor is possible (e.g. we can't add a dependency to a reaction that is not an input port of its parent reactor), this isn't simply an annoyance in the implementation of our change-API, but literally makes a generic change-API impossible.
-There are two potential solutions to this:
+There's also a much more important aspect we need to consider when formalizing changes on a reactor:
+Any time we want to make a change, we need to ensure that the reactor constraints aren't violated.
+Note that this isn't a secondary issue we can deal with further down the road -- Lean won't allow us to even instantiate a reactor object if we don't prove that it's constraints hold.
+As not every change to a reactor is possible (e.g. we can't set reactions' dependencies arbitarilly), we need to formulate our API in such a way that we ensure that the changes we're making preserve the reactor constraints.
+There are two ways of achieving this:
 
 \begin{enumerate}
-  \item Each call to the change-API needs to be accompanied by a proof term that allows us to prove that the change preserves reactor constraints.
-  \item We formalize changes as a relation ...
+  \item Each call to the change-API needs to be accompanied by a specific proof term that allows us to prove that the change preserves reactor constraints.
+        For example, if we wanted to change a reaction's priority we would additionally require a proof showing that the new priority value preserves the constraints that a reactor places on priorites.
+  \item We formalize changes as a relation between two reactors, where we require the second reactor to be equal to the first, except for the component we want to be changed. 
+        For this component we require the second reactor to hold whatever value we want to change it to.
 \end{enumerate}
+
+We opted for the second variant.
+It allows us to formalize the execution model much more cleanly, as we can postpone dealing with proof terms until we try proving properties about the execution model.
+
+\subsection{Execution Model}
+
+The execution model specifies how a reactor ``computes'' -- that is, by which rules reactions are fired, values are propagated, actions are scheduled, etc. 
+These kinds of rules are often given as an SOS specification by inference rules.
+While Lean does not support a notation for inference rules, defining types with the \lstinline{inductive} command is quite analogous.
+We therefore define our execution model by multiple inductive types.
+
+Before we can formalize the inference rules of our execution model, we need to define some scaffolding and tools used in the rules.
+
+\subsubsection{Dependencies}
+
+A key notion that we need is that of dependencies between reactions. 
+There are four different kinds of ``direct'' dependencies between reactions.
+For example, if two reactions live in the same reactor and have an order on their priorities, we have a dependency.
+The transitive closure over the direct dependencies gives us the \lstinline{Dependency} relation:
+
+\begin{lstlisting}
+inductive Dependency (σ : Reactor) : ID → ID → Prop
+  | ... -- the four "direct" cases
+  | trans : Dependency σ i j → Dependency σ j k → Dependency σ i k
+\end{lstlisting}
+
+From this relation we derive the notion of ``independence'' of reactions, which hold if there is no dependency in either direction.
+
+\begin{lstlisting}
+-- Notation: rcn₁ >[σ]< rcn₂
+def Indep (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
+  ¬(Dependency σ rcn₁ rcn₂) ∧ ¬(Dependency σ rcn₂ rcn₁)
+\end{lstlisting}
+
+\subsubsection{Execution Context}
+
+When executing a reactor there is some bookkeeping that needs to be done.
+We need to keep track of two things:
+
+\begin{enumerate}
+  \item the current logical time tag
+  \item the reactions we've already processed at that tag
+\end{enumerate}
+
+We keep track of this information in the \lstinline{Execution.Context}:
+
+\begin{lstlisting}
+structure Execution.Context where
+  processedRcns : Time.Tag ⇉ Finset ID
+  processedNonempty : processedRcns.nonempty
+\end{lstlisting}
+
+At its heart it is just a non-empty (finite) mapping from time tags to reaction IDs.
+Each tag maps to the set of IDs of reactions that have already been processed at that time tag.
+A reaction counts as ``processed'' if it has fired, or has been confirmed to not trigger.
+The current logical time tag is the greatest tag in the key-value pairs of \lstinline{processedRcns}.
+We can therefore advance our current logical time to some new tag \lstinline{t} by adding a new entry in \lstinline{processedRcns} that maps \lstinline{t} to \lstinline{∅}.
+
+\subsubsection{Execution State}
+
+The idea of an \lstinline{Execution.State} is similar to that of an execution context.
+But while an execution context is used for bookkeeping, an execution state is used define properties which would otherwise need to be defined inside the inference rules of the execution model.
+
+An execution state consists of the reactor upon which execution is performed, together with an execution context:
+
+\begin{lstlisting}
+structure Execution.State where
+  rtr : Reactor
+  ctx : Context
+\end{lstlisting}
+
+Some examples of properties that we define on \lstinline{Execution.State} are:
+
+\begin{itemize}
+  \item \lstinline{def State.triggers (s : State) (rcn : ID) := ...} indicates whether a given reaction is triggered in the given reactor at the current logical time tag. 
+  \item \lstinline{def State.nextTag (s : State) := ...} returns the tag of the next scheduled action (if there is any). 
+  \item \lstinline{def State.rcnOutput (s : State) (i : ID) := ...} returns the list of \lstinline{Change}s produced by firing a given reaction in the given reactor at the current logical time tag.
+\end{itemize}
+
+\subsubsection{Execution Semantics}
+
+With this setup complete, we can finally define the operational semantics of reactor execution.
+There are a total of seven relations build upon each other to define a complete \lstinline{Execution} relation.
+We'll go through them from the top down.
+
+\paragraph{Execution}
+
+We define execution as a relation between two execution states:
+
+\begin{lstlisting}
+inductive Execution : State → State → Prop
+  | refl : Execution s s
+  | step : (s₁ ⇓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
+\end{lstlisting}
+
+This is equivalent to the following SOS rules:
+
+\vspace*{3mm}
+
+% TODO: Figure out how to leave math mode here.
+\begin{tabular}{c c}
+\inference{}{Execution \, s \, s} & \inference{s_1 \Downarrow s_2 & Execution \, s_2 \, s_3}{Execution \, s_1 \, s_3}
+\end{tabular}
+
+\vspace*{3mm}
+
+This definition shows that \lstinline{Execution} is the reflexive transitive closure over the \lstinline{⇓} relation.
+The \lstinline{⇓} is notation for the \lstinline{Execution.Step} relation.
+
+\paragraph{Execution Step}
+
+An \lstinline{Execution.Step} can come in two flavors.
+It either processes reactions at the current logical time tag until none are left to be processed, or it advances the current logical tag to the next tag at which an action is scheduled:
+
+\begin{lstlisting}
+inductive Step (s : State) : State → Prop 
+  | completeInst : (s ⇓ᵢ| s') → Step s s'
+  | advanceTime : ...
+\end{lstlisting}
+
+The \lstinline{advanceTime} case can only occur when there are no more reactions to be processed at the current logical tag.
+The \lstinline{completeInst} case captures the processing of reactions and is defined by our next relation (denoted by \lstinline{⇓ᵢ|}).
+Note that by defining the requirements of the cases to be mutually exclusive, a sequence of these steps will always alternate between the cases.
+
+\paragraph{Complete Instantaneous Execution}
+
+We use the term ``instantaneous'' to refer to execution steps which occur within the same logical tag.
+That is, the following relations never advance the logical tag in any way.
+
+A \lstinline{CompleteInstExecution} formalizes the notion of a sequence of instantaneous executions steps that is ``complete''.
+We call such a sequence complete if by the end of it there are no more reactions to be processed at the current logical tag.
+
+\begin{lstlisting}
+structure CompleteInstExecution (s₁ s₂ : State) : Prop where
+  exec : s₁ ⇓ᵢ+ s₂
+  complete : s₂.instComplete
+\end{lstlisting}
+
+The \lstinline{⇓ᵢ+} is notation for the \lstinline{InstExecution} relation.
+
+\paragraph{Instantaneous Execution}
+
+An \lstinline{InstExecution} is the same as a complete instantaneous execution without the completeness condition.
+That is, it is a sequence of instantaneous execution steps.
+It is therefore formalized as the (non-reflexive) transitive closure of a single instantaneous execution step:
+
+\begin{lstlisting}
+inductive InstExecution : State → State → Prop 
+  | single : (s₁ ⇓ᵢ s₂) → InstExecution s₁ s₂
+  | trans : (s₁ ⇓ᵢ s₂) → (InstExecution s₂ s₃) → InstExecution s₁ s₃
+\end{lstlisting}
+
+We need this relation to be non-reflexive so that an \lstinline{Execution} can't have multiple consecutive \lstinline{completeInst} steps that do nothing.
+
+\paragraph{Instantaneous Execution Step}
+
+The \lstinline{InstStep} relation (denoted by \lstinline{⇓ᵢ}) defines the core of what it means to perform execution steps in a reactor.
+We use the properties previously defined on \lstinline{Execution.State} to express the conditions and effects of executing reactions.
+It comes in two flavours:
+
+\begin{lstlisting}
+inductive InstStep (s : State) : State → Prop 
+  | execReaction : 
+    (s.allows rcn) →
+    (s.triggers rcn) →
+    (s.rcnOutput rcn = some o) →
+    (s -[rcn:o]→* s') →
+    InstStep s rcn ⟨s'.rtr, s'.ctx.addCurrentProcessed rcn⟩
+  | skipReaction :
+    (s.rtr.contains .rcn rcn) →
+    (s.allows rcn) →
+    (¬ s.triggers rcn) →
+    InstStep s rcn ⟨s.rtr, s.ctx.addCurrentProcessed rcn⟩
+\end{lstlisting}
+
+
+The \lstinline{execReaction} case...
