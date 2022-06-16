@@ -738,7 +738,7 @@ theorem InstExecution.rcns_respect_dependencies :
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
-protected theorem InstExecution.deterministic {s s₁ s₂ rcns₁ rcns₂} : 
+protected theorem InstExecution.deterministic : 
   (s ⇓ᵢ+[rcns₁] s₁) → (s ⇓ᵢ+[rcns₂] s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
   intro h₁ h₂ hc
   refine State.ext _ _ ?_ hc
@@ -829,7 +829,7 @@ theorem Execution.Step.time_monotone : (s₁ ⇓ s₂) → s₁.ctx.time ≤ s�
   | completeInst (.mk _ e _) => le_of_eq e.preserves_time
   | advanceTime hg .. => le_of_lt $ s₁.ctx.advanceTime_strictly_increasing (s₁.time_lt_nextTag hg)
 
-protected theorem Execution.Step.deterministic {s s₁ s₂ : State} : 
+protected theorem Execution.Step.deterministic : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
   intro he₁ he₂
   cases he₁ <;> cases he₂
@@ -851,9 +851,13 @@ theorem Execution.time_monotone : (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ct
   | refl => simp
   | step h _ hi => exact le_trans h.time_monotone hi
 
-protected theorem Execution.deterministic {s s₁ s₂ : State} (hc₁ : s₁.instComplete) (hc₂ : s₂.instComplete) : 
-  (s ⇓* s₁) → (s ⇓* s₂) → (s₁.ctx.time = s₂.ctx.time) → s₁ = s₂ := by
-  intro he₁ he₂ ht
+protected theorem Execution.deterministic : 
+  (s ⇓* s₁) → 
+  (s ⇓* s₂) → 
+  (s₁.ctx.time = s₂.ctx.time) → 
+  (s₁.ctx.currentProcessedRcns = s₂.ctx.currentProcessedRcns) → 
+  s₁ = s₂ := by
+  intro he₁ he₂ ht hc
   induction he₁ <;> cases he₂ 
   case refl.refl => rfl
   case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hc₂ ht.symm h₁₂ h₂₃

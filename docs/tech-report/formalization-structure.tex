@@ -209,6 +209,7 @@ Based on \lstinline{con?}, we build the \lstinline{obj?} function, which returns
 From this point on, we tend to also call components "objects".
 
 \subsubsection{Changing Objects}
+\label{sec:changing-objects}
 
 When talking about ``changing'' an object in a reactor, we're referring to the process of updating a component's ``data''.
 An example of this would be setting a reactor's port's value, or changing the priority of a reaction.
@@ -310,7 +311,7 @@ Some examples of properties that we define on \lstinline{Execution.State} are:
 \subsubsection{Execution Semantics}
 
 With this setup complete, we can finally define the operational semantics of reactor execution.
-There are a total of seven relations build upon each other to define a complete \lstinline{Execution} relation.
+There are a total of seven relations built upon each other to define a complete \lstinline{Execution} relation.
 We'll go through them from the top down.
 
 \paragraph{Execution}
@@ -323,6 +324,8 @@ inductive Execution : State → State → Prop
   | step : (s₁ ⇓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 \end{lstlisting}
 
+Note that this relation does not define any computable execution function.
+It only describes what it would take for a given execution state to count as the ``executed version'' of another given execution state.
 This is equivalent to the following SOS rules:
 
 \vspace*{3mm}
@@ -385,8 +388,7 @@ We need this relation to be non-reflexive so that an \lstinline{Execution} can't
 \paragraph{Instantaneous Execution Step}
 
 The \lstinline{InstStep} relation (denoted by \lstinline{⇓ᵢ}) defines the core of what it means to perform execution steps in a reactor.
-We use the properties previously defined on \lstinline{Execution.State} to express the conditions and effects of executing reactions.
-It comes in two flavours:
+It comes in two flavors:
 
 \begin{lstlisting}
 inductive InstStep (s : State) : State → Prop 
@@ -395,13 +397,162 @@ inductive InstStep (s : State) : State → Prop
     (s.triggers rcn) →
     (s.rcnOutput rcn = some o) →
     (s -[rcn:o]→* s') →
-    InstStep s rcn ⟨s'.rtr, s'.ctx.addCurrentProcessed rcn⟩
+    InstStep s ⟨s'.rtr, s'.ctx.addCurrentProcessed rcn⟩
   | skipReaction :
     (s.rtr.contains .rcn rcn) →
     (s.allows rcn) →
     (¬ s.triggers rcn) →
-    InstStep s rcn ⟨s.rtr, s.ctx.addCurrentProcessed rcn⟩
+    InstStep s ⟨s.rtr, s.ctx.addCurrentProcessed rcn⟩
 \end{lstlisting}
 
+You might recognize some of the properties previously defined on \lstinline{Execution.State}.
+We're using them to express the conditions and effects of executing reactions.
+We can perform an \lstinline{execReaction} step is there exists some reaction \lstinline{rcn} for which:
 
-The \lstinline{execReaction} case...
+\begin{itemize}
+  \item the current execution state ``allows'' the reaction to be processed -- that is, it hasn't been processed yet but all of its dependencies have already been processed.
+  \item the reaction is triggered in the current execution state.
+  \item we can get from the initial execution state to the new execution state by applying the \lstinline{Change}s produced by the firing of \lstinline{rcn} (this is denoted by \lstinline{s -[rcn:o]→* s'}).
+\end{itemize}
+
+A \lstinline{skipReaction} step is similar in that we also require the existence of a \lstinline{rcn} which the current execution state \lstinline{allows} to be processed.
+But now we require it not to be triggered.
+As a result, we don't fire the reaction and the new execution state's reactor remains unchanged.
+
+\paragraph{Change List Step}
+
+The \lstinline{-[ : ]→*} notation denotes the \lstinline{ChangeListStep} relation.
+It is the reflexive transitive closure over the \lstinline{ChangeStep} relation (\lstinline{-[ : ]→}):
+
+\begin{lstlisting}
+inductive ChangeListStep (rcn) : State → State → (List Change) → Prop
+  | nil : ChangeListStep rcn s s []
+  | cons : (s₁ -[rcn:hd]→ s₂) → (ChangeListStep rcn s₂ s₃ tl) → ChangeListStep rcn s₁ s₃ (hd::tl)
+\end{lstlisting}
+
+Note that all previous relations were binary relations that related two execution states.
+\emph{This} relation, as well as the following one, are technically quaternary relations as they additionally include a list \lstinline{Change}s as well as the reaction that produced that list.
+We require these additional parameters as the relation is supposed to express that we get from one execution state to another by applying a \emph{specific} list of changes produced by a \emph{specific} reaction.
+As a result, we can still think of the relation as relating two execution states, but parameterized over a specific change list and reaction.
+
+\paragraph{Change Step}
+
+The \lstinline{ChangeStep} relation is the bottom of our hierarchy of relations.
+It defines how to apply a single \lstinline{Change} produced by a given reaction:
+
+\begin{lstlisting}
+inductive ChangeStep (rcn : ID) (s : State) : State → Change → Prop 
+  | port : (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    
+    → ChangeStep rcn s ⟨σ', s.ctx⟩ (.port i v)
+
+  | state : (s.rtr -[.stv:i λ _ => v]→ σ')
+    → ChangeStep rcn s ⟨σ', s.ctx⟩ (.state i v)
+
+  | action : (s.rtr -[.act:i (schedule · t v)]→ σ')
+    → ChangeStep rcn s ⟨σ', s.ctx⟩ (.action i t v)
+
+  | connect :    ChangeStep rcn s s (.connect i₁ i₂)
+  | disconnect : ChangeStep rcn s s (.disconnect i₁ i₂)
+  | create :     ChangeStep rcn s s (.create rtr)
+  | delete :     ChangeStep rcn s s (.delete i)  
+\end{lstlisting}
+
+While the details aren't important (and hard to read), we can summarize this relation as follows:
+
+\begin{itemize}
+  \item There exists a specific kind of \lstinline{ChangeStep} for each kind of \lstinline{Change}.
+        The change step defines how to apply that specific kind of \lstinline{Change}.
+  \item Mutating changes are currently no-ops -- that is, they keep the reactor unchanged.
+        This is temporary and will change once we formalize mutations.
+  \item The non-mutating cases do nothing else than setting the value dictated by the given \lstinline{Change} using the ``change-API'' described in Section \ref{sec:changing-objects}.
+\end{itemize}
+
+This completes the execution model.
+We now have a notion of what it means to execute a reactor by means of the \lstinline{Execution} relation.
+
+\subsection{Determinism}
+
+A key feature of the Reactor model is that its execution is deterministic.
+In this section we clarify what we mean by determinism and highlight some of the tools and steps required to prove it.
+
+\subsubsection{Definition of Determinism}
+
+In vague terms, the execution model is deterministic if all executions starting from a given reactor end in the same resulting reactor.
+The main problem with this definition is that it assumes that executions terminate, producing some ``resulting reactor''.
+As reactors can execute indefinitely, we need to explicitly enforce the notion of a resulting reactor in our definition of determinism.
+For example, we could say that the execution model is deterministic if all executions starting from a given reactor that \emph{execute up to a given logical tag} end in the same resulting reactor.
+This gets us close to our definition of determinism, but has one technical hurdle: 
+Executing up to some logical tag does not clarify whether we've performed any execution steps ``within'' that tag (the instantaneous steps).
+There are two potential ways of handling this:
+
+\begin{enumerate}
+  \item We require the resulting reactors to have processed all or none of the instantaneous steps in their current logical tag.
+  \item We require the resulting reactors to have processed the same reactions within their current logical tag.
+\end{enumerate}
+
+As the latter case includes the former, we choose it for our definition of determinism.
+Here the \lstinline{⇓*} notation denotes the \lstinline{Execution} relation:
+
+\begin{lstlisting}
+theorem Execution.deterministic : 
+  (s ⇓* s₁) → 
+  (s ⇓* s₂) → 
+  (s₁.ctx.time = s₂.ctx.time) → 
+  (s₁.ctx.currentProcessedRcns = s₂.ctx.currentProcessedRcns) → 
+  s₁ = s₂
+\end{lstlisting}
+
+Technically, this definition of determinism isn't exactly what we've described above.
+Above, we only required the resulting \emph{reactors} to be equal.
+Here, we require the resulting \emph{execution states} to be equal, which also includes the execution context.
+As the execution context contains a history of which reactions were executed at which tag, this definition of determinism implies that we must have ``synchronization points'' after each logical tag.
+That is, after each logical tag we must have processed the same reactions.
+
+If we wanted, we could refine this definition even further by having the execution context remember which reactions fired and which didn't at each logical tag.
+
+\subsubsection{Proof of Determinism}
+
+The proof of determinism has a similar structure to the definition of the execution model in that we work our way down the hierarchy of execution relations and prove some specific notion of determinism at each layer.
+Here we briefly state what needs to be proven at each layer and how we achieve this.
+
+\paragraph{Execution}
+
+The determinism of the \lstinline{Execution} relation (as stated above) follows by induction from the determinism of the \lstinline{Execution.Step} relation.
+
+\paragraph{Execution Step}
+
+Determinism of a single execution step is defined as:
+
+\begin{lstlisting}
+theorem Execution.Step.deterministic : (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂
+\end{lstlisting}
+
+We prove this from the following lemmas. 
+
+\begin{enumerate}
+  \item Starting from the same state, we can only ever take the same kind of execution step (\lstinline{completeInst} or \lstinline{advanceTime}).
+  \item For \lstinline{advanceTime} steps, the executions must advance to the same logical tag. 
+        This follows quite trivially from the definition of \lstinline{advanceTime} and the fact that we start with equal execution contexts.
+  \item For \lstinline{completeInst} steps, determinism follows from the determinism of the \lstinline{CompleteInstExecution} relation.
+\end{enumerate}
+
+\paragraph{Complete Instantaneous Execution}
+
+Determinism of a single execution step is defined as:
+
+\begin{lstlisting}
+theorem CompleteInstExecution.deterministic : 
+  (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁ = s₂
+\end{lstlisting}
+
+The equality of execution contexts follows from the completeness condition on \lstinline{CompleteInstExecution}.
+The equality of reactors follows from the determinism of the \lstinline{InstExecution} relation.
+
+\paragraph{Instantaneous Execution}
+
+Determinism of instantaneous executions is defined as:
+
+\begin{lstlisting}
+theorem InstExecution.deterministic : 
+  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂
+\end{lstlisting}
