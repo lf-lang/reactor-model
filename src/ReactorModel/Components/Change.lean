@@ -1,6 +1,6 @@
 import ReactorModel.Primitives
 
-constant Reactor.Class : Type _
+opaque Reactor.Class : Type
 
 -- In the semi-formal definition of the Reactor model, reactions' bodies are defined
 -- as "opaque code" that has access to a set of APIs for settings ports' values, 

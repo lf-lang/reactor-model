@@ -31,14 +31,6 @@ noncomputable def muts (rtr : Raw.Reactor) : ID ⇉ Reaction :=
 def nestedPortIDs (rtr : Raw.Reactor) (k : Kind) : Set ID :=
   { i | ∃ j n, (rtr.nest j = some n) ∧ (i ∈ (n.ports' k).ids) }
 
-inductive Lineage : Raw.Reactor → ID → Type _ 
-  | rtr : σ.nest i ≠ none → Lineage σ i
-  | rcn : i ∈ σ.rcns.ids  → Lineage σ i
-  | act : i ∈ σ.acts.ids  → Lineage σ i
-  | stv : i ∈ σ.state.ids → Lineage σ i
-  | prt : i ∈ σ.ports.ids → Lineage σ i
-  | nest : (Lineage rtr i) → (σ.nest j = some rtr) → Lineage σ i
-
 inductive rcnsNeedTotalOrder (rtr : Raw.Reactor) (rcn₁ rcn₂ : Reaction) 
   | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
   | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → rcnsNeedTotalOrder rtr rcn₁ rcn₂
@@ -63,3 +55,11 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} :
     simp [h]
 
 end Raw.Reactor
+
+protected inductive Raw.Lineage : Raw.Reactor → ID → Type _ 
+  | rtr : σ.nest i ≠ none → Raw.Lineage σ i
+  | rcn : i ∈ σ.rcns.ids  → Raw.Lineage σ i
+  | act : i ∈ σ.acts.ids  → Raw.Lineage σ i
+  | stv : i ∈ σ.state.ids → Raw.Lineage σ i
+  | prt : i ∈ σ.ports.ids → Raw.Lineage σ i
+  | nest : (Raw.Lineage rtr i) → (σ.nest j = some rtr) → Raw.Lineage σ i

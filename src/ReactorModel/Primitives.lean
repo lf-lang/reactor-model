@@ -1,6 +1,6 @@
 import ReactorModel.Mathlib
 
-private constant PresentValue : Type
+private opaque PresentValue : Type
 
 inductive Value 
   | absent 
@@ -12,7 +12,7 @@ def Value.isPresent : Value → Bool
   | absent => false
   | present _ => true
 
-constant ID : Type
+opaque ID : Type
 
 inductive Rooted (ι)
   | root
@@ -101,4 +101,4 @@ structure Time.Tag where
   microsteps : Nat
 
 -- TODO: Replace this with `deriving LinearOrder` once that feature is available again.
-instance : LinearOrder Tag := sorry
+instance : LinearOrder Time.Tag := sorry

@@ -6,7 +6,7 @@ namespace Raw.Reactor
 
 protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
   nestFinite : { i | rtr.nest i ≠ none }.finite
-  uniqueIDs :  ∀ l₁ l₂ : Lineage rtr i, l₁ = l₂ 
+  uniqueIDs :  ∀ l₁ l₂ : Raw.Lineage rtr i, l₁ = l₂ 
   uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' .in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
   normDeps :   ∀ {n k}, (n ∈ rtr.norms.values) → ↑(n.deps k) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.ports' k).ids ∪ (rtr.nestedPortIDs k.opposite))
   mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps .in ⊆ rtr.acts.ids ∪ (rtr.ports' .in).ids) ∧ ↑(m.deps .out) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' .out).ids ∪ (rtr.nestedPortIDs .in)
@@ -329,7 +329,7 @@ inductive Lineage : Reactor → Cmp → ID → Type _
   | «end» cmp : (i ∈ (σ.cmp? cmp).ids) → Lineage σ cmp i
   | nest {cmp} : (Lineage rtr cmp i) → (σ.nest j = some rtr) → Lineage σ cmp i
 
-private def Lineage.toRaw : (Lineage σ cmp i) → Raw.Reactor.Lineage σ.raw i
+private def Lineage.toRaw : (Lineage σ cmp i) → Raw.Lineage σ.raw i
   | .end (.prt) h => .prt h
   | .end (.act) h => .act h
   | .end (.stv) h => .stv h
@@ -338,27 +338,14 @@ private def Lineage.toRaw : (Lineage σ cmp i) → Raw.Reactor.Lineage σ.raw i
   | .nest l hn => .nest l.toRaw (nest_mem_raw_iff.mp hn)
 
 theorem uniqueIDs (l₁ l₂ : Lineage σ cmp i) : l₁ = l₂ := by
-  sorry
-
--- Any component in a reactor that is addressable by an ID has a unique ID.
--- We define this property in terms of `Lineage`s, since a components is
--- addressable by an ID in a reactor iff it has a lineage in that reactor
--- (by construction of `Lineage`).
-/-theorem uniqueIDs (l₁ l₂ : Lineage σ i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
-  induction l₁
-  case nest hi =>
-    cases l₂ 
-    case nest =>
-      simp [Lineage.toRaw] at h
-      have hr := Reactor.raw_ext_iff.mpr h.left
-      subst hr
-      simp [h.right.left]
-      exact hi _ $ eq_of_heq h.right.right
-    case «end» =>
-      sorry
-    all_goals { contradiction }
-  all_goals { cases l₂ <;> (simp_all [Lineage.toRaw]; sorry) }
--/
+  induction l₁ <;> cases l₂ <;> simp [Lineage.toRaw] at *
+  case nest.nest hi _ _ _ _ =>
+    have hr := Reactor.raw_ext_iff.mpr h.left
+    subst hr
+    simp [h.right.left, hi _ $ eq_of_heq h.right.right]
+  case' end.nest cmp _ _ _ _ _, nest.end cmp _ _ _ _ =>
+    cases cmp <;> simp [Lineage.toRaw] at h
+    
 
 end Reactor
