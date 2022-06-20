@@ -31,11 +31,6 @@ noncomputable def muts (rtr : Raw.Reactor) : ID ⇉ Reaction :=
 def nestedPortIDs (rtr : Raw.Reactor) (k : Kind) : Set ID :=
   { i | ∃ j n, (rtr.nest j = some n) ∧ (i ∈ (n.ports' k).ids) }
 
-inductive rcnsNeedTotalOrder (rtr : Raw.Reactor) (rcn₁ rcn₂ : Reaction) 
-  | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | muts   : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-
 theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} : 
   rtr₁ = rtr₂ ↔ 
   rtr₁.ports = rtr₂.ports ∧ rtr₁.acts = rtr₂.acts ∧ 
@@ -55,6 +50,11 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} :
     simp [h]
 
 end Raw.Reactor
+
+inductive Raw.Orderable (rtr : Raw.Reactor) (rcn₁ rcn₂ : Reaction) 
+  | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure)            → Orderable rtr rcn₁ rcn₂
+  | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → Orderable rtr rcn₁ rcn₂
+  | muts   : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut)                → Orderable rtr rcn₁ rcn₂
 
 protected inductive Raw.Lineage : Raw.Reactor → ID → Type _ 
   | rtr : σ.nest i ≠ none → Raw.Lineage σ i

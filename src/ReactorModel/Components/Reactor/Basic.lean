@@ -10,7 +10,7 @@ protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
   uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' .in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
   normDeps :   ∀ {n k}, (n ∈ rtr.norms.values) → ↑(n.deps k) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.ports' k).ids ∪ (rtr.nestedPortIDs k.opposite))
   mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps .in ⊆ rtr.acts.ids ∪ (rtr.ports' .in).ids) ∧ ↑(m.deps .out) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' .out).ids ∪ (rtr.nestedPortIDs .in)
-  rcnsTotal :  ∀ {rcn₁ rcn₂}, rtr.rcnsNeedTotalOrder rcn₁ rcn₂ → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
+  orderable :  ∀ {rcn₁ rcn₂}, (Raw.Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
 
 -- To define properties of reactors recursively, we need a concept of containment.
 -- Containment in a reactor can come in two flavors: 
@@ -273,14 +273,15 @@ theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.
 -/
 -/
 
-inductive rcnsNeedTotalOrder (rtr : Reactor) (rcn₁ rcn₂ : Reaction) 
-  | impure {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | output {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out ≠ ∅) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
-  | muts   {i₁ i₂} : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut) → rcnsNeedTotalOrder rtr rcn₁ rcn₂
+inductive Orderable (rtr : Reactor) (rcn₁ rcn₂ : Reaction) : Prop
+  | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure)            → Orderable rtr rcn₁ rcn₂
+  | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → Orderable rtr rcn₁ rcn₂
+  | muts   : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut)                → Orderable rtr rcn₁ rcn₂
 
-theorem rcnsTotalOrder {rtr : Reactor} {rcn₁ rcn₂ : Reaction} :
-  (rtr.rcnsNeedTotalOrder rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio) := by
-  sorry
+theorem orderability {rtr : Reactor} : (Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
+  | .impure h₁ h₂ hi hp₁ hp₂ => rtr.rawWF.direct.orderable (.impure h₁ h₂ hi hp₁ hp₂)
+  | .output h₁ h₂ hi ho => rtr.rawWF.direct.orderable (.output h₁ h₂ hi ho)
+  | .muts h₁ h₂ hi hm₁ hm₂ => rtr.rawWF.direct.orderable (.muts h₁ h₂ hi hm₁ hm₂)
 
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
 inductive Cmp
@@ -347,5 +348,4 @@ theorem uniqueIDs (l₁ l₂ : Lineage σ cmp i) : l₁ = l₂ := by
   case' end.nest cmp _ _ _ _ _, nest.end cmp _ _ _ _ =>
     cases cmp <;> simp [Lineage.toRaw] at h
     
-
 end Reactor
