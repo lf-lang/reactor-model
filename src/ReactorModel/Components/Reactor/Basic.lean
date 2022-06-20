@@ -5,12 +5,12 @@ open Port Classical
 namespace Raw.Reactor
 
 protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
-  nestFinite : { i | rtr.nest i ≠ none }.finite
-  uniqueIDs :  ∀ l₁ l₂ : Raw.Lineage rtr i, l₁ = l₂ 
-  uniqueIns :  ∀ {iₚ p iₙ n i₁ rcn₁ i₂ rcn₂}, (rtr.nest iₙ = some n) → (n.ports' .in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
-  normDeps :   ∀ {n k}, (n ∈ rtr.norms.values) → ↑(n.deps k) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.ports' k).ids ∪ (rtr.nestedPortIDs k.opposite))
-  mutDeps :    ∀ {m}, (m ∈ rtr.muts.values) → (m.deps .in ⊆ rtr.acts.ids ∪ (rtr.ports' .in).ids) ∧ ↑(m.deps .out) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' .out).ids ∪ (rtr.nestedPortIDs .in)
-  orderable :  ∀ {rcn₁ rcn₂}, (Raw.Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
+  nestFinite :   { i | rtr.nest i ≠ none }.finite
+  uniqueIDs :    (l₁ l₂ : Raw.Lineage rtr i) → l₁ = l₂ 
+  orderability : (Raw.Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
+  uniqueInputs : (rtr.nest iₙ = some n) → (n.ports' .in iₚ = some p) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
+  normDeps :     (n ∈ rtr.norms.values) → ↑(n.deps k) ⊆ (↑rtr.acts.ids ∪ ↑(rtr.ports' k).ids ∪ (rtr.nestedPortIDs k.opposite))
+  mutDeps :      (m ∈ rtr.muts.values) → (m.deps .in ⊆ rtr.acts.ids ∪ (rtr.ports' .in).ids) ∧ ↑(m.deps .out) ⊆ ↑rtr.acts.ids ∪ ↑(rtr.ports' .out).ids ∪ (rtr.nestedPortIDs .in)
 
 -- To define properties of reactors recursively, we need a concept of containment.
 -- Containment in a reactor can come in two flavors: 
@@ -279,9 +279,15 @@ inductive Orderable (rtr : Reactor) (rcn₁ rcn₂ : Reaction) : Prop
   | muts   : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut)                → Orderable rtr rcn₁ rcn₂
 
 theorem orderability {rtr : Reactor} : (Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
-  | .impure h₁ h₂ hi hp₁ hp₂ => rtr.rawWF.direct.orderable (.impure h₁ h₂ hi hp₁ hp₂)
-  | .output h₁ h₂ hi ho => rtr.rawWF.direct.orderable (.output h₁ h₂ hi ho)
-  | .muts h₁ h₂ hi hm₁ hm₂ => rtr.rawWF.direct.orderable (.muts h₁ h₂ hi hm₁ hm₂)
+  | .impure h₁ h₂ hi hp₁ hp₂ => rtr.rawWF.direct.orderability (.impure h₁ h₂ hi hp₁ hp₂)
+  | .output h₁ h₂ hi ho => rtr.rawWF.direct.orderability (.output h₁ h₂ hi ho)
+  | .muts h₁ h₂ hi hm₁ hm₂ => rtr.rawWF.direct.orderability (.muts h₁ h₂ hi hm₁ hm₂)
+
+theorem uniqueInputs {rtr : Reactor} :
+  (rtr.nest iₙ = some n) → (n.ports' .in iₚ = some p) → 
+  (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → 
+  (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out :=
+  λ hn hp hr₁ hr₂ hi ho => rtr.rawWF.direct.uniqueInputs (nest_mem_raw_iff.mp hn) hp hr₁ hr₂ hi ho
 
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
 inductive Cmp
