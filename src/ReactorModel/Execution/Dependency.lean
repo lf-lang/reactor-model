@@ -57,8 +57,8 @@ theorem Dependency.External.irreflexive : ¬(Dependency.External σ i i) := by
     have ⟨p, ho, hi⟩ := hi
     simp
     by_cases hc : rcn.isNorm
-    case pos => sorry -- Use Reactor.wfNormDeps
-    case neg => sorry -- Use Reactor.wfMutDeps
+    case pos => sorry -- Use Reactor.normDeps
+    case neg => sorry -- Use Reactor.mutDeps
   case «mut» rtr₁ _ _ hn _ hc hr =>
     have ⟨_, _, hm₁⟩ := Reactor.con?_to_obj?_and_cmp? hc
     let l₁ := Reactor.Lineage.end .rcn $ Finmap.ids_def'.mpr ⟨_, hm₁⟩

@@ -852,28 +852,36 @@ theorem Execution.time_monotone : (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ct
   | step h _ hi => exact le_trans h.time_monotone hi
 
 protected theorem Execution.deterministic : 
-  (s ⇓* s₁) → 
-  (s ⇓* s₂) → 
-  (s₁.ctx.time = s₂.ctx.time) → 
-  (s₁.ctx.currentProcessedRcns = s₂.ctx.currentProcessedRcns) → 
+  (s ⇓* s₁) → (s ⇓* s₂) → 
+  (s₁.ctx.time = s₂.ctx.time) → (s₁.ctx.currentProcessedRcns = s₂.ctx.currentProcessedRcns) → 
   s₁ = s₂ := by
   intro he₁ he₂ ht hc
   induction he₁ <;> cases he₂ 
   case refl.refl => rfl
-  case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hc₂ ht.symm h₁₂ h₂₃
-  case refl.step _ _ h₁₂ h₂₃ => exact False.elim $ impossible_case_aux hc₁ ht h₁₂ h₂₃
+  case step.refl _ _ h₂₃ _ h₁₂ => exact False.elim $ impossible_case_aux hc.symm ht.symm h₁₂ h₂₃
+  case refl.step _ _ h₁₂ h₂₃ => exact False.elim $ impossible_case_aux hc ht h₁₂ h₂₃
   case step.step s sₘ₁ s₁ h₁ₘ₁ hₘ₁₂ hi sₘ₂ h₁ₘ₂ hₘ₂₂ => 
     rw [Execution.Step.deterministic h₁ₘ₁ h₁ₘ₂] at hi
-    exact hi hc₁ hₘ₂₂ ht
+    sorry -- exact hi hc₁ hₘ₂₂ ht
 where 
-  impossible_case_aux {s₁ s₂ s₃ : State} (hc : s₁.instComplete) (ht : s₁.ctx.time = s₃.ctx.time) :
+  impossible_case_aux {s₁ s₂ s₃ : State} :
+    (s₁.ctx.currentProcessedRcns = s₃.ctx.currentProcessedRcns) →
+    (s₁.ctx.time = s₃.ctx.time) →
     (s₁ ⇓ s₂) → (s₂ ⇓* s₃) → False := by
-    intro h₁₂ h₂₃
+    intro hc ht h₁₂ h₂₃
     cases h₁₂
     case completeInst hi =>
       cases hi with | mk _ e _ =>
       cases e 
-      case' single h, trans h _ => exact absurd h $ State.instComplete_to_inst_stuck hc _ _
+      case single h =>
+        cases h₂₃
+        case refl =>
+        -- CRASH: cases h
+          sorry
+        case step => 
+          sorry
+      case trans h _ => 
+        exact absurd h $ State.instComplete_to_inst_stuck hc _ _
     case advanceTime hg _ _ => 
       have h := time_monotone h₂₃
       rw [←ht] at h

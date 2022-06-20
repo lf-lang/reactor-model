@@ -190,7 +190,7 @@ private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
   simp [nestedPortIDs, Raw.Reactor.nestedPortIDs, Set.finite.mem_to_finset]
   intro j r hn hi
   have rwf := rtr.rawWF.ancestor (.nest hn)
-  let rtr' : Reactor := sorry -- ⟨r, rwf⟩ | BUG: This crashes Lean.
+  let rtr' : Reactor := sorry -- CRASH: ⟨r, rwf⟩
   have H : rtr'.raw = r := sorry 
   exists rtr'
   rw [←H] at hn
