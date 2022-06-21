@@ -97,7 +97,7 @@ def Time := Nat
 deriving LinearOrder, Ord, DecidableEq, Inhabited
 
 structure Time.Tag where 
-  t : Time
+  time : Time
   microsteps : Nat
 
 -- TODO: Replace this with `deriving LinearOrder` once that feature is available again.

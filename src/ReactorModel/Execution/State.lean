@@ -25,9 +25,9 @@ noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input :=
   match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
   | some con, some rcn => some {
       portVals := s.rtr.obj?' .prt |>.restrict (rcn.deps .in)  |>.map (·.val),
-      acts :=     s.rtr.obj?' .act |>.filterMap (· s.ctx.time) |>.restrict (rcn.deps .in),
+      acts :=     s.rtr.obj?' .act |>.filterMap (· s.ctx.tag) |>.restrict (rcn.deps .in),
       state :=    con.obj.state, -- Equivalent: s.rtr.obj?' .stv |>.restrict con.obj.state.ids
-      time :=     s.ctx.time
+      tag :=      s.ctx.tag
     }
   | _, _ => none
 
@@ -63,7 +63,7 @@ theorem rcnInput_portVals_def {s : State} :
   exact hi.left.symm
 
 theorem rcnInput_actions_def {s : State} :
-  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.ctx.time) |>.restrict (rcn.deps .«in»))) := by
+  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.ctx.tag) |>.restrict (rcn.deps .«in»))) := by
   intro hi ho
   have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
   simp [rcnInput, hc, ho] at hi
@@ -77,7 +77,7 @@ theorem rcnInput_state_def {s : State} :
   exact hi.right.right.left.symm
 
 theorem rcnInput_time_def {s : State} :
-  (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.ctx.time) := by
+  (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.ctx.tag) := by
   intro hi
   simp [rcnInput] at hi
   cases hc : s.rtr.con? .rcn j
@@ -127,7 +127,7 @@ theorem rcnOutput_pure {s : State} (v) :
   have ⟨x, _, hr', hb⟩ := rcnOutput_to_rcn_body ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
   by_contra hc
-  have hc := hp.output x _ hc
+  have hc := hp.output hc
   simp at hc
 
 theorem rcnOutput_state_local {s : State} (v) : 
@@ -153,14 +153,12 @@ def triggers (s : State) (r : ID) :=
   ∃ rcn i, (s.rtr.obj? .rcn r = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.triggersOn i)
 
 def nextTag (s : State) : Option Time.Tag :=
-  s.rtr.scheduledTags.filter (s.ctx.time < ·) |>.min
+  s.rtr.scheduledTags.filter (s.ctx.tag < ·) |>.min
 
-theorem time_lt_nextTag {s : State} {g : Time.Tag} :
-  (s.nextTag = g) → s.ctx.time < g := by 
+theorem tag_lt_nextTag {s : State} {g : Time.Tag} :
+  (s.nextTag = g) → s.ctx.tag < g := by 
   intro h
   simp only [nextTag] at h
   exact Finset.mem_of_min h |> (Finset.mem_filter _).mp |> And.right
-
-def freshID (s : State) : Rooted ID → ID := s.ctx.freshID.func s.rtr
 
 end Execution.State 

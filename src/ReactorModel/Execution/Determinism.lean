@@ -409,24 +409,20 @@ theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr ≈ s₂
 theorem InstStep.rtr_contains_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.contains .rcn rcn
   | skipReaction h _ _ => h
   | execReaction _ _ h _ => State.rcnOutput_to_contains h
-  
-theorem InstStep.preserves_freshID : (s₁ ⇓ᵢ[rcn] s₂) → s₁.ctx.freshID = s₂.ctx.freshID
-  | execReaction _ _ _ h => by simp [h.preserves_ctx]
-  | skipReaction .. => rfl
-  
+    
 theorem InstStep.preserves_rcns {i : ID} : 
   (s₁ ⇓ᵢ[rcn] s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) 
   | execReaction _ _ _ h => by simp [h.preserves_rcns]
   | skipReaction .. => rfl
 
 theorem InstStep.preserves_ctx_past_future :
-  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
+  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
   | execReaction _ _ _ h, _, hg => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
   | skipReaction ..,      _, hg => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
-theorem InstStep.preserves_time : (s₁ ⇓ᵢ[rcns] s₂) → s₁.ctx.time = s₂.ctx.time := by
+theorem InstStep.preserves_tag : (s₁ ⇓ᵢ[rcns] s₂) → s₁.ctx.tag = s₂.ctx.tag := by
   intro h
-  cases h <;> simp [Context.addCurrentProcessed_same_time]
+  cases h <;> simp [Context.addCurrentProcessed_same_tag]
   case execReaction h => simp [h.preserves_ctx]
 
 theorem InstStep.ctx_adds_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed rcn
@@ -543,7 +539,7 @@ theorem InstStep.indep_rcns_indep_output :
       have hd := mt (hd a) $ not_not.mpr ha
       simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_actions hr hd]
     have H3 : t = t' := by 
-      simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.preserves_time]
+      simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.preserves_tag]
     simp [H1, H2, H3] at hj
     have ⟨r, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
     have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
@@ -632,21 +628,17 @@ theorem InstStep.indep_rcns_changes_equiv :
   rw [←h₂.indep_rcns_indep_output hi] at ho₂₁
   exact InstStep.indep_rcns_changes_comm_equiv hi ho₂₁ ho₁₂
 
-theorem InstExecution.preserves_freshID : (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.freshID = s₂.ctx.freshID
-  | single h => h.preserves_freshID
-  | trans h₁ₘ hₘ₂ => h₁ₘ.preserves_freshID.trans hₘ₂.preserves_freshID
-
-theorem InstExecution.preserves_time : (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.time = s₂.ctx.time
-  | single h => h.preserves_time
-  | trans h hi => h.preserves_time.trans hi.preserves_time
+theorem InstExecution.preserves_tag : (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.tag = s₂.ctx.tag
+  | single h => h.preserves_tag
+  | trans h hi => h.preserves_tag.trans hi.preserves_tag
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂ rcns} :
-  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ g, g ≠ s₁.ctx.time → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
+  (s₁ ⇓ᵢ+[rcns] s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
   intro h g hg
   induction h
   case single h => exact h.preserves_ctx_past_future _ hg
   case trans s₁ s₂ sₘ he _ hi =>
-    rw [InstExecution.preserves_time $ single he] at hg
+    rw [InstExecution.preserves_tag $ single he] at hg
     exact (he.preserves_ctx_past_future _ hg).trans $ hi hg
     
 -- NOTE: This won't hold once we introduce mutations.
@@ -792,9 +784,6 @@ theorem State.instComplete_to_inst_stuck : s.instComplete → ∀ s' rcn, ¬(s �
   rw [←h] at h'
   exact absurd h' he.rcn_unprocessed
 
-theorem CompleteInstExecution.preserves_freshID : (s₁ ⇓ᵢ| s₂) → s₁.ctx.freshID = s₂.ctx.freshID
-  | mk _ e _ => e.preserves_freshID
-
 theorem CompleteInstExecution.convergent_rcns :
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.rtr.ids .rcn = s₂.rtr.ids .rcn
   | mk _ e₁ _, mk _ e₂ _ => by simp [Finset.ext_iff, Reactor.ids_mem_iff_contains, Reactor.contains_iff_obj?, ←e₁.preserves_rcns, e₂.preserves_rcns]
@@ -802,19 +791,17 @@ theorem CompleteInstExecution.convergent_rcns :
 theorem CompleteInstExecution.convergent_ctx : 
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hc₁ hc₂
-  apply Context.ext_iff.mpr
-  refine ⟨?_, hc₁.preserves_freshID.symm.trans hc₂.preserves_freshID⟩
-  apply Finmap.ext
+  ext
   intro g
   have hc₁₂ := hc₁.convergent_rcns hc₂
   cases hc₁ with | mk _ e₁ hc₁ => 
   cases hc₂ with | mk _ e₂ hc₂ => 
-  by_cases hg : g = s.ctx.time
+  by_cases hg : g = s.ctx.tag
   case pos => 
     have h₁ := hc₁ |> Option.some_inj.mpr
     have h₂ := hc₂ |> Option.some_inj.mpr
     rw [Context.currentProcessedRcns_def] at h₁ h₂
-    simp only [←e₁.preserves_time, ←e₂.preserves_time, ←hg] at h₁ h₂
+    simp only [←e₁.preserves_tag, ←e₂.preserves_tag, ←hg] at h₁ h₂
     simp only [h₁, h₂, hc₁₂]
   case neg => simp only [←e₁.preserves_ctx_past_future g hg, e₂.preserves_ctx_past_future g hg]
 
@@ -825,9 +812,9 @@ theorem CompleteInstExecution.deterministic : (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s�
 
 end Execution
 
-theorem Execution.Step.time_monotone : (s₁ ⇓ s₂) → s₁.ctx.time ≤ s₂.ctx.time
-  | completeInst (.mk _ e _) => le_of_eq e.preserves_time
-  | advanceTime hg .. => le_of_lt $ s₁.ctx.advanceTime_strictly_increasing (s₁.time_lt_nextTag hg)
+theorem Execution.Step.tag_monotone : (s₁ ⇓ s₂) → s₁.ctx.tag ≤ s₂.ctx.tag
+  | completeInst (.mk _ e _) => le_of_eq e.preserves_tag
+  | advanceTag hg .. => le_of_lt $ s₁.ctx.advanceTag_strictly_increasing (s₁.tag_lt_nextTag hg)
 
 protected theorem Execution.Step.deterministic : 
   (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂ := by
@@ -835,25 +822,25 @@ protected theorem Execution.Step.deterministic :
   cases he₁ <;> cases he₂
   case completeInst.completeInst hc₁ hc₂ => 
     exact CompleteInstExecution.deterministic hc₁ hc₂
-  case advanceTime.advanceTime g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
+  case advanceTag.advanceTag g₁ hg₁ _ h₁ _ g₂ hg₂ _ h₂ => 
     simp only [hg₁, Option.some_inj] at hg₂
-    simp [clearingPorts_unique h₁ h₂, Context.advanceTime, hg₂]  
-  case' completeInst.advanceTime hc _ _ _ hic _, advanceTime.completeInst _ _ _ hic _ hc => 
+    simp [clearingPorts_unique h₁ h₂, Context.advanceTag, hg₂]  
+  case' completeInst.advanceTag hc _ _ _ hic _, advanceTag.completeInst _ _ _ hic _ hc => 
     cases hc with | mk _ e _ => 
     cases e; case' single hi, trans hi _ => exact False.elim $ impossible_case_aux hi hic
 where
   impossible_case_aux {s₁ s₂ rcn} (hi : s₁ ⇓ᵢ[rcn] s₂) (hic : s₁.instComplete) : False := by
     exact absurd (Reactor.ids_mem_iff_contains.mpr hi.rtr_contains_rcn) $ mt (Finset.ext_iff.mp hic _).mpr <| hi.rcn_unprocessed
 
-theorem Execution.time_monotone : (s₁ ⇓* s₂) → s₁.ctx.time ≤ s₂.ctx.time := by
+theorem Execution.tag_monotone : (s₁ ⇓* s₂) → s₁.ctx.tag ≤ s₂.ctx.tag := by
   intro h
   induction h with
   | refl => simp
-  | step h _ hi => exact le_trans h.time_monotone hi
+  | step h _ hi => exact le_trans h.tag_monotone hi
 
 protected theorem Execution.deterministic : 
   (s ⇓* s₁) → (s ⇓* s₂) → 
-  (s₁.ctx.time = s₂.ctx.time) → (s₁.ctx.currentProcessedRcns = s₂.ctx.currentProcessedRcns) → 
+  (s₁.ctx.tag = s₂.ctx.tag) → (s₁.ctx.currentProcessedRcns = s₂.ctx.currentProcessedRcns) → 
   s₁ = s₂ := by
   intro he₁ he₂ ht hc
   induction he₁ <;> cases he₂ 
@@ -866,24 +853,15 @@ protected theorem Execution.deterministic :
 where 
   impossible_case_aux {s₁ s₂ s₃ : State} :
     (s₁.ctx.currentProcessedRcns = s₃.ctx.currentProcessedRcns) →
-    (s₁.ctx.time = s₃.ctx.time) →
+    (s₁.ctx.tag = s₃.ctx.tag) →
     (s₁ ⇓ s₂) → (s₂ ⇓* s₃) → False := by
     intro hc ht h₁₂ h₂₃
     cases h₁₂
     case completeInst hi =>
-      cases hi with | mk _ e _ =>
-      cases e 
-      case single h =>
-        cases h₂₃
-        case refl =>
-          sorry
-        case step => 
-          sorry
-      case trans h _ => 
-        exact absurd h $ State.instComplete_to_inst_stuck hc _ _
-    case advanceTime hg _ _ => 
-      have h := time_monotone h₂₃
+      sorry
+    case advanceTag hg _ _ => 
+      have h := tag_monotone h₂₃
       rw [←ht] at h
       simp only at h
-      have h' := s₁.ctx.advanceTime_strictly_increasing (s₁.time_lt_nextTag hg)
+      have h' := s₁.ctx.advanceTag_strictly_increasing (s₁.tag_lt_nextTag hg)
       exact (lt_irrefl _ $ lt_of_le_of_lt h h').elim

@@ -5,7 +5,7 @@ open Port
 namespace Execution
 
 noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
-  match act.ids.filter (·.t = t) |>.max with
+  match act.ids.filter (·.time = t) |>.max with
   | none => act.update ⟨t, 0⟩ v
   | some g => act.update ⟨t, g.microsteps + 1⟩ v
 
@@ -84,11 +84,11 @@ theorem clearingPorts_unique : clearingPorts σ σ₁ → clearingPorts σ σ₂
 -- steps can be taken, or a time advancement.
 inductive Step (s : State) : State → Prop 
   | completeInst : (s ⇓ᵢ| s') → Step s s'
-  | advanceTime :
+  | advanceTag :
     (hg : s.nextTag = some g) →
     (s.instComplete) →
     (clearingPorts s.rtr σ) →
-    Step s ⟨σ, s.ctx.advanceTime g $ s.time_lt_nextTag hg⟩
+    Step s ⟨σ, s.ctx.advanceTag g $ s.tag_lt_nextTag hg⟩
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 

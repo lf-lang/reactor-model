@@ -47,8 +47,8 @@ end Raw.Reactor
 -- The `fromRaw ::` names the constructor of `Reactor`.
 structure Reactor where
   private fromRaw ::
-    raw : Raw.Reactor
-    rawWF : Raw.Reactor.WellFormed raw  
+    private raw : Raw.Reactor
+    private rawWF : Raw.Reactor.WellFormed raw  
 
 namespace Reactor
 
