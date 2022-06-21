@@ -876,7 +876,6 @@ where
       case single h =>
         cases h₂₃
         case refl =>
-        -- CRASH: cases h
           sorry
         case step => 
           sorry

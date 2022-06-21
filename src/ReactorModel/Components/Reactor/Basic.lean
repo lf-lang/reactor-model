@@ -190,63 +190,16 @@ private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
   simp [nestedPortIDs, Raw.Reactor.nestedPortIDs, Set.finite.mem_to_finset]
   intro j r hn hi
   have rwf := rtr.rawWF.ancestor (.nest hn)
-  let rtr' : Reactor := sorry -- CRASH: ⟨r, rwf⟩
-  have H : rtr'.raw = r := sorry 
+  let rtr' := Reactor.fromRaw r rwf
+  have hr : r = rtr'.raw := rfl
+  rw [hr] at hn
   exists rtr'
-  rw [←H] at hn
   simp [Finmap.values_def.mpr ⟨_, nest_mem_raw_iff.mpr hn⟩, ports']
   simp [Raw.Reactor.ports'] at hi
   exact hi
 
 noncomputable def scheduledTags (σ : Reactor) : Finset Time.Tag := 
   σ.acts.values.bUnion (·.ids)
-
-/-
--- This constraint constrains the anti/-dependencies of `rtr`'s mutations, such that:
--- 1. their dependencies can only be input ports of `rtr`
--- 2. their antidependencies can only be output ports of `rtr` or input ports of reactors
---    nested directly in `rtr`
-theorem wfMutDeps {rtr : Reactor} {m : Reaction} (r : Port.Role) (h : m ∈ rtr.muts.values) : 
-  (m.deps Role.in ⊆ (rtr.ports' Role.in).ids) ∧ (m.deps Role.out ⊆ (rtr.ports' Role.out).ids ∪ rtr.nestedPortIDs Role.in) := by
-  simp only [muts, Finmap.filter'_mem_values] at h
-  have ⟨i, h, hm⟩ := h
-  have ⟨mr, hr⟩ := rcns_has_raw h
-  have he := RawEquiv.rcns rtr
-  have hq := he.rel h hr
-  have hrm := (Reaction.RawEquiv.isMut_iff hq).mp hm
-  have hw := rtr.rawWF.direct.wfMutDeps mr i hr hrm
-  have ⟨h₁, h₂⟩ := hw
-  clear hw
-  constructor
-  case left =>
-    rw [hq.deps]
-    simp [ports', ports, Raw.Reactor.ports'] at h₁ ⊢
-    exact h₁
-  case right =>
-    clear h₁
-    simp [Set.subset_def, Set.mem_union] at h₂
-    simp [Finset.subset_iff]  
-    rw [hq.deps]
-    intro j hj
-    cases (h₂ j hj)
-    case inl h => exact Or.inl h
-    case inr h =>
-      apply Or.inr
-      have ⟨i', ri', h₁, h₂⟩ := h
-      simp [nestedPortIDs, Set.finite.mem_to_finset]
-      have hrip := Raw.Reactor.Ancestor.preserves_wf (Raw.Reactor.Ancestor.nested h₁) rtr.rawWF
-      let rip := Reactor.fromRaw ri' hrip
-      exists rip
-      constructor
-      case h.left =>
-        simp [Finmap.values_def]
-        exists i'
-        exact nest_mem_raw_iff.mpr h₁
-      case h.right =>
-        simp [ports', Raw.Reactor.ports', ports] at h₂ ⊢
-        exact h₂
--/
--/
 
 inductive Orderable (rtr : Reactor) (rcn₁ rcn₂ : Reaction) : Prop
   | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure)            → Orderable rtr rcn₁ rcn₂
@@ -273,11 +226,22 @@ theorem normDeps {rtr : Reactor} :
   simp [Set.subset_def, Set.mem_union] at hs
   specialize hs i hi
   cases hs
-  case inl hc =>
-    cases hc
-    case inl hc' => exact .inl $ .inl hc'
-    case inr hc' => exact .inl $ .inr hc'
+  case inl hc => exact .inl hc
   case inr hc => exact .inr (mem_raw_nestedPortIDs_to_mem_nestedPortIDs hc)
+
+theorem mutDeps {rtr : Reactor} :
+  (m ∈ rtr.muts.values) → 
+  (m.deps .in ⊆ rtr.acts.ids ∪ (rtr.ports' .in).ids) ∧ 
+  (m.deps .out) ⊆ rtr.acts.ids ∪ (rtr.ports' .out).ids ∪ (rtr.nestedPortIDs .in) := by
+  intro hm
+  have ⟨hi, ho⟩ := rtr.rawWF.direct.mutDeps hm
+  simp [Finset.subset_iff, Finset.mem_union, Set.subset_def, Set.mem_union] at *
+  refine ⟨?ins, ?outs⟩ <;> intro _ hj  
+  case ins => exact hi hj
+  case outs =>
+    cases ho _ hj
+    case inl hc => exact .inl hc
+    case inr hc => exact .inr (mem_raw_nestedPortIDs_to_mem_nestedPortIDs hc)
 
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
 inductive Cmp
