@@ -7,7 +7,7 @@ namespace Execution
 noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
   match act.ids.filter (·.time = t) |>.max with
   | none => act.update ⟨t, 0⟩ v
-  | some g => act.update ⟨t, g.microsteps + 1⟩ v
+  | some g => act.update ⟨t, g.microstep + 1⟩ v
 
 inductive ChangeStep (rcn : ID) (s : State) : State → Change → Prop 
   | port :   (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    → ChangeStep rcn s ⟨σ', s.ctx⟩ (.port i v)

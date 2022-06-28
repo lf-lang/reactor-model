@@ -1,6 +1,6 @@
 import ReactorModel.Components.Change
 
-open Port Classical
+open Classical
 
 @[ext]
 structure Reaction.Input where

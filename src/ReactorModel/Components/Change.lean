@@ -10,12 +10,12 @@ opaque Reactor.Class : Type
 -- part that is relevant to the reactor system: the API calls. 
 -- These API calls are formalized by the `Change` type:
 inductive Change
-  | port (target : ID) (value : Value)
-  | state (target : ID) (value : Value)
-  | action (target : ID) (time : Time) (value : Value)
-  | connect (src : ID) (dst : ID)
-  | disconnect (src : ID) (dst : ID)
-  | create (cl : Reactor.Class)
+  | port (port : ID) (value : Value)
+  | state (var : ID) (value : Value)
+  | action (action : ID) (time : Time) (value : Value)
+  | connect (srcPort : ID) (dstPort : ID)
+  | disconnect (srcPort : ID) (dstPort : ID)
+  | create («class» : Reactor.Class)
   | delete (rtr : ID)
 
 namespace Change

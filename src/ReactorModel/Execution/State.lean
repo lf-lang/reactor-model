@@ -1,8 +1,6 @@
 import ReactorModel.Execution.Context
 import ReactorModel.Execution.Dependency
 
-open Port
-
 @[ext]
 structure Execution.State where
   rtr : Reactor

@@ -6,8 +6,6 @@ inductive Value
   | absent 
   | present (val : PresentValue)
 
-notation "⊥" => Value.absent
-
 def Value.isPresent : Value → Bool 
   | absent => false
   | present _ => true
@@ -98,7 +96,7 @@ deriving LinearOrder, Ord, DecidableEq, Inhabited
 
 structure Time.Tag where 
   time : Time
-  microsteps : Nat
+  microstep : Nat
 
 -- TODO: Replace this with `deriving LinearOrder` once that feature is available again.
 instance : LinearOrder Time.Tag := sorry

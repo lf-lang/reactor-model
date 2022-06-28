@@ -1,7 +1,5 @@
 import ReactorModel.Components.Reaction
 
-open Port
-
 protected inductive Raw.Reactor 
   | mk 
     (ports : ID ⇉ Port)

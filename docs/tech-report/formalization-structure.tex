@@ -35,7 +35,7 @@ We opt for the second approach as it reduces notation overhead and as we don't n
 
 Values are the objects which are consumed and produced  by reactions and exchanged by reactors through ports as actions.
 With respect to formalization, they are similar to IDs in that their precise structure is irrelevant.
-One feature we \emph{do} need to impose is that they have a special element called the ``absent value'' (denoted by $\bot$).
+One feature we \emph{do} need to impose is that they have a special element called the ``absent value''.
 This value is used to represent the absence of a value in ports.
 We therefore formalize non-absent values as an opaque type and add on the absent case to get the full \lstinline{Value} type:
 
@@ -45,8 +45,6 @@ private opaque PresentValue : Type
 inductive Value 
   | absent 
   | present (val : PresentValue)
-
-notation "⊥" => Value.absent
 \end{lstlisting}
 
 An \lstinline{inductive} definition can be read as defining a very general kind of enumeration (potentially with payload values for each case).
@@ -75,8 +73,8 @@ The Reactor model's notion of logical time with superdense time tags is formaliz
 def Time := Nat
 
 structure Time.Tag where 
-  t : Time
-  microsteps : Nat
+  time : Time
+  microstep : Nat
 \end{lstlisting}
 
 \subsubsection{Changes \& Reactions}
@@ -87,12 +85,12 @@ Changes are analogous to the API-calls that can be performed by reactions in a L
 
 \begin{lstlisting}
 inductive Change
-  | port (target : ID) (value : Value)
-  | state (target : ID) (value : Value)
-  | action (target : ID) (time : Time) (value : Value)
-  | connect (src : ID) (dst : ID)
-  | disconnect (src : ID) (dst : ID)
-  | create (cl : Reactor.Class)
+  | port (port : ID) (value : Value)
+  | state (var : ID) (value : Value)
+  | action (action : ID) (time : Time) (value : Value)
+  | connect (srcPort : ID) (dstPort : ID)
+  | disconnect (srcPort : ID) (dstPort : ID)
+  | create («class» : Reactor.Class)
   | delete (rtr : ID)
 \end{lstlisting}
 
@@ -109,10 +107,10 @@ structure Reaction where
   ... -- Additional constraints omitted.
 \end{lstlisting}
 
-In this definition we can also see that reactions have anti-/dependencies (which we also refer to as output/input dependencies), triggers and a priority.
-We reuse the previously defined \lstinline{Kind} to distinguish between input and output dependencies.
+In this definition we can also see that reactions have dependencies, triggers and a priority.
+We reuse the previously defined \lstinline{Kind} to distinguish between input and output dependencies, commonly referred to as ``sources'' and ``effects''.
 The \lstinline{tsSubInDeps} field shows a feature of dependently typed languages like Lean: we can constrain instances of types to fulfill given propositions.
-Here we place the constraint that for any instance of \lstinline{Reaction} it must hold that the set of triggers is a subset of the input dependencies.
+Here we place the constraint that for any instance of \lstinline{Reaction} it must hold that the set of triggers is a subset of the sources.
 
 \paragraph{Mutations}
 
@@ -125,7 +123,7 @@ If a reaction never produces mutating changes, we call it a ``normal'' reaction.
 
 \paragraph{Pure Reactions}
 
-Another aspect by which we differentiate reactions is whether they are ``pure''.
+Another aspect by which we classify reactions is whether they are ``pure''.\footnote{We derive this nomenclature from the notion of pure functions common in functional programming.}
 A reaction is considered pure if its outputs never depend on its reactor's state, and it only produces changes to ports and actions.
 
 The purity of a reaction becomes relevant when formalizing the notion of a ``connection'' between ports.
@@ -184,7 +182,7 @@ Thus, any subsequent uses of reactors can completely ignore this workaround.
 \subsection{Updating and Retrieving Components}
 
 As reactors form a rooted tree structure, we can access any part of the tree by starting at the root reactor.
-Oftentimes, we want to access components located at arbitrary points within this tree.
+Oftentimes, it is convenient for the purposes of formalization to be able to access components located at arbitrary points within this tree.
 We could achieve this by traversing each reactor in the path from the root reactor to our target component. 
 As this is a lot of overhead for what should be a simple access operation, we will build an API that allows us to access a component by simply specifying the ID and ``kind'' of the component.
 A component's kind is given by the following enumeration:
@@ -264,7 +262,7 @@ There are four different cases of ``direct'' dependencies between reactions:
 \begin{enumerate}
   \item Both reactions live in the same reactor and have an order on their priorities.
   \item Both reactions live in the same reactor and one is a mutation, while the other is normal.
-  \item One reaction has a dependency on an antidependency of the other reaction.
+  \item One reaction has a source which is an effect of the other reaction.
   \item One reaction is a mutation, while the other lives in a nested reactor of mutation's container.
 \end{enumerate}
 
@@ -436,7 +434,7 @@ inductive InstStep (s : State) : State → Prop
 We can perform an \lstinline{execReaction} step if there is some reaction \lstinline{rcn} for which:
 
 \begin{itemize}
-  \item the current execution state ``allows'' the reaction to be processed -- that is, it has not been processed yet but all of its dependencies have already been processed.
+  \item the current execution state ``allows'' the reaction to be processed -- that is, it has not been processed yet but all of its sources have already been processed.
   \item the reaction is triggered in the current execution state.
   \item we can get from the initial execution state to the new execution state by applying the \lstinline{Change}s produced by the firing of \lstinline{rcn} (this is denoted by \lstinline{s -[rcn:o]→* s'}).
 \end{itemize}
@@ -503,7 +501,10 @@ In this section we clarify what we mean by determinism and highlight some of the
 
 \subsubsection{Definition of Determinism}
 
-In vague terms, the execution model is deterministic if all executions starting from a given reactor end in the same resulting reactor.
+In vague terms, determinism can be described as the property of equal inputs resulting in equal outputs.
+In the context of reactor execution, the inputs and the outputs are reactors.
+That is, since a \lstinline{Reactor} object contains the values of ports, scheduled actions and state variables, it is itself the input to an execution.
+Thus, we could state that the execution model is deterministic if all executions starting from a given reactor end in the same resulting reactor.
 The main problem with this definition is that it assumes that executions terminate, producing some ``resulting reactor''.
 As reactors can execute indefinitely, we need to explicitly enforce the notion of a resulting reactor in our definition of determinism.
 For example, we could say that the execution model is deterministic if all executions starting from a given reactor that \emph{execute up to a given logical tag} end in the same resulting reactor.
