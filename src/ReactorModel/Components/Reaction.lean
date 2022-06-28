@@ -4,7 +4,7 @@ open Classical
 
 @[ext]
 structure Reaction.Input where
-  portVals : ID ⇉ Value
+  ports : ID ⇉ Value
   acts : ID ⇉ Value
   state : ID ⇉ Value
   tag : Time.Tag
@@ -62,7 +62,7 @@ theorem isMut_not_isPure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
   
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
 def triggersOn (rcn : Reaction) (i : Input) : Prop :=
-  ∃ t v, (t ∈ rcn.triggers) ∧ (i.portVals t = some v) ∧ (v.isPresent)
+  ∃ t v, (t ∈ rcn.triggers) ∧ (i.ports t = some v) ∧ (v.isPresent)
   
 -- Relay reactions are a specific kind of reaction that allow us to simplify what
 -- it means for reactors' ports to be connected. We can formalize connections between
@@ -73,25 +73,25 @@ noncomputable def relay (src dst : ID) : Reaction := {
   deps := λ r => match r with | .in => Finset.singleton src | .out => Finset.singleton dst,
   triggers := Finset.singleton src,
   prio := none,
-  body := λ i => match i.portVals src with | none => [] | some v => [.port dst v],
+  body := λ i => match i.ports src with | none => [] | some v => [.port dst v],
   tsSubInDeps := by simp,
   prtOutDepOnly := by
     intro _ i 
-    cases hs : i.portVals src <;> simp_all [Option.elim, hs, Finset.not_mem_singleton]
+    cases hs : i.ports src <;> simp_all [Option.elim, hs, Finset.not_mem_singleton]
   actOutDepOnly := by
     intro _ i
-    cases hs : i.portVals src <;> simp [Option.elim, hs]
+    cases hs : i.ports src <;> simp [Option.elim, hs]
   actNotPast := by
     intro i _ _ _ h
-    cases hs : i.portVals src <;> simp [hs] at h,
+    cases hs : i.ports src <;> simp [hs] at h,
   stateLocal := by
     intro i _ _ h
-    cases hs : i.portVals src <;> simp [hs] at h
+    cases hs : i.ports src <;> simp [hs] at h
 }
 
 theorem relay_isPure (i₁ i₂) : (Reaction.relay i₁ i₂).isPure := {
   input := by simp [relay],
-  output := by intro _ i h; cases hc : i.portVals i₁ <;> simp_all [relay, hc, h]
+  output := by intro _ i h; cases hc : i.ports i₁ <;> simp_all [relay, hc, h]
 }
 
 end Reaction

@@ -1,7 +1,5 @@
 import ReactorModel.Execution.State
 
-open Port
-
 namespace Execution
 
 noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=

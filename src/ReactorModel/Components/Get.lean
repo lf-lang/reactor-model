@@ -1,6 +1,6 @@
 import ReactorModel.Components.Reactor.Basic
 
-open Classical Port
+open Classical
 
 namespace Reactor
 
@@ -10,9 +10,9 @@ namespace Lineage
 -- This function returns that reactor along with its ID.
 -- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
 def container : Lineage σ cmp i → Identified Reactor 
-  | .nest l@h:(.nest ..) _ => l.container
-  | @nest r j .. =>           { id := j, obj := r }
-  | _ =>                      { id := ⊤, obj := σ }
+  | .nest l@(.nest ..) _ => l.container
+  | @nest r j .. =>         { id := j, obj := r }
+  | _ =>                    { id := ⊤, obj := σ }
 
 theorem end_container_eq_root {cmp} (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.end cmp h).container.obj = σ := by
   simp [Lineage.container]
@@ -24,6 +24,27 @@ theorem container_cmp_mem (l : Lineage σ cmp i) : ∃ o, l.container.obj.cmp? c
   induction l
   case «end» _ h => simp [container, Finmap.ids_def'.mp h]
   case nest hi => simp [nest_container_obj, hi]
+
+theorem nest_container_id_not_top {σ rtr : Reactor} (l : Lineage rtr cmp i) (h : σ.nest j = rtr) : (Lineage.nest l h).container.id ≠ ⊤ := by
+  by_contra hc
+  induction l generalizing σ j <;> simp [container] at hc
+  case nest hn hi => exact hi hn hc
+
+theorem container_ids_eq_lineages_heq {l₁ : Lineage σ cmp i₁} {l₂ : Lineage σ cmp i₂} : (l₁.container.id = l₂.container.id) → HEq l₁ l₂ := by
+  intro h
+  sorry
+
+theorem container_eq_id_eq_obj {l₁ : Lineage σ cmp i₁} {l₂ : Lineage σ cmp i₂} : (l₁.container.id = l₂.container.id) → l₁.container = l₂.container := by
+  intro hi
+  have h := container_ids_eq_lineages_heq hi
+  sorry
+  /-induction l₁ <;> cases l₂ <;> (simp [container] at *)
+  case end.nest hn l =>     exact absurd hi.symm (l.nest_container_id_not_top hn)
+  case nest.end l hn _ _ => exact absurd hi      (l.nest_container_id_not_top hn)
+  case nest.nest rtr₁ _ _ j₁ _ l₁ hn₁ h rtr₂ j₂ hn₂ l₂ =>
+    simp [nest_container_obj]
+    sorry
+  -/
 
 end Lineage
 
@@ -87,6 +108,30 @@ theorem con?_to_rtr_obj? :
   intro h
   have ⟨l, hl⟩ := con?_def.mp h
   sorry
+
+theorem con?_eq_id_to_eq :
+  (σ.con? cmp i₁ = some c₁) → (σ.con? cmp i₂ = some c₂) → (c₁.id = c₂.id) → c₁ = c₂ := by
+  intro hc₁ hc₂ hi
+  unfold con? at hc₁ hc₂
+  by_cases hl₁ : Nonempty (Lineage σ cmp i₁) <;> 
+  by_cases hl₂ : Nonempty (Lineage σ cmp i₂) <;>
+  simp [hl₁, hl₂] at hc₁ hc₂
+  case pos =>
+    set l₁ := hl₁.some
+    set l₂ := hl₂.some
+    cases h₁ : l₁ <;> cases h₂ : l₂ <;> (simp [h₁, h₂, Lineage.container] at hc₁ hc₂)
+    case end.end => simp [←hc₁, ←hc₂]
+    case end.nest hn l =>
+      have h := l.nest_container_id_not_top hn
+      simp [hc₂, ←hi, ←hc₁] at h
+    case nest.end hn l _ =>
+      have h := l.nest_container_id_not_top hn
+      simp [hc₁, hi, ←hc₂] at h
+    case nest.nest =>
+      simp [←hc₁, ←hc₂] at hi
+      have h := Lineage.container_eq_id_eq_obj hi
+      simp [hc₁, hc₂] at h
+      exact h
 
 theorem obj?_and_con?_to_cmp? {i : ID} : 
   (σ.obj? cmp i = some o) → (σ.con? cmp i = some c) → (c.obj.cmp? cmp i = some o) := by

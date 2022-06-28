@@ -1,6 +1,6 @@
 import ReactorModel.Execution.Basic
 
-open Classical Port
+open Classical
 
 def List.lastSome? (f : α → Option β) : List α → Option β
   | []    => none
@@ -513,7 +513,7 @@ theorem InstStep.indep_rcns_indep_output :
     have ⟨⟨p, a, x, t⟩, hj⟩ := State.rcnInput_iff_obj?.mpr ⟨_, ho⟩
     have ⟨⟨p', a', x', t'⟩, hj'⟩ := State.rcnInput_iff_obj?.mpr ⟨_, ho'⟩
     have H1 : p = p' := by 
-      simp [s.rcnInput_portVals_def hj ho, s'.rcnInput_portVals_def hj' ho']
+      simp [s.rcnInput_ports_def hj ho, s'.rcnInput_ports_def hj' ho']
       rw [←hp] at ho'
       have he := Option.some_inj.mp $ ho.symm.trans ho'
       simp [he]

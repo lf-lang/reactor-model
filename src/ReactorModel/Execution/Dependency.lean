@@ -58,28 +58,56 @@ protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
 
 theorem nonoverlapping_deps : 
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
-  (rcn₁.deps .out ∩ rcn₂.deps .«in») = ∅ := by
+  (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
   intro ⟨hi, _⟩ ho₁ ho₂
   by_contra hc
   simp [Finset.eq_empty_iff_forall_not_mem] at hc
   exact absurd (Dependency.depOverlap ho₁ ho₂ hc) hi
 
 theorem ne_rtr_or_pure : 
+  (i₁ ≠ i₂) → -- keep this?
   (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
   (σ.con? .rcn i₁ = some c₁) → (σ.con? .rcn i₂ = some c₂) →
   (c₁.id ≠ c₂.id) ∨ rcn₁.isPure ∨ rcn₂.isPure := by
-  intro h ho₁ ho₂ hc₁ hc₂ 
+  intro hn h ho₁ ho₂ hc₁ hc₂ 
   by_contra hc
   have ⟨hc, hp⟩ := (not_or ..).mp hc
   simp [not_or] at hp hc
-  -- have ⟨rtr₁, hc₁, hr₁⟩ := Reactor.obj?_to_con?_and_cmp? ho₁
-  -- have ⟨rtr₂, hc₂, hr₂⟩ := Reactor.obj?_to_con?_and_cmp? ho₂
-  -- rw [hc] at hc₁
-  -- simp [Option.some_inj.mp $ hc₁.symm.trans hc₂, Reactor.cmp?] at hr₁ hr₂
-  sorry
-  /-cases rtr₂.obj.rcnsTotalOrder (.impure hr₁ hr₂ sorry hp.left hp.right)
-  case h.inl hp => exact absurd (.internal $ .prio hc.symm h₂ h₁ hp) h.right
-  case h.inr hp => exact absurd (.internal $ .rcns hc      h₁ h₂ hp) h.left  
-  -/
+  have he := Reactor.con?_eq_id_to_eq hc₁ hc₂ hc
+  simp [he] at hc₁
+  have ⟨_, ho₁', hcm₁⟩ := Reactor.con?_to_obj?_and_cmp? hc₁
+  have ⟨_, ho₂', hcm₂⟩ := Reactor.con?_to_obj?_and_cmp? hc₂
+  have ho₁'' := ho₁'.symm.trans ho₁
+  have ho₂'' := ho₂'.symm.trans ho₂
+  simp [ho₁'', ho₂''] at hcm₁ hcm₂
+  have hre := hc₂.trans hc₁.symm
+  by_cases hm₁ : rcn₁.isMut 
+  case pos =>
+    by_cases hm₂ : rcn₂.isMut
+    case pos =>
+      cases c₂.obj.orderability (.muts hcm₁ hcm₂ hn hm₁ hm₂)
+      case inl hpr =>
+        have hd := Dependency.prio hre ho₂ ho₁ (by simp [hm₁, hm₂]) hpr
+        exact absurd hd h.right 
+      case inr hpr =>
+        have hd := Dependency.prio hre.symm ho₁ ho₂ (by simp [hm₁, hm₂]) hpr
+        exact absurd hd h.left 
+    case neg => 
+      have hd := Dependency.mutNorm hre.symm ho₁ ho₂ hm₁ (by simp_all [Reaction.isMut])
+      exact absurd hd h.left 
+  case neg =>
+    by_cases hm₂ : rcn₂.isMut
+    case pos =>
+      have hd := Dependency.mutNorm hre ho₂ ho₁ hm₂ (by simp_all [Reaction.isMut])
+      exact absurd hd h.right 
+    case neg =>
+      cases c₂.obj.orderability (.impure hcm₁ hcm₂ hn hp.left hp.right)
+      case inl hpr =>
+        have hd := Dependency.prio hre ho₂ ho₁ (by simp [hm₁, hm₂]) hpr
+        exact absurd hd h.right 
+      case inr hpr =>
+        have hd := Dependency.prio hre.symm ho₁ ho₂ (by simp [hm₁, hm₂]) hpr
+        exact absurd hd h.left 
+  
 
 end Indep

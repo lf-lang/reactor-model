@@ -22,7 +22,7 @@ theorem allows_requires_acyclic_deps {s : State} : (s.allows rcn) → (rcn >[s.r
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
   match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
   | some con, some rcn => some {
-      portVals := s.rtr.obj?' .prt |>.restrict (rcn.deps .in)  |>.map (·.val),
+      ports := s.rtr.obj?' .prt |>.restrict (rcn.deps .in)  |>.map (·.val),
       acts :=     s.rtr.obj?' .act |>.filterMap (· s.ctx.tag) |>.restrict (rcn.deps .in),
       state :=    con.obj.state, -- Equivalent: s.rtr.obj?' .stv |>.restrict con.obj.state.ids
       tag :=      s.ctx.tag
@@ -53,7 +53,7 @@ private theorem rcnInput_iff_rcnOutput {s : State} :
     case some => have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
   )
 
-theorem rcnInput_portVals_def {s : State} :
+theorem rcnInput_ports_def {s : State} :
   (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (p = (s.rtr.obj?' .prt |>.restrict (rcn.deps .in) |>.map (·.val))) := by
   intro hi ho
   have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
