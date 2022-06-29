@@ -44,6 +44,7 @@ notation i₁:max " >[" σ "] " i₂:max => Dependency σ i₁ i₂
 
 def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
 
+-- TODO: Include `rcn₁ ≠ rcn₂` in this?
 def Indep (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ >[σ] rcn₂) ∧ ¬(rcn₂ >[σ] rcn₁)
 
@@ -63,13 +64,13 @@ theorem nonoverlapping_deps :
   by_contra hc
   simp [Finset.eq_empty_iff_forall_not_mem] at hc
   exact absurd (Dependency.depOverlap ho₁ ho₂ hc) hi
-
+ 
 theorem ne_rtr_or_pure : 
-  (i₁ ≠ i₂) → -- keep this?
-  (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
+  (i₁ >[σ]< i₂) → (i₁ ≠ i₂) →
+  (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
   (σ.con? .rcn i₁ = some c₁) → (σ.con? .rcn i₂ = some c₂) →
   (c₁.id ≠ c₂.id) ∨ rcn₁.isPure ∨ rcn₂.isPure := by
-  intro hn h ho₁ ho₂ hc₁ hc₂ 
+  intro h hn ho₁ ho₂ hc₁ hc₂ 
   by_contra hc
   have ⟨hc, hp⟩ := (not_or ..).mp hc
   simp [not_or] at hp hc
@@ -108,6 +109,5 @@ theorem ne_rtr_or_pure :
       case inr hpr =>
         have hd := Dependency.prio hre.symm ho₁ ho₂ (by simp [hm₁, hm₂]) hpr
         exact absurd hd h.left 
-  
 
 end Indep

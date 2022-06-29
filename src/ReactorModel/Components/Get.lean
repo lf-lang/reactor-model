@@ -30,21 +30,34 @@ theorem nest_container_id_not_top {σ rtr : Reactor} (l : Lineage rtr cmp i) (h 
   induction l generalizing σ j <;> simp [container] at hc
   case nest hn hi => exact hi hn hc
 
-theorem container_ids_eq_lineages_heq {l₁ : Lineage σ cmp i₁} {l₂ : Lineage σ cmp i₂} : (l₁.container.id = l₂.container.id) → HEq l₁ l₂ := by
-  intro h
-  sorry
+theorem nest_container_id 
+  {σ rtr₁ rtr₂ : Reactor} {l₁ : Lineage rtr₁ cmp i₁} {l₂ : Lineage rtr₂ cmp i₂} 
+  {h₁ : σ.nest j₁ = rtr₁} {h₂ : σ.nest j₂ = rtr₂} : 
+  ((Lineage.nest l₁ h₁).container.id = (Lineage.nest l₂ h₂).container.id) → 
+  l₁.container.id = l₂.container.id := by 
+  intro hi
+  cases l₁ <;> cases l₂
+  case end.end => simp [container]
+  case end.nest hm₁ rtr₂ j₂ hn₂ l₂ => 
+    exfalso
+    simp [container] at hi
+    sorry
+  case nest.end => sorry
+  case nest.nest => simp_all [container]
 
 theorem container_eq_id_eq_obj {l₁ : Lineage σ cmp i₁} {l₂ : Lineage σ cmp i₂} : (l₁.container.id = l₂.container.id) → l₁.container = l₂.container := by
   intro hi
-  have h := container_ids_eq_lineages_heq hi
-  sorry
-  /-induction l₁ <;> cases l₂ <;> (simp [container] at *)
+  induction l₁ <;> cases l₂ <;> (simp [container] at *)
   case end.nest hn l =>     exact absurd hi.symm (l.nest_container_id_not_top hn)
   case nest.end l hn _ _ => exact absurd hi      (l.nest_container_id_not_top hn)
   case nest.nest rtr₁ _ _ j₁ _ l₁ hn₁ h rtr₂ j₂ hn₂ l₂ =>
-    simp [nest_container_obj]
+    suffices hj : j₁ = j₂ by
+      subst hj
+      have hr := hn₁.symm.trans hn₂ |> Option.some_inj.mp
+      subst hr
+      apply Identified.ext _ _ hi
+      simp [nest_container_obj, h (nest_container_id hi)]
     sorry
-  -/
 
 end Lineage
 

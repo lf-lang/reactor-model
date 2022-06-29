@@ -118,6 +118,9 @@ theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i
   case top ha _ _ => exact ⟨Lineage.end cmp $ Finmap.ids_def'.mpr ⟨_, ha⟩⟩
   case nest hn _ _ hi => exact ⟨Lineage.nest hi.some hn⟩
 
+theorem Update.obj?_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : ∃ o, σ₁.obj? cmp i = some o := by
+  sorry
+
 theorem Update.preserves_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : Nonempty (Lineage σ₂ cmp i) := by
   induction h
   case top ha _ => exact ⟨Lineage.end cmp $ Finmap.ids_def'.mpr ⟨_, ha⟩⟩

@@ -360,9 +360,34 @@ theorem ChangeListStep.lastSome?_none_preserves_port_value :
   )
 
 theorem ChangeListStep.last_port_value :
-  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = some v) → (∃ k, s₂.rtr.obj? .prt i = some ⟨v, k⟩) := by
-  intro hs hl 
-  sorry
+  (s₁ -[rcn:cs]→* s₂) → (cs.lastSome? (·.portValue? i) = some v) → (∃ k, s₂.rtr.obj? .prt i = some ⟨v, k⟩)
+  | nil ..,                      hl => by simp [List.lastSome?_empty_eq_none] at hl
+  | @cons _ _ _ _ hd tl hhd htl, hl => by
+    by_cases hc : ∃ w, tl.lastSome? (·.portValue? i) = some w
+    case pos =>
+      have ⟨w, hc⟩ := hc
+      exact htl.last_port_value ((List.lastSome?_tail hl hc).symm ▸ hc)
+    case neg =>
+      simp at hc
+      have hln := Option.eq_none_iff_forall_not_mem.mpr hc
+      simp [←htl.lastSome?_none_preserves_port_value hln]
+      have hv := List.lastSome?_head hl hln
+      rw [Change.portValue?_some hv.symm] at hhd
+      cases hhd
+      case port hu => have ⟨_, _, h⟩ := hu.change'; simp [h]
+
+theorem ChangeStep.port_change_mem_rtr {i : ID} : (s -[rcn:.port i v]→ s') → (∃ p, s.rtr.obj? .prt i = some p) 
+  | .port hu => hu.obj?_target
+
+theorem ChangeListStep.port_change_mem_rtr {i : ID} : 
+  (s -[rcn:cs]→* s') → (.port i v ∈ cs) → (∃ p, s.rtr.obj? .prt i = some p) := by
+  intro hs hm
+  induction hs
+  case nil => contradiction
+  case cons hi => 
+    cases hm
+    case head hs => exact hs.port_change_mem_rtr
+    case tail hs _ hm => exact hs.preserves_Equiv.obj?_iff.mpr (hi hm)
 
 theorem ChangeListStep.equiv_changes_eq_result :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
@@ -371,7 +396,7 @@ theorem ChangeListStep.equiv_changes_eq_result :
   have hq := h₁.preserves_Equiv.symm.trans h₂.preserves_Equiv
   apply hq.obj?_ext'
   intro cmp i
-  cases cmp -- TODO: The `rtr` case is a problem.
+  cases cmp 
   case rcn => simp [←h₁.preserves_rcns, ←h₂.preserves_rcns]
   case stv =>
     have hs := he.state i
@@ -387,10 +412,11 @@ theorem ChangeListStep.equiv_changes_eq_result :
       have ⟨_, hl₂⟩ := h₂.last_port_value (hp ▸ hc)
       cases hc' : s.rtr.obj? .prt i
       case none => 
-        -- TODO: contradiction (maybe this should be a lemma of its own)
-        -- by definition of Update, any target of a change in cs₁ must be part of s.rtr, otherwise the update wouldnt be allowed
-        -- by hc, an update to port i must be in cs₁
-        sorry
+        have ⟨_, _, hm₁, hm₂⟩ := List.lastSome?_eq_some_iff.mp ⟨_, hc⟩
+        rw [Change.portValue?_some hm₂] at hm₁
+        have ⟨_, hm₃⟩ := h₁.port_change_mem_rtr hm₁
+        have := hm₃.symm.trans hc'
+        contradiction
       case some =>
         have ⟨_, hr₁⟩ := h₁.preserves_port_role hc'
         have ⟨_, hr₂⟩ := h₂.preserves_port_role hc'
@@ -400,7 +426,8 @@ theorem ChangeListStep.equiv_changes_eq_result :
         exact hl₁.right.symm.trans hl₂.right
   case act =>
     sorry
-  sorry
+  case rtr => -- TODO: This case is a problem.
+    sorry
 
 theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr ≈ s₂.rtr
   | skipReaction .. => .refl
@@ -503,8 +530,8 @@ theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rc
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
 
 theorem InstStep.indep_rcns_indep_output :
-  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := by
-  intro h hi
+  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → (rcn ≠ rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := by
+  intro h hi hrne
   have hp := h.preserves_rcns (i := rcn)
   cases ho : s.rtr.obj? .rcn rcn <;> cases ho' : s'.rtr.obj? .rcn rcn 
   case none.none => simp [State.rcnOutput, ho, ho']
@@ -544,7 +571,7 @@ theorem InstStep.indep_rcns_indep_output :
     have ⟨r, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
     have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
     have ⟨_, hr', _⟩ := Reactor.obj?_to_con?_and_cmp? hr
-    cases hi.ne_rtr_or_pure ho hr hc hr'
+    cases hi.ne_rtr_or_pure hrne ho hr hc hr'
     case inl he => 
       have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
       have hs := State.rcnInput_state_def hj hc
@@ -582,10 +609,13 @@ theorem InstStep.indep_rcns_indep_output :
           exact he.eq_obj?_nest h hco hco' 
         )
         
-theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
-  (rcn₁ >[s.rtr]< rcn₂) → (s.rcnOutput rcn₁ = some o₁) → (s.rcnOutput rcn₂ = some o₂) → 
+theorem InstStep.indep_rcns_changes_comm_equiv {s s₁ s₂ : State} :
+  (rcn₁ >[s.rtr]< rcn₂) → (rcn₁ ≠ rcn₂) → 
+  (s₁.rtr ≈ s.rtr) → (s₁.ctx.tag = s.ctx.tag) → -- Is this the right approach?
+  (s₂.rtr ≈ s.rtr) → (s₂.ctx.tag = s.ctx.tag) → 
+  (s₁.rcnOutput rcn₁ = some o₁) → (s₂.rcnOutput rcn₂ = some o₂) →
   (o₁ ++ o₂) ⋈ (o₂ ++ o₁) := by
-  intro hi ho₁ ho₂
+  intro hi hn hsr₁ hsg₁ hsr₂ hsg₂ ho₁ ho₂
   constructor <;> intro i 
   case ports =>
     -- consequence of hi: 
@@ -609,24 +639,6 @@ theorem InstStep.indep_rcns_changes_comm_equiv {s : State} :
     -- output dependencies. By the constraints on Reaction they thus can't
     -- produces changes to the same action.
     sorry
-
--- WARNING: I think this brings us into reaction-swap and hence
---          intermediate reactor territory again.
---          I think what we want instead is an extension of 
---          InstStep.indep_rcns_changes_comm_equiv to reaction lists.
-theorem InstStep.indep_rcns_changes_equiv :
-  (s ⇓ᵢ[rcn₁] s₁) → (s ⇓ᵢ[rcn₂] s₂) → (rcn₁ >[s.rtr]< rcn₂) →
-  (s.rcnOutput rcn₁ = some o₁) → (s₁.rcnOutput rcn₂ = some o₁₂) → 
-  (s.rcnOutput rcn₂ = some o₂) → (s₂.rcnOutput rcn₁ = some o₂₁) → 
-  (o₁ ++ o₁₂) ⋈ (o₂ ++ o₂₁) := by
-  intro h₁ h₂ hi ho₁ ho₁₂ ho₂ ho₂₁
-  rw [h₂.indep_rcns_indep_output hi] at ho₁
-  rw [ho₁.symm.trans ho₂₁ |> Option.some_inj.mp]
-  rw [h₁.indep_rcns_indep_output hi.symm] at ho₂
-  rw [ho₂.symm.trans ho₁₂ |> Option.some_inj.mp]
-  rw [←h₁.indep_rcns_indep_output hi.symm] at ho₁₂
-  rw [←h₂.indep_rcns_indep_output hi] at ho₂₁
-  exact InstStep.indep_rcns_changes_comm_equiv hi ho₂₁ ho₁₂
 
 theorem InstExecution.preserves_tag : (s₁ ⇓ᵢ+[rcns] s₂) → s₁.ctx.tag = s₂.ctx.tag
   | single h => h.preserves_tag

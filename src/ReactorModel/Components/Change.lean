@@ -48,6 +48,15 @@ def actionValue? (t : ID) (tm : Time) : Change → Option Value
   | action t' tm' v  => if t' = t ∧ tm' = tm then some v else none
   | _ => none
 
+theorem portValue?_some {c : Change} : 
+  (c.portValue? t = some v) → (c = .port t v) := by
+  intro h
+  cases c 
+  case port t v =>
+    simp [portValue?] at h
+    split at h <;> simp_all      
+  all_goals simp [portValue?] at *
+
 theorem stateValue?_some {c : Change} : 
   (c.stateValue? t = some v) → (c = .state t v) := by
   intro h
