@@ -4,10 +4,9 @@ namespace Reactor
 
 -- Two reactors are equivalent if they are structurally equal.
 inductive Equiv : Reactor → Reactor → Prop where
-  | intro {σ₁ σ₂ : Reactor} : 
-    (∀ cmp, (σ₁.cmp? cmp).ids = (σ₂.cmp? cmp).ids) →
-    (∀ {i rtr₁ rtr₂}, (σ₁.nest i = some rtr₁) → (σ₂.nest i = some rtr₂) → Equiv rtr₁ rtr₂)
-    → Equiv σ₁ σ₂
+  | intro : (∀ cmp, (σ₁.cmp? cmp).ids = (σ₂.cmp? cmp).ids) →
+            (∀ {i rtr₁ rtr₂}, (σ₁.nest i = some rtr₁) → (σ₂.nest i = some rtr₂) → Equiv rtr₁ rtr₂)
+            → Equiv σ₁ σ₂
 
 namespace Equiv
 
@@ -135,14 +134,20 @@ theorem obj?_ext :
     exact Reactor.obj?_and_local_mem_to_cmp? hs hm
   )
 
-theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), σ₁.obj? cmp i = σ₂.obj? cmp i) → (σ₁ = σ₂) :=
-  λ he ho => Reactor.ext ⟨ 
-    he.obj?_ext (cmp := .prt) (by simp [ho]),
-    he.obj?_ext (cmp := .act) (by simp [ho]),
-    he.obj?_ext (cmp := .stv) (by simp [ho]),
-    he.obj?_ext (cmp := .rcn) (by simp [ho]),
-    he.obj?_ext (cmp := .rtr) (by simp [ho])
-  ⟩
+-- TODO: You need to somehow show by induction that it is sufficient to have equal structure,
+--       and equality of the components in a reactor.
+--       You'd want to do some kind of induction over the structure of a reactor, where the base
+--       case is a reactor without nested reactors.
+--       Do you need to write a custom induction principle for this?
+theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → σ₁.obj? cmp i = σ₂.obj? cmp i) → (σ₁ = σ₂) := by
+  intro he ho
+  apply Reactor.ext
+  refine ⟨?ports, ?acts, ?state, ?rcns, ?nest⟩
+  case ports => exact he.obj?_ext (cmp := .prt) (by simp [ho])
+  case acts =>  exact he.obj?_ext (cmp := .act) (by simp [ho])
+  case state => exact he.obj?_ext (cmp := .stv) (by simp [ho])
+  case rcns =>  exact he.obj?_ext (cmp := .rcn) (by simp [ho])
+  case nest =>  sorry
 
 end Equiv
 end Reactor

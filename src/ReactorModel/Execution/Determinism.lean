@@ -22,181 +22,9 @@ theorem List.lastSome?_tail :
   ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = some b') → b = b' :=
   sorry
 
--- This file defines (and proves) determinism for the reactor model.
--- Determinism can be understood in multiple ways.
--- Primarily, we say the execution is deterministic if there is always at most one timed
--- step that can be taken.
 namespace Execution
 
-theorem ChangeStep.mutates_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
-  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
-  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
-  c₁.mutates → s₁₂ = s₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hm
-  cases c₁ 
-  <;> (simp only [Change.mutates] at hm) 
-  <;> (
-    cases c₂
-    case' port, state, action => 
-      cases h₁; cases h₂; cases h₁₂; cases h₂₁
-      sorry -- exact Reactor.Update.unique' (by assumption) (by assumption)
-  )
-  <;> (cases h₁; cases h₂; cases h₁₂; cases h₂₁; rfl)
-  
-theorem ChangeStep.mutates_comm' {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
-  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
-  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
-  (c₁.mutates ∨ c₂.mutates) → s₁₂ = s₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hm
-  cases hm
-  case inl h => exact ChangeStep.mutates_comm h₁ h₁₂ h₂ h₂₁ h
-  case inr h => exact (ChangeStep.mutates_comm h₂ h₂₁ h₁ h₁₂ h).symm
-
-/-
-theorem ChangeStep.ne_cmp_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} : 
-  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
-  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
-  (¬ c₁ ≈ c₂) → s₁₂ = s₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ hc
-  by_cases hm : c₁.mutates ∨ c₂.mutates
-  case pos => exact ChangeStep.mutates_comm' h₁ h₁₂ h₂ h₂₁ hm
-  case neg =>
-    cases c₁ <;> cases c₂ <;> (simp only [not_or, Change.mutates] at *) <;> (
-      cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
-      simp [Reactor.Update.ne_cmp_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) (by intro; contradiction) (by intro; contradiction)]
-    )
-
-theorem ChangeStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {c₁ c₂ : Change} :
-  (s -[rcn₁:c₁]→ s₁) → (s₁ -[rcn₂:c₂]→ s₁₂) → 
-  (s -[rcn₂:c₂]→ s₂) → (s₂ -[rcn₁:c₁]→ s₂₁) → 
-  (∀ i₁ i₂, c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) → 
-  s₁₂ = s₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ ht
-  by_cases hm : c₁.mutates ∨ c₂.mutates
-  case pos => exact ChangeStep.mutates_comm' h₁ h₁₂ h₂ h₂₁ hm
-  case neg => 
-    simp only [not_or] at hm
-    have ⟨i₁, hi₁⟩ := mt (c₁.target_none_iff_mutates.mp) hm.left  |> Option.ne_none_iff_exists.mp
-    have ⟨i₂, hi₂⟩ := mt (c₂.target_none_iff_mutates.mp) hm.right |> Option.ne_none_iff_exists.mp
-    have ht' := ht i₁ i₂ hi₁.symm hi₂.symm
-    have ht'' : c₁.target ≠ c₂.target := by simp [←hi₁, ←hi₂, ht']
-    cases c₁ <;> cases c₂ <;> simp [Change.target] at ht''
-    case' port.port, state.state, action.action => 
-      cases h₁; case _ h₁ => cases h₁₂; case _ h₁₂ => cases h₂; case _ h₂ => cases h₂₁; case _ h₂₁ =>
-      sorry -- exact Reactor.Update.ne_id_ne_rtr_comm h₁ h₁₂ h₂ h₂₁ ht'' (by intro; contradiction)
-    all_goals { exact ChangeStep.ne_cmp_comm h₁ h₁₂ h₂ h₂₁ (by intro; contradiction) }
--/
-
-theorem ChangeStep.unique {s s₁ s₂ : State} {rcn : ID} {c : Change} :
-  (s -[rcn:c]→ s₁) → (s -[rcn:c]→ s₂) → s₁ = s₂ := by
-  intro h₁ h₂ 
-  cases h₁ <;> cases h₂
-  case' port.port h₁ _ h₂, state.state h₁ _ h₂, action.action h₁ _ h₂ => simp [Reactor.Update.unique' h₁ h₂]
-  all_goals { rfl }
-
-theorem ChangeStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {c : Change} :
-  (s₁ -[rcn:c]→ s₂) → s₁.ctx = s₂.ctx := 
-  λ h => by cases h <;> rfl
-
-theorem ChangeStep.preserves_rcns {i : ID} :
-  (s₁ -[rcn:c]→ s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) :=
-  λ h => by cases h <;> simp <;> simp [Reactor.Update.preserves_ne_cmp_or_id (by assumption)]
-
-/-
- /- For each cmp:i, the change of value either happens in cs₁ or in cs₂.
-    This is expressed in the following two lemmas, that say that one of the two
-    ChangeLists is a noop for cmp:i, one for the first step and one for the second
-    step.
- -/
-theorem ChangeListStep.first_step_noop {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
-  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
-  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
-  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  ∀ cmp i v, (s.rtr *[cmp:i]= v) → (s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
-  intro h₁ h₁₂ h₂ h₂₁ hi cmp i v hv
-  sorry -- s₁₂ and s₂₁ are completely irrelevant
-
-
-
-theorem ChangeListStep.first_step_op {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
-  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
-  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
-  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  ∀ cmp i v, (s₁₂.rtr *[cmp:i]= v) → (s₁.rtr *[cmp:i]= v ∨ s₂.rtr *[cmp:i]= v) := by
-  sorry  
-
-theorem ChangeListStep.value_identical {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
-  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
-  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
-  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  ∀ cmp i v, s₁₂.rtr *[cmp:i]= v → s₂₁.rtr *[cmp:i]= v := by
-  intros h₁ h₁₂ h₂ h₂₁ hi cmp i v hv₁₂
-  cases first_step_op h₁ h₁₂ h₂ h₂₁ hi cmp i v hv₁₂
-  case inl hv₁ =>
-    cases hv₁
-    case root hr => sorry
-    case nest s hs => sorry
-  case inr hv₂ =>
-    sorry
--/
-
-/-
- -- This will be much more interesting once mutations are in the game!
-theorem ChangeListStep.indep_comm_ids {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} :
-  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) →
-  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) →
-  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  s₁₂.rtr.allIDs = s₂₁.rtr.allIDs := by
-  intros hσσ₁ hσ₁σ₁₂ hσσ₂ hσ₂σ₂₁ his
-  sorry
--/
-
-theorem ChangeListStep.preserves_ctx : (s₁ -[rcn:cs]→* s₂) → s₁.ctx = s₂.ctx 
-  | .nil .. => rfl
-  | .cons h₁₂ h₂₃ => h₁₂.preserves_ctx.trans h₂₃.preserves_ctx
-
-theorem ChangeListStep.preserves_rcns {i : ID} : (s₁ -[rcn:cs]→* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
-  | .nil .. => rfl
-  | .cons h₁₂ h₂₃ => h₁₂.preserves_rcns.trans h₂₃.preserves_rcns
-
-/-
-theorem ChangeListStep.indep_comm {s s₁ s₂ s₁₂ s₂₁ : State} {rcn₁ rcn₂ : ID} {cs₁ cs₂ : List Change} : 
-  (s -[rcn₁:cs₁]→* s₁) → (s₁ -[rcn₂:cs₂]→* s₁₂) → 
-  (s -[rcn₂:cs₂]→* s₂) → (s₂ -[rcn₁:cs₁]→* s₂₁) → 
-  (∀ c₁ c₂ i₁ i₂, c₁ ∈ cs₁ → c₂ ∈ cs₂ → c₁.target = some i₁ → c₂.target = some i₂ → i₁ ≠ i₂) →
-  s₁₂ = s₂₁ := by
-  intro h₁ h₁₂ h₂ h₂₁ ht
-  have hIDs := ChangeListStep.indep_comm_ids h₁ h₁₂ h₂ h₂₁ ht
-  apply State.ext
-  case rtr =>
-    apply Reactor.Object.ext hIDs
-    intros cmp i v h₁₂v
-    apply ChangeListStep.value_identical h₁ h₁₂ h₂ h₂₁ ht cmp i v h₁₂v
-  case ctx =>
-    sorry -- follows from ChangeListStep.preserves_ctx
--/
-
-
 ------------------------------------------------------------------------------------------------------
-
-
--- NOTE: This only holds without mutations.
-/-
-theorem ChangeStep.rcn_agnostic : (s -[rcn₁:c]→ s₁) → (s -[rcn₂:c]→ s₂) → s₁ = s₂ := by
-  intro h₁ h₂
-  cases h₁ <;> cases h₂ <;> simp
-  case' port.port h₁ _ h₂, state.state h₁ _ h₂, action.action h₁ _ h₂ => exact Reactor.Update.unique' h₁ h₂
-
--- NOTE: This only holds without mutations.
-theorem ChangeListStep.rcn_agnostic {rcs₁ rcs₂ : List (ID × Change)} : 
-  rcs₁.map (·.snd) = rcs₂.map (·.snd) → (s -[rcns₁]→* s₁) → (s -[rcns₂]→* s₂) → s₁ = s₂ := by
-  intro he hs₁ hs₂
-  match hs₁, hs₂ with
-  | .nil .., .nil .. => rfl
-  | .cons h₁ hi₁, .cons h₂ hi₂ => 
-    rw [h₁.rcn_agnostic h₂] at hi₁
-    exact hi₁.rcn_agnostic hi₂
--/
 
 -- IDEA:
 -- Is it simpler to express this notion somehow by first defining a function that collapses
@@ -214,19 +42,22 @@ structure ChangeListEquiv (cs₁ cs₂ : List Change) : Prop where
 
 notation cs₁:max " ⋈ " cs₂:max => ChangeListEquiv cs₁ cs₂
 
-
-
-
 ------------------------------------------------------------------------------------------------------
 
+
+theorem ChangeStep.preserves_ctx {s₁ s₂ : State} {rcn : ID} {c : Change} :
+  (s₁ -[rcn:c]→ s₂) → s₁.ctx = s₂.ctx := 
+  λ h => by cases h <;> rfl
+
+theorem ChangeStep.preserves_rcns {i : ID} :
+  (s₁ -[rcn:c]→ s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) :=
+  λ h => by cases h <;> simp <;> simp [Reactor.Update.preserves_ne_cmp_or_id (by assumption)]
 
 theorem ChangeStep.preserves_Equiv : (s₁ -[rcn:c]→ s₂) → s₁.rtr ≈ s₂.rtr := by
   intro h
   cases h <;> simp
   case' port h, state h, action h => exact h.preserves_Equiv (by simp)
   
--- TODO: Consolidate the 'Change(List)Step.preserves_unchanged_*' theorems.
-
 theorem ChangeStep.preserves_unchanged_port {i : ID} :
   (s₁ -[rcn:c]→ s₂) → (∀ v, .port i v ≠ c) → (s₁.rtr.obj? .prt i = s₂.rtr.obj? .prt i) := by
   intro h hc 
@@ -281,6 +112,14 @@ theorem ChangeStep.preserves_port_role {i : ID} :
   case' state h, action h => simp [←h.preserves_ne_cmp_or_id (cmp' := .prt) (i' := i) (by simp) (by simp) (by simp), ho]
   all_goals exact ho
   
+theorem ChangeListStep.preserves_ctx : (s₁ -[rcn:cs]→* s₂) → s₁.ctx = s₂.ctx 
+  | .nil .. => rfl
+  | .cons h₁₂ h₂₃ => h₁₂.preserves_ctx.trans h₂₃.preserves_ctx
+
+theorem ChangeListStep.preserves_rcns {i : ID} : (s₁ -[rcn:cs]→* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
+  | .nil .. => rfl
+  | .cons h₁₂ h₂₃ => h₁₂.preserves_rcns.trans h₂₃.preserves_rcns
+
 theorem ChangeListStep.preserves_Equiv : (s₁ -[rcn:cs]→* s₂) → s₁.rtr ≈ s₂.rtr
   | nil .. => .refl
   | cons h hi => h.preserves_Equiv.trans hi.preserves_Equiv
@@ -395,9 +234,8 @@ theorem ChangeListStep.equiv_changes_eq_result :
   refine State.ext _ _ ?_ (h₁.preserves_ctx.symm.trans h₂.preserves_ctx)
   have hq := h₁.preserves_Equiv.symm.trans h₂.preserves_Equiv
   apply hq.obj?_ext'
-  intro cmp i
-  cases cmp 
-  case rcn => simp [←h₁.preserves_rcns, ←h₂.preserves_rcns]
+  intro cmp i hnr
+  cases cmp <;> simp [←h₁.preserves_rcns, ←h₂.preserves_rcns] at hnr ⊢
   case stv =>
     have hs := he.state i
     cases hc : cs₁.lastSome? (·.stateValue? i)
@@ -425,8 +263,6 @@ theorem ChangeListStep.equiv_changes_eq_result :
         simp [hr₂] at hl₂
         exact hl₁.right.symm.trans hl₂.right
   case act =>
-    sorry
-  case rtr => -- TODO: This case is a problem.
     sorry
 
 theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr ≈ s₂.rtr
