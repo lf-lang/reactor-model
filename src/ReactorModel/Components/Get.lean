@@ -1,4 +1,4 @@
-import ReactorModel.Components.Reactor.Basic
+import ReactorModel.Components.Reactor.Proper
 
 open Classical
 

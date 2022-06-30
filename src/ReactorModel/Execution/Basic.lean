@@ -2,6 +2,10 @@ import ReactorModel.Execution.State
 
 namespace Execution
 
+-- NOTE: This does not constrain actions to have to be scheduled into the future.
+--       If we schedule something for the past, it doesn't matter, since that action value will never be read.
+--       But if the current tag has a microstep of 0, it is possible to schedule something for the current tag
+--       (in the `none` case).
 noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
   match act.ids.filter (·.time = t) |>.max with
   | none => act.update ⟨t, 0⟩ v
