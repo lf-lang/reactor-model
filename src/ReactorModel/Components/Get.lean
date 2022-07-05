@@ -72,7 +72,7 @@ theorem con?_def :
   case inl h => exact ⟨λ _ => ⟨h.some, by simp_all⟩, λ ⟨l, hl⟩ => by simp [σ.uniqueIDs h.some l, hl]⟩
   case inr h => exact (λ l => absurd (Nonempty.intro l) h  )      
 
-noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (Rooted ID) ⇉ cmp.type := {
+noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (RootedID) ⇉ cmp.type := {
   lookup := λ i => 
     match i, cmp with 
     | ⊤, .rtr => σ

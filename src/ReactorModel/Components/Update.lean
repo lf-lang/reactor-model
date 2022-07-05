@@ -234,7 +234,7 @@ structure Mutation.rtrRel (cmp : Cmp) (cmpRel : (ID ⇉ cmp.type) → (ID ⇉ cm
   mutate : cmpRel (σ₁.cmp? cmp) (σ₂.cmp? cmp)
 
 open Mutation in
-inductive Mutation (σ₁ σ₂ : Reactor) (cmp : Cmp) (cmpRel : (ID ⇉ cmp.type) → (ID ⇉ cmp.type) → Prop) : Rooted ID → Prop
+inductive Mutation (σ₁ σ₂ : Reactor) (cmp : Cmp) (cmpRel : (ID ⇉ cmp.type) → (ID ⇉ cmp.type) → Prop) : RootedID → Prop
   | root : (rtrRel cmp cmpRel) σ₁ σ₂ → Mutation σ₁ σ₂ cmp cmpRel ⊤ 
   | nest {i} : σ₁ -[Cmp.rtr;i (rtrRel cmp cmpRel)]→ σ₂ → Mutation σ₁ σ₂ cmp cmpRel (Rooted.nest i) 
 
