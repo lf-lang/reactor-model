@@ -17,7 +17,6 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ rcns} :
     rw [InstExecution.preserves_tag $ single he] at hg
     exact (he.preserves_ctx_past_future _ hg).trans $ hi hg
     
--- NOTE: This won't hold once we introduce mutations.
 theorem InstExecution.preserves_rcns {i : ID} :
   (s₁ ⇓ᵢ+[rcns] s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
   | single h => h.preserves_rcns

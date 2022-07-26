@@ -30,6 +30,10 @@ instance : EmptyCollection (α ⇉ β) where
 instance : Inhabited (Finmap α β) where
   default := ∅
 
+@[simp]
+theorem empty_lookup_none : (∅ : α ⇉ β).lookup i = none := by 
+  rfl
+
 theorem ext_iff {f₁ f₂ : α ⇉ β} : f₁ = f₂ ↔ ∀ i, f₁ i = f₂ i :=
   sorry
 
@@ -50,6 +54,11 @@ theorem ids_def' {f : α ⇉ β} {i : α} : i ∈ f.ids ↔ ∃ b, f i = some b 
   apply Iff.intro
   case mp =>  exact λ h => ⟨_, (Option.ne_none_iff_exists.mp $ ids_def.mp h).choose_spec.symm⟩
   case mpr => exact λ ⟨_, h⟩ => ids_def.mpr $ Option.ne_none_iff_exists.mpr ⟨_, h.symm⟩
+
+@[simp]
+theorem empty_ids_empty : (∅ : α ⇉ β).ids = ∅ := by 
+  apply Finset.ext
+  simp [ids_def]
 
 def nonempty (f : α ⇉ β) : Prop := ∃ i, f i ≠ none
 

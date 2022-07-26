@@ -73,6 +73,12 @@ theorem ChangeStep.preserves_port_role {i : ID} :
   case' state h, action h => simp [←h.preserves_ne_cmp_or_id (cmp' := .prt) (i' := i) (by simp) (by simp) (by simp), ho]
   all_goals exact ho
   
+theorem ChangeStep.preserves_action_at_unchanged_times {i : ID} : 
+  (s₁ -[rcn:c]→ s₂) → (∀ v, .action i t v ≠ c) → 
+  (s₁.rtr.obj? .act i = some a₁) → (s₂.rtr.obj? .act i = some a₂) →
+  (∀ m, a₁ ⟨t, m⟩ = a₂ ⟨t, m⟩) :=
+  sorry
+
 theorem ChangeStep.port_change_mem_rtr {i : ID} : (s -[rcn:.port i v]→ s') → (∃ p, s.rtr.obj? .prt i = some p) 
   | .port hu => hu.obj?_target
 
@@ -192,8 +198,11 @@ theorem ChangeListStep.port_change_mem_rtr {i : ID} :
 theorem ChangeListStep.preserves_actions_at_unchanged_times {i : ID} : 
   (s₁ -[rcn:cs]→* s₂) → (∀ v, .action i t v ∉ cs) → 
   (s₁.rtr.obj? .act i = some a₁) → (s₂.rtr.obj? .act i = some a₂) →
-  (∀ m, a₁ ⟨t, m⟩ = a₂ ⟨t, m⟩) :=
-  sorry
+  (∀ m, a₁ ⟨t, m⟩ = a₂ ⟨t, m⟩) := by
+  intro hs hc ha₁ ha₂ m  
+  induction hs 
+  case nil => sorry
+  case cons => sorry
 
 theorem ChangeListStep.equiv_changes_eq_result :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by

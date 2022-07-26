@@ -82,7 +82,7 @@ instance : Sdiff (Finset α) := sorry
 
 lemma eq_empty_iff_forall_not_mem {s : Finset α} : s = ∅ ↔ ∀ x, x ∉ s := sorry
 
-
+@[simp] theorem not_mem_empty (a : α) : a ∉ (∅ : Finset α) := sorry
 
 def max' [LinearOrder α] (s : Finset α) (H : s.nonempty) : α := sorry
 

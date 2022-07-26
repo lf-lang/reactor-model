@@ -134,20 +134,48 @@ theorem obj?_ext :
     exact Reactor.obj?_and_local_mem_to_cmp? hs hm
   )
 
--- TODO: You need to somehow show by induction that it is sufficient to have equal structure,
---       and equality of the components in a reactor.
---       You'd want to do some kind of induction over the structure of a reactor, where the base
---       case is a reactor without nested reactors.
---       Do you need to write a custom induction principle for this?
 theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → σ₁.obj? cmp i = σ₂.obj? cmp i) → (σ₁ = σ₂) := by
   intro he ho
-  apply Reactor.ext
-  refine ⟨?ports, ?acts, ?state, ?rcns, ?nest⟩
-  case ports => exact he.obj?_ext (cmp := .prt) (by simp [ho])
-  case acts =>  exact he.obj?_ext (cmp := .act) (by simp [ho])
-  case state => exact he.obj?_ext (cmp := .stv) (by simp [ho])
-  case rcns =>  exact he.obj?_ext (cmp := .rcn) (by simp [ho])
-  case nest =>  sorry
+  induction σ₁ using Reactor.nest_ind generalizing σ₂
+  all_goals (
+    apply Reactor.ext
+    refine ⟨?ports, ?acts, ?state, ?rcns, ?_⟩
+    case ports => exact he.obj?_ext (cmp := .prt) (by simp [ho])
+    case acts =>  exact he.obj?_ext (cmp := .act) (by simp [ho])
+    case state => exact he.obj?_ext (cmp := .stv) (by simp [ho])
+    case rcns =>  exact he.obj?_ext (cmp := .rcn) (by simp [ho])
+  )
+  case base σ₁ h =>
+    rw [h] 
+    apply Finmap.ext
+    intro i
+    by_contra hc
+    simp at hc
+    rw [←Ne.def] at hc
+    have hi := Finmap.ids_def.mpr hc.symm
+    have hn := he.top .rtr
+    simp [h] at hn
+    simp [←hn] at hi
+  case step σ₁ hi =>
+    apply Finmap.ext
+    intro i
+    cases hn₁ : σ₁.nest i
+    case none =>
+      rw [←Option.not_isSome_iff_eq_none, Option.isSome_iff_exists] at hn₁
+      have hi₁ := (mt Finmap.ids_def'.mp) hn₁
+      rw [he.top .rtr] at hi₁
+      have hi₂ := (mt Finmap.ids_def'.mpr) hi₁
+      rw [←Option.isSome_iff_exists, Option.not_isSome_iff_eq_none] at hi₂
+      simp [hi₂]
+    case some n₁ =>
+      have hn := Finmap.ids_def'.mpr ⟨_, hn₁⟩
+      rw [he.top .rtr] at hn
+      have ⟨n₂, hn₂⟩ := Finmap.ids_def'.mp hn
+      simp [cmp?] at hn₂
+      simp [hn₂]
+      apply hi n₁ (Finmap.values_def.mpr ⟨_, hn₁⟩) (he.nest hn₁ hn₂)
+      intro cmp i' hc
+      exact eq_obj?_nest he (ho cmp i' hc) (cmp?_to_obj? hn₁) (cmp?_to_obj? hn₂)
 
 end Equiv
 end Reactor

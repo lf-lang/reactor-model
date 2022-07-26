@@ -162,6 +162,13 @@ theorem ext {rtr₁ rtr₂ : Reactor} :
   rtr₁ = rtr₂ :=
   λ h => ext_iff.mpr h
 
+theorem nest_ind 
+  {motive : Reactor → Prop}  
+  (base : ∀ rtr, (rtr.nest = ∅) → motive rtr)
+  (step : ∀ rtr, (∀ n ∈ rtr.nest.values, motive n) → motive rtr) :
+  (∀ rtr, motive rtr) := by
+  sorry
+
 noncomputable def ports' (rtr : Reactor) (k : Kind) : ID ⇉ Port :=
   rtr.ports.filter' (·.kind = k)
 

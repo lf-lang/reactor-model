@@ -82,7 +82,7 @@ noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (RootedID) ⇉ cmp.type := {
 }
 
 noncomputable def obj?' (σ : Reactor) (cmp : Cmp) : ID ⇉ cmp.type := 
-  σ.obj? cmp |>.map' (·.nest?) Rooted.nest?_inj
+  σ.obj? cmp |>.map' (·.nest?) RootedID.nest?_inj
 
 variable {σ : Reactor} {cmp : Cmp} 
 
@@ -218,12 +218,12 @@ theorem ids_mem_iff_contains : (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
   case mp =>
     simp [Finmap.ids_def'] at h
     have ⟨j, ⟨_ , h⟩, hj⟩ := h
-    cases j <;> simp [Rooted.nest?] at hj
+    cases j <;> simp [RootedID.nest?] at hj
     rw [←hj]
     exact ⟨_, (obj?_to_con?_and_cmp? h).choose_spec.left⟩
   case mpr =>
     have ⟨_, h, _⟩ := con?_to_obj?_and_cmp? h.choose_spec
-    exact ⟨_, Finmap.ids_def'.mpr ⟨_, h⟩, by simp [Rooted.nest?]⟩  
+    exact ⟨_, Finmap.ids_def'.mpr ⟨_, h⟩, by simp [RootedID.nest?]⟩  
 
 theorem ids_mem_iff_obj? : (i ∈ σ.ids cmp) ↔ (∃ o, σ.obj? cmp i = some o) := by
   simp [←contains_iff_obj?, ids_mem_iff_contains]
