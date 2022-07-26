@@ -232,9 +232,19 @@ theorem ChangeListStep.preserves_actions_at_unchanged_times {i : ID} :
   (s₁.rtr.obj? .act i = some a₁) → (s₂.rtr.obj? .act i = some a₂) →
   (∀ m, a₁ ⟨t, m⟩ = a₂ ⟨t, m⟩) := by
   intro hs hc ha₁ ha₂ m  
-  induction hs 
-  case nil => sorry
-  case cons => sorry
+  induction hs generalizing a₁ a₂
+  case nil =>
+    simp [ha₁] at ha₂
+    simp [ha₂]  
+  case cons hd _ tl hs₁₂ _ hi =>
+    have ⟨_, haₘ⟩ := hs₁₂.preserves_Equiv.obj?_iff.mp ⟨_, ha₁⟩
+    have hhd : ∀ v, .action i t v ≠ hd := by 
+      intro v
+      exact mt List.mem_cons.mpr (hc v) |> (not_or _ _).mp |>.left 
+    have htl : ∀ v, .action i t v ∉ tl := by 
+      intro v
+      exact mt List.mem_cons.mpr (hc v) |> (not_or _ _).mp |>.right
+    simp [hs₁₂.preserves_action_at_unchanged_times hhd ha₁ haₘ m, hi htl haₘ ha₂]
 
 theorem ChangeListStep.equiv_changes_eq_result :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
