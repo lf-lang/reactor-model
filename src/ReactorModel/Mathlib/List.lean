@@ -111,4 +111,27 @@ theorem forall₂_iff {α β} (R : α → β → Prop) (l₁ : List α) (l₂ : 
   (forall₂ R l₁ l₂) ↔ (l₁ = [] ∧ l₂ = []) ∨ ∃ hd₁ hd₂ tl₁ tl₂, R hd₁ hd₂ ∧ forall₂ R tl₁ tl₂ ∧ l₁ = hd₁ :: tl₁ ∧ l₂ = hd₂ :: tl₂ := 
   sorry
 
+theorem filterMap_nil {l : List α} : (l.filterMap f = []) → ∀ a ∈ l, f a = none := by
+  sorry
+
+def lastSome? (f : α → Option β) : List α → Option β
+  | []    => none
+  | a::as => match lastSome? f as with
+    | some b => some b
+    | none   => f a
+
+theorem lastSome?_empty_eq_none : [].lastSome? f = none := rfl
+
+theorem lastSome?_eq_some_iff {l : List α} : 
+  (∃ b, l.lastSome? f = some b) ↔ (∃ b a, a ∈ l ∧ (f a) = some b) := 
+  sorry
+
+theorem lastSome?_head : 
+  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = none) → some b = f hd :=
+  sorry
+
+theorem lastSome?_tail : 
+  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = some b') → b = b' :=
+  sorry
+
 end List

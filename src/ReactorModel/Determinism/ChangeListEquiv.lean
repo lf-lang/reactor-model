@@ -2,26 +2,6 @@ import ReactorModel.Execution
 
 open Classical
 
-def List.lastSome? (f : α → Option β) : List α → Option β
-  | []    => none
-  | a::as => match lastSome? f as with
-    | some b => some b
-    | none   => f a
-
-theorem List.lastSome?_empty_eq_none : [].lastSome? f = none := rfl
-
-theorem List.lastSome?_eq_some_iff {l : List α} : 
-  (∃ b, l.lastSome? f = some b) ↔ (∃ b a, a ∈ l ∧ (f a) = some b) := 
-  sorry
-
-theorem List.lastSome?_head : 
-  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = none) → some b = f hd :=
-  sorry
-
-theorem List.lastSome?_tail : 
-  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = some b') → b = b' :=
-  sorry
-
 -- IDEA:
 -- Is it simpler to express this notion somehow by first defining a function that collapses
 -- "absorbed" changes and then require the resulting lists be permutations of eachother
