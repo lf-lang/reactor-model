@@ -105,6 +105,9 @@ noncomputable def update' (f : α ⇉ β) (a : α) (b : β) : α ⇉ β := f.upd
 
 theorem update_nonempty (f : α ⇉ β) (a : α) (b : β) : f.nonempty → (f.update a b).nonempty := sorry
 
+theorem update_self (f : α ⇉ β) {a : α} (b : Option β) : (f.update a b) a = b :=
+  sorry
+
 theorem update_ne (f : α ⇉ β) {a a' : α} (h : a ≠ a') (b : Option β) : (f.update a b) a' = f a' :=
   sorry
 
