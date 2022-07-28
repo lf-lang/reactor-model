@@ -247,8 +247,28 @@ theorem ChangeListStep.preserves_actions_at_unchanged_times {i : ID} :
     simp [hs₁₂.preserves_action_at_unchanged_times hhd ha₁ haₘ m, hi htl haₘ ha₂]
 
 theorem ChangeListStep.split :
-  (s₁ -[rcn: cs ++ cs']→* s₃) → ∃ s₂, (s₁ -[rcn:cs]→* s₂) ∧ (s₂ -[rcn:cs']→* s₃) :=
-  sorry
+  (s₁ -[rcn: cs ++ cs']→* s₃) → ∃ s₂, (s₁ -[rcn:cs]→* s₂) ∧ (s₂ -[rcn:cs']→* s₃) := by
+  intro h
+  generalize hg : cs ++ cs' = l
+  rw [hg] at h
+  induction h generalizing cs cs'
+  case nil s₁ =>
+    have ⟨h, h'⟩ := List.append_eq_nil.mp hg
+    rw [h, h']
+    exact ⟨s₁, .nil, .nil⟩
+  case cons s₁ _ hd _ tl h₁₂ _ hi =>
+    cases cs
+    case nil =>
+      have ⟨_, hi₁, hi₂⟩ := @hi [] tl rfl
+      cases hi₁
+      simp at hg
+      rw [hg]
+      exact ⟨_, ⟨.nil, .cons h₁₂ hi₂⟩⟩
+    case cons hd' tl' =>
+      simp at hg
+      rw [hg.left]
+      have ⟨_, hi₁, hi₂⟩ := hi hg.right
+      exact ⟨_, ⟨.cons h₁₂ hi₁, hi₂⟩⟩
 
 theorem ChangeListStep.equiv_changes_eq_result :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
@@ -301,36 +321,16 @@ theorem ChangeListStep.equiv_changes_eq_result :
       generalize hacs₁ : cs₁.filterMap (·.actionValue? i g.time) = acs₁
       generalize hacs₂ : cs₂.filterMap (·.actionValue? i g.time) = acs₂
       have ⟨a, hc⟩ := h₁.preserves_Equiv.obj?_iff.mpr ⟨_, ha₁⟩
-      /-have hnil : acs₁ = [] → a₁ g = a₂ g := by
-        intro h
-        simp [h] at *
-        have hm₁ : ∀ v, .action i g.time v ∉ cs₁ := by
-          intro v
-          by_contra hc
-          have hc' := List.filterMap_nil hacs₁ _ hc
-          simp [Change.actionValue?] at hc'
-        have hm₂ : ∀ v, .action i g.time v ∉ cs₂ := by
-          rw [hacs₁] at ha
-          intro v
-          by_contra hc
-          have hc' := List.filterMap_nil ha.symm _ hc
-          simp [Change.actionValue?] at hc'
-        simp [←h₁.preserves_actions_at_unchanged_times hm₁ hc ha₁ g.microstep,
-              ←h₂.preserves_actions_at_unchanged_times hm₂ hc ha₂ g.microstep]
-      -/
       clear hacs₂
       have hacs₂ := ha.symm.trans hacs₁
-      
       generalize hs' : s = s'
       generalize ha' : a = a'
       have hg : a g = a' g := by simp [ha']
       have hc' := hc
       rw [hs'] at h₂ hc'
       rw [ha'] at hc'
-      clear ha' hs'
-    
-      clear he hq ha -- ha₁ ha₂ h₁ h₂
-      induction acs₁ generalizing cs₁ cs₂ s s' a a' -- a₁ a₂ s₁ s₂
+      clear ha' hs' he hq ha
+      induction acs₁ generalizing cs₁ cs₂ s s' a a'
       case nil =>
         have hm₁ : ∀ v, .action i g.time v ∉ cs₁ := by
           intro v
