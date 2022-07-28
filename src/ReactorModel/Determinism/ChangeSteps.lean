@@ -246,6 +246,10 @@ theorem ChangeListStep.preserves_actions_at_unchanged_times {i : ID} :
       exact mt List.mem_cons.mpr (hc v) |> (not_or _ _).mp |>.right
     simp [hs₁₂.preserves_action_at_unchanged_times hhd ha₁ haₘ m, hi htl haₘ ha₂]
 
+theorem ChangeListStep.split :
+  (s₁ -[rcn: cs ++ cs']→* s₃) → ∃ s₂, (s₁ -[rcn:cs]→* s₂) ∧ (s₂ -[rcn:cs']→* s₃) :=
+  sorry
+
 theorem ChangeListStep.equiv_changes_eq_result :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
   intro h₁ h₂ he
@@ -281,39 +285,76 @@ theorem ChangeListStep.equiv_changes_eq_result :
         simp [hr₂] at hl₂
         exact hl₁.right.symm.trans hl₂.right
   case act =>
-    cases hc₁ : s₁.rtr.obj? .act i <;> cases hc₂ : s₂.rtr.obj? .act i <;> simp
+    cases ha₁ : s₁.rtr.obj? .act i <;> cases ha₂ : s₂.rtr.obj? .act i <;> simp
     case none.some =>
-      have ⟨_, hc₁'⟩ := hq.obj?_iff.mpr ⟨_, hc₂⟩ 
-      have := hc₁.symm.trans hc₁'
+      have ⟨_, ha₁'⟩ := hq.obj?_iff.mpr ⟨_, ha₂⟩ 
+      have := ha₁.symm.trans ha₁'
       contradiction
     case some.none =>
-      have ⟨_, hc₂'⟩ := hq.obj?_iff.mp ⟨_, hc₁⟩ 
-      have := hc₂.symm.trans hc₂'
+      have ⟨_, ha₂'⟩ := hq.obj?_iff.mp ⟨_, ha₁⟩ 
+      have := ha₂.symm.trans ha₂'
       contradiction
     case some.some a₁ a₂ => 
       refine Finmap.ext _ _ ?_
       intro g
       have ha := he.actions i g.time
-      generalize hacs : cs₁.filterMap (·.actionValue? i g.time) = acs
-      induction acs
-      case nil =>
-        have hm₁ : ∀ v, .action i g.time v ∉ cs₁ := by 
+      generalize hacs₁ : cs₁.filterMap (·.actionValue? i g.time) = acs₁
+      generalize hacs₂ : cs₂.filterMap (·.actionValue? i g.time) = acs₂
+      have ⟨a, hc⟩ := h₁.preserves_Equiv.obj?_iff.mpr ⟨_, ha₁⟩
+      /-have hnil : acs₁ = [] → a₁ g = a₂ g := by
+        intro h
+        simp [h] at *
+        have hm₁ : ∀ v, .action i g.time v ∉ cs₁ := by
           intro v
           by_contra hc
-          have hc' := List.filterMap_nil hacs _ hc
+          have hc' := List.filterMap_nil hacs₁ _ hc
           simp [Change.actionValue?] at hc'
-        have hm₂ : ∀ v, .action i g.time v ∉ cs₂ := by 
-          rw [hacs] at ha
+        have hm₂ : ∀ v, .action i g.time v ∉ cs₂ := by
+          rw [hacs₁] at ha
           intro v
           by_contra hc
           have hc' := List.filterMap_nil ha.symm _ hc
           simp [Change.actionValue?] at hc'
-        have ⟨_, hc⟩ := h₁.preserves_Equiv.obj?_iff.mpr ⟨_, hc₁⟩
-        simp [←h₁.preserves_actions_at_unchanged_times hm₁ hc hc₁ g.microstep,
-              ←h₂.preserves_actions_at_unchanged_times hm₂ hc hc₂ g.microstep]
+        simp [←h₁.preserves_actions_at_unchanged_times hm₁ hc ha₁ g.microstep,
+              ←h₂.preserves_actions_at_unchanged_times hm₂ hc ha₂ g.microstep]
+      -/
+      clear hacs₂
+      have hacs₂ := ha.symm.trans hacs₁
+      
+      generalize hs' : s = s'
+      generalize ha' : a = a'
+      have hg : a g = a' g := by simp [ha']
+      have hc' := hc
+      rw [hs'] at h₂ hc'
+      rw [ha'] at hc'
+      clear ha' hs'
+    
+      clear he hq ha -- ha₁ ha₂ h₁ h₂
+      induction acs₁ generalizing cs₁ cs₂ s s' a a' -- a₁ a₂ s₁ s₂
+      case nil =>
+        have hm₁ : ∀ v, .action i g.time v ∉ cs₁ := by
+          intro v
+          by_contra hc
+          have hc' := List.filterMap_nil hacs₁ _ hc
+          simp [Change.actionValue?] at hc'
+        have hm₂ : ∀ v, .action i g.time v ∉ cs₂ := by
+          intro v
+          by_contra hc
+          have hc' := List.filterMap_nil hacs₂ _ hc
+          simp [Change.actionValue?] at hc'
+        simp [←h₁.preserves_actions_at_unchanged_times hm₁ hc ha₁ g.microstep,
+              ←h₂.preserves_actions_at_unchanged_times hm₂ hc' ha₂ g.microstep]
+        exact hg
       case cons hd tl hi =>
-        -- TODO: `hi` can't be used (cf. `hacs`).
-        --       Does something need to be generalized?
+        have ⟨lhd₁, ltl₁, hl₁, hlhd₁, hltl₁⟩ := List.filterMap_cons hacs₁
+        have ⟨lhd₂, ltl₂, hl₂, hlhd₂, hltl₂⟩ := List.filterMap_cons hacs₂
+        rw [←hl₁] at h₁
+        rw [←hl₂] at h₂
+        have ⟨s₁', hshd₁, hstl₁⟩ := h₁.split
+        have ⟨s₂', hshd₂, hstl₂⟩ := h₂.split
+        have ⟨aq₁, hq₁⟩ := hshd₁.preserves_Equiv.obj?_iff.mp ⟨_, hc⟩
+        have ⟨aq₂, hq₂⟩ := hshd₂.preserves_Equiv.obj?_iff.mp ⟨_, hc'⟩
+        suffices h : aq₁ g = aq₂ g from  hi hstl₁ hltl₁ _ hq₁ hltl₂ _ hstl₂ _ h hq₂
         sorry
       
   

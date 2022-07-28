@@ -114,6 +114,11 @@ theorem forall₂_iff {α β} (R : α → β → Prop) (l₁ : List α) (l₂ : 
 theorem filterMap_nil {l : List α} : (l.filterMap f = []) → ∀ a ∈ l, f a = none := by
   sorry
 
+theorem filterMap_cons {l : List α} :
+  (l.filterMap f = hd :: tl) → 
+  ∃ lhd ltl, (lhd ++ ltl = l) ∧ (lhd.filterMap f = [hd]) ∧ (ltl.filterMap f = tl) :=
+  sorry
+
 def lastSome? (f : α → Option β) : List α → Option β
   | []    => none
   | a::as => match lastSome? f as with
