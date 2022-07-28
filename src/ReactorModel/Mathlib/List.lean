@@ -119,6 +119,11 @@ theorem filterMap_cons {l : List α} :
   ∃ lhd ltl, (lhd ++ ltl = l) ∧ (lhd.filterMap f = [hd]) ∧ (ltl.filterMap f = tl) :=
   sorry
 
+theorem filterMap_singleton_split {l : List α} :
+  (l.filterMap f = [b]) → 
+  ∃ hd a tl, (hd ++ [a] ++ tl = l) ∧ (hd.filterMap f = []) ∧ (f a = some b) ∧ (tl.filterMap f = []) :=
+  sorry
+
 def lastSome? (f : α → Option β) : List α → Option β
   | []    => none
   | a::as => match lastSome? f as with

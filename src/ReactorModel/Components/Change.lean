@@ -36,6 +36,10 @@ abbrev isAction : Change → Bool
   | action .. => true
   | _ => false
 
+def isActionForTime (t : Time) : Change → Bool 
+  | action _ t' _ => t = t'
+  | _ => false
+
 def portValue? (t : ID) : Change → Option Value
   | port t' v => if t' = t then some v else none
   | _ => none
@@ -83,6 +87,34 @@ theorem isState_iff_stateValue?_eq_some {c : Change} :
     case state t v => exists t, v; simp
   case mpr =>
     cases c <;> simp [stateValue?]
+
+theorem isActionForTime_iff_actionValue?_eq_some {c : Change} :
+  (c = .action i t v) ↔ (c.actionValue? i t = some v) := by
+  constructor
+  case mp =>
+    intro h
+    cases c <;> simp_all [actionValue?]
+  case mpr =>
+    intro h
+    cases c <;> simp_all [actionValue?]
+    case action =>
+      split at h <;> simp_all
+
+theorem actionValue?_none {c : Change} :
+  (c.actionValue? i t = none) → (∀ v, c ≠ .action i t v) := by
+  intro h
+  cases c
+  case action => 
+    intro v
+    simp [actionValue?] at h
+    split at h
+    case inl => contradiction
+    case inr h' => 
+      simp at h' ⊢ 
+      intro h hh
+      have := h' h
+      contradiction
+  all_goals simp
 
 end 
 

@@ -270,6 +270,14 @@ theorem ChangeListStep.split :
       have ⟨_, hi₁, hi₂⟩ := hi hg.right
       exact ⟨_, ⟨.cons h₁₂ hi₁, hi₂⟩⟩
 
+theorem ChangeListStep.singleton :
+  (s₁ -[rcn:[c]]→* s₂) → (s₁ -[rcn:c]→ s₂) := by
+  intro h
+  cases h
+  case cons h h' =>
+    cases h'
+    exact h
+
 theorem ChangeListStep.equiv_changes_eq_result :
   (s -[rcn₁:cs₁]→* s₁) → (s -[rcn₂:cs₂]→* s₂) → (cs₁ ⋈ cs₂) → s₁ = s₂ := by
   intro h₁ h₂ he
@@ -318,6 +326,8 @@ theorem ChangeListStep.equiv_changes_eq_result :
       refine Finmap.ext _ _ ?_
       intro g
       have ha := he.actions i g.time
+      -- this is an exercise in removing alot of unncessecary information 
+      -- from the induction, to make its hypothesis usable
       generalize hacs₁ : cs₁.filterMap (·.actionValue? i g.time) = acs₁
       generalize hacs₂ : cs₂.filterMap (·.actionValue? i g.time) = acs₂
       have ⟨a, hc⟩ := h₁.preserves_Equiv.obj?_iff.mpr ⟨_, ha₁⟩
@@ -354,7 +364,85 @@ theorem ChangeListStep.equiv_changes_eq_result :
         have ⟨s₂', hshd₂, hstl₂⟩ := h₂.split
         have ⟨aq₁, hq₁⟩ := hshd₁.preserves_Equiv.obj?_iff.mp ⟨_, hc⟩
         have ⟨aq₂, hq₂⟩ := hshd₂.preserves_Equiv.obj?_iff.mp ⟨_, hc'⟩
-        suffices h : aq₁ g = aq₂ g from  hi hstl₁ hltl₁ _ hq₁ hltl₂ _ hstl₂ _ h hq₂
-        sorry
-      
+        suffices h : aq₁ g = aq₂ g from hi hstl₁ hltl₁ _ hq₁ hltl₂ _ hstl₂ _ h hq₂
+        -- here we build a long chain of equalities of actions at tag g
+        --
+        -- 1: preparation
+        have ⟨l₁, l₂, l₃, h₁, h₁', h₁'', h₁'''⟩ := List.filterMap_singleton_split hlhd₁
+        have h₁' := List.filterMap_nil h₁'
+        have h₁''' := List.filterMap_nil h₁'''
+        rw [←h₁] at hshd₁
+        have ⟨_, ho₁⟩ := hshd₁.preserves_Equiv.obj?_iff.mpr ⟨_, hq₁⟩
+        have ⟨A2, hshd₁, hshd₁''⟩ := hshd₁.split
+        have ⟨A1, hshd₁, hshd₁'⟩ := hshd₁.split
+        -- 1: step before hd
+        have ⟨_, ho₁'⟩ := hshd₁.preserves_Equiv.obj?_iff.mp ⟨_, ho₁⟩
+        have hm₁ : ∀ v, .action i g.time v ∉ l₁ := fun v h => Ne.irrefl $ Change.actionValue?_none (h₁' _ h) v
+        have hr₁ := hshd₁.preserves_actions_at_unchanged_times hm₁ ho₁ ho₁' g.microstep
+        -- 1: step hd
+        have hshd₁' := ChangeListStep.singleton hshd₁'
+        rw [Change.isActionForTime_iff_actionValue?_eq_some.mpr h₁''] at hshd₁'
+        cases hshd₁'; case action hu₁ =>
+        have ⟨_, hv₁, hv₁'⟩ := hu₁.change'
+        -- 1: step after hd
+        have ⟨_, ho₁'''⟩ := hshd₁''.preserves_Equiv.obj?_iff.mpr ⟨_, hq₁⟩
+        have hm₃ : ∀ v, .action i g.time v ∉ l₃ := fun v h => Ne.irrefl $ Change.actionValue?_none (h₁''' _ h) v
+        have hr₃ := hshd₁''.preserves_actions_at_unchanged_times hm₃ ho₁''' hq₁ g.microstep
+        -- 2: preparation
+        have ⟨l₁', l₂', l₃', h₂, h₂', h₂'', h₂'''⟩ := List.filterMap_singleton_split hlhd₂
+        have h₂' := List.filterMap_nil h₂'
+        have h₂''' := List.filterMap_nil h₂'''
+        rw [←h₂] at hshd₂
+        have ⟨_, ho₂⟩ := hshd₂.preserves_Equiv.obj?_iff.mpr ⟨_, hq₂⟩
+        have ⟨B2, hshd₂, hshd₂''⟩ := hshd₂.split
+        have ⟨B1, hshd₂, hshd₂'⟩ := hshd₂.split 
+        -- 2: step before hd
+        have ⟨_, ho₂'⟩ := hshd₂.preserves_Equiv.obj?_iff.mp ⟨_, ho₂⟩
+        have hm₁' : ∀ v, .action i g.time v ∉ l₁' := fun v h => Ne.irrefl $ Change.actionValue?_none (h₂' _ h) v
+        have hr₁' := hshd₂.preserves_actions_at_unchanged_times hm₁' ho₂ ho₂' g.microstep
+        -- 2: step hd
+        have hshd₂' := ChangeListStep.singleton hshd₂'
+        rw [Change.isActionForTime_iff_actionValue?_eq_some.mpr h₂''] at hshd₂'
+        cases hshd₂'; case action hu₂ =>
+        have ⟨_, hv₂, hv₂'⟩ := hu₂.change'
+        -- 2: step after hd
+        have ⟨_, ho₂'''⟩ := hshd₂''.preserves_Equiv.obj?_iff.mpr ⟨_, hq₂⟩
+        have hm₃' : ∀ v, .action i g.time v ∉ l₃' := fun v h => Ne.irrefl $ Change.actionValue?_none (h₂''' _ h) v
+        have hr₃' := hshd₂''.preserves_actions_at_unchanged_times hm₃' ho₂''' hq₂ g.microstep
+
+        checkpoint
+        -- ho₁ : s.rtr's action is w7
+        -- ho₁' : A1's action is w6
+        -- hr₁ : w6 and w7 are the same at tag g
+        -- hv₁ : A1's action is w5
+        -- hv₁' : σ'✝₁'s action is w5 with the hd action scheduled
+        -- ho₁''' : σ'✝₁'s action is w4
+        -- hr₃ : w4 and aq1 are the same at tag g
+        -- -> aq1 and w7 are equal at tag g
+        -- then use hg to show that w7 and w3 are equal at tag g
+        simp [ho₁'] at hv₁
+        rw [←hv₁] at hv₁'
+        simp [hv₁'] at ho₁'''
+        rw [←ho₁'''] at hr₃
+        rw [←hr₃]
+        simp [ho₂'] at hv₂
+        rw [←hv₂] at hv₂'
+        simp [hv₂'] at ho₂'''
+        rw [←ho₂'''] at hr₃'
+        rw [←hr₃']
+        simp [hc] at ho₁
+        simp [hc'] at ho₂
+        rw [←ho₁] at hr₁ 
+        rw [←ho₂] at hr₁' 
+        skip
+        -- hr₁ and hr₁' are really close to what you need
+        -- apply hg at the end
+        --
+        -- right now you need a stronger condition:
+        -- we need the actions to be equal for all microsteps of the given time
+
+        
+
+        
+
   
