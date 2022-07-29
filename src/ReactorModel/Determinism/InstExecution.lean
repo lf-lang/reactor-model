@@ -102,6 +102,9 @@ theorem InstExecution.rcns_respect_dependencies :
   intro h h₁ h₂ hd
   sorry
 
+theorem InstExecution.rcn_list_cons : (s₁ ⇓ᵢ+[rcns] s₂) → ∃ hd tl, rcns = hd :: tl :=
+  (by cases · <;> simp)
+
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
@@ -110,45 +113,28 @@ protected theorem InstExecution.deterministic :
   intro h₁ h₂ hc
   refine State.ext _ _ ?_ hc
   have hp := h₁.eq_ctx_processed_rcns_perm h₂ hc
-
-  -- PLAN:
-  --
-  -- ✔︎ `ChangeListEquiv`
-  -- | two change lists are equivalent if they produce the same effects
-  -- | e.g. [.prt A 3, .prt A 5] ⋈ [.prt A 5]
-  -- | importantly: you have to define this not in terms of the execution relations,
-  -- | but rather by the order of changes in the lists (otherwise the following theorem
-  -- | would hold by definition) - that is, the relation itself should be structural,
-  -- | the following lemma then ties that into behaviour:
-  --
-  -- 1. equivalent change lists produce equal reactors
-  -- (s -[cs₁]→ s₁) → (s -[cs₂]→ s₂) → cs₁ ~ cs₂ → s₁ = s₂
-  -- ... to prove this we will need to solve the theorems relating to `Change(List)Step`.
-  --
-  -- WIP: `InstStep.indep_rcns_changes_equiv`
-  -- 2. swapping independent reactions produces equivalent change lists:
-  -- (s ⇓ᵢ[r₁] s₁) → (s ⇓ᵢ[r₂] s₂) → /r₁ indep r₂/ → /r₁ and r₂ correspond to rcn₁ and rcn₂/ →
-  -- (rcn₁ $ s.rcnInput rcn₁) ++ (rcn₂ $ s₁.rcnInput rcn₂) ⋈ (rcn₂ $ s.rcnInput rcn₂) ++ (rcn₁ $ s₂.rcnInput rcn₁)
-  --
-  -- 3. dependency respecting reaction lists that are permutations of eachother are
-  -- equal up to swapping of independent reactions
-  --
-  -- 4. by 2. and 3. and induction: dependency respecting reaction lists that are permutations
-  -- of eachother produce equivalent change lists
-  -- .. how do you even state this though? 
-  -- Naively we would need to lift a reaction's change list into the type level of InstStep as well (called `o` there).
-  --
-  -- 5. by 1. and 4. and hp and `InstExecution.rcns_respect_dependencies`: 
-  --    `InstExecution.deterministic` holds
-  --
-  -- I think this approach should solve the "intermediate reactor" problem, as we reason at the 
-  -- level of change lists. Changes are "fully realized", i.e. their behaviour does not depend
-  -- on the state of a reactor - thus we don't need to consider any intermediate reactors.
-  -- In constrast, reasoning at the level of reactions always reaquires an associated reactor,
-  -- as the behaviour of a reaction depends on its parent reactor.
-
-  -- Theorem: In the permuted reaction list, each reaction still produces the exact same output as before.
-  -- Implies: Change lists are permutations.
-  --      r1       ...        rn          |      π1        ...     πn    
-  -- c11 ... c1m   ...   cn1 ... cnk      | p11 ... p1l    ...   pn1 ... pnj
-  sorry
+  induction rcns₁ generalizing s rcns₂
+  case nil => contradiction
+  case cons hd₁ tl₁ hi =>
+    -- it must be possible to pull hd₁ out of rcns₂ to the front while retaining a change equivalent list.
+    generalize h' : hd₁ :: (rcns₂.erase hd₁) = rcns₂'
+    have h₂' : s ⇓ᵢ+[rcns₂'] s₂ := sorry -- TODO: This is the next big theorem.
+    cases h₁ <;> cases h₂'
+    case single.single hs₁ _ hs₂ => 
+      have hhd := List.perm.eq_singleton hp.symm
+      simp [hhd] at h'
+      rw [←h'] at hs₂
+      sorry -- by hs₁ and hs₂
+    case trans.trans s₁' hhd₁ htl₁ hd₂ s₂' tl₂ hhd₂ htl₂ =>
+      have hhd : hd₁ = hd₂ := sorry -- by h'
+      have htl : tl₂ = rcns₂.erase hd₁ := sorry -- by h'
+      have hs' : s₁' = s₂' := sorry -- by hhd and hhd₁ and hhd₂
+      have hp' : tl₁ ~ rcns₂.erase hd₁ := sorry -- by hp
+      rw [←hs', htl] at htl₂
+      exact hi htl₁ htl₂ hp'
+    case single.trans hl =>
+      have ⟨tl₁, tl₂, hl⟩ := hl.rcn_list_cons
+      rw [hl] at h'
+      sorry -- h' and hp are contradictory
+    case trans.single =>
+      sorry -- h' and hp are contradictory

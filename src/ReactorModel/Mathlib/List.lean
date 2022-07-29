@@ -50,6 +50,9 @@ theorem perm.mem_iff {a : α} {l₁ l₂ : List α} (h : l₁ ~ l₂) :
   a ∈ l₁ ↔ a ∈ l₂ :=
   sorry
 
+theorem perm.eq_singleton {a : α} {l : List α} (p : l ~ [a]) : l = [a] :=
+  sorry
+
 theorem Perm.length_eq {l₁ l₂ : List α} (p : l₁ ~ l₂) : length l₁ = length l₂ := by
   induction p with
   | nil => rfl
