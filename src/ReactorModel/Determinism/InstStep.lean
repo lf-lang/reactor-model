@@ -4,6 +4,11 @@ open Classical
 
 namespace Execution
 
+theorem InstStep.determinisic : (s ⇓ᵢ[rcn] s₁) → (s ⇓ᵢ[rcn] s₂) → s₁ = s₂ := by
+  intro h₁ h₂
+  cases h₁ <;> cases h₂ <;> simp_all
+  case execReaction.execReaction h₁ _ _ _ h₂ => simp [ChangeListStep.determinisic h₁ h₂]
+
 theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr ≈ s₂.rtr
   | skipReaction .. => .refl
   | execReaction _ _ _ h => h.preserves_Equiv
@@ -103,6 +108,13 @@ theorem InstStep.preserves_external_state :
 
 theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
+
+theorem InstStep.changes : 
+  (s₁ ⇓ᵢ[rcn] s₂) → ∃ (cs : List Change) (s₂' : State), (cs = s₁.rcnOutput rcn ∨ cs = []) ∧ (s₁ -[rcn:cs]→* s₂') ∧ (s₂ = { s₂' with ctx := s₂'.ctx.addCurrentProcessed rcn } ) := by
+  intro h
+  cases h
+  case execReaction o s₂' _ _ ho hs => sorry -- exact ⟨o, s₂', .inl ho.symm, by simp [hs]⟩
+  case skipReaction => sorry -- exact ⟨[], s₁, by simp [ChangeListStep.nil]⟩
 
 theorem InstStep.indep_rcns_indep_output :
   (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → (rcn ≠ rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := by

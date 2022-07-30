@@ -132,6 +132,20 @@ theorem ChangeStep.preserves_action_at_unchanged_times {i : ID} :
 theorem ChangeStep.port_change_mem_rtr {i : ID} : (s -[rcn:.port i v]→ s') → (∃ p, s.rtr.obj? .prt i = some p) 
   | .port hu => hu.obj?_target
 
+theorem ChangeStep.determinisic : (s -[rcn:c]→ s₁) → (s -[rcn:c]→ s₂) → s₁ = s₂ := by
+  intro h₁ h₂
+  cases h₁ <;> cases h₂ <;> simp <;> apply Reactor.Update.unique' <;> assumption
+  
+theorem ChangeListStep.rcn_agnostic : (s₁ -[rcn:cs]→* s₂) → (∀ rcn', s₁ -[rcn':cs]→* s₂) := by
+  sorry
+
+theorem ChangeListStep.determinisic : (s -[rcn:cs]→* s₁) → (s -[rcn:cs]→* s₂) → s₁ = s₂ := by
+  intro h₁ h₂
+  induction h₁ <;> cases h₂ <;> simp_all
+  case cons.cons h₁ _ hi h₂ h₂' =>
+    simp [h₁.determinisic h₂] at hi
+    exact hi h₂'
+
 theorem ChangeListStep.preserves_ctx : (s₁ -[rcn:cs]→* s₂) → s₁.ctx = s₂.ctx 
   | .nil .. => rfl
   | .cons h₁₂ h₂₃ => h₁₂.preserves_ctx.trans h₂₃.preserves_ctx

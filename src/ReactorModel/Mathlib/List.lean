@@ -50,6 +50,8 @@ theorem perm.mem_iff {a : α} {l₁ l₂ : List α} (h : l₁ ~ l₂) :
   a ∈ l₁ ↔ a ∈ l₂ :=
   sorry
 
+theorem cons_perm_iff_perm_erase [BEq α] {a : α} {l₁ l₂ : List α} : a::l₁ ~ l₂ ↔ a ∈ l₂ ∧ l₁ ~ l₂.erase a := sorry
+
 theorem perm.eq_singleton {a : α} {l : List α} (p : l ~ [a]) : l = [a] :=
   sorry
 

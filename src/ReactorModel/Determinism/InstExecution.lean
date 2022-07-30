@@ -13,7 +13,7 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂ rcns} :
   intro h g hg
   induction h
   case single h => exact h.preserves_ctx_past_future _ hg
-  case trans s₁ s₂ sₘ he _ hi =>
+  case trans s₁ _ sₘ he _ hi =>
     rw [InstExecution.preserves_tag $ single he] at hg
     exact (he.preserves_ctx_past_future _ hg).trans $ hi hg
     
@@ -35,7 +35,7 @@ theorem InstExecution.rcns_unprocessed :
       exact ((not_or _ _).mp $ (mt h₁.mem_currentProcessedRcns.mpr) hi).right
 
 theorem InstExecution.rcns_nodup : (s₁ ⇓ᵢ+[rcns] s₂) → List.Nodup rcns
-  | single h => List.nodup_singleton _
+  | single _ => List.nodup_singleton _
   | trans h₁ h₂ => List.nodup_cons.mpr $ ⟨(mt $ h₂.rcns_unprocessed _) $ not_not.mpr h₁.self_currentProcessedRcns, h₂.rcns_nodup⟩
 
 theorem InstExecution.currentProcessedRcns_monotonic :
@@ -105,6 +105,46 @@ theorem InstExecution.rcns_respect_dependencies :
 theorem InstExecution.rcn_list_cons : (s₁ ⇓ᵢ+[rcns] s₂) → ∃ hd tl, rcns = hd :: tl :=
   (by cases · <;> simp)
 
+-- A Given list of change segments is well-formed over a given instantaneous execution,
+-- if each set of changes corresponds to the output of the reaction at the same position. 
+inductive InstExecution.Changes.WFSegments : (s₁ ⇓ᵢ+[rcns] s₂) → List (List Change) → Prop
+  | singleSkip (e : s₁ ⇓ᵢ[rcn] s₂) : (s₁.rcnOutput rcn = none)    → WFSegments (.single e) [[]]
+  | singleExec (e : s₁ ⇓ᵢ[rcn] s₂) : (s₁.rcnOutput rcn = some cs) → WFSegments (.single e) [cs]
+  | transSkip (e₁ : s₁ ⇓ᵢ[hd] s') {e₂ : s' ⇓ᵢ+[tl] s₂} : (s₁.rcnOutput hd = none) → (WFSegments e₂ ctl) → WFSegments (.trans e₁ e₂) ctl
+  | transExec (e₁ : s₁ ⇓ᵢ[hd] s') {e₂ : s' ⇓ᵢ+[tl] s₂} : (s₁.rcnOutput hd = some chd) → (WFSegments e₂ ctl) → WFSegments (.trans e₁ e₂) ([chd] ++ ctl)
+
+-- This structure flattens an instantaneous execution into a list of changes.
+structure InstExecution.Changes (h : s₁ ⇓ᵢ+[rcns] s₂) where
+  segments : List (List Change)
+  endState : State
+  wfExec : ∃ rcn, s₁ -[rcn:segments.join]→* endState -- The `∃ rcn` is kind of weird, but hopefully we'll remove the whole lifting of reactions into the execution relations at some point - then this can be dropped.
+  wfEndState : s₂ = { endState with ctx := endState.ctx.addCurrentProcessed' rcns }
+  wfSegments : Changes.WFSegments h segments
+
+theorem InstExecution.Changes.intro : (h : s₁ ⇓ᵢ+[rcns] s₂) → Nonempty (InstExecution.Changes h) := by
+  intro h
+  induction h
+  case single h =>
+    have ⟨cs, s₂', _, h₁, h₂⟩ := h.changes
+    refine Nonempty.intro ?_
+    apply Changes.mk [cs] s₂'
+    case wfExec => simp; exact ⟨_, h₁⟩
+    case wfEndState => exact h₂
+    case wfSegments =>
+      cases H : h
+      case execReaction =>
+        apply Changes.WFSegments.singleExec h 
+        sorry
+      all_goals sorry
+  case trans hd s₂ tl s₃ hhd htl hi =>
+    -- have ⟨tlcs, tls₂', _, _⟩ := hi
+    -- have ⟨hdcs, _, _, h₁, h₂⟩ := hhd.changes
+    -- exists [hdcs] ++ tlcs
+    sorry
+    -- i think we can' prove the rest here because we're missing the execution contexts.
+    -- figure out a nice way (perhaps a structure) to state the property that should be the result of this theorem.
+    -- that would probably also help you with proving it.
+
 -- This theorem is the main theorem about determinism in an instantaneous setting.
 -- Basically, if the same reactions have been executed, then we have the same resulting
 -- reactor.
@@ -113,28 +153,14 @@ protected theorem InstExecution.deterministic :
   intro h₁ h₂ hc
   refine State.ext _ _ ?_ hc
   have hp := h₁.eq_ctx_processed_rcns_perm h₂ hc
-  induction rcns₁ generalizing s rcns₂
-  case nil => contradiction
-  case cons hd₁ tl₁ hi =>
-    -- it must be possible to pull hd₁ out of rcns₂ to the front while retaining a change equivalent list.
-    generalize h' : hd₁ :: (rcns₂.erase hd₁) = rcns₂'
-    have h₂' : s ⇓ᵢ+[rcns₂'] s₂ := sorry -- TODO: This is the next big theorem.
-    cases h₁ <;> cases h₂'
-    case single.single hs₁ _ hs₂ => 
-      have hhd := List.perm.eq_singleton hp.symm
-      simp [hhd] at h'
-      rw [←h'] at hs₂
-      sorry -- by hs₁ and hs₂
-    case trans.trans s₁' hhd₁ htl₁ hd₂ s₂' tl₂ hhd₂ htl₂ =>
-      have hhd : hd₁ = hd₂ := sorry -- by h'
-      have htl : tl₂ = rcns₂.erase hd₁ := sorry -- by h'
-      have hs' : s₁' = s₂' := sorry -- by hhd and hhd₁ and hhd₂
-      have hp' : tl₁ ~ rcns₂.erase hd₁ := sorry -- by hp
-      rw [←hs', htl] at htl₂
-      exact hi htl₁ htl₂ hp'
-    case single.trans hl =>
-      have ⟨tl₁, tl₂, hl⟩ := hl.rcn_list_cons
-      rw [hl] at h'
-      sorry -- h' and hp are contradictory
-    case trans.single =>
-      sorry -- h' and hp are contradictory
+  let cs₁ := Changes.intro h₁ |>.some
+  let cs₂ := Changes.intro h₂ |>.some
+  suffices h : cs₁.segments.join ⋈ cs₂.segments.join by 
+    have h' := cs₁.wfExec.choose_spec.equiv_changes_eq_result cs₂.wfExec.choose_spec h
+    have h₁ : cs₁.endState.rtr = s₁.rtr := by simp [cs₁.wfEndState]
+    have h₂ : cs₂.endState.rtr = s₂.rtr := by simp [cs₂.wfEndState]
+    simp [←h₁, ←h₂, h']
+  sorry -- TODO: This is the next big theorem.
+    
+    
+      

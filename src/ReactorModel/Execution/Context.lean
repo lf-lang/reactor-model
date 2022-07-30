@@ -29,6 +29,10 @@ noncomputable def addCurrentProcessed (ctx : Context) (i : ID) : Context := {
   processedNonempty := ctx.processedRcns.update_nonempty _ _ ctx.processedNonempty
 }
 
+noncomputable def addCurrentProcessed' (ctx : Context) : List ID → Context
+  | [] => ctx
+  | hd :: tl => (ctx.addCurrentProcessed hd).addCurrentProcessed' tl
+
 theorem addCurrentProcessed_preserves_ctx_past_future (ctx : Context) (i : ID) : ∀ g, g ≠ ctx.tag → (ctx.addCurrentProcessed i).processedRcns g = ctx.processedRcns g := by
   intro g h
   simp [addCurrentProcessed, Finmap.update_ne _ h.symm]
