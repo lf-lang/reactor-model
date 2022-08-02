@@ -135,9 +135,14 @@ theorem ChangeStep.port_change_mem_rtr {i : ID} : (s -[rcn:.port i v]→ s') →
 theorem ChangeStep.determinisic : (s -[rcn:c]→ s₁) → (s -[rcn:c]→ s₂) → s₁ = s₂ := by
   intro h₁ h₂
   cases h₁ <;> cases h₂ <;> simp <;> apply Reactor.Update.unique' <;> assumption
-  
-theorem ChangeListStep.rcn_agnostic : (s₁ -[rcn:cs]→* s₂) → (∀ rcn', s₁ -[rcn':cs]→* s₂) := by
-  sorry
+
+theorem ChangeStep.rcn_agnostic : (s₁ -[rcn:c]→ s₂) → (∀ rcn', s₁ -[rcn':c]→ s₂) := by
+  intro h rcn'
+  cases h <;> constructor <;> assumption
+
+theorem ChangeListStep.rcn_agnostic : (s₁ -[rcn:cs]→* s₂) → (∀ rcn', s₁ -[rcn':cs]→* s₂)
+  | .nil =>          λ _    => .nil
+  | .cons hhd htl => λ rcn' => .cons (hhd.rcn_agnostic rcn') (htl.rcn_agnostic rcn')
 
 theorem ChangeListStep.determinisic : (s -[rcn:cs]→* s₁) → (s -[rcn:cs]→* s₂) → s₁ = s₂ := by
   intro h₁ h₂

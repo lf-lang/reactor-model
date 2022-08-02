@@ -17,7 +17,8 @@ theorem CompleteInstExecution.convergent_rcns :
 theorem CompleteInstExecution.convergent_ctx : 
   (s ⇓ᵢ| s₁) → (s ⇓ᵢ| s₂) → s₁.ctx = s₂.ctx := by
   intro hc₁ hc₂
-  ext
+  ext1
+  apply Finmap.ext
   intro g
   have hc₁₂ := hc₁.convergent_rcns hc₂
   cases hc₁ with | mk _ e₁ hc₁ => 

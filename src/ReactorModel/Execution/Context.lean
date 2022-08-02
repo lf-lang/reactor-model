@@ -40,7 +40,6 @@ theorem addCurrentProcessed_preserves_ctx_past_future (ctx : Context) (i : ID) :
 theorem addCurrentProcessed_same_tag (ctx : Context) (i : ID) : (ctx.addCurrentProcessed i).tag = ctx.tag := by 
   suffices h : (ctx.addCurrentProcessed i).processedRcns.ids = ctx.processedRcns.ids by 
     simp [tag, h]
-    sorry
   sorry
 
 theorem addCurrentProcessed_mem_currentProcessedRcns {ctx : Context} {i j : ID} : i ∈ (ctx.addCurrentProcessed j).currentProcessedRcns ↔ (i = j ∨ i ∈ ctx.currentProcessedRcns) := by
