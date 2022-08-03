@@ -11,27 +11,27 @@ noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : T
   | none => act.update ⟨t, 0⟩ v
   | some g => act.update ⟨t, g.microstep + 1⟩ v
 
-inductive ChangeStep (rcn : ID) (s : State) : State → Change → Prop 
-  | port :   (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    → ChangeStep rcn s ⟨σ', s.ctx⟩ (.port i v)
-  | state :  (s.rtr -[.stv:i λ _ => v]→ σ')         → ChangeStep rcn s ⟨σ', s.ctx⟩ (.state i v)
-  | action : (s.rtr -[.act:i (schedule · t v)]→ σ') → ChangeStep rcn s ⟨σ', s.ctx⟩ (.action i t v)
+inductive ChangeStep (s : State) : State → Identified Change → Prop 
+  | port :   (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    → ChangeStep s ⟨σ', s.ctx⟩ ⟨rcn, .port i v⟩
+  | state :  (s.rtr -[.stv:i λ _ => v]→ σ')         → ChangeStep s ⟨σ', s.ctx⟩ ⟨rcn, .state i v⟩
+  | action : (s.rtr -[.act:i (schedule · t v)]→ σ') → ChangeStep s ⟨σ', s.ctx⟩ ⟨rcn, .action i t v⟩
   -- Mutations are (temporarily) no-ops:
-  | connect :    ChangeStep rcn s s (.connect i₁ i₂)
-  | disconnect : ChangeStep rcn s s (.disconnect i₁ i₂)
-  | create :     ChangeStep rcn s s (.create rtr)
-  | delete :     ChangeStep rcn s s (.delete i)
+  | connect :    ChangeStep s s ⟨rcn, .connect i₁ i₂⟩
+  | disconnect : ChangeStep s s ⟨rcn, .disconnect i₁ i₂⟩
+  | create :     ChangeStep s s ⟨rcn, .create rtr⟩
+  | delete :     ChangeStep s s ⟨rcn, .delete i⟩
   -- | connect {σ' src dst r} :    (s.rtr &[.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.update (s.freshID Cmp.rcn r) (Reaction.relay src dst))]→ σ') → ChangeStep rcn s ⟨σ', s.ctx⟩ (.connect src dst)
   -- | disconnect {σ' src dst r} : (s.rtr &[.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.filter' (· ≠ Reaction.relay src dst))]→ σ')                  → ChangeStep rcn s ⟨σ', s.ctx⟩ (.disconnect src dst)
   -- TODO: `create` via reactor class instantiation function
   -- | delete {σ' i r} :           (s.rtr &[.rcn:rcn]= r) → (s.rtr -[Cmp.rtr|r (·.update i none)]→ σ')                                         → ChangeStep rcn s ⟨σ', s.ctx⟩ (.delete i)
 
-notation s₁:max " -[" rcn ":" c "]→ " s₂:max => ChangeStep rcn s₁ s₂ c
+notation s₁:max " -[" c "]→ " s₂:max => ChangeStep s₁ s₂ c
 
-inductive ChangeListStep (rcn : ID) : State → State → (List Change) → Prop
-  | nil : ChangeListStep rcn s s []
-  | cons : (s₁ -[rcn:hd]→ s₂) → (ChangeListStep rcn s₂ s₃ tl) → ChangeListStep rcn s₁ s₃ (hd::tl)
+inductive ChangeListStep : State → State → (List $ Identified Change) → Prop
+  | nil : ChangeListStep s s []
+  | cons : (s₁ -[hd]→ s₂) → (ChangeListStep s₂ s₃ tl) → ChangeListStep s₁ s₃ (hd::tl)
 
-notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep rcn s₁ s₂ cs
+notation s₁:max " -[" cs "]→* " s₂:max => ChangeListStep s₁ s₂ cs
 
 /-
 inductive ChangeListStep : State → State → List (Identified Change) → Prop
@@ -49,33 +49,50 @@ notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep.uniform s
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
-inductive InstStep (s : State) (rcn : ID) : State → Prop 
+inductive InstStep (s : State) : State → Type 
   | execReaction : 
     (s.allows rcn) →
     (s.triggers rcn) →
-    (s.rcnOutput rcn = some o) →
-    (s -[rcn:o]→* s') →
-    InstStep s rcn ⟨s'.rtr, s'.ctx.addCurrentProcessed rcn⟩
+    (s.rcnOutput' rcn = some o) →
+    (s -[o]→* s') →
+    InstStep s ⟨s'.rtr, s'.ctx.addCurrentProcessed rcn⟩
   | skipReaction :
     (s.rtr.contains .rcn rcn) →
     (s.allows rcn) →
     (¬ s.triggers rcn) →
-    InstStep s rcn ⟨s.rtr, s.ctx.addCurrentProcessed rcn⟩
+    InstStep s ⟨s.rtr, s.ctx.addCurrentProcessed rcn⟩
 
-notation s₁:max " ⇓ᵢ[" rcn "] " s₂:max => InstStep s₁ rcn s₂
+notation s₁:max " ⇓ᵢ " s₂:max => InstStep s₁ s₂
+
+def InstStep.rcn : (s₁ ⇓ᵢ s₂) → ID
+  | @execReaction _ rcn .. => rcn
+  | @skipReaction _ rcn .. => rcn
+
+def InstStep.changes : (s₁ ⇓ᵢ s₂) → List (Identified Change)
+  | @execReaction _ _ cs .. => cs
+  | @skipReaction .. => []
 
 -- An execution at an instant is a series of steps,
 -- which we model with the transitive closure.
-inductive InstExecution : State → List ID → State → Prop 
-  | single : (s₁ ⇓ᵢ[rcn] s₂) → InstExecution s₁ [rcn] s₂
-  | trans : (s₁ ⇓ᵢ[hd] s₂) → (InstExecution s₂ tl s₃) → InstExecution s₁ (hd::tl) s₃
+inductive InstExecution : State → State → Type
+  | single : (s₁ ⇓ᵢ s₂) → InstExecution s₁ s₂
+  | trans : (s₁ ⇓ᵢ s₂) → (InstExecution s₂ s₃) → InstExecution s₁ s₃
 
-notation s₁:max " ⇓ᵢ+[" rcns "] " s₂:max => InstExecution s₁ rcns s₂
+notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
+
+def InstExecution.rcns : (s₁ ⇓ᵢ+ s₂) → List ID
+  | single e => [e.rcn]
+  | trans hd tl => hd.rcn :: tl.rcns
+
+def InstExecution.changes : (s₁ ⇓ᵢ+ s₂) → List (Identified Change)
+  | single e => e.changes
+  | trans hd tl => hd.changes ++ tl.changes
 
 abbrev State.instComplete (s : State) : Prop := s.ctx.currentProcessedRcns = s.rtr.ids .rcn
 
-inductive CompleteInstExecution (s₁ s₂ : State) : Prop
-  | mk : (rcns : List ID) → (s₁ ⇓ᵢ+[rcns] s₂) → s₂.instComplete → CompleteInstExecution s₁ s₂
+structure CompleteInstExecution (s₁ s₂ : State) where
+  exec : s₁ ⇓ᵢ+ s₂ 
+  complete : s₂.instComplete
   
 notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
 

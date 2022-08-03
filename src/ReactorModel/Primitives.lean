@@ -62,10 +62,6 @@ structure Identified (α) where
 -- Any `Identified α` can be coerced back to an `α`.
 instance : CoeHead (Identified α) α := ⟨Identified.obj⟩
 
--- TODO: Is this being used?
-instance : Membership α (List $ Identified α) where 
-  mem a as := a ∈ as.map (·.obj)
-
 -- The `Priority` type is used to impose a (potentially partial) 
 -- order on reactions. The order of priorities is given by the
 -- order on `Nat` with the addition that a priority of `none` is

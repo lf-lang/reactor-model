@@ -4,55 +4,65 @@ open Classical
 
 namespace Execution
 
-theorem InstStep.determinisic : (s ⇓ᵢ[rcn] s₁) → (s ⇓ᵢ[rcn] s₂) → s₁ = s₂ := by
-  intro h₁ h₂
-  cases h₁ <;> cases h₂ <;> simp_all
-  case execReaction.execReaction h₁ _ _ _ h₂ => simp [ChangeListStep.determinisic h₁ h₂]
+theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e₁.rcn = e₂.rcn) → s₁ = s₂ := by
+  intro h
+  cases e₁ <;> cases e₂ <;> simp [rcn] at h
+  case execReaction.execReaction ho₁ h₁ _ _ _ _ _ ho₂ h₂ => 
+    simp [h] at ho₁
+    simp [Option.some_inj.mp $ ho₁.symm.trans ho₂] at h₁
+    simp [h, ChangeListStep.deterministic h₁ h₂]
+  case skipReaction.skipReaction =>
+    simp [h]
+  case' execReaction.skipReaction ht₁ _ _ _ _ _ ht₂, skipReaction.execReaction ht₁ _ _ _ _ _ _ ht₂ =>
+    rw [h] at ht₁
+    contradiction
 
-theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr ≈ s₂.rtr
+theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
   | skipReaction .. => .refl
   | execReaction _ _ _ h => h.preserves_Equiv
 
-theorem InstStep.rtr_contains_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₁.rtr.contains .rcn rcn
+theorem InstStep.rtr_contains_rcn : (e : s₁ ⇓ᵢ s₂) → s₁.rtr.contains .rcn e.rcn
   | skipReaction h _ _ => h
-  | execReaction _ _ h _ => State.rcnOutput_to_contains h
+  | execReaction _ _ h _ => by 
+    simp [rcn]
+    exact State.rcnOutput'_to_contains h
     
 theorem InstStep.preserves_rcns {i : ID} : 
-  (s₁ ⇓ᵢ[rcn] s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i) 
+  (s₁ ⇓ᵢ s₂) → s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i 
   | execReaction _ _ _ h => by simp [h.preserves_rcns]
   | skipReaction .. => rfl
 
 theorem InstStep.preserves_ctx_past_future :
-  (s₁ ⇓ᵢ[rcn] s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
+  (s₁ ⇓ᵢ s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
   | execReaction _ _ _ h, _, hg => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
   | skipReaction ..,      _, hg => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
-theorem InstStep.preserves_tag : (s₁ ⇓ᵢ[rcns] s₂) → s₁.ctx.tag = s₂.ctx.tag := by
+theorem InstStep.preserves_tag : (s₁ ⇓ᵢ s₂) → s₁.ctx.tag = s₂.ctx.tag := by
   intro h
   cases h <;> simp [Context.addCurrentProcessed_same_tag]
   case execReaction h => simp [h.preserves_ctx]
 
-theorem InstStep.ctx_adds_rcn : (s₁ ⇓ᵢ[rcn] s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed rcn
-  | execReaction _ _ _ h => by simp [h.preserves_ctx]
+theorem InstStep.ctx_adds_rcn : (e : s₁ ⇓ᵢ s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed e.rcn
+  | execReaction _ _ _ h => by simp [rcn, h.preserves_ctx]
   | skipReaction .. => rfl
 
-theorem InstStep.rcn_unprocessed : (s₁ ⇓ᵢ[rcn] s₂) → rcn ∉ s₁.ctx.currentProcessedRcns
+theorem InstStep.rcn_unprocessed : (e : s₁ ⇓ᵢ s₂) → e.rcn ∉ s₁.ctx.currentProcessedRcns
   | execReaction h _ _ _ | skipReaction _ h _ => h.unprocessed
   
 theorem InstStep.mem_currentProcessedRcns :
-  (s₁ ⇓ᵢ[rcn] s₂) → (rcn' ∈ s₂.ctx.currentProcessedRcns ↔ rcn' = rcn ∨ rcn' ∈ s₁.ctx.currentProcessedRcns) := by
+  (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.ctx.currentProcessedRcns ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.ctx.currentProcessedRcns) := by
   intro h
   constructor
   case mp =>
     intro ho
-    by_cases hc : rcn' = rcn
+    by_cases hc : rcn' = h.rcn
     case pos => exact .inl hc
     case neg =>
       rw [h.ctx_adds_rcn] at ho
       simp [Context.addCurrentProcessed_mem_currentProcessedRcns.mp ho]
   case mpr =>
     intro ho
-    by_cases hc : rcn' = rcn
+    by_cases hc : rcn' = h.rcn
     case pos =>
       simp [hc]
       cases h <;> exact Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inl rfl)
@@ -61,41 +71,50 @@ theorem InstStep.mem_currentProcessedRcns :
 
 -- Corollary of `InstStep.mem_currentProcessedRcns`.
 theorem InstStep.not_mem_currentProcessedRcns :
-  (s₁ ⇓ᵢ[rcn] s₂) → (rcn' ≠ rcn) → rcn' ∉ s₁.ctx.currentProcessedRcns → rcn' ∉ s₂.ctx.currentProcessedRcns := 
+  (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn' ∉ s₁.ctx.currentProcessedRcns → rcn' ∉ s₂.ctx.currentProcessedRcns := 
   λ h hn hm => (mt h.mem_currentProcessedRcns.mp) $ (not_or _ _).mpr ⟨hn, hm⟩
 
 -- Corollary of `InstStep.mem_currentProcessedRcns`.
 theorem InstStep.monotonic_currentProcessedRcns :
-  (s₁ ⇓ᵢ[rcn] s₂) → rcn' ∈ s₁.ctx.currentProcessedRcns → rcn' ∈ s₂.ctx.currentProcessedRcns := 
+  (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.ctx.currentProcessedRcns → rcn' ∈ s₂.ctx.currentProcessedRcns := 
   (·.mem_currentProcessedRcns.mpr $ .inr ·)
 
 -- Corollary of `InstStep.mem_currentProcessedRcns`.
 theorem InstStep.self_currentProcessedRcns : 
-  (s₁ ⇓ᵢ[rcn] s₂) → rcn ∈ s₂.ctx.currentProcessedRcns := 
+  (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.ctx.currentProcessedRcns := 
   (·.mem_currentProcessedRcns.mpr $ .inl rfl)
 
 -- If a port is not in the output-dependencies of a given reaction,
 -- then any instantaneous step of the reaction will keep that port
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (p ∉ rcn.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p)
-  | skipReaction ..,        _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · ho hr hd)
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (p ∉ r.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p)
+  | skipReaction ..,         _,  _ => rfl
+  | execReaction _ _ ho hs, hr, hd => by
+    simp [State.rcnOutput'] at ho
+    sorry
+    -- exact hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · ho hr hd)
 
 theorem InstStep.preserves_nondep_actions : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (a ∉ rcn.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a)
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (a ∉ r.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a)
   | skipReaction ..,        _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · ho hr hd)
+  | execReaction _ _ ho hs, hr, hd => by
+    simp [State.rcnOutput'] at ho
+    sorry
+    -- exact hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · ho hr hd)
 
 theorem InstStep.pure_preserves_state {j : ID} : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.obj? .rcn i = some rcn) → (rcn.isPure) → (s₁.rtr.obj? .stv j = s₂.rtr.obj? .stv j)
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (r.isPure) → (s₁.rtr.obj? .stv j = s₂.rtr.obj? .stv j)
   | skipReaction ..,    _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hp => hs.preserves_unchanged_state (s₁.rcnOutput_pure · ho hr hp)
+  | execReaction _ _ ho hs, hr, hp => by
+    simp [State.rcnOutput'] at ho
+    sorry
+    -- hs.preserves_unchanged_state (s₁.rcnOutput_pure · ho hr hp)
 
 -- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
 --       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
 theorem InstStep.preserves_external_state : 
-  (s₁ ⇓ᵢ[i] s₂) → (s₁.rtr.con? .rcn i = some c) → 
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.con? .rcn e.rcn = some c) → 
   (s₁.rtr.obj? .rtr j = some c₁) → (s₂.rtr.obj? .rtr j = some c₂) → (c.id ≠ j) →
   (c₁.state = c₂.state)
   | skipReaction ..,        _,  _,   _,   _ => by simp_all
@@ -103,24 +122,25 @@ theorem InstStep.preserves_external_state :
     apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cmp := .stv)
     intro x hx
     have hm := Reactor.local_mem_exclusive hc₁ (Reactor.con?_to_rtr_obj? hc) hi.symm hx
-    have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hm)
-    exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
+    sorry
+    -- have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hm)
+    -- exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
 
-theorem InstStep.acyclic_deps : (s₁ ⇓ᵢ[rcn] s₂) → (rcn >[s₁.rtr]< rcn) :=
+theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn >[s₁.rtr]< e.rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
 
-theorem InstStep.changes : 
-  (s₁ ⇓ᵢ[rcn] s₂) → ∃ (cs : List Change) (s₂' : State), (cs = s₁.rcnOutput rcn ∨ cs = []) ∧ (s₁ -[rcn:cs]→* s₂') ∧ (s₂ = { s₂' with ctx := s₂'.ctx.addCurrentProcessed rcn } ) := by
-  intro h
-  cases h
-  case execReaction o s₂' _ _ ho hs => sorry -- exact ⟨o, s₂', .inl ho.symm, by simp [hs]⟩
-  case skipReaction => sorry -- exact ⟨[], s₁, by simp [ChangeListStep.nil]⟩
-
+theorem InstStep.to_ChangeListStep :
+  (e : s₁ ⇓ᵢ s₂) → (s₁ -[e.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
+  intro e
+  induction e <;> simp [changes, rcn]
+  case skipReaction => simp [ChangeListStep.nil]
+  case execReaction s₂' _ _ _ h => exact h.ctx_agnostic rfl
+    
 theorem InstStep.indep_rcns_indep_output :
-  (s ⇓ᵢ[rcn'] s') → (rcn >[s.rtr]< rcn') → (rcn ≠ rcn') → s.rcnOutput rcn = s'.rcnOutput rcn := by
+  (e : s ⇓ᵢ s') → (rcn' >[s.rtr]< e.rcn) → (rcn' ≠ e.rcn) → s.rcnOutput rcn' = s'.rcnOutput rcn' := by
   intro h hi hrne
-  have hp := h.preserves_rcns (i := rcn)
-  cases ho : s.rtr.obj? .rcn rcn <;> cases ho' : s'.rtr.obj? .rcn rcn 
+  have hp := h.preserves_rcns (i := rcn')
+  cases ho : s.rtr.obj? .rcn rcn' <;> cases ho' : s'.rtr.obj? .rcn rcn'
   case none.none => simp [State.rcnOutput, ho, ho']
   case' none.some, some.none => simp [hp, ho'] at ho
   case some.some => 
@@ -200,7 +220,7 @@ theorem InstStep.indep_rcns_changes_comm_equiv {s s₁ s₂ : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (rcn₁ ≠ rcn₂) → 
   (s₁.rtr ≈ s.rtr) → (s₁.ctx.tag = s.ctx.tag) → -- Is this the right approach?
   (s₂.rtr ≈ s.rtr) → (s₂.ctx.tag = s.ctx.tag) → 
-  (s₁.rcnOutput rcn₁ = some o₁) → (s₂.rcnOutput rcn₂ = some o₂) →
+  (s₁.rcnOutput' rcn₁ = some o₁) → (s₂.rcnOutput' rcn₂ = some o₂) →
   (o₁ ++ o₂) ⋈ (o₂ ++ o₁) := by
   intro hi hn hsr₁ hsg₁ hsr₂ hsg₂ ho₁ ho₂
   constructor <;> intro i 

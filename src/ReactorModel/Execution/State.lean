@@ -34,6 +34,9 @@ noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
   | some rcn, some i => rcn i 
   | _, _ => none
 
+noncomputable def rcnOutput' (s : State) (i : ID) : Option (List (Identified Change)) :=
+  (s.rcnOutput i).map λ o => o.map ({ id := i, obj := · }) 
+  
 theorem rcnInput_iff_obj? {s : State} : 
   (∃ i, s.rcnInput rcn = some i) ↔ (∃ o, s.rtr.obj? .rcn rcn = some o) := by
   constructor <;> intro ⟨_, h⟩
@@ -97,6 +100,12 @@ theorem rcnOutput_to_contains {s : State} :
   cases ho : s.rtr.obj? .rcn rcn
   case none => simp [rcnOutput, ho] at h
   case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
+
+theorem rcnOutput'_to_contains {s : State} :
+  (s.rcnOutput' rcn = some o) → (s.rtr.contains .rcn rcn) := by
+  intro h
+  simp [rcnOutput'] at h
+  exact rcnOutput_to_contains h.choose_spec.left
 
 private theorem rcnOutput_to_rcn_body {s : State} {j : ID} : 
   (s.rcnOutput j = some o) → (∃ i rcn, s.rtr.obj? .rcn j = some rcn ∧ rcn i = o) := by
