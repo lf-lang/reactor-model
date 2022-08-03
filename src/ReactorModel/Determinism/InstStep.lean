@@ -84,33 +84,57 @@ theorem InstStep.self_currentProcessedRcns :
   (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.ctx.currentProcessedRcns := 
   (·.mem_currentProcessedRcns.mpr $ .inl rfl)
 
+theorem identified_changes_equiv_changes {cs : List Change} {o : List (Identified Change)} : 
+  (cs.map ({ id := i, obj := ·}) = o) → 
+  (o.map (·.obj) = cs) := by
+  intro h
+  induction cs generalizing o
+  case nil => simp_all
+  case cons hd tl hi =>
+    cases o <;> simp [List.map_cons] at h ⊢
+    case cons hd' tl' =>
+      specialize hi h.right
+      simp [h.left.symm, hi]
+      
 -- If a port is not in the output-dependencies of a given reaction,
 -- then any instantaneous step of the reaction will keep that port
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
   (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (p ∉ r.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p)
   | skipReaction ..,         _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => by
-    simp [State.rcnOutput'] at ho
-    sorry
-    -- exact hs.preserves_unchanged_ports (s₁.rcnOutput_port_dep_only · ho hr hd)
+  | execReaction _ _ ho hs, hr, hd => 
+    hs.preserves_unchanged_ports (
+      s₁.rcnOutput_port_dep_only · (by
+        simp [State.rcnOutput'] at ho
+        have ⟨_, hcs, ho⟩ := ho
+        simp [rcn, hcs, identified_changes_equiv_changes ho]
+      ) hr hd
+    )
 
 theorem InstStep.preserves_nondep_actions : 
   (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (a ∉ r.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a)
   | skipReaction ..,        _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => by
-    simp [State.rcnOutput'] at ho
-    sorry
-    -- exact hs.preserves_unchanged_actions (s₁.rcnOutput_action_dep_only · · ho hr hd)
+  | execReaction _ _ ho hs, hr, hd => 
+    hs.preserves_unchanged_actions (
+      s₁.rcnOutput_action_dep_only · · (by
+        simp [State.rcnOutput'] at ho
+        have ⟨_, hcs, ho⟩ := ho
+        simp [rcn, hcs, identified_changes_equiv_changes ho]
+      ) hr hd
+    )
 
 theorem InstStep.pure_preserves_state {j : ID} : 
   (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (r.isPure) → (s₁.rtr.obj? .stv j = s₂.rtr.obj? .stv j)
   | skipReaction ..,    _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hp => by
-    simp [State.rcnOutput'] at ho
-    sorry
-    -- hs.preserves_unchanged_state (s₁.rcnOutput_pure · ho hr hp)
-
+  | execReaction _ _ ho hs, hr, hp =>
+    hs.preserves_unchanged_state (
+      s₁.rcnOutput_pure · (by
+        simp [State.rcnOutput'] at ho
+        have ⟨_, hcs, ho⟩ := ho
+        simp [rcn, hcs, identified_changes_equiv_changes ho]
+      ) hr hp
+    )
+    
 -- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
 --       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
 theorem InstStep.preserves_external_state : 
@@ -122,9 +146,14 @@ theorem InstStep.preserves_external_state :
     apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cmp := .stv)
     intro x hx
     have hm := Reactor.local_mem_exclusive hc₁ (Reactor.con?_to_rtr_obj? hc) hi.symm hx
-    sorry
-    -- have hu := hs.preserves_unchanged_state (s₁.rcnOutput_state_local · ho hc hm)
-    -- exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
+    have hu := hs.preserves_unchanged_state (
+      s₁.rcnOutput_state_local · (by
+        simp [State.rcnOutput'] at ho
+        have ⟨_, hcs, ho⟩ := ho
+        simp [rcn, hcs, identified_changes_equiv_changes ho]
+      ) hc hm
+    )
+    exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
 
 theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn >[s₁.rtr]< e.rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
@@ -216,6 +245,7 @@ theorem InstStep.indep_rcns_indep_output :
           exact he.eq_obj?_nest h hco hco' 
         )
         
+-- TODO: Delete this if unused.
 theorem InstStep.indep_rcns_changes_comm_equiv {s s₁ s₂ : State} :
   (rcn₁ >[s.rtr]< rcn₂) → (rcn₁ ≠ rcn₂) → 
   (s₁.rtr ≈ s.rtr) → (s₁.ctx.tag = s.ctx.tag) → -- Is this the right approach?
