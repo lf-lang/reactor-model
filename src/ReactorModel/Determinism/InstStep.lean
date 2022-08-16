@@ -244,35 +244,3 @@ theorem InstStep.indep_rcns_indep_output :
           rw [←hh] at hco'
           exact he.eq_obj?_nest h hco hco' 
         )
-        
--- TODO: Delete this if unused.
-theorem InstStep.indep_rcns_changes_comm_equiv {s s₁ s₂ : State} :
-  (rcn₁ >[s.rtr]< rcn₂) → (rcn₁ ≠ rcn₂) → 
-  (s₁.rtr ≈ s.rtr) → (s₁.ctx.tag = s.ctx.tag) → -- Is this the right approach?
-  (s₂.rtr ≈ s.rtr) → (s₂.ctx.tag = s.ctx.tag) → 
-  (s₁.rcnOutput' rcn₁ = some o₁) → (s₂.rcnOutput' rcn₂ = some o₂) →
-  (o₁ ++ o₂) ⋈ (o₂ ++ o₁) := by
-  intro hi hn hsr₁ hsg₁ hsr₂ hsg₂ ho₁ ho₂
-  constructor <;> intro i 
-  case ports =>
-    -- consequence of hi: 
-    -- either rcn₁ and rcn₂ and don't live in the same reactor,
-    -- or if they do Reactor.rcnsTotal implies that they can't share any
-    -- output dependencies. By the constraints on Reaction they thus can't
-    -- produces changes to the same port.
-    sorry
-  case state =>
-    -- consequence of hi: 
-    -- either rcn₁ and rcn₂ and don't live in the same reactor,
-    -- or if they do Reactor.rcnsTotal implies that they must be pure,
-    -- i.e. don't produce changes to state, thus making bother sides of
-    -- the equality none.
-    sorry
-  case actions =>
-    intro t
-    -- consequence of hi: 
-    -- either rcn₁ and rcn₂ and don't live in the same reactor,
-    -- or if they do Reactor.rcnsTotal implies that they can't share any
-    -- output dependencies. By the constraints on Reaction they thus can't
-    -- produces changes to the same action.
-    sorry

@@ -9,3 +9,9 @@ structure ChangeListEquiv (cs₁ cs₂ : List (Identified Change)) : Prop where
   -- NOTE: Mutations are currently noops, and can therefore be ignored.
 
 notation cs₁:max " ⋈ " cs₂:max => ChangeListEquiv cs₁ cs₂
+
+theorem ChangeListEquiv.refl (cs) : cs ⋈ cs := {
+  ports := λ _ => rfl,
+  state := λ _ => rfl,
+  actions := λ _ _ => rfl
+}

@@ -33,19 +33,6 @@ inductive ChangeListStep : State → State → (List $ Identified Change) → Pr
 
 notation s₁:max " -[" cs "]→* " s₂:max => ChangeListStep s₁ s₂ cs
 
-/-
-inductive ChangeListStep : State → State → List (Identified Change) → Prop
-  | nil (s) : ChangeListStep s s []
-  | cons {s₁ s₂ s₃ rcn hd tl} : (s₁ -[rcn:hd]→ s₂) → (ChangeListStep s₂ s₃ tl) → ChangeListStep s₁ s₃ (⟨rcn, hd⟩::tl)
-
-notation s₁:max " -[" rcs "]→* " s₂:max => ChangeListStep s₁ s₂ rcs
-
-abbrev ChangeListStep.uniform (s₁ s₂ : State) (rcn : ID) (cs : List Change) : Prop :=
-  s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂
-
-notation s₁:max " -[" rcn ":" cs "]→* " s₂:max => ChangeListStep.uniform s₁ s₂ rcn cs
--/
-
 -- We separate the execution into two parts, the instantaneous execution which controlls
 -- how reactors execute at a given instant, and the timed execution, which includes the
 -- passing of time
@@ -65,12 +52,24 @@ inductive InstStep (s : State) : State → Type
 notation s₁:max " ⇓ᵢ " s₂:max => InstStep s₁ s₂
 
 def InstStep.rcn : (s₁ ⇓ᵢ s₂) → ID
-  | @execReaction _ rcn .. => rcn
-  | @skipReaction _ rcn .. => rcn
+  | execReaction (rcn := rcn) .. => rcn
+  | skipReaction (rcn := rcn) .. => rcn
 
-def InstStep.changes : (s₁ ⇓ᵢ s₂) → List (Identified Change)
-  | @execReaction _ _ cs .. => cs
-  | @skipReaction .. => []
+inductive InstStep.ChangeBlock
+  | skip (rcn : ID)
+  | exec (rcn : ID) (cs : List (Identified Change))
+
+def InstStep.ChangeBlock.rcn : InstStep.ChangeBlock → ID 
+  | skip rcn | exec rcn _ => rcn
+
+instance : Coe InstStep.ChangeBlock (List $ Identified Change) where
+  coe 
+    | .skip _ => []
+    | .exec _ cs => cs
+
+def InstStep.changes : (s₁ ⇓ᵢ s₂) → ChangeBlock
+  | execReaction (rcn := rcn) (o := cs) .. => .exec rcn cs
+  | skipReaction (rcn := rcn) .. => .skip rcn
 
 -- An execution at an instant is a series of steps,
 -- which we model with the transitive closure.
@@ -80,13 +79,35 @@ inductive InstExecution : State → State → Type
 
 notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
 
+def InstExecution.appendStep : (s₁ ⇓ᵢ+ s₂) → (s₂ ⇓ᵢ s₃) → (s₁ ⇓ᵢ+ s₃)
+  | single e₁, e₂ => trans e₁ (single e₂)
+  | trans e₁ e₂, e₃ => trans e₁ (e₂.appendStep e₃) 
+
+instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ s₃) (s₁ ⇓ᵢ+ s₃) where
+  hAppend e₁ e₂ := e₁.appendStep e₂
+
+def InstExecution.append : (s₁ ⇓ᵢ+ s₂) → (s₂ ⇓ᵢ+ s₃) → (s₁ ⇓ᵢ+ s₃)
+  | single e₁, e₂ => trans e₁ e₂
+  | trans e₁ e₂, e₃ => trans e₁ (e₂.append e₃) 
+
+instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ+ s₃) (s₁ ⇓ᵢ+ s₃) where
+  hAppend e₁ e₂ := e₁.append e₂
+
 def InstExecution.rcns : (s₁ ⇓ᵢ+ s₂) → List ID
   | single e => [e.rcn]
   | trans hd tl => hd.rcn :: tl.rcns
 
-def InstExecution.changes : (s₁ ⇓ᵢ+ s₂) → List (Identified Change)
-  | single e => e.changes
-  | trans hd tl => hd.changes ++ tl.changes
+/-def InstExecution.nthState : (e : s₁ ⇓ᵢ+ s₂) → Nat → Option State
+  | _,          0     => s₁
+  | trans _ tl, n + 1 => tl.nthState n
+  | single _,   _ + 1 => none-/
+
+def InstExecution.changes : (s₁ ⇓ᵢ+ s₂) → List InstStep.ChangeBlock
+  | single e => [e.changes]
+  | trans hd tl => hd.changes :: tl.changes
+
+def InstExecution.changes' (e : s₁ ⇓ᵢ+ s₂) : List (Identified Change) :=
+  e.changes.map (λ cs => ↑cs) |>.join
 
 abbrev State.instComplete (s : State) : Prop := s.ctx.currentProcessedRcns = s.rtr.ids .rcn
 
