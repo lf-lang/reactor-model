@@ -71,10 +71,6 @@ def InstExecution.append : (s₁ ⇓ᵢ+ s₂) → (s₂ ⇓ᵢ+ s₃) → (s₁
 instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ+ s₃) (s₁ ⇓ᵢ+ s₃) where
   hAppend e₁ e₂ := e₁.append e₂
 
-def InstExecution.rcns : (s₁ ⇓ᵢ+ s₂) → List ID
-  | single e => [e.rcn]
-  | trans hd tl => hd.rcn :: tl.rcns
-
 /-def InstExecution.nthState : (e : s₁ ⇓ᵢ+ s₂) → Nat → Option State
   | _,          0     => s₁
   | trans _ tl, n + 1 => tl.nthState n
@@ -83,6 +79,9 @@ def InstExecution.rcns : (s₁ ⇓ᵢ+ s₂) → List ID
 def InstExecution.ops : (s₁ ⇓ᵢ+ s₂) → List Operation
   | single e => [e.op]
   | trans hd tl => hd.op :: tl.ops
+
+def InstExecution.rcns (e : s₁ ⇓ᵢ+ s₂) : List ID :=
+  e.ops.map (·.rcn)
 
 def InstExecution.changes (e : s₁ ⇓ᵢ+ s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join

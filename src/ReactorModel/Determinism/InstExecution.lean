@@ -26,10 +26,18 @@ theorem InstExecution.rcns_unprocessed :
   (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∉ s₁.ctx.currentProcessedRcns := by
   intro h rcn hr
   induction h
-  case single h => simp [List.mem_singleton.mp hr, h.rcn_unprocessed]
+  case single h => 
+    simp [rcns] at hr
+    have h := h.rcn_unprocessed
+    simp [InstStep.rcn] at h
+    simp [hr, h]
   case trans hi =>
     cases List.mem_cons.mp hr
-    case inl h _ hc => simp [hc, h.rcn_unprocessed]
+    case inl h _ hc => 
+      simp [rcns] at hc
+      have h := h.rcn_unprocessed
+      simp [InstStep.rcn, ←hc] at h
+      exact h
     case inr h₁ _ h => 
       specialize hi h
       exact ((not_or _ _).mp $ (mt h₁.mem_currentProcessedRcns.mpr) hi).right
@@ -38,8 +46,17 @@ theorem InstExecution.rcns_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.rcns
   | single _ => List.nodup_singleton _
   | trans h₁ h₂ => List.nodup_cons.mpr $ ⟨(mt $ h₂.rcns_unprocessed _) $ not_not.mpr h₁.self_currentProcessedRcns, h₂.rcns_nodup⟩
 
-theorem InstExecution.changes_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.changes :=
-  sorry -- This should hold as each change (block) is Identified.
+theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops := by
+  intro e
+  induction e
+  case single => apply List.nodup_singleton
+  case trans hd tl h =>
+    simp [ops, List.nodup_cons, h]
+    by_contra hm
+    have h' := tl.rcns_unprocessed hd.op.rcn
+    simp [rcns, List.mem_map] at h'
+    specialize h' hd.op hm rfl
+    simp [hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns] at h'
 
 theorem InstExecution.currentProcessedRcns_monotonic :
   (s₁ ⇓ᵢ+ s₂) → s₁.ctx.currentProcessedRcns ⊆ s₂.ctx.currentProcessedRcns := by
@@ -54,7 +71,7 @@ theorem InstExecution.mem_currentProcessedRcns :
   (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn, rcn ∈ s₂.ctx.currentProcessedRcns ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.ctx.currentProcessedRcns := by
   intro h rcn
   induction h
-  case single h => simp [rcns, List.mem_singleton, h.mem_currentProcessedRcns]
+  case single h => simp [InstStep.rcn, rcns, List.mem_singleton, h.mem_currentProcessedRcns]
   case trans h₁ h₂ hi => 
     constructor <;> intro hc 
     case mp =>
@@ -129,10 +146,10 @@ theorem InstExecution.indep_rcns_indep_output :
   intro e h
   induction e
   case single h' =>
-    specialize h h'.rcn (by simp [rcns])
+    specialize h h'.rcn (by simp [rcns, InstStep.rcn])
     exact h'.indep_rcns_indep_output h.left h.right
   case trans s₁ sₘ s₂ h₁ h₂ hi =>
-    specialize h h₁.rcn (by simp [rcns])
+    specialize h h₁.rcn (by simp [rcns, InstStep.rcn])
     rw [h₁.indep_rcns_indep_output h.left h.right]
     suffices h : ∀ (rcn : ID), rcn ∈ rcns h₂ → rcn' >[sₘ.rtr]< rcn ∧ rcn' ≠ rcn from hi h
     intro rcn hr
@@ -185,7 +202,8 @@ theorem InstExecution.rcns_singleton (e : s₁ ⇓ᵢ+ s₂) :
     exact ⟨h, rfl⟩
   case trans hd tl => 
     have ⟨_, _, h'⟩ := tl.rcn_list_cons
-    simp [rcns, h'] at h
+    simp [rcns] at h
+    simp [rcns, h.right] at h'
 
 -- Reflexive closure for InstExecution
 inductive InstExecution.RC : State → State → Type
@@ -208,16 +226,14 @@ def InstExecution.appendRC (e₁ : s₁ ⇓ᵢ+ s₂) : (s₂ ⇓ᵢ* s₃) → 
 instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ* s₃) (s₁ ⇓ᵢ+ s₃) where
   hAppend e₁ e₂ := e₁.appendRC e₂
 
-/-
-theorem InstExecution.mem_changes_split (e : s₁ ⇓ᵢ+ s₂) :
-  (cs ∈ e.changes) → 
+theorem InstExecution.mem_ops_split (e : s₁ ⇓ᵢ+ s₂) :
+  (op ∈ e.ops) → 
   ∃ (sₘ₁ : _) (sₘ₂ : _) (e₁ : s₁ ⇓ᵢ* sₘ₁) (eₘ : sₘ₁ ⇓ᵢ sₘ₂) (e₂ : sₘ₂ ⇓ᵢ* s₂), 
-  (e = e₁ ++ eₘ ++ e₂) ∧ (eₘ.op.changes = cs) :=
+  (e = e₁ ++ eₘ ++ e₂) ∧ (eₘ.op = op) :=
   sorry
-  -/
 
-theorem InstExecution.same_rcns_same_change_segments (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) :
-  (e₁.rcns ~ e₂.rcns) → (e₁.changes ~ e₂.changes) := by
+theorem InstExecution.same_rcns_same_ops (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) :
+  (e₁.rcns ~ e₂.rcns) → (e₁.ops ~ e₂.ops) := by
   intro hp
   /-induction e₁ 
   case single e₁ =>
@@ -226,14 +242,12 @@ theorem InstExecution.same_rcns_same_change_segments (e₁ : s ⇓ᵢ+ s₁) (e�
     have ⟨_, h₁, h₂⟩ := e₂.rcns_singleton hp
     simp [h₂, changes, InstStep.eq_rcn_eq_changes h₁, List.Perm.refl]
   -/
-  sorry
-  /-simp [List.perm_ext e₁.changes_nodup e₂.changes_nodup]
-  intro cs
+  simp [List.perm_ext e₁.ops_nodup e₂.ops_nodup]
+  intro op
   constructor <;> intro h
   case mp =>
-    have h' := e₁.mem_changes_split h
+    have h' := e₁.mem_ops_split h
     sorry
-  -/
   -- if a change appears in e₁, that means that it must have been produced by some unique rcn ∈ e₁.rcns.
   -- since e₂.rcns must also contain this rcn, we only need to show that it must produce the same change.
   --
