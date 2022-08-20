@@ -5,22 +5,22 @@ open Classical
 namespace Execution
 
 theorem InstExecution.preserves_tag : (s₁ ⇓ᵢ+ s₂) → s₁.ctx.tag = s₂.ctx.tag
-  | single h => h.preserves_tag
-  | trans h hi => h.preserves_tag.trans hi.preserves_tag
+  | single h => h.exec.preserves_tag
+  | trans h hi => h.exec.preserves_tag.trans hi.preserves_tag
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
   intro h g hg
   induction h
-  case single h => exact h.preserves_ctx_past_future _ hg
+  case single h => exact h.exec.preserves_ctx_past_future _ hg
   case trans s₁ _ sₘ he _ hi =>
     rw [InstExecution.preserves_tag $ single he] at hg
-    exact (he.preserves_ctx_past_future _ hg).trans $ hi hg
+    exact (he.exec.preserves_ctx_past_future _ hg).trans $ hi hg
     
 theorem InstExecution.preserves_rcns {i : ID} :
   (s₁ ⇓ᵢ+ s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
-  | single h => h.preserves_rcns
-  | trans h₁ₘ hₘ₂ => h₁ₘ.preserves_rcns.trans hₘ₂.preserves_rcns
+  | single h => h.exec.preserves_rcns
+  | trans h₁ₘ hₘ₂ => h₁ₘ.exec.preserves_rcns.trans hₘ₂.preserves_rcns
 
 theorem InstExecution.rcns_unprocessed : 
   (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∉ s₁.ctx.currentProcessedRcns := by
@@ -110,12 +110,12 @@ theorem InstExecution.rcn_list_cons : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.r
   (by cases · <;> simp [rcns])
 
 theorem InstExecution.to_ChangeListStep :
-  (e : s₁ ⇓ᵢ+ s₂) → (s₁ -[e.changes']→* ⟨s₂.rtr, s₁.ctx⟩) := by
+  (e : s₁ ⇓ᵢ+ s₂) → (s₁ -[e.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
   intro e
   induction e
-  case single e => simp [changes', e.to_ChangeListStep]
+  case single e => simp [changes, e.exec.to_ChangeListStep]
   case trans s₁ sₘ s₂ e₁ e₂ hi => 
-    have h := e₁.to_ChangeListStep
+    have h := e₁.exec.to_ChangeListStep
     simp [changes]
     have hs := ChangeListStep.append h hi rfl
     exact hs
@@ -175,19 +175,6 @@ theorem InstExecution.segments :
       simp [InstStep.changes]
 -/      
 
-theorem InstStep.eq_rcn_eq_changes {e₁ : s ⇓ᵢ s₁} {e₂ : s ⇓ᵢ s₂} :
-  (e₁.rcn = e₂.rcn) → (e₁.changes = e₂.changes) := by
-  intro h
-  cases e₁ <;> cases e₂ <;> (simp [rcn] at h; simp [changes])
-  case skipReaction.skipReaction => 
-    exact h
-  case execReaction.execReaction h₁ _ _ _ _ _ _ h₂ _ =>
-    simp [h] at h₁
-    simp [Option.some_inj.mp <| h₁.symm.trans h₂]
-  case' execReaction.skipReaction h', skipReaction.execReaction h' _ _ =>
-    simp [←h] at h'
-    contradiction 
-
 theorem InstExecution.rcns_singleton (e : s₁ ⇓ᵢ+ s₂) :
   (e.rcns = [rcn]) → ∃ e' : s₁ ⇓ᵢ s₂, (e'.rcn = rcn) ∧ (e = single e') := by
   intro h
@@ -221,11 +208,13 @@ def InstExecution.appendRC (e₁ : s₁ ⇓ᵢ+ s₂) : (s₂ ⇓ᵢ* s₃) → 
 instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ* s₃) (s₁ ⇓ᵢ+ s₃) where
   hAppend e₁ e₂ := e₁.appendRC e₂
 
+/-
 theorem InstExecution.mem_changes_split (e : s₁ ⇓ᵢ+ s₂) :
   (cs ∈ e.changes) → 
   ∃ (sₘ₁ : _) (sₘ₂ : _) (e₁ : s₁ ⇓ᵢ* sₘ₁) (eₘ : sₘ₁ ⇓ᵢ sₘ₂) (e₂ : sₘ₂ ⇓ᵢ* s₂), 
-  (e = e₁ ++ eₘ ++ e₂) ∧ (eₘ.changes = cs) :=
+  (e = e₁ ++ eₘ ++ e₂) ∧ (eₘ.op.changes = cs) :=
   sorry
+  -/
 
 theorem InstExecution.same_rcns_same_change_segments (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) :
   (e₁.rcns ~ e₂.rcns) → (e₁.changes ~ e₂.changes) := by
@@ -237,12 +226,14 @@ theorem InstExecution.same_rcns_same_change_segments (e₁ : s ⇓ᵢ+ s₁) (e�
     have ⟨_, h₁, h₂⟩ := e₂.rcns_singleton hp
     simp [h₂, changes, InstStep.eq_rcn_eq_changes h₁, List.Perm.refl]
   -/
-  simp [List.perm_ext e₁.changes_nodup e₂.changes_nodup]
+  sorry
+  /-simp [List.perm_ext e₁.changes_nodup e₂.changes_nodup]
   intro cs
   constructor <;> intro h
   case mp =>
     have h' := e₁.mem_changes_split h
     sorry
+  -/
   -- if a change appears in e₁, that means that it must have been produced by some unique rcn ∈ e₁.rcns.
   -- since e₂.rcns must also contain this rcn, we only need to show that it must produce the same change.
   --
@@ -250,7 +241,7 @@ theorem InstExecution.same_rcns_same_change_segments (e₁ : s ⇓ᵢ+ s₁) (e�
     
 
 theorem InstExecution.same_rcns_ChangeListEquiv :
-  (e₁ : s ⇓ᵢ+ s₁) → (e₂ : s ⇓ᵢ+ s₂) → (e₁.rcns ~ e₂.rcns) → (e₁.changes' ⋈ e₂.changes') := by
+  (e₁ : s ⇓ᵢ+ s₁) → (e₂ : s ⇓ᵢ+ s₂) → (e₁.rcns ~ e₂.rcns) → (e₁.changes ⋈ e₂.changes) := by
   intro e₁ e₂ hp
   sorry
   -- prove that the changes produced by each reaction are the same (somehow using InstStep.indep_rcns_indep_output)?

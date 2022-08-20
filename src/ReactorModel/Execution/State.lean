@@ -1,10 +1,23 @@
 import ReactorModel.Execution.Context
 import ReactorModel.Execution.Dependency
 
+open Classical
+
 @[ext]
 structure Execution.State where
   rtr : Reactor
   ctx : Context
+
+inductive Execution.Operation 
+  | skip (rcn : ID)
+  | exec (rcn : ID) (changes : List Change)
+
+def Execution.Operation.rcn : Operation → ID
+  | skip rcn | exec rcn _ => rcn
+
+def Execution.Operation.changes : Execution.Operation → List (Identified Change)
+  | .skip _ => []
+  | .exec rcn cs => cs.map (⟨rcn, ·⟩)
 
 namespace Execution.State
 
@@ -31,11 +44,8 @@ noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input :=
 
 noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
   match s.rtr.obj? .rcn i, s.rcnInput i with
-  | some rcn, some i => rcn i 
-  | _, _ => none
-
-noncomputable def rcnOutput' (s : State) (i : ID) : Option (List (Identified Change)) :=
-  (s.rcnOutput i).map λ o => o.map ({ id := i, obj := · }) 
+    | some rcn, some i => rcn i 
+    | _, _ => none
   
 theorem rcnInput_iff_obj? {s : State} : 
   (∃ i, s.rcnInput rcn = some i) ↔ (∃ o, s.rtr.obj? .rcn rcn = some o) := by
@@ -101,12 +111,6 @@ theorem rcnOutput_to_contains {s : State} :
   case none => simp [rcnOutput, ho] at h
   case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
 
-theorem rcnOutput'_to_contains {s : State} :
-  (s.rcnOutput' rcn = some o) → (s.rtr.contains .rcn rcn) := by
-  intro h
-  simp [rcnOutput'] at h
-  exact rcnOutput_to_contains h.choose_spec.left
-
 private theorem rcnOutput_to_rcn_body {s : State} {j : ID} : 
   (s.rcnOutput j = some o) → (∃ i rcn, s.rtr.obj? .rcn j = some rcn ∧ rcn i = o) := by
   intro h
@@ -158,6 +162,19 @@ theorem rcnOutput_pure_congr {s₁ s₂ : State} :
   
 def triggers (s : State) (r : ID) :=
   ∃ rcn i, (s.rtr.obj? .rcn r = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.triggersOn i)
+
+noncomputable def operation (s : State) (i : ID) : Option Operation :=
+  if s.triggers i 
+  then (s.rcnOutput i) >>= (some $ .exec i ·)
+  else if s.rtr.contains .rcn i then some (.skip i)
+  else none
+
+theorem operation_to_contains {s : State} :
+  (s.operation rcn = some o) → (s.rtr.contains .rcn rcn) := by
+  intro h
+  simp [operation] at h
+  split at h
+  all_goals sorry
 
 def nextTag (s : State) : Option Time.Tag :=
   s.rtr.scheduledTags.filter (s.ctx.tag < ·) |>.min

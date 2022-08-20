@@ -4,50 +4,49 @@ open Classical
 
 namespace Execution
 
+theorem OperationStep.deterministic : (s -[op]↣ s₁) → (s -[op]↣ s₂) → (s₁ = s₂)
+  | .skip .., .skip .. => rfl
+  | .exec h₁, .exec h₂ => by simp [h₁.deterministic h₂]
+
+theorem OperationStep.preserves_Equiv : (s₁ -[op]↣ s₂) → (s₁.rtr ≈ s₂.rtr)
+  | .skip => .refl
+  | .exec h => h.preserves_Equiv
+
+theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i
+  | .skip .. => rfl
+  | .exec h => h.preserves_rcns
+
+theorem OperationStep.preserves_ctx_past_future :
+  (s₁ -[op]↣ s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
+  | .skip .., _, hg => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
+  | .exec h,  _, hg => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
+
+theorem OperationStep.preserves_tag : (s₁ -[op]↣ s₂) → s₁.ctx.tag = s₂.ctx.tag
+  | .skip .. => by simp [Context.addCurrentProcessed_same_tag]
+  | .exec h => by simp [Context.addCurrentProcessed_same_tag, h.preserves_ctx]
+
+theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed op.rcn
+  | .exec h => by simp [Operation.rcn, h.preserves_ctx]
+  | .skip .. => rfl
+
+theorem OperationStep.to_ChangeListStep :
+  (e : s₁ -[op]↣ s₂) → (s₁ -[op.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
+  intro e
+  induction e <;> simp [Operation.changes, Operation.rcn]
+  case skip => exact ChangeListStep.nil
+  case exec h => exact h.ctx_agnostic rfl
+
 theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e₁.rcn = e₂.rcn) → s₁ = s₂ := by
   intro h
-  cases e₁ <;> cases e₂ <;> simp [rcn] at h
-  case execReaction.execReaction ho₁ h₁ _ _ _ _ _ ho₂ h₂ => 
-    simp [h] at ho₁
-    simp [Option.some_inj.mp $ ho₁.symm.trans ho₂] at h₁
-    simp [h, ChangeListStep.deterministic h₁ h₂]
-  case skipReaction.skipReaction =>
-    simp [h]
-  case' execReaction.skipReaction ht₁ _ _ _ _ _ ht₂, skipReaction.execReaction ht₁ _ _ _ _ _ _ ht₂ =>
-    rw [h] at ht₁
-    contradiction
+  rw [rcn] at h
+  have h := ((h ▸ e₁.wfOp) ▸ e₂.wfOp |> Option.some_inj.mp).symm ▸ e₂.exec
+  exact e₁.exec.deterministic h
 
-theorem InstStep.preserves_Equiv : (s₁ ⇓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
-  | skipReaction .. => .refl
-  | execReaction _ _ _ h => h.preserves_Equiv
+theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (s₁.rtr.contains .rcn e.rcn) :=
+  s₁.operation_to_contains e.wfOp 
 
-theorem InstStep.rtr_contains_rcn : (e : s₁ ⇓ᵢ s₂) → s₁.rtr.contains .rcn e.rcn
-  | skipReaction h _ _ => h
-  | execReaction _ _ h _ => by 
-    simp [rcn]
-    exact State.rcnOutput'_to_contains h
-    
-theorem InstStep.preserves_rcns {i : ID} : 
-  (s₁ ⇓ᵢ s₂) → s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i 
-  | execReaction _ _ _ h => by simp [h.preserves_rcns]
-  | skipReaction .. => rfl
-
-theorem InstStep.preserves_ctx_past_future :
-  (s₁ ⇓ᵢ s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
-  | execReaction _ _ _ h, _, hg => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
-  | skipReaction ..,      _, hg => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
-
-theorem InstStep.preserves_tag : (s₁ ⇓ᵢ s₂) → s₁.ctx.tag = s₂.ctx.tag := by
-  intro h
-  cases h <;> simp [Context.addCurrentProcessed_same_tag]
-  case execReaction h => simp [h.preserves_ctx]
-
-theorem InstStep.ctx_adds_rcn : (e : s₁ ⇓ᵢ s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed e.rcn
-  | execReaction _ _ _ h => by simp [rcn, h.preserves_ctx]
-  | skipReaction .. => rfl
-
-theorem InstStep.rcn_unprocessed : (e : s₁ ⇓ᵢ s₂) → e.rcn ∉ s₁.ctx.currentProcessedRcns
-  | execReaction h _ _ _ | skipReaction _ h _ => h.unprocessed
+theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.ctx.currentProcessedRcns := 
+  e.allows.unprocessed
   
 theorem InstStep.mem_currentProcessedRcns :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.ctx.currentProcessedRcns ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.ctx.currentProcessedRcns) := by
@@ -58,16 +57,17 @@ theorem InstStep.mem_currentProcessedRcns :
     by_cases hc : rcn' = h.rcn
     case pos => exact .inl hc
     case neg =>
-      rw [h.ctx_adds_rcn] at ho
+      rw [h.exec.ctx_adds_rcn, ←rcn] at ho
       simp [Context.addCurrentProcessed_mem_currentProcessedRcns.mp ho]
   case mpr =>
     intro ho
     by_cases hc : rcn' = h.rcn
     case pos =>
       simp [hc]
-      cases h <;> exact Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inl rfl)
+      sorry
+      -- exact Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inl rfl)
     case neg =>
-      simp [h.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inr $ ho.resolve_left hc)]
+      simp [h.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inr $ ho.resolve_left hc)]
 
 -- Corollary of `InstStep.mem_currentProcessedRcns`.
 theorem InstStep.not_mem_currentProcessedRcns :
@@ -85,8 +85,7 @@ theorem InstStep.self_currentProcessedRcns :
   (·.mem_currentProcessedRcns.mpr $ .inl rfl)
 
 theorem identified_changes_equiv_changes {cs : List Change} {o : List (Identified Change)} : 
-  (cs.map ({ id := i, obj := ·}) = o) → 
-  (o.map (·.obj) = cs) := by
+  (cs.map ({ id := i, obj := ·}) = o) → (o.map (·.obj) = cs) := by
   intro h
   induction cs generalizing o
   case nil => simp_all
@@ -101,6 +100,8 @@ theorem identified_changes_equiv_changes {cs : List Change} {o : List (Identifie
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
   (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (p ∉ r.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p)
+  := sorry
+  /-
   | skipReaction ..,         _,  _ => rfl
   | execReaction _ _ ho hs, hr, hd => 
     hs.preserves_unchanged_ports (
@@ -110,9 +111,12 @@ theorem InstStep.preserves_nondep_ports :
         simp [rcn, hcs, identified_changes_equiv_changes ho]
       ) hr hd
     )
+  -/
 
 theorem InstStep.preserves_nondep_actions : 
   (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (a ∉ r.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a)
+  := sorry
+  /-
   | skipReaction ..,        _,  _ => rfl
   | execReaction _ _ ho hs, hr, hd => 
     hs.preserves_unchanged_actions (
@@ -122,9 +126,12 @@ theorem InstStep.preserves_nondep_actions :
         simp [rcn, hcs, identified_changes_equiv_changes ho]
       ) hr hd
     )
+  -/
 
 theorem InstStep.pure_preserves_state {j : ID} : 
   (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (r.isPure) → (s₁.rtr.obj? .stv j = s₂.rtr.obj? .stv j)
+  := sorry
+  /-
   | skipReaction ..,    _,  _ => rfl
   | execReaction _ _ ho hs, hr, hp =>
     hs.preserves_unchanged_state (
@@ -134,13 +141,16 @@ theorem InstStep.pure_preserves_state {j : ID} :
         simp [rcn, hcs, identified_changes_equiv_changes ho]
       ) hr hp
     )
-    
+  -/
+
 -- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
 --       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
 theorem InstStep.preserves_external_state : 
   (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.con? .rcn e.rcn = some c) → 
   (s₁.rtr.obj? .rtr j = some c₁) → (s₂.rtr.obj? .rtr j = some c₂) → (c.id ≠ j) →
   (c₁.state = c₂.state)
+  := sorry
+  /-
   | skipReaction ..,        _,  _,   _,   _ => by simp_all
   | execReaction _ _ ho hs, hc, hc₁, hc₂, hi => by
     apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cmp := .stv)
@@ -154,21 +164,21 @@ theorem InstStep.preserves_external_state :
       ) hc hm
     )
     exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
+  -/
+
+theorem InstStep.eq_rcn_eq_changes {e₁ : s ⇓ᵢ s₁} {e₂ : s ⇓ᵢ s₂} :
+  (e₁.rcn = e₂.rcn) → (e₁.op.changes = e₂.op.changes) := by
+  intro h
+  rw [rcn] at h
+  simp [(h ▸ e₁.wfOp) ▸ e₂.wfOp |> Option.some_inj.mp]
 
 theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn >[s₁.rtr]< e.rcn) :=
   λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
-
-theorem InstStep.to_ChangeListStep :
-  (e : s₁ ⇓ᵢ s₂) → (s₁ -[e.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
-  intro e
-  induction e <;> simp [changes, rcn]
-  case skipReaction => simp [ChangeListStep.nil]
-  case execReaction s₂' _ _ _ h => exact h.ctx_agnostic rfl
     
 theorem InstStep.indep_rcns_indep_output :
   (e : s ⇓ᵢ s') → (rcn' >[s.rtr]< e.rcn) → (rcn' ≠ e.rcn) → s.rcnOutput rcn' = s'.rcnOutput rcn' := by
   intro h hi hrne
-  have hp := h.preserves_rcns (i := rcn')
+  have hp := h.exec.preserves_rcns (i := rcn')
   cases ho : s.rtr.obj? .rcn rcn' <;> cases ho' : s'.rtr.obj? .rcn rcn'
   case none.none => simp [State.rcnOutput, ho, ho']
   case' none.some, some.none => simp [hp, ho'] at ho
@@ -202,7 +212,7 @@ theorem InstStep.indep_rcns_indep_output :
       have hd := mt (hd a) $ not_not.mpr ha
       simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_actions hr hd]
     have H3 : t = t' := by 
-      simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.preserves_tag]
+      simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.exec.preserves_tag]
     simp [H1, H2, H3] at hj
     have ⟨r, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
     have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
@@ -212,7 +222,7 @@ theorem InstStep.indep_rcns_indep_output :
       have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
       have hs := State.rcnInput_state_def hj hc
       have hs' := State.rcnInput_state_def hj' hc'
-      have hq := h.preserves_Equiv
+      have hq := h.exec.preserves_Equiv
       have hh := hq.con?_id_eq hc hc'
       have hc := Reactor.con?_to_rtr_obj? hc
       have hc' := Reactor.con?_to_rtr_obj? hc'
@@ -223,7 +233,7 @@ theorem InstStep.indep_rcns_indep_output :
     case inr hc =>
       cases hc
       case inl hp' => 
-        rw [ho'.symm.trans (h.preserves_rcns ▸ ho)] at ho'
+        rw [ho'.symm.trans (h.exec.preserves_rcns ▸ ho)] at ho'
         exact State.rcnOutput_pure_congr hj hj' ho ho' hp'
       case inr hp' => 
         have ⟨_, hco, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
@@ -234,7 +244,7 @@ theorem InstStep.indep_rcns_indep_output :
           rw [h] at hj
           exact State.rcnOutput_congr (hj.trans hj'.symm) hp
         rw [hs, hs']
-        have he := h.preserves_Equiv
+        have he := h.exec.preserves_Equiv
         exact (he.con?_obj_equiv hco hco').obj?_ext (cmp := .stv) (by
           intro j _
           have h := h.pure_preserves_state (j := j) hr hp'
