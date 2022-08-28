@@ -141,6 +141,10 @@ theorem lastSome?_eq_some_iff {l : List α} :
   (∃ b, l.lastSome? f = some b) ↔ (∃ b a, a ∈ l ∧ (f a) = some b) := 
   sorry
 
+theorem lastSome?_eq_some {l : List α} : 
+  (l.lastSome? f = some b) → ∃ (i : Fin l.length), (f l[i] = some b) ∧ (∀ j > i, f l[j] = none) :=
+  sorry
+
 theorem lastSome?_head : 
   ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = none) → some b = f hd :=
   sorry

@@ -223,7 +223,7 @@ theorem uniqueInputs {rtr : Reactor} :
   (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → 
   (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out :=
   λ hn hp hr₁ hr₂ hi ho => rtr.rawWF.direct.uniqueInputs (nest_mem_raw_iff.mp hn) hp hr₁ hr₂ hi ho
-
+  
 theorem normDeps {rtr : Reactor} :
   (n ∈ rtr.norms.values) → (n.deps k) ⊆ (rtr.acts.ids ∪ (rtr.ports' k).ids ∪ (rtr.nestedPortIDs k.opposite)) := by
   intro hn

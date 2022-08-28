@@ -115,14 +115,6 @@ theorem InstExecution.eq_ctx_processed_rcns_perm :
       rw [←he] at h
       exact ((h₁.mem_currentProcessedRcns _).mp h).resolve_right hc
 
--- TODO: Delete this if unused.
-theorem InstExecution.rcns_respect_dependencies : 
-  (e : s₁ ⇓ᵢ+ s₂) →
-  e.rcns.get? i₁ = some rcn₁ → e.rcns.get? i₂ = some rcn₂ → 
-  rcn₁ >[s₁.rtr] rcn₂ → i₁ < i₂ := by
-  intro h h₁ h₂ hd
-  sorry
-
 theorem InstExecution.rcn_list_cons : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl :=
   (by cases · <;> simp [rcns])
 
@@ -215,43 +207,160 @@ theorem InstExecution.same_rcns_same_ops (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓�
   -- 
   -- ... continue the list
 
-theorem InstExecution.same_rcns_ChangeListEquiv :
-  (e₁ : s ⇓ᵢ+ s₁) → (e₂ : s ⇓ᵢ+ s₂) → (e₁.rcns ~ e₂.rcns) → (e₁.changes ⋈ e₂.changes) := by
-  intro e₁ e₂ hp
+theorem InstExecution.port_change_to_op {e : s₁ ⇓ᵢ+ s₂} {i : Fin e.changes.length} :
+  (e.changes[i].obj = .port p v) → 
+  ∃ op rcn, (op ∈ e.ops) ∧ (⟨op.rcn, .port p v⟩ ∈ op.changes) ∧ (s₁.rtr.obj? .rcn op.rcn = some rcn) ∧ (p ∈ rcn.deps .out) := by
   sorry
-  -- prove that the changes produced by each reaction are the same (somehow using InstStep.indep_rcns_indep_output)?
-  --
-  -- * say that there exists a l₁ : List (List Change) such that l.join = e₁.changes
-  --   and for each index i in 0 to rcns.length: e₁[0...i].rcnOutput e₁.rcns[i] = l₁[i]
-  -- * same holds for an l₂ with e₂
-  -- * the prove that for each rcn ∈ e₁.rcns/e₂.rcns the entries in l₁/l₂ correspond
-  -- 
-  -- * lastly show that this must imply change list equivalence?
-  --
-  -- extensionality?
-  --
-  -- can we perform an induction over the length of the list?
-  -- for length 0 it's trivial
-  -- for length n + 1:
-  --   we know the head element must have no dependencies on any other elements in the list otherwise
-  --   (by e₁ and e₂) it could not be the head
-  -- 
-  -- 
-  -- Proof steps:
-  -- 1. Formalize the condition of a reaction list being dependency-preserving (aka topologically sorted).
 
-  
+theorem InstExecution.state_change_to_op {e : s₁ ⇓ᵢ+ s₂} {i : Fin e.changes.length} :
+  (e.changes[i].obj = .state a v) → 
+  ∃ op, (op ∈ e.ops) ∧ (⟨op.rcn, .state a v⟩ ∈ op.changes) ∧ (s₁.rtr.con? .stv a = s₁.rtr.con? .rcn op.rcn) := by
+  sorry
 
--- This theorem is the main theorem about determinism in an instantaneous setting.
--- Basically, if the same reactions have been executed, then we have the same resulting
--- reactor.
+theorem Reactor.uniqueInputs' {rtr : Reactor} {iₚ i₁ i₂ : ID} :
+  (rtr.obj? .prt iₚ = some p) → (p.kind = .in) →
+  (rtr.obj? .rcn i₁ = some rcn₁) → (rtr.obj? .rcn i₂ = some rcn₂) → (i₁ ≠ i₂) → 
+  (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out := by
+  sorry
+
+theorem Reactor.out_port_out_dep_eq_parent {rtr : Reactor} {iₚ iᵣ : ID} :
+  (rtr.obj? .prt iₚ = some p) → (p.kind = .out) →
+  (rtr.obj? .rcn iᵣ = some rcn) → (iₚ ∈ rcn.deps .out) → 
+  (rtr.con? .prt iₚ = rtr.con? .rcn iᵣ) := by
+  sorry
+
+theorem InstExecution.op_eq_rcn_eq {e : s₁ ⇓ᵢ+ s₂} :
+  (op₁ ∈ e.ops) → (op₂ ∈ e.ops) → (op₁.rcn = op₂.rcn) → (op₁ = op₂) := by
+  sorry
+
+theorem InstExecution.ops_respect_dependencies {i₁ i₂ : Nat} : 
+  (e : s₁ ⇓ᵢ+ s₂) →
+  (e.ops[i₁]? = some op₁) → (e.ops[i₂]? = some op₂) → 
+  (op₁.rcn >[s₁.rtr] op₂.rcn) → (i₁ < i₂) := by
+  sorry
+
+theorem InstExecution.changes_order_to_ops_internal_order {e : s₁ ⇓ᵢ+ s₂} {ic : Fin e.changes.length} {io : Nat} :
+  (e.changes[ic].obj = c) →
+  (∀ j : Fin e.changes.length, (j > ic) → e.changes[j].obj.stateValue? i = none) → 
+  (op ∈ e.ops) →
+  (op.changes[io]? = some ⟨op.rcn, c⟩) →
+  (∀ j c', (j > io) → (op.changes[j]? = some c') → c'.obj.stateValue? i = none) := by
+  sorry
+
+theorem InstExecution.same_ops_ChangeListEquiv_ports {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} :
+  (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.portValue? i) = e₂.changes.lastSome? (·.obj.portValue? i)) := by
+  intro ho i
+  /-cases hc : e₁.changes.lastSome? (·.obj.portValue? i)
+    case none =>
+      have := (mt List.lastSome?_eq_some_iff.mpr) (Option.eq_none_iff_forall_not_mem.mp hc |> not_exists.mpr)
+      sorry -- ...
+    case some -/
+    
+  -- lets assume both sides are some just to get to the core of the argument rn:
+  have ⟨v₁, hc₁⟩ : ∃ v, e₁.changes.lastSome? (·.obj.portValue? i) = some v := sorry
+  have ⟨v₂, hc₂⟩ : ∃ v, e₂.changes.lastSome? (·.obj.portValue? i) = some v := sorry
+  rw [hc₁, hc₂]
+
+  have ⟨i₁, hi₁, hj₁⟩ := List.lastSome?_eq_some hc₁
+  have ⟨i₂, hi₂, hj₂⟩ := List.lastSome?_eq_some hc₂
+  replace hi₁ := Change.portValue?_some hi₁
+  replace hi₂ := Change.portValue?_some hi₂
+
+  have ⟨op₁, rcn₁, hom₁, hcm₁, ho₁, hd₁⟩ := e₁.port_change_to_op hi₁
+  have ⟨op₂, rcn₂, hom₂, hcm₂, ho₂, hd₂⟩ := e₂.port_change_to_op hi₂
+
+  -- 1. show that (.port i v₁) and (.port i v₂) must live in the same op
+  -- 2. show that they must be the same change, by hj₁/hj₂
+
+  -- if port i is an input port, there can be at most one reaction that writes to it
+  -- if port i is an output port, if there exist multiple ports connected to it, there must be an order on them
+  -- lets assume i is a valid port 
+  have ⟨p, hp⟩ : ∃ p, s.rtr.obj? .prt i = some p := sorry
+  cases hk : p.kind
+  case «in» =>
+    have hr : op₁.rcn = op₂.rcn := by
+      by_contra h
+      exact absurd hd₂ (Reactor.uniqueInputs' hp hk ho₁ ho₂ h hd₁)
+    have heo := e₁.op_eq_rcn_eq hom₁ (ho.mem_iff.mpr hom₂) hr
+    sorry -- step 1 complete for this case
+  case out =>
+    by_cases hr : op₁.rcn = op₂.rcn
+    case pos =>
+      have heo := e₁.op_eq_rcn_eq hom₁ (ho.mem_iff.mpr hom₂) hr
+      sorry -- step 1 complete for this case
+    case neg =>
+      have h₁ := Reactor.out_port_out_dep_eq_parent hp hk ho₁ hd₁
+      have h₂ := Reactor.out_port_out_dep_eq_parent hp hk ho₂ hd₂
+      have h := h₁.symm.trans h₂
+      -- establish that there is a dependency between rcn₁ and rcn₂:
+      -- this could be by .prio, or .mutNorm.
+      have hd : True := sorry
+      sorry
+
+theorem List.get?_eq_getElem? (l : List α) (i : Nat) : l.get? i = l[i]? := sorry
+
+theorem InstExecution.same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} :
+  (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.stateValue? i) = e₂.changes.lastSome? (·.obj.stateValue? i)) := by
+  intro ho i
+
+  have ⟨v₁, hc₁⟩ : ∃ v, e₁.changes.lastSome? (·.obj.stateValue? i) = some v := sorry
+  have ⟨v₂, hc₂⟩ : ∃ v, e₂.changes.lastSome? (·.obj.stateValue? i) = some v := sorry
+  rw [hc₁, hc₂]
+
+  have ⟨i₁, hi₁, hj₁⟩ := List.lastSome?_eq_some hc₁
+  have ⟨i₂, hi₂, hj₂⟩ := List.lastSome?_eq_some hc₂
+  replace hi₁ := Change.stateValue?_some hi₁
+  replace hi₂ := Change.stateValue?_some hi₂
+
+  have ⟨op₁, hom₁, hcm₁, hc₁⟩ := e₁.state_change_to_op hi₁
+  have ⟨op₂, hom₂, hcm₂, hc₂⟩ := e₂.state_change_to_op hi₂
+
+  by_cases hr : op₁.rcn = op₂.rcn 
+  case pos =>
+    have heo := e₁.op_eq_rcn_eq hom₁ (ho.mem_iff.mpr hom₂) hr
+    have ⟨X1, H1⟩ := List.mem_iff_get?.mp hcm₁; rw [List.get?_eq_getElem?] at H1
+    have ⟨X2, H2⟩ := List.mem_iff_get?.mp hcm₂; rw [List.get?_eq_getElem?] at H2
+    have hio₁ := changes_order_to_ops_internal_order hi₁ hj₁ hom₁ H1
+    have hio₂ := changes_order_to_ops_internal_order hi₂ hj₂ hom₂ H2
+    rw [←heo] at H2
+    have H : X1 = X2 := sorry -- by hio₁ and hio₂
+    rw [H] at H1
+    injection H1.symm.trans H2 with H3
+    injection H3 with _ H4
+    injection H4 with _ H5
+    rw [H5]
+  case neg =>
+    exfalso
+    sorry
+    -- The op₁.rcn and op₂.rcn must live in the same reactor, as they both write to the same state variable i.
+    -- Since they write to a state variable, they are also not pure.
+    -- There must exist a dependency relation between the two.
+    -- Thus, within the list of ops, the ordering between the ops is the same within e₁.ops and e₂.ops
+    -- (because execution respects dependency order: `ops_respect_dependencies`).
+    -- Thus (wlog. assuming op₁ must appear before op₂) e₁.ops must also contain op₂ (by `ho`) somewhere after op₁. 
+    -- Thus the assumption hj₂ is false.
+
+theorem InstExecution.same_ops_ChangeListEquiv_actions {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} :
+  (e₁.ops ~ e₂.ops) → (∀ i t, e₁.changes.filterMap (·.obj.actionValue? i t) = e₂.changes.filterMap (·.obj.actionValue? i t)) := by
+  sorry
+
+theorem InstExecution.same_rcns_ChangeListEquiv {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} : 
+  (e₁.rcns ~ e₂.rcns) → (e₁.changes ⋈ e₂.changes) := by
+  intro hr
+  have ho := e₁.same_rcns_same_ops e₂ hr
+  exact {
+    ports := same_ops_ChangeListEquiv_ports ho,
+    state := same_ops_ChangeListEquiv_state ho,
+    actions := same_ops_ChangeListEquiv_actions ho
+  }
+
 protected theorem InstExecution.deterministic : 
   (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
-  intro h₁ h₂ hc
+  intro e₁ e₂ hc
   refine State.ext _ _ ?_ hc
-  have hp := h₁.eq_ctx_processed_rcns_perm h₂ hc
-  have he := h₁.same_rcns_ChangeListEquiv h₂ hp
-  injection h₁.to_ChangeListStep.equiv_changes_eq_result h₂.to_ChangeListStep he
+  have hp := e₁.eq_ctx_processed_rcns_perm e₂ hc
+  have he := e₁.same_rcns_ChangeListEquiv hp
+  injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
   assumption
     
     
