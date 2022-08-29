@@ -299,22 +299,40 @@ theorem InstExecution.same_ops_ChangeListEquiv_ports {e₁ : s ⇓ᵢ+ s₁} {e�
 
 theorem List.get?_eq_getElem? (l : List α) (i : Nat) : l.get? i = l[i]? := sorry
 
+theorem List.last_with_property_unique {l : List α} {p : α → Prop} {i₁ i₂ : Nat} :
+  (l[i₁]? = some a₁) → (p a₁) → (∀ j a, (j > i₁) → (l[j]? = some a) → ¬p a) →
+  (l[i₂]? = some a₂) → (p a₂) → (∀ j a, (j > i₂) → (l[j]? = some a) → ¬p a) →
+  i₁ = i₂ :=
+  sorry
+
+theorem Reactor.orderable_impure {rtr : Reactor} {i₁ i₂ : ID} :
+  (rtr.obj? .rcn i₁ = some rcn₁) → (¬rcn₁.isPure) → 
+  (rtr.obj? .rcn i₂ = some rcn₂) → (¬rcn₂.isPure) →
+  (rtr.con? .rcn i₁ = rtr.con? .rcn i₂) → (i₁ ≠ i₂) → 
+  Reactor.Orderable rtr rcn₁ rcn₂ :=
+  sorry
+
+theorem InstExecution.state_change_mem_op_rcn_eq_con? {e : s₁ ⇓ᵢ+ s₂} :
+  (op ∈ e.ops) → (⟨op.rcn, .state i v⟩ ∈ op.changes) → 
+  (s₁.rtr.con? .stv i = s₁.rtr.con? .rcn op.rcn)
+  := sorry
+
+theorem InstExecution.state_change_mem_op_rcn_impure {e : s₁ ⇓ᵢ+ s₂} :
+  (op ∈ e.ops) → (⟨op.rcn, .state i v⟩ ∈ op.changes) →
+  ∃ rcn, (s₁.rtr.obj? .rcn op.rcn = some rcn) ∧ (¬rcn.isPure) := sorry
+
 theorem InstExecution.same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.stateValue? i) = e₂.changes.lastSome? (·.obj.stateValue? i)) := by
   intro ho i
-
   have ⟨v₁, hc₁⟩ : ∃ v, e₁.changes.lastSome? (·.obj.stateValue? i) = some v := sorry
   have ⟨v₂, hc₂⟩ : ∃ v, e₂.changes.lastSome? (·.obj.stateValue? i) = some v := sorry
   rw [hc₁, hc₂]
-
   have ⟨i₁, hi₁, hj₁⟩ := List.lastSome?_eq_some hc₁
   have ⟨i₂, hi₂, hj₂⟩ := List.lastSome?_eq_some hc₂
   replace hi₁ := Change.stateValue?_some hi₁
   replace hi₂ := Change.stateValue?_some hi₂
-
   have ⟨op₁, hom₁, hcm₁, hc₁⟩ := e₁.state_change_to_op hi₁
   have ⟨op₂, hom₂, hcm₂, hc₂⟩ := e₂.state_change_to_op hi₂
-
   by_cases hr : op₁.rcn = op₂.rcn 
   case pos =>
     have heo := e₁.op_eq_rcn_eq hom₁ (ho.mem_iff.mpr hom₂) hr
@@ -322,8 +340,18 @@ theorem InstExecution.same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ+ s₁} {e�
     have ⟨X2, H2⟩ := List.mem_iff_get?.mp hcm₂; rw [List.get?_eq_getElem?] at H2
     have hio₁ := changes_order_to_ops_internal_order hi₁ hj₁ hom₁ H1
     have hio₂ := changes_order_to_ops_internal_order hi₂ hj₂ hom₂ H2
-    rw [←heo] at H2
-    have H : X1 = X2 := sorry -- by hio₁ and hio₂
+    set c₁ : Identified Change := { id := op₁.rcn, obj := .state i v₁ }
+    set c₂ : Identified Change := { id := op₂.rcn, obj := .state i v₂ }
+    replace hio₁ : ∀ (j : ℕ) (c' : Identified Change), j > X1 → (Operation.changes op₁)[j]? = some c' → ¬(c'.obj.stateValue? i).isSome := by
+      intro j c' hj hc
+      simp [hio₁ j c' hj hc]
+    replace hio₂ : ∀ (j : ℕ) (c' : Identified Change), j > X2 → (Operation.changes op₂)[j]? = some c' → ¬(c'.obj.stateValue? i).isSome := by
+      intro j c' hj hc
+      simp [hio₂ j c' hj hc]
+    rw [←heo] at H2 hio₂
+    have H : X1 = X2 := List.last_with_property_unique 
+      H1 (by simp [Change.stateValue?] : (c₁.obj.stateValue? i).isSome) hio₁ 
+      H2 (by simp [Change.stateValue?] : (c₂.obj.stateValue? i).isSome) hio₂
     rw [H] at H1
     injection H1.symm.trans H2 with H3
     injection H3 with _ H4
@@ -331,10 +359,30 @@ theorem InstExecution.same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ+ s₁} {e�
     rw [H5]
   case neg =>
     exfalso
-    sorry
     -- The op₁.rcn and op₂.rcn must live in the same reactor, as they both write to the same state variable i.
-    -- Since they write to a state variable, they are also not pure.
-    -- There must exist a dependency relation between the two.
+    have H1 := (e₁.state_change_mem_op_rcn_eq_con? hom₁ hcm₁).symm.trans (e₂.state_change_mem_op_rcn_eq_con? hom₂ hcm₂)
+    -- Since the reactions write to a state variable, they are not pure.
+    have ⟨rcn₁, hor₁, hp₁⟩ := e₁.state_change_mem_op_rcn_impure hom₁ hcm₁
+    have ⟨rcn₂, hor₂, hp₂⟩ := e₂.state_change_mem_op_rcn_impure hom₂ hcm₂
+    -- There must exist a dependency relation between the two reactions.
+    have hd : (op₁.rcn >[s.rtr] op₂.rcn) ∨ (op₂.rcn >[s.rtr] op₁.rcn) := by
+      by_cases hm : rcn₁.isMut ↔ rcn₂.isMut
+      case pos =>
+        cases s.rtr.orderability (Reactor.orderable_impure hor₁ hp₁ hor₂ hp₂ H1 hr)
+        case inl hp => exact .inr (Dependency.prio H1.symm hor₂ hor₁ hm.symm hp)
+        case inr hp => exact .inl (Dependency.prio H1      hor₁ hor₂ hm      hp)
+      case neg =>
+        rw [not_iff] at hm
+        by_cases hm₁ : rcn₁.isMut
+        case pos =>
+          have hm₂ := mt hm.mpr $ not_not.mpr hm₁
+          simp [Reaction.isMut] at hm₂
+          exact .inl (Dependency.mutNorm H1 hor₁ hor₂ hm₁ hm₂)
+        case neg =>
+          have hm₂ := hm.mp hm₁
+          simp [Reaction.isMut] at hm₁
+          exact .inr (Dependency.mutNorm H1.symm hor₂ hor₁ hm₂ hm₁)
+    sorry
     -- Thus, within the list of ops, the ordering between the ops is the same within e₁.ops and e₂.ops
     -- (because execution respects dependency order: `ops_respect_dependencies`).
     -- Thus (wlog. assuming op₁ must appear before op₂) e₁.ops must also contain op₂ (by `ho`) somewhere after op₁. 

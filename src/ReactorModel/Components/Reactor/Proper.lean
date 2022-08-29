@@ -208,6 +208,9 @@ private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
 noncomputable def scheduledTags (σ : Reactor) : Finset Time.Tag := 
   σ.acts.values.bUnion (·.ids)
 
+-- TODO: Why is this defined over reactions instead of reaction IDs.
+--       Seems like this could allow us to "leak" ordering beween 
+--       different reactors containing some same reactions.
 inductive Orderable (rtr : Reactor) (rcn₁ rcn₂ : Reaction) : Prop
   | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure)            → Orderable rtr rcn₁ rcn₂
   | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → Orderable rtr rcn₁ rcn₂
@@ -259,9 +262,6 @@ inductive Cmp
   | stv -- State variables
 
 -- The *type* corresponding to the component labeled by a given `Cmp`.
--- 
--- Note that the types for `prt` and `stv` are just `υ`, because IDs don't refer to
--- the entire entire mappinngs, but rather the single values within them.
 abbrev Cmp.type : Cmp → Type _
   | .rtr => Reactor
   | .rcn => Reaction
