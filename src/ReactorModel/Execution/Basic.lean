@@ -86,26 +86,32 @@ def InstExecution.rcns (e : s₁ ⇓ᵢ+ s₂) : List ID :=
 def InstExecution.changes (e : s₁ ⇓ᵢ+ s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join
 
-abbrev State.instComplete (s : State) : Prop := s.ctx.currentProcessedRcns = s.rtr.ids .rcn
+abbrev State.InstComplete (s : State) : Prop := s.ctx.currentProcessedRcns = s.rtr.ids .rcn
 
-structure CompleteInstExecution (s₁ s₂ : State) where
-  exec : s₁ ⇓ᵢ+ s₂ 
-  complete : s₂.instComplete
+theorem State.InstComplete.processedRcns_not_empty : InstComplete s → s.ctx.processedRcns ≠ ∅ := 
+  sorry  
+
+inductive CompleteInstExecution (s₁ s₂ : State) : Prop
+  | mk (exec : s₁ ⇓ᵢ+ s₂) (complete : s₂.InstComplete)
   
 notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
 
 def clearingPorts (σ₁ σ₂ : Reactor) : Prop := sorry -- TODO: Define this via MultiUpdate if that is realized.
 theorem clearingPorts_unique : clearingPorts σ σ₁ → clearingPorts σ σ₂ → σ₁ = σ₂ := sorry
 
+inductive AdvanceTag : State → State → Prop 
+  | mk (hg : s.nextTag = some g) : 
+    (s.InstComplete) →
+    (clearingPorts s.rtr σ) →
+    AdvanceTag s ⟨σ, s.ctx.advanceTag g $ s.tag_lt_nextTag hg⟩
+
+notation s₁:max " ⇓ₜ " s₂:max => AdvanceTag s₁ s₂
+
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.
-inductive Step (s : State) : State → Prop 
-  | completeInst : (s ⇓ᵢ| s') → Step s s'
-  | advanceTag :
-    (hg : s.nextTag = some g) →
-    (s.instComplete) →
-    (clearingPorts s.rtr σ) →
-    Step s ⟨σ, s.ctx.advanceTag g $ s.tag_lt_nextTag hg⟩
+inductive Step (s₁ s₂ : State) : Prop 
+  | completeInst (h : s₁ ⇓ᵢ| s₂)
+  | advanceTag (h : s₁ ⇓ₜ s₂)
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 

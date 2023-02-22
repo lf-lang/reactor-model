@@ -4,9 +4,12 @@ open Classical
 
 namespace Execution
 
-theorem InstExecution.preserves_tag : (s₁ ⇓ᵢ+ s₂) → s₁.ctx.tag = s₂.ctx.tag
+theorem InstExecution.not_InstComplete : (s₁ ⇓ᵢ+ s₂) → ¬s₁.InstComplete
+  | single h | trans h _ => h.not_InstComplete
+
+theorem InstExecution.tag_eq : (s₁ ⇓ᵢ+ s₂) → s₁.ctx.tag = s₂.ctx.tag
   | single h => h.exec.preserves_tag
-  | trans h hi => h.exec.preserves_tag.trans hi.preserves_tag
+  | trans h hi => h.exec.preserves_tag.trans hi.tag_eq
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
@@ -14,7 +17,7 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
   induction h
   case single h => exact h.exec.preserves_ctx_past_future _ hg
   case trans s₁ _ sₘ he _ hi =>
-    rw [InstExecution.preserves_tag $ single he] at hg
+    rw [InstExecution.tag_eq $ single he] at hg
     exact (he.exec.preserves_ctx_past_future _ hg).trans $ hi hg
     
 theorem InstExecution.preserves_rcns {i : ID} :
@@ -59,13 +62,16 @@ theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops :
     simp [hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns] at h'
 
 theorem InstExecution.currentProcessedRcns_monotonic :
-  (s₁ ⇓ᵢ+ s₂) → s₁.ctx.currentProcessedRcns ⊆ s₂.ctx.currentProcessedRcns := by
+  (s₁ ⇓ᵢ+ s₂) → s₁.ctx.currentProcessedRcns ⊂ s₂.ctx.currentProcessedRcns := by
   intro h
-  apply Finset.subset_iff.mpr
-  intro rcn hr
   induction h
-  case single h => exact h.monotonic_currentProcessedRcns hr
-  case trans h _ hi => exact hi $ h.monotonic_currentProcessedRcns hr
+  case single =>
+    apply InstStep.strict_monotonic_currentProcessedRcns 
+    assumption
+  case trans hi =>
+    refine Finset.ssubset_trans ?_ hi
+    apply InstStep.strict_monotonic_currentProcessedRcns 
+    assumption
 
 theorem InstExecution.mem_currentProcessedRcns :
   (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn, rcn ∈ s₂.ctx.currentProcessedRcns ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.ctx.currentProcessedRcns := by

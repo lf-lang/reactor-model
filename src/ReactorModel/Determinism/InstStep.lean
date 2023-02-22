@@ -79,10 +79,20 @@ theorem InstStep.monotonic_currentProcessedRcns :
   (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.ctx.currentProcessedRcns → rcn' ∈ s₂.ctx.currentProcessedRcns := 
   (·.mem_currentProcessedRcns.mpr $ .inr ·)
 
+theorem InstStep.strict_monotonic_currentProcessedRcns :
+  (s₁ ⇓ᵢ s₂) → s₁.ctx.currentProcessedRcns ⊂ s₂.ctx.currentProcessedRcns := by
+  intro h
+  apply Finset.ssubset_of_ne_subset
+  sorry
+  sorry
+
 -- Corollary of `InstStep.mem_currentProcessedRcns`.
 theorem InstStep.self_currentProcessedRcns : 
   (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.ctx.currentProcessedRcns := 
   (·.mem_currentProcessedRcns.mpr $ .inl rfl)
+
+theorem InstStep.not_InstComplete (e : s₁ ⇓ᵢ s₂) : ¬s₁.InstComplete := by
+  sorry
 
 theorem identified_changes_equiv_changes {cs : List Change} {o : List (Identified Change)} : 
   (cs.map ({ id := i, obj := ·}) = o) → (o.map (·.obj) = cs) := by

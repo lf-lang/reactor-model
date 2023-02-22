@@ -58,4 +58,8 @@ theorem advanceTag_strictly_increasing (ctx : Context) {g : Time.Tag} (h : ctx.t
   ctx.tag < (ctx.advanceTag g h).tag := by
   sorry
 
+theorem advanceTag_processedRcns_empty (ctx : Context) {g : Time.Tag} (h : ctx.tag < g) :
+  (ctx.advanceTag g h).processedRcns = ∅ := by
+  sorry
+
 end Execution.Context
