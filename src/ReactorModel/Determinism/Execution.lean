@@ -7,9 +7,9 @@ theorem Execution.tag_le (e : s₁ ⇓* s₂) : s₁.ctx.tag ≤ s₂.ctx.tag :=
 
 theorem Execution.seq_currentProcessedRcns_ssubset_or_tag_lt : (s₁ ⇓ s₂) → (s₂ ⇓* s₃) → 
     (s₁.ctx.currentProcessedRcns ⊂ s₃.ctx.currentProcessedRcns) ∨ (s₁.ctx.tag < s₃.ctx.tag)
-  | e₁₂,             .step e e' => .inr $ lt_of_lt_of_le (e₁₂.seq_tag_lt e) e'.tag_le
-  | .completeInst e, .refl      => .inl $ e.currentProcessedRcns_monotonic
-  | .advanceTag a,   .refl      => .inr $ a.tag_lt
+  | e₁₂,        .step e e' => .inr $ lt_of_lt_of_le (e₁₂.seq_tag_lt e) e'.tag_le
+  | .close e,   .refl      => .inl $ e.currentProcessedRcns_ssubset
+  | .advance a, .refl      => .inr $ a.tag_lt
 
 protected theorem Execution.deterministic : (s ⇓* s₁) → (s ⇓* s₂) → 
     (s₁.ctx.tag = s₂.ctx.tag) → (s₁.ctx.currentProcessedRcns = s₂.ctx.currentProcessedRcns) → 

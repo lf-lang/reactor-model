@@ -91,8 +91,8 @@ theorem InstStep.self_currentProcessedRcns :
   (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.ctx.currentProcessedRcns := 
   (·.mem_currentProcessedRcns.mpr $ .inl rfl)
 
-theorem InstStep.not_InstComplete (e : s₁ ⇓ᵢ s₂) : ¬s₁.InstComplete := by
-  sorry
+theorem InstStep.not_Closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed := by
+   sorry
 
 theorem identified_changes_equiv_changes {cs : List Change} {o : List (Identified Change)} : 
   (cs.map ({ id := i, obj := ·}) = o) → (o.map (·.obj) = cs) := by

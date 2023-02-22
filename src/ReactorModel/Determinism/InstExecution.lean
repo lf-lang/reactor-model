@@ -4,8 +4,10 @@ open Classical
 
 namespace Execution
 
-theorem InstExecution.not_InstComplete : (s₁ ⇓ᵢ+ s₂) → ¬s₁.InstComplete
-  | single h | trans h _ => h.not_InstComplete
+open State (Closed)
+
+theorem InstExecution.not_Closed : (s₁ ⇓ᵢ+ s₂) → ¬(Closed s₁)
+  | single h | trans h _ => h.not_Closed
 
 theorem InstExecution.tag_eq : (s₁ ⇓ᵢ+ s₂) → s₁.ctx.tag = s₂.ctx.tag
   | single h => h.exec.preserves_tag
@@ -61,7 +63,7 @@ theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops :
     specialize h' hd.op hm rfl
     simp [hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns] at h'
 
-theorem InstExecution.currentProcessedRcns_monotonic :
+theorem InstExecution.currentProcessedRcns_ssubset :
   (s₁ ⇓ᵢ+ s₂) → s₁.ctx.currentProcessedRcns ⊂ s₂.ctx.currentProcessedRcns := by
   intro h
   induction h
