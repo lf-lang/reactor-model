@@ -17,13 +17,13 @@ theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rt
   | .exec h => h.preserves_rcns
 
 theorem OperationStep.preserves_ctx_past_future :
-  (s₁ -[op]↣ s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
+  (s₁ -[op]↣ s₂) → ∀ g, g ≠ s₁.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
   | .skip .., _, hg => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
   | .exec h,  _, hg => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
 
-theorem OperationStep.preserves_tag : (s₁ -[op]↣ s₂) → s₁.ctx.tag = s₂.ctx.tag
+theorem OperationStep.preserves_tag : (s₁ -[op]↣ s₂) → s₁.tag = s₂.tag
   | .skip .. => by simp [Context.addCurrentProcessed_same_tag]
-  | .exec h => by simp [Context.addCurrentProcessed_same_tag, h.preserves_ctx]
+  | .exec h => by simp [State.tag, Context.addCurrentProcessed_same_tag, h.preserves_ctx]
 
 theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed op.rcn
   | .exec h => by simp [Operation.rcn, h.preserves_ctx]
@@ -45,11 +45,11 @@ theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e
 theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (s₁.rtr.contains .rcn e.rcn) :=
   s₁.operation_to_contains e.wfOp 
 
-theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.ctx.currentProcessedRcns := 
+theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
   e.allows.unprocessed
   
-theorem InstStep.mem_currentProcessedRcns :
-  (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.ctx.currentProcessedRcns ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.ctx.currentProcessedRcns) := by
+theorem InstStep.mem_progress :
+  (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress) := by
   intro h
   constructor
   case mp =>
@@ -57,39 +57,37 @@ theorem InstStep.mem_currentProcessedRcns :
     by_cases hc : rcn' = h.rcn
     case pos => exact .inl hc
     case neg =>
-      rw [h.exec.ctx_adds_rcn, ←rcn] at ho
-      simp [Context.addCurrentProcessed_mem_currentProcessedRcns.mp ho]
+      rw [State.progress, h.exec.ctx_adds_rcn, ←rcn] at ho
+      simp [Context.addCurrentProcessed_mem_progress.mp ho]
   case mpr =>
     intro ho
     by_cases hc : rcn' = h.rcn
     case pos =>
       simp [hc]
       sorry
-      -- exact Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inl rfl)
+      -- exact Context.addCurrentProcessed_mem_progress.mpr (.inl rfl)
     case neg =>
-      simp [h.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns.mpr (.inr $ ho.resolve_left hc)]
+      simp [State.progress, h.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_progress.mpr (.inr $ ho.resolve_left hc)]
 
--- Corollary of `InstStep.mem_currentProcessedRcns`.
-theorem InstStep.not_mem_currentProcessedRcns :
-  (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn' ∉ s₁.ctx.currentProcessedRcns → rcn' ∉ s₂.ctx.currentProcessedRcns := 
-  λ h hn hm => (mt h.mem_currentProcessedRcns.mp) $ (not_or _ _).mpr ⟨hn, hm⟩
+-- Corollary of `InstStep.mem_progress`.
+theorem InstStep.not_mem_progress :
+  (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn' ∉ s₁.progress → rcn' ∉ s₂.progress := 
+  λ h hn hm => (mt h.mem_progress.mp) $ (not_or _ _).mpr ⟨hn, hm⟩
 
--- Corollary of `InstStep.mem_currentProcessedRcns`.
-theorem InstStep.monotonic_currentProcessedRcns :
-  (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.ctx.currentProcessedRcns → rcn' ∈ s₂.ctx.currentProcessedRcns := 
-  (·.mem_currentProcessedRcns.mpr $ .inr ·)
+-- Corollary of `InstStep.mem_progress`.
+theorem InstStep.monotonic_progress : (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.progress → rcn' ∈ s₂.progress := 
+  (·.mem_progress.mpr $ .inr ·)
 
-theorem InstStep.strict_monotonic_currentProcessedRcns :
-  (s₁ ⇓ᵢ s₂) → s₁.ctx.currentProcessedRcns ⊂ s₂.ctx.currentProcessedRcns := by
+theorem InstStep.strict_monotonic_progress :
+  (s₁ ⇓ᵢ s₂) → s₁.progress ⊂ s₂.progress := by
   intro h
   apply Finset.ssubset_of_ne_subset
   sorry
   sorry
 
--- Corollary of `InstStep.mem_currentProcessedRcns`.
-theorem InstStep.self_currentProcessedRcns : 
-  (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.ctx.currentProcessedRcns := 
-  (·.mem_currentProcessedRcns.mpr $ .inl rfl)
+-- Corollary of `InstStep.mem_progress`.
+theorem InstStep.self_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.progress := 
+  (·.mem_progress.mpr $ .inl rfl)
 
 theorem InstStep.not_Closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed := by
    sorry

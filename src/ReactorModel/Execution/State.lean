@@ -21,9 +21,17 @@ def Execution.Operation.changes : Execution.Operation → List (Identified Chang
 
 namespace Execution.State
 
+abbrev tag (s : State) : Time.Tag := s.ctx.tag
+
+abbrev progress (s : State) : Finset ID := s.ctx.progress
+
+noncomputable abbrev advanceTag (s : State) (g : Time.Tag) (h : s.tag < g) : State where
+  rtr := s.rtr
+  ctx := s.ctx.advanceTag g h
+
 structure allows (s : State) (rcn : ID) : Prop where
-  deps : s.rtr.dependencies rcn ⊆ s.ctx.currentProcessedRcns
-  unprocessed : rcn ∉ s.ctx.currentProcessedRcns
+  deps : s.rtr.dependencies rcn ⊆ s.progress
+  unprocessed : rcn ∉ s.progress
 
 theorem allows_requires_acyclic_deps {s : State} : (s.allows rcn) → (rcn >[s.rtr]< rcn) := by
   intro ⟨hd, hu⟩

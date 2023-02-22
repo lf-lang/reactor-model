@@ -9,12 +9,12 @@ open State (Closed)
 theorem InstExecution.not_Closed : (s₁ ⇓ᵢ+ s₂) → ¬(Closed s₁)
   | single h | trans h _ => h.not_Closed
 
-theorem InstExecution.tag_eq : (s₁ ⇓ᵢ+ s₂) → s₁.ctx.tag = s₂.ctx.tag
+theorem InstExecution.tag_eq : (s₁ ⇓ᵢ+ s₂) → s₁.tag = s₂.tag
   | single h => h.exec.preserves_tag
   | trans h hi => h.exec.preserves_tag.trans hi.tag_eq
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
-  (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.ctx.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
+  (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
   intro h g hg
   induction h
   case single h => exact h.exec.preserves_ctx_past_future _ hg
@@ -28,7 +28,7 @@ theorem InstExecution.preserves_rcns {i : ID} :
   | trans h₁ₘ hₘ₂ => h₁ₘ.exec.preserves_rcns.trans hₘ₂.preserves_rcns
 
 theorem InstExecution.rcns_unprocessed : 
-  (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∉ s₁.ctx.currentProcessedRcns := by
+  (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∉ s₁.progress := by
   intro h rcn hr
   induction h
   case single h => 
@@ -45,11 +45,11 @@ theorem InstExecution.rcns_unprocessed :
       exact h
     case inr h₁ _ h => 
       specialize hi h
-      exact ((not_or _ _).mp $ (mt h₁.mem_currentProcessedRcns.mpr) hi).right
+      exact ((not_or _ _).mp $ (mt h₁.mem_progress.mpr) hi).right
 
 theorem InstExecution.rcns_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.rcns
   | single _ => List.nodup_singleton _
-  | trans h₁ h₂ => List.nodup_cons.mpr $ ⟨(mt $ h₂.rcns_unprocessed _) $ not_not.mpr h₁.self_currentProcessedRcns, h₂.rcns_nodup⟩
+  | trans h₁ h₂ => List.nodup_cons.mpr $ ⟨(mt $ h₂.rcns_unprocessed _) $ not_not.mpr h₁.self_progress, h₂.rcns_nodup⟩
 
 theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops := by
   intro e
@@ -61,25 +61,25 @@ theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops :
     have h' := tl.rcns_unprocessed hd.op.rcn
     simp [rcns, List.mem_map] at h'
     specialize h' hd.op hm rfl
-    simp [hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_currentProcessedRcns] at h'
+    simp [State.progress, hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_progress] at h'
 
-theorem InstExecution.currentProcessedRcns_ssubset :
-  (s₁ ⇓ᵢ+ s₂) → s₁.ctx.currentProcessedRcns ⊂ s₂.ctx.currentProcessedRcns := by
+theorem InstExecution.progress_ssubset :
+  (s₁ ⇓ᵢ+ s₂) → s₁.progress ⊂ s₂.progress := by
   intro h
   induction h
   case single =>
-    apply InstStep.strict_monotonic_currentProcessedRcns 
+    apply InstStep.strict_monotonic_progress 
     assumption
   case trans hi =>
     refine Finset.ssubset_trans ?_ hi
-    apply InstStep.strict_monotonic_currentProcessedRcns 
+    apply InstStep.strict_monotonic_progress 
     assumption
 
-theorem InstExecution.mem_currentProcessedRcns :
-  (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn, rcn ∈ s₂.ctx.currentProcessedRcns ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.ctx.currentProcessedRcns := by
+theorem InstExecution.mem_progress :
+  (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn, rcn ∈ s₂.progress ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.progress := by
   intro h rcn
   induction h
-  case single h => simp [InstStep.rcn, rcns, List.mem_singleton, h.mem_currentProcessedRcns]
+  case single h => simp [InstStep.rcn, rcns, List.mem_singleton, h.mem_progress]
   case trans h₁ h₂ hi => 
     constructor <;> intro hc 
     case mp =>
@@ -88,26 +88,25 @@ theorem InstExecution.mem_currentProcessedRcns :
       | inr h => 
         by_cases hc : rcn ∈ (h₁.rcn :: h₂.rcns)
         case pos => exact .inl hc
-        case neg => exact .inr $ (h₁.mem_currentProcessedRcns.mp h).resolve_left $ List.ne_of_not_mem_cons hc
+        case neg => exact .inr $ (h₁.mem_progress.mp h).resolve_left $ List.ne_of_not_mem_cons hc
     case mpr =>
       cases hc with
       | inl h => 
         cases (List.mem_cons_iff ..).mp h with
-        | inl h => exact hi.mpr $ .inr (h ▸ h₁.self_currentProcessedRcns)
+        | inl h => exact hi.mpr $ .inr (h ▸ h₁.self_progress)
         | inr h => exact hi.mpr $ .inl h
-      | inr h => exact hi.mpr $ .inr $ h₁.monotonic_currentProcessedRcns h
+      | inr h => exact hi.mpr $ .inr $ h₁.monotonic_progress h
 
--- Corollary of `InstExecution.mem_currentProcessedRcns`.
-theorem InstExecution.self_currentProcessedRcns : 
-  (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∈ s₂.ctx.currentProcessedRcns := 
-  λ h _ hm => (h.mem_currentProcessedRcns _).mpr $ .inl hm
+-- Corollary of `InstExecution.mem_progress`.
+theorem InstExecution.self_progress : (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∈ s₂.progress := 
+  λ h _ hm => (h.mem_progress _).mpr $ .inl hm
   
 theorem InstExecution.eq_ctx_processed_rcns_perm : 
   (e₁ : s ⇓ᵢ+ s₁) → (e₂ : s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → e₁.rcns ~ e₂.rcns := by
   intro h₁ h₂ he
   apply (List.perm_ext h₁.rcns_nodup h₂.rcns_nodup).mpr
   intro rcn
-  by_cases hc : rcn ∈ s.ctx.currentProcessedRcns
+  by_cases hc : rcn ∈ s.progress
   case pos =>
     have h₁ := (mt $ h₁.rcns_unprocessed rcn) (not_not.mpr hc)
     have h₂ := (mt $ h₂.rcns_unprocessed rcn) (not_not.mpr hc)
@@ -115,13 +114,13 @@ theorem InstExecution.eq_ctx_processed_rcns_perm :
   case neg =>
     constructor <;> intro hm
     case mp => 
-      have h := h₁.self_currentProcessedRcns _ hm
-      rw [he] at h
-      exact ((h₂.mem_currentProcessedRcns _).mp h).resolve_right hc
+      have h := h₁.self_progress _ hm
+      rw [State.progress, he] at h
+      exact ((h₂.mem_progress _).mp h).resolve_right hc
     case mpr =>
-      have h := h₂.self_currentProcessedRcns _ hm
-      rw [←he] at h
-      exact ((h₁.mem_currentProcessedRcns _).mp h).resolve_right hc
+      have h := h₂.self_progress _ hm
+      rw [State.progress, ←he] at h
+      exact ((h₁.mem_progress _).mp h).resolve_right hc
 
 theorem InstExecution.rcn_list_cons : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl :=
   (by cases · <;> simp [rcns])

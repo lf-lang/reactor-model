@@ -18,14 +18,14 @@ theorem processedRcns_at_time_isSome (ctx : Context) :
   simp only [h, ←Finmap.ids_def']
   exact Finset.max'_mem _ _
 
-def currentProcessedRcns (ctx : Context) : Finset ID :=
+def progress (ctx : Context) : Finset ID :=
   (ctx.processedRcns ctx.tag).get ctx.processedRcns_at_time_isSome
 
-theorem currentProcessedRcns_def (ctx : Context) : some ctx.currentProcessedRcns = ctx.processedRcns ctx.tag := by
-  simp [currentProcessedRcns, Option.get_some $ ctx.processedRcns ctx.tag]
+theorem progress_def (ctx : Context) : some ctx.progress = ctx.processedRcns ctx.tag := by
+  simp [progress, Option.get_some $ ctx.processedRcns ctx.tag]
 
 noncomputable def addCurrentProcessed (ctx : Context) (i : ID) : Context := {
-  processedRcns := ctx.processedRcns.update ctx.tag $ ctx.currentProcessedRcns.insert i,
+  processedRcns := ctx.processedRcns.update ctx.tag $ ctx.progress.insert i,
   processedNonempty := ctx.processedRcns.update_nonempty _ _ ctx.processedNonempty
 }
 
@@ -46,7 +46,7 @@ theorem addCurrentProcessed_same_tag (ctx : Context) (i : ID) : (ctx.addCurrentP
     simp [tag, h]
   sorry
 
-theorem addCurrentProcessed_mem_currentProcessedRcns {ctx : Context} {i j : ID} : i ∈ (ctx.addCurrentProcessed j).currentProcessedRcns ↔ (i = j ∨ i ∈ ctx.currentProcessedRcns) := by
+theorem addCurrentProcessed_mem_progress {ctx : Context} {i j : ID} : i ∈ (ctx.addCurrentProcessed j).progress ↔ (i = j ∨ i ∈ ctx.progress) := by
   sorry
 
 noncomputable def advanceTag (ctx : Context) (g : Time.Tag) (h : ctx.tag < g) : Context := {
@@ -58,8 +58,8 @@ theorem advanceTag_strictly_increasing (ctx : Context) {g : Time.Tag} (h : ctx.t
   ctx.tag < (ctx.advanceTag g h).tag := by
   sorry
 
-theorem advanceTag_processedRcns_empty (ctx : Context) {g : Time.Tag} (h : ctx.tag < g) :
-  (ctx.advanceTag g h).processedRcns = ∅ := by
+theorem advanceTag_progress_empty (ctx : Context) {g : Time.Tag} (h : ctx.tag < g) :
+  (ctx.advanceTag g h).progress = ∅ := by
   sorry
 
 end Execution.Context

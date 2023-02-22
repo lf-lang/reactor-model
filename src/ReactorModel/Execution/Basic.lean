@@ -86,34 +86,30 @@ def InstExecution.rcns (e : s₁ ⇓ᵢ+ s₂) : List ID :=
 def InstExecution.changes (e : s₁ ⇓ᵢ+ s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join
 
-abbrev State.Closed (s : State) : Prop := s.ctx.currentProcessedRcns = s.rtr.ids .rcn
+def State.Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
 
-theorem State.Closed.processedRcns_not_empty : Closed s → s.ctx.processedRcns ≠ ∅ := 
+theorem State.Closed.progress_not_empty : Closed s → s.progress ≠ ∅ := 
   sorry  
 
 open State (Closed)
 
-inductive CompleteInstExecution (s₁ s₂ : State) : Prop
+inductive ClosedExecution (s₁ s₂ : State) : Prop
   | mk (exec : s₁ ⇓ᵢ+ s₂) (closed : Closed s₂)
   
-notation s₁:max " ⇓ᵢ| " s₂:max => CompleteInstExecution s₁ s₂
+notation s₁:max " ⇓| " s₂:max => ClosedExecution s₁ s₂
 
-def clearingPorts (σ₁ σ₂ : Reactor) : Prop := sorry -- TODO: Define this via MultiUpdate if that is realized.
-theorem clearingPorts_unique : clearingPorts σ σ₁ → clearingPorts σ σ₂ → σ₁ = σ₂ := sorry
-
+-- Note: We don't clear the ports here. Thus, we define a more relaxed version of the reactor model
+--       for which we can still prove determinism.
 inductive AdvanceTag : State → State → Prop 
-  | mk (hg : s.nextTag = some g) : 
-    (Closed s) →
-    (clearingPorts s.rtr σ) →
-    AdvanceTag s ⟨σ, s.ctx.advanceTag g $ s.tag_lt_nextTag hg⟩
+  | mk (h : s.nextTag = some g) : (Closed s) → AdvanceTag s (s.advanceTag g $ s.tag_lt_nextTag h)
 
-notation s₁:max " ⇓ₜ " s₂:max => AdvanceTag s₁ s₂
+notation s₁:max " ⇓- " s₂:max => AdvanceTag s₁ s₂
 
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.
 inductive Step (s₁ s₂ : State) : Prop 
-  | close (h : s₁ ⇓ᵢ| s₂)
-  | advance (h : s₁ ⇓ₜ s₂)
+  | close (h : s₁ ⇓| s₂)
+  | advance (h : s₁ ⇓- s₂)
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 
