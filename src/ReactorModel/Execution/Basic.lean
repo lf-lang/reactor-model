@@ -86,11 +86,11 @@ def InstExecution.rcns (e : s₁ ⇓ᵢ* s₂) : List ID :=
 def InstExecution.changes (e : s₁ ⇓ᵢ* s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join
 
-open State (Open Closed)
+open State (Closed)
 
 structure ClosedExecution (s₁ s₂ : State) : Type where  
   exec   : s₁ ⇓ᵢ* s₂
-  «open» : Open s₁
+  fresh  : s₁.progress = ∅ 
   closed : Closed s₂
   
 notation s₁:max " ⇓| " s₂:max => ClosedExecution s₁ s₂

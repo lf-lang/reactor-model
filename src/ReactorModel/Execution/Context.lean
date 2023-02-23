@@ -33,6 +33,9 @@ noncomputable def process (ctx : Context) : List ID → Context
   | [] => ctx
   | hd :: tl => (ctx.addCurrentProcessed hd).process tl
 
+noncomputable def mark (ctx : Context) : Finset Tag → Context :=
+  sorry
+
 theorem process_perm_eq {ctx : Context} {l₁ l₂ : List ID} : 
     (l₁ ~ l₂) → ctx.process l₁ = ctx.process l₂ := 
   sorry

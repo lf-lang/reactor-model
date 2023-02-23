@@ -262,3 +262,7 @@ theorem InstStep.indep_rcns_indep_output :
           rw [←hh] at hco'
           exact he.eq_obj?_nest h hco hco' 
         )
+
+theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬(State.Trivial s₁) :=
+  s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
+  

@@ -28,13 +28,13 @@ abbrev progress (s : State) : Finset ID := s.ctx.progress
 class Nontrivial (s : Execution.State) : Prop where
   nontrivial : s.rtr.ids .rcn ≠ ∅  
 
-def Open (s : State) : Prop := s.progress = ∅ 
+class Trivial (s : Execution.State) : Prop where
+  trivial : ¬ Nontrivial s
+
+theorem Nontrivial.not_Trivial (h : Nontrivial s) : ¬(Trivial s) :=
+  fun ht => by simp [h.nontrivial, ht.trivial] at *
 
 def Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
-
-theorem Open.not_Closed [Nontrivial s] (h : Open s) : ¬(Closed s) := by
-  simp [Open, Closed]
-  exact h ▸ Nontrivial.nontrivial.symm
 
 theorem Closed.progress_not_empty [Nontrivial s] : Closed s → s.progress ≠ ∅ := by
   simp_all [Closed, Nontrivial.nontrivial]  
@@ -199,6 +199,10 @@ theorem operation_to_contains {s : State} :
   simp [operation] at h
   split at h
   all_goals sorry
+
+theorem operation_some_to_Nontrivial (h : s.operation i = some o) : Nontrivial s := by
+  have h := operation_to_contains h |> Reactor.ids_mem_iff_contains.mpr
+  sorry
 
 def nextTag (s : State) : Option Time.Tag :=
   s.rtr.scheduledTags.filter (s.ctx.tag < ·) |>.min
