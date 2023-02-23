@@ -6,12 +6,12 @@ namespace Execution
 
 open State (Closed)
 
-theorem InstExecution.tag_eq : (s₁ ⇓ᵢ+ s₂) → s₁.tag = s₂.tag
+theorem InstExecution.tag_eq : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
   | refl => rfl
-  | trans h hi => h.exec.preserves_tag.trans hi.tag_eq
+  | trans e e' => e.exec.preserves_tag.trans e'.tag_eq
 
-theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
-  (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
+theorem InstExecution.preserves_ctx_past_future :
+  (s₁ ⇓ᵢ* s₂) → ∀ g, g ≠ s₁.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
   intro h g hg
   induction h
   case refl => rfl
@@ -35,20 +35,20 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
   case neg => simp only [←e₁.preserves_ctx_past_future g hg, e₂.preserves_ctx_past_future g hg]
   -/
 
-theorem InstExecution.ctx_eq (e : s₁ ⇓ᵢ+ s₂) : s₂.ctx = s₁.ctx.process e.rcns :=
+theorem InstExecution.ctx_eq (e : s₁ ⇓ᵢ* s₂) : s₂.ctx = s₁.ctx.process e.rcns :=
   sorry
 
-theorem InstExecution.mem_rcns_iff (e : s₁ ⇓ᵢ+ s₂) (rcn : ID) : 
+theorem InstExecution.mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) (rcn : ID) : 
   rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
   sorry
 
 theorem InstExecution.preserves_rcns {i : ID} :
-  (s₁ ⇓ᵢ+ s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
+  (s₁ ⇓ᵢ* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
   | refl => rfl
   | trans h₁ₘ hₘ₂ => h₁ₘ.exec.preserves_rcns.trans hₘ₂.preserves_rcns
 
 theorem InstExecution.rcns_unprocessed : 
-  (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∉ s₁.progress := by
+  (e : s₁ ⇓ᵢ* s₂) → ∀ rcn ∈ e.rcns, rcn ∉ s₁.progress := by
   intro h rcn hr
   induction h
   case refl => sorry
@@ -67,11 +67,11 @@ theorem InstExecution.rcns_unprocessed :
       specialize hi h
       exact ((not_or _ _).mp $ (mt h₁.mem_progress.mpr) hi).right
 
-theorem InstExecution.rcns_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.rcns
+theorem InstExecution.rcns_nodup : (e : s₁ ⇓ᵢ* s₂) → List.Nodup e.rcns
   | refl => List.Nodup.nil
   | trans h₁ h₂ => List.nodup_cons.mpr $ ⟨(mt $ h₂.rcns_unprocessed _) $ not_not.mpr h₁.self_progress, h₂.rcns_nodup⟩
 
-theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops := by
+theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ* s₂) → List.Nodup e.ops := by
   intro e
   induction e
   case refl => exact List.Nodup.nil
@@ -84,7 +84,7 @@ theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops :
     simp [State.progress, hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_progress] at h'
 
 theorem InstExecution.mem_progress :
-  (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn, rcn ∈ s₂.progress ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.progress := by
+  (e : s₁ ⇓ᵢ* s₂) → ∀ rcn, rcn ∈ s₂.progress ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.progress := by
   intro h rcn
   induction h
   case refl => sorry -- simp [InstStep.rcn, rcns, List.mem_singleton, h.mem_progress]
@@ -106,11 +106,11 @@ theorem InstExecution.mem_progress :
       | inr h => exact hi.mpr $ .inr $ h₁.monotonic_progress h
 
 -- Corollary of `InstExecution.mem_progress`.
-theorem InstExecution.self_progress : (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∈ s₂.progress := 
+theorem InstExecution.self_progress : (e : s₁ ⇓ᵢ* s₂) → ∀ rcn ∈ e.rcns, rcn ∈ s₂.progress := 
   λ h _ hm => (h.mem_progress _).mpr $ .inl hm
   
 theorem InstExecution.eq_ctx_processed_rcns_perm : 
-  (e₁ : s ⇓ᵢ+ s₁) → (e₂ : s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → e₁.rcns ~ e₂.rcns := by
+  (e₁ : s ⇓ᵢ* s₁) → (e₂ : s ⇓ᵢ* s₂) → (s₁.ctx = s₂.ctx) → e₁.rcns ~ e₂.rcns := by
   intro h₁ h₂ he
   apply (List.perm_ext h₁.rcns_nodup h₂.rcns_nodup).mpr
   intro rcn
@@ -130,22 +130,22 @@ theorem InstExecution.eq_ctx_processed_rcns_perm :
       rw [State.progress, ←he] at h
       exact ((h₁.mem_progress _).mp h).resolve_right hc
 
-/-
-
-theorem InstExecution.rcn_list_cons : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl :=
+/-theorem InstExecution.rcn_list_cons : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl :=
   (by cases · <;> simp [rcns])
+-/
 
 theorem InstExecution.to_ChangeListStep :
-  (e : s₁ ⇓ᵢ+ s₂) → (s₁ -[e.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
+  (e : s₁ ⇓ᵢ* s₂) → (s₁ -[e.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
   intro e
   induction e
-  case single e => simp [changes, e.exec.to_ChangeListStep]
+  case refl => exact .nil
   case trans s₁ sₘ s₂ e₁ e₂ hi => 
     have h := e₁.exec.to_ChangeListStep
     simp [changes]
     have hs := ChangeListStep.append h hi rfl
     exact hs
 
+/-
 theorem InstExecution.rcns_singleton (e : s₁ ⇓ᵢ+ s₂) :
   (e.rcns = [rcn]) → ∃ e' : s₁ ⇓ᵢ s₂, (e'.rcn = rcn) ∧ (e = single e') := by
   intro h
@@ -159,41 +159,23 @@ theorem InstExecution.rcns_singleton (e : s₁ ⇓ᵢ+ s₂) :
     simp [rcns] at h
     simp [rcns, h.right] at h'
 
--- Reflexive closure for InstExecution
-inductive InstExecution.RC : State → State → Type
-  | rfl (s) : RC s s 
-  | exec : s₁ ⇓ᵢ+ s₂ → RC s₁ s₂
-
-notation s₁:max " ⇓ᵢ* " s₂:max => InstExecution.RC s₁ s₂
-
-def InstExecution.RC.appendStep : (s₁ ⇓ᵢ* s₂) → (s₂ ⇓ᵢ s₃) → (s₁ ⇓ᵢ+ s₃)
-  | rfl .., e => single e
-  | exec e₁, e₂ => e₁ ++ e₂
-
-instance : HAppend (s₁ ⇓ᵢ* s₂) (s₂ ⇓ᵢ s₃) (s₁ ⇓ᵢ+ s₃) where
-  hAppend e₁ e₂ := e₁.appendStep e₂
-
-def InstExecution.appendRC (e₁ : s₁ ⇓ᵢ+ s₂) : (s₂ ⇓ᵢ* s₃) → (s₁ ⇓ᵢ+ s₃) 
-  | .rfl .. => e₁
-  | .exec e₂ => e₁ ++ e₂
-
-instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ* s₃) (s₁ ⇓ᵢ+ s₃) where
-  hAppend e₁ e₂ := e₁.appendRC e₂
-
-theorem InstExecution.mem_ops_split (e : s₁ ⇓ᵢ+ s₂) :
+theorem InstExecution.mem_ops_split (e : s₁ ⇓ᵢ* s₂) :
   (op ∈ e.ops) → 
   ∃ (sₘ₁ : _) (sₘ₂ : _) (e₁ : s₁ ⇓ᵢ* sₘ₁) (eₘ : sₘ₁ ⇓ᵢ sₘ₂) (e₂ : sₘ₂ ⇓ᵢ* s₂), 
   (e = e₁ ++ eₘ ++ e₂) ∧ (eₘ.op = op) :=
   sorry
+-/
 
-theorem InstExecution.same_rcns_same_ops (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) :
+theorem InstExecution.same_rcns_same_ops (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) :
   (e₁.rcns ~ e₂.rcns) → (e₁.ops ~ e₂.ops) := by
   intro hp
   simp [List.perm_ext e₁.ops_nodup e₂.ops_nodup]
   intro op
-  suffices H : ∀ {s₁ s₂} (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂), (e₁.rcns ~ e₂.rcns) → ∀ {op}, op ∈ e₁.ops → op ∈ e₂.ops 
+  suffices H : ∀ {s₁ s₂} (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂), (e₁.rcns ~ e₂.rcns) → ∀ {op}, op ∈ e₁.ops → op ∈ e₂.ops 
     from ⟨H e₁ e₂ hp, H e₂ e₁ hp.symm⟩
   intro s₁ s₂ e₁ e₂ hp op h
+  sorry
+  /-
   have ⟨sₘ₁, sₘ₂, hd₁, eₘ, tl₂, he, ho⟩ := e₁.mem_ops_split h
   have H0 := eₘ.wfOp
   have H1 : op.rcn ∈ e₁.rcns := by
@@ -223,13 +205,14 @@ theorem InstExecution.same_rcns_same_ops (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓�
   --    1. it is not contained in hd₁/hd₁'.rcns ? 
   -- 
   -- ... continue the list
+  -/
 
-theorem InstExecution.port_change_to_op {e : s₁ ⇓ᵢ+ s₂} {i : Fin e.changes.length} :
+theorem InstExecution.port_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
   (e.changes[i].obj = .port p v) → 
   ∃ op rcn, (op ∈ e.ops) ∧ (⟨op.rcn, .port p v⟩ ∈ op.changes) ∧ (s₁.rtr.obj? .rcn op.rcn = some rcn) ∧ (p ∈ rcn.deps .out) := by
   sorry
 
-theorem InstExecution.state_change_to_op {e : s₁ ⇓ᵢ+ s₂} {i : Fin e.changes.length} :
+theorem InstExecution.state_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
   (e.changes[i].obj = .state a v) → 
   ∃ op, (op ∈ e.ops) ∧ (⟨op.rcn, .state a v⟩ ∈ op.changes) ∧ (s₁.rtr.con? .stv a = s₁.rtr.con? .rcn op.rcn) := by
   sorry
@@ -246,17 +229,17 @@ theorem Reactor.out_port_out_dep_eq_parent {rtr : Reactor} {iₚ iᵣ : ID} :
   (rtr.con? .prt iₚ = rtr.con? .rcn iᵣ) := by
   sorry
 
-theorem InstExecution.op_eq_rcn_eq {e : s₁ ⇓ᵢ+ s₂} :
+theorem InstExecution.op_eq_rcn_eq {e : s₁ ⇓ᵢ* s₂} :
   (op₁ ∈ e.ops) → (op₂ ∈ e.ops) → (op₁.rcn = op₂.rcn) → (op₁ = op₂) := by
   sorry
 
 theorem InstExecution.ops_respect_dependencies {i₁ i₂ : Nat} : 
-  (e : s₁ ⇓ᵢ+ s₂) →
+  (e : s₁ ⇓ᵢ* s₂) →
   (e.ops[i₁]? = some op₁) → (e.ops[i₂]? = some op₂) → 
   (op₁.rcn >[s₁.rtr] op₂.rcn) → (i₁ < i₂) := by
   sorry
 
-theorem InstExecution.changes_order_to_ops_internal_order {e : s₁ ⇓ᵢ+ s₂} {ic : Fin e.changes.length} {io : Nat} :
+theorem InstExecution.changes_order_to_ops_internal_order {e : s₁ ⇓ᵢ* s₂} {ic : Fin e.changes.length} {io : Nat} :
   (e.changes[ic].obj = c) →
   (∀ j : Fin e.changes.length, (j > ic) → e.changes[j].obj.stateValue? i = none) → 
   (op ∈ e.ops) →
@@ -264,7 +247,7 @@ theorem InstExecution.changes_order_to_ops_internal_order {e : s₁ ⇓ᵢ+ s₂
   (∀ j c', (j > io) → (op.changes[j]? = some c') → c'.obj.stateValue? i = none) := by
   sorry
 
-theorem InstExecution.same_ops_ChangeListEquiv_ports {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} :
+theorem InstExecution.same_ops_ChangeListEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.portValue? i) = e₂.changes.lastSome? (·.obj.portValue? i)) := by
   intro ho i
   /-cases hc : e₁.changes.lastSome? (·.obj.portValue? i)
@@ -329,16 +312,16 @@ theorem Reactor.orderable_impure {rtr : Reactor} {i₁ i₂ : ID} :
   Reactor.Orderable rtr rcn₁ rcn₂ :=
   sorry
 
-theorem InstExecution.state_change_mem_op_rcn_eq_con? {e : s₁ ⇓ᵢ+ s₂} :
+theorem InstExecution.state_change_mem_op_rcn_eq_con? {e : s₁ ⇓ᵢ* s₂} :
   (op ∈ e.ops) → (⟨op.rcn, .state i v⟩ ∈ op.changes) → 
   (s₁.rtr.con? .stv i = s₁.rtr.con? .rcn op.rcn)
   := sorry
 
-theorem InstExecution.state_change_mem_op_rcn_impure {e : s₁ ⇓ᵢ+ s₂} :
+theorem InstExecution.state_change_mem_op_rcn_impure {e : s₁ ⇓ᵢ* s₂} :
   (op ∈ e.ops) → (⟨op.rcn, .state i v⟩ ∈ op.changes) →
   ∃ rcn, (s₁.rtr.obj? .rcn op.rcn = some rcn) ∧ (¬rcn.isPure) := sorry
 
-theorem InstExecution.same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} :
+theorem InstExecution.same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.stateValue? i) = e₂.changes.lastSome? (·.obj.stateValue? i)) := by
   intro ho i
   have ⟨v₁, hc₁⟩ : ∃ v, e₁.changes.lastSome? (·.obj.stateValue? i) = some v := sorry
@@ -405,11 +388,11 @@ theorem InstExecution.same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ+ s₁} {e�
     -- Thus (wlog. assuming op₁ must appear before op₂) e₁.ops must also contain op₂ (by `ho`) somewhere after op₁. 
     -- Thus the assumption hj₂ is false.
 
-theorem InstExecution.same_ops_ChangeListEquiv_actions {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} :
+theorem InstExecution.same_ops_ChangeListEquiv_actions {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i t, e₁.changes.filterMap (·.obj.actionValue? i t) = e₂.changes.filterMap (·.obj.actionValue? i t)) := by
   sorry
 
-theorem InstExecution.same_rcns_ChangeListEquiv {e₁ : s ⇓ᵢ+ s₁} {e₂ : s ⇓ᵢ+ s₂} : 
+theorem InstExecution.same_rcns_ChangeListEquiv {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} : 
   (e₁.rcns ~ e₂.rcns) → (e₁.changes ⋈ e₂.changes) := by
   intro hr
   have ho := e₁.same_rcns_same_ops e₂ hr
@@ -419,17 +402,14 @@ theorem InstExecution.same_rcns_ChangeListEquiv {e₁ : s ⇓ᵢ+ s₁} {e₂ : 
     actions := same_ops_ChangeListEquiv_actions ho
   }
 
--/
-
 protected theorem InstExecution.deterministic : 
-  (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
+  (s ⇓ᵢ* s₁) → (s ⇓ᵢ* s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
   intro e₁ e₂ hc
   refine State.ext _ _ ?_ hc
   have hp := e₁.eq_ctx_processed_rcns_perm e₂ hc
-  sorry
-  --have he := e₁.same_rcns_ChangeListEquiv hp
-  --injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
-  --assumption
+  have he := e₁.same_rcns_ChangeListEquiv hp
+  injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
+  assumption
     
     
       

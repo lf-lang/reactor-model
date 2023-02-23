@@ -55,35 +55,35 @@ inductive InstExecution : State → State → Type
   | refl : InstExecution s s
   | trans : (s₁ ⇓ᵢ s₂) → (InstExecution s₂ s₃) → InstExecution s₁ s₃
 
-notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
+notation s₁:max " ⇓ᵢ* " s₂:max => InstExecution s₁ s₂
 
-def InstExecution.appendStep : (s₁ ⇓ᵢ+ s₂) → (s₂ ⇓ᵢ s₃) → (s₁ ⇓ᵢ+ s₃)
+def InstExecution.appendStep : (s₁ ⇓ᵢ* s₂) → (s₂ ⇓ᵢ s₃) → (s₁ ⇓ᵢ* s₃)
   | refl, e₂ => trans e₂ refl
   | trans e₁ e₂, e₃ => trans e₁ (e₂.appendStep e₃) 
 
-instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ s₃) (s₁ ⇓ᵢ+ s₃) where
+instance : HAppend (s₁ ⇓ᵢ* s₂) (s₂ ⇓ᵢ s₃) (s₁ ⇓ᵢ* s₃) where
   hAppend e₁ e₂ := e₁.appendStep e₂
 
-def InstExecution.append : (s₁ ⇓ᵢ+ s₂) → (s₂ ⇓ᵢ+ s₃) → (s₁ ⇓ᵢ+ s₃)
+def InstExecution.append : (s₁ ⇓ᵢ* s₂) → (s₂ ⇓ᵢ* s₃) → (s₁ ⇓ᵢ* s₃)
   | refl, e₂ => e₂
   | trans e₁ e₂, e₃ => trans e₁ (e₂.append e₃) 
 
-instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ+ s₃) (s₁ ⇓ᵢ+ s₃) where
+instance : HAppend (s₁ ⇓ᵢ* s₂) (s₂ ⇓ᵢ* s₃) (s₁ ⇓ᵢ* s₃) where
   hAppend e₁ e₂ := e₁.append e₂
 
-/-def InstExecution.nthState : (e : s₁ ⇓ᵢ+ s₂) → Nat → Option State
+/-def InstExecution.nthState : (e : s₁ ⇓ᵢ* s₂) → Nat → Option State
   | _,          0     => s₁
   | trans _ tl, n + 1 => tl.nthState n
   | single _,   _ + 1 => none-/
 
-def InstExecution.ops : (s₁ ⇓ᵢ+ s₂) → List Operation
+def InstExecution.ops : (s₁ ⇓ᵢ* s₂) → List Operation
   | refl => []
   | trans hd tl => hd.op :: tl.ops
 
-def InstExecution.rcns (e : s₁ ⇓ᵢ+ s₂) : List ID :=
+def InstExecution.rcns (e : s₁ ⇓ᵢ* s₂) : List ID :=
   e.ops.map (·.rcn)
 
-def InstExecution.changes (e : s₁ ⇓ᵢ+ s₂) : List (Identified Change) :=
+def InstExecution.changes (e : s₁ ⇓ᵢ* s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join
 
 def State.Open (s : State) : Prop := s.progress = ∅ 
@@ -99,7 +99,7 @@ theorem State.Closed.progress_not_empty [Nontrivial s] : Closed s → s.progress
 open State (Open Closed)
 
 structure ClosedExecution (s₁ s₂ : State) : Type where  
-  exec   : s₁ ⇓ᵢ+ s₂
+  exec   : s₁ ⇓ᵢ* s₂
   «open» : Open s₁
   closed : Closed s₂
   
