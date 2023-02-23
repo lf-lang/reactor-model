@@ -27,7 +27,7 @@ instance AdvanceTag.preserves_Nontrivial [State.Nontrivial s₁] {e : s₁ ⇓- 
   match e with | ⟨_, _⟩ => inferInstance
 
 theorem ClosedExecution.not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := 
-  State.Open.iff_not_Closed.mp e.open
+  State.Open.not_Closed e.open
 
 theorem ClosedExecution.tag_eq (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
   e.exec.tag_eq

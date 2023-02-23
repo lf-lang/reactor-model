@@ -86,16 +86,6 @@ def InstExecution.rcns (e : s₁ ⇓ᵢ* s₂) : List ID :=
 def InstExecution.changes (e : s₁ ⇓ᵢ* s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join
 
-def State.Open (s : State) : Prop := s.progress = ∅ 
-
-def State.Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
-
-theorem State.Open.iff_not_Closed [Nontrivial s] : (Open s) ↔ ¬(Closed s) := 
-  sorry
-
-theorem State.Closed.progress_not_empty [Nontrivial s] : Closed s → s.progress ≠ ∅ := 
-  sorry
-
 open State (Open Closed)
 
 structure ClosedExecution (s₁ s₂ : State) : Type where  
