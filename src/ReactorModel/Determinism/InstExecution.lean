@@ -411,6 +411,6 @@ protected theorem InstExecution.deterministic :
   injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
   assumption
     
-theorem InstExecution.trivial_rtr_eq [State.Trivial s₁] : (s₁ ⇓ᵢ* s₂) → s₁.rtr = s₂.rtr
+theorem InstExecution.trivial_eq [State.Trivial s₁] : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
   | refl => rfl
   | trans e _ => absurd (inferInstanceAs s₁.Trivial) e.not_Trivial 

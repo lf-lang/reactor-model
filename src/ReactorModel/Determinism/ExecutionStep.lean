@@ -2,7 +2,6 @@ import ReactorModel.Determinism.InstExecution
 
 namespace Execution
 
-open Classical 
 open State (Closed)
 
 variable [State.Nontrivial s] [State.Nontrivial s₁]
@@ -22,10 +21,16 @@ theorem nonrepeatable (a₁ : s₁ ⇓- s₂) (a₂ : s₂ ⇓- s₃) : False :=
 theorem tag_lt : (s₁ ⇓- s₂) → s₁.tag < s₂.tag
   | mk .. => by simp [Context.advanceTag_strictly_increasing]
 
+theorem tag_ne (a : s₁ ⇓- s₂) : s₁.tag ≠ s₂.tag :=
+  ne_of_lt a.tag_lt
+
 theorem determinisic : (s ⇓- s₁) → (s ⇓- s₂) → s₁ = s₂
   | ⟨h₁, _⟩, ⟨h₂, _⟩ => by simp [Option.some_inj.mp $ h₂ ▸ h₁]
 
 instance preserves_Nontrivial [State.Nontrivial s₁] {e : s₁ ⇓- s₂} : State.Nontrivial s₂ :=
+  match e with | ⟨_, _⟩ => inferInstance
+
+instance preserves_Trivial [State.Trivial s₁] {e : s₁ ⇓- s₂} : State.Trivial s₂ :=
   match e with | ⟨_, _⟩ => inferInstance
 
 theorem rtr_eq : (s₁ ⇓- s₂) → s₁.rtr = s₂.rtr
@@ -72,6 +77,9 @@ theorem step_determined (e : s ⇓| s₁) (a : s ⇓- s₂) : False :=
 instance preserves_Nontrivial [h : State.Nontrivial s₁] {e : s₁ ⇓| s₂} : State.Nontrivial s₂ where
   nontrivial := e.preserves_rcns ▸ h.nontrivial
 
+instance preserves_Trivial [h : State.Trivial s₁] {e : s₁ ⇓| s₂} : State.Trivial s₂ where
+  trivial := e.preserves_rcns ▸ h.trivial
+
 theorem nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| s₃) : False :=
   have := e₁.preserves_Nontrivial -- TODO: Make this work via type class inference.
   absurd e₁.closed $ e₂.not_Closed
@@ -81,8 +89,8 @@ theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress 
   rw [e.fresh]
   exact Finset.nonempty.empty_ssubset $ e.closed.progress_not_empty
 
-theorem trivial_rtr_eq [State.Trivial s₁] (e : s₁ ⇓| s₂) : s₁.rtr = s₂.rtr :=
-  e.exec.trivial_rtr_eq
+theorem trivial_eq [State.Trivial s₁] (e : s₁ ⇓| s₂) : s₁ = s₂ :=
+  e.exec.trivial_eq
 
 end ClosedExecution
 
@@ -102,10 +110,6 @@ theorem seq_tag_lt : (s₁ ⇓ s₂) → (s₂ ⇓ s₃) → s₁.tag < s₃.tag
   | advance a₁, advance a₂ => a₁.nonrepeatable a₂ |>.elim
   | close e,    advance a  => e.tag_eq ▸ a.tag_lt
   | advance a,  close e    => e.tag_eq ▸ a.tag_lt
-
-theorem trivial_rtr_eq [State.Trivial s₁] : (s₁ ⇓ s₂) → s₁.rtr = s₂.rtr
-  | close e => e.trivial_rtr_eq 
-  | advance a => a.rtr_eq
 
 instance preserves_Nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → State.Nontrivial s₂
   | close e => e.preserves_Nontrivial

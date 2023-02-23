@@ -29,10 +29,13 @@ class Nontrivial (s : Execution.State) : Prop where
   nontrivial : s.rtr.ids .rcn ≠ ∅  
 
 class Trivial (s : Execution.State) : Prop where
-  trivial : ¬ Nontrivial s
+  trivial : s.rtr.ids .rcn = ∅  
+
+theorem Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : Trivial s := by
+  sorry
 
 theorem Nontrivial.not_Trivial (h : Nontrivial s) : ¬(Trivial s) :=
-  fun ht => by simp [h.nontrivial, ht.trivial] at *
+  (h.nontrivial ·.trivial)
 
 def Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
 
@@ -44,6 +47,9 @@ noncomputable abbrev advanceTag (s : State) (g : Time.Tag) (h : s.tag < g) : Sta
 
 instance [Nontrivial s] : Nontrivial (s.advanceTag g h) where
   nontrivial := by simp [Nontrivial.nontrivial]
+
+instance [t : Trivial s] : Trivial (s.advanceTag g h) where
+  trivial := by simp [t.trivial]
 
 structure allows (s : State) (rcn : ID) : Prop where
   deps : s.rtr.dependencies rcn ⊆ s.progress
