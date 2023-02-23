@@ -22,6 +22,29 @@ theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
     rw [InstExecution.tag_eq $ single he] at hg
     exact (he.exec.preserves_ctx_past_future _ hg).trans $ hi hg
     
+  /-
+  
+  ext1; ext1 g
+  have hc₁₂ := hc₁.rcns_eq hc₂
+  cases hc₁ with | mk e₁ hc₁ => 
+  cases hc₂ with | mk e₂ hc₂ => 
+  by_cases hg : g = s.tag
+  case pos => 
+    have h₁ := hc₁ |> Option.some_inj.mpr
+    have h₂ := hc₂ |> Option.some_inj.mpr
+    rw [Context.progress_def] at h₁ h₂
+    simp only [←e₁.tag_eq, ←e₂.tag_eq, ←hg] at h₁ h₂
+    simp only [h₁, h₂, hc₁₂]
+  case neg => simp only [←e₁.preserves_ctx_past_future g hg, e₂.preserves_ctx_past_future g hg]
+  -/
+
+theorem InstExecution.ctx_eq (e : s₁ ⇓ᵢ+ s₂) : s₂.ctx = s₁.ctx.process e.rcns :=
+  sorry
+
+theorem InstExecution.mem_rcns_iff (e : s₁ ⇓ᵢ+ s₂) (rcn : ID) : 
+  rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
+  sorry
+
 theorem InstExecution.preserves_rcns {i : ID} :
   (s₁ ⇓ᵢ+ s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
   | single h => h.exec.preserves_rcns

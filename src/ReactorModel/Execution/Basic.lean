@@ -99,6 +99,9 @@ structure ClosedExecution (s₁ s₂ : State) : Type where
   
 notation s₁:max " ⇓| " s₂:max => ClosedExecution s₁ s₂
 
+abbrev ClosedExecution.rcns (e : s₁ ⇓| s₂) : List ID :=
+  e.exec.rcns
+
 -- Note: We don't clear the ports here. Thus, we define a more relaxed version of the reactor model
 --       for which we can still prove determinism.
 inductive AdvanceTag : State → State → Type 

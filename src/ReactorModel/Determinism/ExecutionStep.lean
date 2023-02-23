@@ -29,33 +29,33 @@ theorem ClosedExecution.nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| 
 theorem ClosedExecution.progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress :=
   e.exec.progress_ssubset
 
-theorem ClosedExecution.rcns_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : 
-    s₁.rtr.ids .rcn = s₂.rtr.ids .rcn := by
-  simp [Finset.ext_iff, Reactor.ids_mem_iff_obj?, ←e₁.exec.preserves_rcns, e₂.exec.preserves_rcns]
-
 theorem ClosedExecution.tag_eq (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
   e.exec.tag_eq
 
-theorem ClosedExecution.convergent_ctx : 
-  (s ⇓| s₁) → (s ⇓| s₂) → s₁.ctx = s₂.ctx := by
-  intro hc₁ hc₂
-  ext1
-  apply Finmap.ext
-  intro g
-  have hc₁₂ := hc₁.rcns_eq hc₂
-  cases hc₁ with | mk e₁ hc₁ => 
-  cases hc₂ with | mk e₂ hc₂ => 
-  by_cases hg : g = s.tag
-  case pos => 
-    have h₁ := hc₁ |> Option.some_inj.mpr
-    have h₂ := hc₂ |> Option.some_inj.mpr
-    rw [Context.progress_def] at h₁ h₂
-    simp only [←e₁.tag_eq, ←e₂.tag_eq, ←hg] at h₁ h₂
-    simp only [h₁, h₂, hc₁₂]
-  case neg => simp only [←e₁.preserves_ctx_past_future g hg, e₂.preserves_ctx_past_future g hg]
+theorem ClosedExecution.rcns_preserved (e : s₁ ⇓| s₂) : s₁.rtr.ids .rcn = s₂.rtr.ids .rcn := by
+  simp [Finset.ext_iff, Reactor.ids_mem_iff_obj?, e.exec.preserves_rcns]
+
+theorem ClosedExecution.rcns_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.rtr.ids .rcn = s₂.rtr.ids .rcn :=
+  e₁.rcns_preserved ▸ e₂.rcns_preserved
+  
+theorem ClosedExecution.rcns_Nodup (e : s₁ ⇓| s₂) : e.rcns.Nodup := 
+  e.exec.rcns_nodup
+
+theorem ClosedExecution.progress_def (e : s₁ ⇓| s₂) : s₂.progress = s₁.rtr.ids .rcn :=
+  e.rcns_preserved ▸ e.closed
+
+theorem ClosedExecution.mem_rcns_iff (e : s₁ ⇓| s₂) (rcn : ID) : 
+    rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr.ids .rcn ∧ rcn ∉ s₁.progress) :=
+  e.progress_def ▸ e.exec.mem_rcns_iff rcn
+
+theorem ClosedExecution.rcns_perm (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : e₁.rcns ~ e₂.rcns := by
+  simp [List.perm_ext e₁.rcns_Nodup e₂.rcns_Nodup, e₁.mem_rcns_iff, e₂.mem_rcns_iff]
+
+theorem ClosedExecution.ctx_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.ctx = s₂.ctx :=
+  e₁.exec.ctx_eq ▸ e₂.exec.ctx_eq ▸ (Context.process_perm_eq $ e₁.rcns_perm e₂)
 
 theorem ClosedExecution.deterministic (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁ = s₂ :=
-  e₁.exec.deterministic e₂.exec $ e₁.convergent_ctx e₂
+  e₁.exec.deterministic e₂.exec $ e₁.ctx_eq e₂
 
 theorem ClosedExecution.step_determined (e : s ⇓| s₁) (a : s ⇓- s₂) : False :=
   absurd a.closed e.not_Closed

@@ -29,13 +29,13 @@ noncomputable def addCurrentProcessed (ctx : Context) (i : ID) : Context := {
   processedNonempty := ctx.processedRcns.update_nonempty _ _ ctx.processedNonempty
 }
 
-noncomputable def addCurrentProcessed' (ctx : Context) : List ID → Context
+noncomputable def process (ctx : Context) : List ID → Context
   | [] => ctx
-  | hd :: tl => (ctx.addCurrentProcessed hd).addCurrentProcessed' tl
+  | hd :: tl => (ctx.addCurrentProcessed hd).process tl
 
-theorem addCurrentProcessed'_singleton (ctx : Context) :
-  ctx.addCurrentProcessed' [i] = ctx.addCurrentProcessed i :=
-  sorry  
+theorem process_perm_eq {ctx : Context} {l₁ l₂ : List ID} : 
+    (l₁ ~ l₂) → ctx.process l₁ = ctx.process l₂ := 
+  sorry
 
 theorem addCurrentProcessed_preserves_ctx_past_future (ctx : Context) (i : ID) : ∀ g, g ≠ ctx.tag → (ctx.addCurrentProcessed i).processedRcns g = ctx.processedRcns g := by
   intro g h
