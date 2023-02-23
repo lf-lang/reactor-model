@@ -12,9 +12,9 @@ noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : T
   | some g => act.update ⟨t, g.microstep + 1⟩ v
 
 inductive ChangeStep (s : State) : State → Identified Change → Prop 
-  | port :   (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    → ChangeStep s ⟨σ', s.ctx⟩ ⟨rcn, .port i v⟩
-  | state :  (s.rtr -[.stv:i λ _ => v]→ σ')         → ChangeStep s ⟨σ', s.ctx⟩ ⟨rcn, .state i v⟩
-  | action : (s.rtr -[.act:i (schedule · t v)]→ σ') → ChangeStep s ⟨σ', s.ctx⟩ ⟨rcn, .action i t v⟩
+  | port :   (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    → ChangeStep s { s with rtr := σ' } ⟨rcn, .port i v⟩
+  | state :  (s.rtr -[.stv:i λ _ => v]→ σ')         → ChangeStep s { s with rtr := σ' } ⟨rcn, .state i v⟩
+  | action : (s.rtr -[.act:i (schedule · t v)]→ σ') → ChangeStep s { s with rtr := σ' } ⟨rcn, .action i t v⟩
   -- Mutations are (temporarily) no-ops:
   | connect :    ChangeStep s s ⟨rcn, .connect i₁ i₂⟩
   | disconnect : ChangeStep s s ⟨rcn, .disconnect i₁ i₂⟩
@@ -34,8 +34,8 @@ inductive ChangeListStep : State → State → (List $ Identified Change) → Pr
 notation s₁:max " -[" cs "]→* " s₂:max => ChangeListStep s₁ s₂ cs
 
 inductive OperationStep : State → State → Operation → Prop
-  | skip : OperationStep s ⟨s.rtr, s.ctx.addCurrentProcessed rcn⟩ (.skip rcn)
-  | exec : (s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂) → OperationStep s₁ ⟨s₂.rtr, s₂.ctx.addCurrentProcessed rcn⟩ (.exec rcn cs)
+  | skip : OperationStep s { s with ctx := s.ctx.addCurrentProcessed rcn } (.skip rcn)
+  | exec : (s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂) → OperationStep s₁ { s₂ with ctx := s₂.ctx.addCurrentProcessed rcn } (.exec rcn cs)
 
 notation s₁:max " -[" op "]↣ " s₂:max => OperationStep s₁ s₂ op
 
@@ -52,20 +52,20 @@ def InstStep.rcn (e : s₁ ⇓ᵢ s₂) : ID := e.op.rcn
 -- An execution at an instant is a series of steps,
 -- which we model with the transitive closure.
 inductive InstExecution : State → State → Type
-  | single : (s₁ ⇓ᵢ s₂) → InstExecution s₁ s₂
+  | refl : InstExecution s s
   | trans : (s₁ ⇓ᵢ s₂) → (InstExecution s₂ s₃) → InstExecution s₁ s₃
 
 notation s₁:max " ⇓ᵢ+ " s₂:max => InstExecution s₁ s₂
 
 def InstExecution.appendStep : (s₁ ⇓ᵢ+ s₂) → (s₂ ⇓ᵢ s₃) → (s₁ ⇓ᵢ+ s₃)
-  | single e₁, e₂ => trans e₁ (single e₂)
+  | refl, e₂ => trans e₂ refl
   | trans e₁ e₂, e₃ => trans e₁ (e₂.appendStep e₃) 
 
 instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ s₃) (s₁ ⇓ᵢ+ s₃) where
   hAppend e₁ e₂ := e₁.appendStep e₂
 
 def InstExecution.append : (s₁ ⇓ᵢ+ s₂) → (s₂ ⇓ᵢ+ s₃) → (s₁ ⇓ᵢ+ s₃)
-  | single e₁, e₂ => trans e₁ e₂
+  | refl, e₂ => e₂
   | trans e₁ e₂, e₃ => trans e₁ (e₂.append e₃) 
 
 instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ+ s₃) (s₁ ⇓ᵢ+ s₃) where
@@ -77,7 +77,7 @@ instance : HAppend (s₁ ⇓ᵢ+ s₂) (s₂ ⇓ᵢ+ s₃) (s₁ ⇓ᵢ+ s₃) w
   | single _,   _ + 1 => none-/
 
 def InstExecution.ops : (s₁ ⇓ᵢ+ s₂) → List Operation
-  | single e => [e.op]
+  | refl => []
   | trans hd tl => hd.op :: tl.ops
 
 def InstExecution.rcns (e : s₁ ⇓ᵢ+ s₂) : List ID :=
@@ -86,15 +86,21 @@ def InstExecution.rcns (e : s₁ ⇓ᵢ+ s₂) : List ID :=
 def InstExecution.changes (e : s₁ ⇓ᵢ+ s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join
 
+def State.Open (s : State) : Prop := s.progress = ∅ 
+
 def State.Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
 
-theorem State.Closed.progress_not_empty : Closed s → s.progress ≠ ∅ := 
-  sorry  
+theorem State.Open.iff_not_Closed [Nontrivial s] : (Open s) ↔ ¬(Closed s) := 
+  sorry
 
-open State (Closed)
+theorem State.Closed.progress_not_empty [Nontrivial s] : Closed s → s.progress ≠ ∅ := 
+  sorry
 
-structure ClosedExecution (s₁ s₂ : State) : Type where
-  exec : s₁ ⇓ᵢ+ s₂
+open State (Open Closed)
+
+structure ClosedExecution (s₁ s₂ : State) : Type where  
+  exec   : s₁ ⇓ᵢ+ s₂
+  «open» : Open s₁
   closed : Closed s₂
   
 notation s₁:max " ⇓| " s₂:max => ClosedExecution s₁ s₂

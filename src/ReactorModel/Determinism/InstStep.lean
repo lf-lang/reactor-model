@@ -30,7 +30,7 @@ theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.ctx = s�
   | .skip .. => rfl
 
 theorem OperationStep.to_ChangeListStep :
-  (e : s₁ -[op]↣ s₂) → (s₁ -[op.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
+  (e : s₁ -[op]↣ s₂) → (s₁ -[op.changes]→* { s₂ with ctx := s₁.ctx }) := by
   intro e
   induction e <;> simp [Operation.changes, Operation.rcn]
   case skip => exact ChangeListStep.nil

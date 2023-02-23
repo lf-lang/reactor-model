@@ -137,7 +137,7 @@ theorem ChangeStep.determinisic : (s -[c]→ s₁) → (s -[c]→ s₂) → s₁
   cases h₁ <;> cases h₂ <;> simp <;> apply Reactor.Update.unique' <;> assumption
 
 theorem ChangeStep.ctx_agnostic :
-  (s₁ -[c]→ s₂) → (s₁.rtr = s₁'.rtr) → (s₁' -[c]→ ⟨s₂.rtr, s₁'.ctx⟩) := by
+  (s₁ -[c]→ s₂) → (s₁.rtr = s₁'.rtr) → (s₁' -[c]→ { s₂ with ctx := s₁'.ctx }) := by
   intro h hr
   cases h <;> rw [hr] at * <;> (constructor; try assumption)
 
@@ -301,17 +301,17 @@ theorem ChangeListStep.preserves_actions_at_unchanged_times {i : ID} :
     simp [hs₁₂.preserves_action_at_unchanged_times hhd ha₁ haₘ m, hi htl haₘ ha₂]
   
 theorem ChangeListStep.ctx_agnostic :
-  (s₁ -[cs]→* s₂) → (s₁.rtr = s₁'.rtr) → (s₁' -[cs]→* ⟨s₂.rtr, s₁'.ctx⟩) := by
+  (s₁ -[cs]→* s₂) → (s₁.rtr = s₁'.rtr) → (s₁' -[cs]→* { s₂ with ctx := s₁'.ctx }) := by
   intro h hr
   induction h generalizing s₁'
   case nil => simp [ChangeListStep.nil, hr]
   case cons sₘ _ _ _ h₁ _ hi => 
     have h := h₁.ctx_agnostic hr
-    specialize @hi { rtr := sₘ.rtr, ctx := s₁'.ctx } rfl
+    specialize @hi { sₘ with ctx := s₁'.ctx } rfl
     exact ChangeListStep.cons h hi
 
 theorem ChangeListStep.append :
-  (s₁ -[cs]→* s₂) → (s₂' -[cs']→* s₃) → (s₂.rtr = s₂'.rtr) → (s₁ -[cs ++ cs']→* ⟨s₃.rtr, s₁.ctx⟩) := by
+  (s₁ -[cs]→* s₂) → (s₂' -[cs']→* s₃) → (s₂.rtr = s₂'.rtr) → (s₁ -[cs ++ cs']→* { s₃ with ctx := s₁.ctx }) := by
   intro h h' hr
   induction h
   case nil => simp [h'.ctx_agnostic hr.symm]

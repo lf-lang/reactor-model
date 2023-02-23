@@ -72,6 +72,8 @@ theorem ssubset_of_ne_subset {s₁ s₂ : Finset α} : s₁ ≠ s₂ → s₁ �
 
 theorem ssubset_trans {a b c : Finset α} (h₁ : a ⊂ b) (h₂ : b ⊂ c) : a ⊂ c := sorry
 
+theorem nonempty.empty_ssubset {s : Finset α} : s ≠ ∅ → ∅ ⊂ s := sorry
+
 theorem subset_iff {s₁ s₂ : Finset α} : s₁ ⊆ s₂ ↔ ∀ {x}, x ∈ s₁ → x ∈ s₂ := sorry
 
 @[simp] theorem subset.refl (s : Finset α) : s ⊆ s := sorry

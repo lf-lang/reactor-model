@@ -6,20 +6,17 @@ namespace Execution
 
 open State (Closed)
 
-theorem InstExecution.not_Closed : (s₁ ⇓ᵢ+ s₂) → ¬(Closed s₁)
-  | single h | trans h _ => h.not_Closed
-
 theorem InstExecution.tag_eq : (s₁ ⇓ᵢ+ s₂) → s₁.tag = s₂.tag
-  | single h => h.exec.preserves_tag
+  | refl => rfl
   | trans h hi => h.exec.preserves_tag.trans hi.tag_eq
 
 theorem InstExecution.preserves_ctx_past_future {s₁ s₂} :
   (s₁ ⇓ᵢ+ s₂) → ∀ g, g ≠ s₁.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
   intro h g hg
   induction h
-  case single h => exact h.exec.preserves_ctx_past_future _ hg
+  case refl => rfl
   case trans s₁ _ sₘ he _ hi =>
-    rw [InstExecution.tag_eq $ single he] at hg
+    rw [InstExecution.tag_eq $ trans he refl] at hg
     exact (he.exec.preserves_ctx_past_future _ hg).trans $ hi hg
     
   /-
@@ -47,18 +44,18 @@ theorem InstExecution.mem_rcns_iff (e : s₁ ⇓ᵢ+ s₂) (rcn : ID) :
 
 theorem InstExecution.preserves_rcns {i : ID} :
   (s₁ ⇓ᵢ+ s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
-  | single h => h.exec.preserves_rcns
+  | refl => rfl
   | trans h₁ₘ hₘ₂ => h₁ₘ.exec.preserves_rcns.trans hₘ₂.preserves_rcns
 
 theorem InstExecution.rcns_unprocessed : 
   (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn ∈ e.rcns, rcn ∉ s₁.progress := by
   intro h rcn hr
   induction h
-  case single h => 
-    simp [rcns] at hr
-    have h := h.rcn_unprocessed
-    simp [InstStep.rcn] at h
-    simp [hr, h]
+  case refl => sorry
+    -- simp [rcns] at hr
+    -- have h := h.rcn_unprocessed
+    -- simp [InstStep.rcn] at h
+    -- simp [hr, h]
   case trans hi =>
     cases List.mem_cons.mp hr
     case inl h _ hc => 
@@ -71,13 +68,13 @@ theorem InstExecution.rcns_unprocessed :
       exact ((not_or _ _).mp $ (mt h₁.mem_progress.mpr) hi).right
 
 theorem InstExecution.rcns_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.rcns
-  | single _ => List.nodup_singleton _
+  | refl => List.Nodup.nil
   | trans h₁ h₂ => List.nodup_cons.mpr $ ⟨(mt $ h₂.rcns_unprocessed _) $ not_not.mpr h₁.self_progress, h₂.rcns_nodup⟩
 
 theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops := by
   intro e
   induction e
-  case single => apply List.nodup_singleton
+  case refl => exact List.Nodup.nil
   case trans hd tl h =>
     simp [ops, List.nodup_cons, h]
     by_contra hm
@@ -86,23 +83,11 @@ theorem InstExecution.ops_nodup : (e : s₁ ⇓ᵢ+ s₂) → List.Nodup e.ops :
     specialize h' hd.op hm rfl
     simp [State.progress, hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_progress] at h'
 
-theorem InstExecution.progress_ssubset :
-  (s₁ ⇓ᵢ+ s₂) → s₁.progress ⊂ s₂.progress := by
-  intro h
-  induction h
-  case single =>
-    apply InstStep.strict_monotonic_progress 
-    assumption
-  case trans hi =>
-    refine Finset.ssubset_trans ?_ hi
-    apply InstStep.strict_monotonic_progress 
-    assumption
-
 theorem InstExecution.mem_progress :
   (e : s₁ ⇓ᵢ+ s₂) → ∀ rcn, rcn ∈ s₂.progress ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.progress := by
   intro h rcn
   induction h
-  case single h => simp [InstStep.rcn, rcns, List.mem_singleton, h.mem_progress]
+  case refl => sorry -- simp [InstStep.rcn, rcns, List.mem_singleton, h.mem_progress]
   case trans h₁ h₂ hi => 
     constructor <;> intro hc 
     case mp =>
@@ -144,6 +129,8 @@ theorem InstExecution.eq_ctx_processed_rcns_perm :
       have h := h₂.self_progress _ hm
       rw [State.progress, ←he] at h
       exact ((h₁.mem_progress _).mp h).resolve_right hc
+
+/-
 
 theorem InstExecution.rcn_list_cons : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl :=
   (by cases · <;> simp [rcns])
@@ -432,14 +419,17 @@ theorem InstExecution.same_rcns_ChangeListEquiv {e₁ : s ⇓ᵢ+ s₁} {e₂ : 
     actions := same_ops_ChangeListEquiv_actions ho
   }
 
+-/
+
 protected theorem InstExecution.deterministic : 
   (s ⇓ᵢ+ s₁) → (s ⇓ᵢ+ s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
   intro e₁ e₂ hc
   refine State.ext _ _ ?_ hc
   have hp := e₁.eq_ctx_processed_rcns_perm e₂ hc
-  have he := e₁.same_rcns_ChangeListEquiv hp
-  injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
-  assumption
+  sorry
+  --have he := e₁.same_rcns_ChangeListEquiv hp
+  --injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
+  --assumption
     
     
       

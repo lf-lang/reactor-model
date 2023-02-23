@@ -21,13 +21,18 @@ def Execution.Operation.changes : Execution.Operation → List (Identified Chang
 
 namespace Execution.State
 
+class Nontrivial (s : Execution.State) : Prop where
+  nontrivial : s.rtr.ids .rcn ≠ ∅  
+
 abbrev tag (s : State) : Time.Tag := s.ctx.tag
 
 abbrev progress (s : State) : Finset ID := s.ctx.progress
 
-noncomputable abbrev advanceTag (s : State) (g : Time.Tag) (h : s.tag < g) : State where
-  rtr := s.rtr
-  ctx := s.ctx.advanceTag g h
+noncomputable abbrev advanceTag (s : State) (g : Time.Tag) (h : s.tag < g) : State := 
+  { s with ctx := s.ctx.advanceTag g h }
+
+instance [Nontrivial s] : Nontrivial (s.advanceTag g h) where
+  nontrivial := sorry
 
 structure allows (s : State) (rcn : ID) : Prop where
   deps : s.rtr.dependencies rcn ⊆ s.progress
