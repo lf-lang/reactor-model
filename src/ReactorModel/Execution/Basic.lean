@@ -93,21 +93,22 @@ theorem State.Closed.progress_not_empty : Closed s → s.progress ≠ ∅ :=
 
 open State (Closed)
 
-inductive ClosedExecution (s₁ s₂ : State) : Prop
-  | mk (exec : s₁ ⇓ᵢ+ s₂) (closed : Closed s₂)
+structure ClosedExecution (s₁ s₂ : State) : Type where
+  exec : s₁ ⇓ᵢ+ s₂
+  closed : Closed s₂
   
 notation s₁:max " ⇓| " s₂:max => ClosedExecution s₁ s₂
 
 -- Note: We don't clear the ports here. Thus, we define a more relaxed version of the reactor model
 --       for which we can still prove determinism.
-inductive AdvanceTag : State → State → Prop 
+inductive AdvanceTag : State → State → Type 
   | mk (h : s.nextTag = some g) : (Closed s) → AdvanceTag s (s.advanceTag g $ s.tag_lt_nextTag h)
 
 notation s₁:max " ⇓- " s₂:max => AdvanceTag s₁ s₂
 
 -- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
 -- steps can be taken, or a time advancement.
-inductive Step (s₁ s₂ : State) : Prop 
+inductive Step (s₁ s₂ : State) : Type 
   | close (h : s₁ ⇓| s₂)
   | advance (h : s₁ ⇓- s₂)
 
@@ -119,7 +120,7 @@ open Execution
 
 -- An execution of a reactor model is a series of execution steps.
 -- We model this with a reflexive transitive closure:
-inductive Execution : State → State → Prop
+inductive Execution : State → State → Type
   | refl : Execution s s
   | step : (s₁ ⇓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 
