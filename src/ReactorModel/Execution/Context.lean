@@ -90,7 +90,7 @@ theorem record'_comm (ctx : Context) (l : List ID) (i : ID) :
 
 theorem record'_cons_progress_monotonic {ctx : Context} (h : i ∈ (ctx.record' tl).progress) : 
     i ∈ (ctx.record' $ hd :: tl).progress := by
-  simp [record', ←record'_comm, record_progress_monotonic h]
+  simp [record', ←record'_comm, record_progress_monotonic _ h]
   
 theorem mem_list_to_mem_record'_progress {ctx : Context} (h : i ∈ l) : 
     i ∈ (ctx.record' l).progress := by

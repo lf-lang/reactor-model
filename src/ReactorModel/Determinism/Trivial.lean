@@ -2,49 +2,64 @@ import ReactorModel.Determinism.ExecutionStep
 
 namespace Execution
 
-theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬(State.Trivial s₁) :=
+abbrev State.Trivial (s : State) : Prop := 
+  s.rtr.ids .rcn = ∅
+
+theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial := by
+  by_contra hc; exact h ⟨hc⟩ 
+
+theorem State.Nontrivial.not_Trivial (h : Nontrivial s) : ¬s.Trivial :=
+  h.nontrivial
+
+theorem State.advanceTag_preserves_Trivial (triv : Trivial s) : Trivial (s.advanceTag g hg) := 
+  triv
+
+section
+
+variable {s₁ : State} (triv : s₁.Trivial)
+
+theorem AdvanceTag.preserves_Trivial : (s₁ ⇓- s₂) → s₂.Trivial
+  | ⟨_, _⟩ => s₁.advanceTag_preserves_Trivial triv
+
+theorem ClosedExecution.preserves_Trivial {e : s₁ ⇓| s₂} : s₂.Trivial :=
+  e.preserves_rcns.trans triv
+
+theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
+  | close e => e.preserves_Trivial triv
+  | advance a => a.preserves_Trivial triv
+
+theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial :=
   s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
 
-theorem InstExecution.trivial_eq [State.Trivial s₁] : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
+theorem InstExecution.trivial_eq : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
   | refl => rfl
-  | trans e _ => absurd (inferInstanceAs s₁.Trivial) e.not_Trivial 
+  | trans e _ => absurd triv e.not_Trivial 
 
-instance AdvanceTag.preserves_Trivial [State.Trivial s₁] {e : s₁ ⇓- s₂} : State.Trivial s₂ :=
-  match e with | ⟨_, _⟩ => inferInstance
+theorem ClosedExecution.trivial_eq (e : s₁ ⇓| s₂) : s₁ = s₂ :=
+  e.exec.trivial_eq triv
 
-instance ClosedExecution.preserves_Trivial [State.Trivial s₁] {e : s₁ ⇓| s₂} : 
-    State.Trivial s₂ where
-  trivial := e.preserves_rcns ▸ State.Trivial.trivial
-
-theorem ClosedExecution.trivial_eq [State.Trivial s₁] (e : s₁ ⇓| s₂) : s₁ = s₂ :=
-  e.exec.trivial_eq
-
-instance Step.preserves_Trivial [State.Trivial s₁] : (s₁ ⇓ s₂) → State.Trivial s₂
-  | close e => e.preserves_Trivial
-  | advance a => a.preserves_Trivial
+end
 
 inductive AdvanceTag.RTC : State → State → Type
   | refl : RTC s s
   | trans : (s₁ ⇓- s₂) → (RTC s₂ s₃) → RTC s₁ s₃   
 
+def to_AdvanceTagRTC (triv : s₁.Trivial) : (s₁ ⇓* s₂) → AdvanceTag.RTC s₁ s₂
+  | refl                 => .refl
+  | step (.advance a) e' => .trans a (e'.to_AdvanceTagRTC $ a.preserves_Trivial triv)
+  | step (.close e) e'   => e.trivial_eq triv ▸ (e'.to_AdvanceTagRTC $ e.preserves_Trivial triv)
+
 theorem AdvanceTag.RTC.deterministic 
-  (a₁ : AdvanceTag.RTC s s₁) (a₂ : AdvanceTag.RTC s s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ := by
+    (ht : s₁.tag = s₂.tag) (a₁ : AdvanceTag.RTC s s₁) (a₂ : AdvanceTag.RTC s s₂) : s₁ = s₂ := by
   induction a₁ <;> cases a₂
   case refl.refl                       => rfl
   case' refl.trans a _, trans.refl _ a => exact absurd ht a.tag_ne
-  case trans.trans a₁ _ hi _ a₂ c₂     => exact hi (a₂.determinisic a₁ ▸ c₂) ht
+  case trans.trans a₁ _ hi _ a₂ c₂     => exact hi ht (a₂.determinisic a₁ ▸ c₂)
 
-def to_AdvanceTagRTC [State.Trivial s₁] : (s₁ ⇓* s₂) → AdvanceTag.RTC s₁ s₂
-  | refl => .refl
-  | step (.advance a) e' => 
-    have := a.preserves_Trivial -- TODO: Make this work via type class inference.
-    .trans a e'.to_AdvanceTagRTC
-  | step (.close e) e' => 
-    have := e.preserves_Trivial -- TODO: Make this work via type class inference.
-    e.trivial_eq ▸ e'.to_AdvanceTagRTC
-
-theorem trivial_deterministic [trivial : State.Trivial s] 
-    (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
-  e₁.to_AdvanceTagRTC.deterministic e₂.to_AdvanceTagRTC ht
+theorem trivial_deterministic 
+    (triv : ¬s.Nontrivial) (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
+  AdvanceTag.RTC.deterministic ht
+    (e₁.to_AdvanceTagRTC $ .of_not_Nontrivial triv) 
+    (e₂.to_AdvanceTagRTC $ .of_not_Nontrivial triv) 
 
 end Execution

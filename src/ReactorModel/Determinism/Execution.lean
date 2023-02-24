@@ -30,6 +30,6 @@ theorem deterministic :
     (s ⇓* s₁) → (s ⇓* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂ := 
   if h : State.Nontrivial s 
   then nontrivial_deterministic
-  else fun e₁ e₂ ht _ => trivial_deterministic e₁ e₂ ht (trivial := .of_not_Nontrivial h)
+  else fun e₁ e₂ ht _ => e₁.trivial_deterministic h e₂ ht
   
 end Execution

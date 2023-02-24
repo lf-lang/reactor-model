@@ -28,15 +28,6 @@ abbrev progress (s : State) : Finset ID := s.ctx.progress
 class Nontrivial (s : Execution.State) : Prop where
   nontrivial : s.rtr.ids .rcn ≠ ∅  
 
-class Trivial (s : Execution.State) : Prop where
-  trivial : s.rtr.ids .rcn = ∅  
-
-theorem Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : Trivial s := by
-  sorry
-
-theorem Nontrivial.not_Trivial (h : Nontrivial s) : ¬(Trivial s) :=
-  (h.nontrivial ·.trivial)
-
 def Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
 
 theorem Closed.progress_not_empty [Nontrivial s] : Closed s → s.progress ≠ ∅ := by
@@ -47,9 +38,6 @@ noncomputable abbrev advanceTag (s : State) (g : Time.Tag) (h : s.tag < g) : Sta
 
 instance [Nontrivial s] : Nontrivial (s.advanceTag g h) where
   nontrivial := by simp [Nontrivial.nontrivial]
-
-instance [t : Trivial s] : Trivial (s.advanceTag g h) where
-  trivial := by simp [t.trivial]
 
 structure allows (s : State) (rcn : ID) : Prop where
   deps : s.rtr.dependencies rcn ⊆ s.progress
