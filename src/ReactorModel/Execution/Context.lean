@@ -69,24 +69,24 @@ noncomputable def record' (ctx : Context) : List ID → Context
 
 theorem record'_cons {ctx : Context} : (ctx.record i).record' l = ctx.record' (i :: l) := rfl
 
-theorem record'_perm_eq {ctx : Context} : (l₁ ~ l₂) → ctx.record' l₁ = ctx.record' l₂ := 
-  sorry
+theorem record'_comm (ctx : Context) (l : List ID) (i : ID) :
+    (ctx.record' l).record i = (ctx.record i).record' l := by
+  induction l generalizing ctx i
+  case nil => rfl
+  case cons hd tl hi => simp [record', record_comm, hi]
 
-theorem mem_record'_progress_to_mem_progress_or_mem_list {ctx : Context} :
-    i ∈ (ctx.record' l).progress → (i ∈ ctx.progress ∨ i ∈ l) := by
-  sorry
+theorem record'_perm_eq {ctx : Context} (h : l₁ ~ l₂) : ctx.record' l₁ = ctx.record' l₂ := by
+  induction h generalizing ctx
+  case nil     => rfl
+  case cons hi => simp [record', hi]
+  case swap    => simp [record', record_comm]
+  case trans   => simp_all
 
 theorem record'_progress_monotonic {ctx : Context} (l : List ID) (h : i ∈ ctx.progress) :
     i ∈ (ctx.record' l).progress := by
   induction l generalizing ctx i
   case nil => assumption
   case cons hd _ hi => exact hi $ record_progress_monotonic hd h
-
-theorem record'_comm (ctx : Context) (l : List ID) (i : ID) :
-    (ctx.record' l).record i = (ctx.record i).record' l := by
-  induction l generalizing ctx i
-  case nil => rfl
-  case cons hd tl hi => simp [record', record_comm, hi]
 
 theorem record'_cons_progress_monotonic {ctx : Context} (h : i ∈ (ctx.record' tl).progress) : 
     i ∈ (ctx.record' $ hd :: tl).progress := by
@@ -100,6 +100,10 @@ theorem mem_list_to_mem_record'_progress {ctx : Context} (h : i ∈ l) :
     cases h
     case head => exact record'_progress_monotonic tl $ ctx.mem_record_progress_self i
     case tail h => exact record'_cons_progress_monotonic $ hi h
+
+theorem mem_record'_progress_to_mem_progress_or_mem_list {ctx : Context} :
+    i ∈ (ctx.record' l).progress → (i ∈ ctx.progress ∨ i ∈ l) := by
+  sorry
 
 theorem mem_record'_progress_iff (ctx : Context) (l : List ID) (i : ID) :
     i ∈ (ctx.record' l).progress ↔ (i ∈ ctx.progress ∨ i ∈ l) where
