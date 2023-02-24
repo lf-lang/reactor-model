@@ -57,13 +57,13 @@ theorem progress_def (e : s₁ ⇓| s₂) : s₂.progress = s₁.rtr.ids .rcn :=
   e.preserves_rcns ▸ e.closed
 
 theorem mem_rcns_iff (e : s₁ ⇓| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr.ids .rcn ∧ rcn ∉ s₁.progress) :=
-  e.progress_def ▸ e.exec.mem_rcns_iff rcn
+  e.progress_def ▸ e.exec.mem_rcns_iff
 
 theorem rcns_perm (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : e₁.rcns ~ e₂.rcns := by
   simp [List.perm_ext e₁.rcns_Nodup e₂.rcns_Nodup, e₁.mem_rcns_iff, e₂.mem_rcns_iff]
 
 theorem ctx_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.ctx = s₂.ctx :=
-  e₁.exec.ctx_eq ▸ e₂.exec.ctx_eq ▸ (Context.process_perm_eq $ e₁.rcns_perm e₂)
+  e₁.exec.ctx_eq ▸ e₂.exec.ctx_eq ▸ Context.record'_perm_eq (e₁.rcns_perm e₂)
 
 theorem deterministic (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁ = s₂ :=
   e₁.exec.deterministic e₂.exec $ e₁.ctx_eq e₂

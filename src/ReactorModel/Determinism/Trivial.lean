@@ -2,6 +2,13 @@ import ReactorModel.Determinism.ExecutionStep
 
 namespace Execution
 
+theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬(State.Trivial s₁) :=
+  s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
+
+theorem InstExecution.trivial_eq [State.Trivial s₁] : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
+  | refl => rfl
+  | trans e _ => absurd (inferInstanceAs s₁.Trivial) e.not_Trivial 
+
 instance AdvanceTag.preserves_Trivial [State.Trivial s₁] {e : s₁ ⇓- s₂} : State.Trivial s₂ :=
   match e with | ⟨_, _⟩ => inferInstance
 

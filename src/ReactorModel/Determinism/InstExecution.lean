@@ -41,7 +41,7 @@ theorem ops_nodup : (e : s₁ ⇓ᵢ* s₂) → List.Nodup e.ops := by
     have h' := tl.rcns_unprocessed hd.op.rcn
     simp [rcns, List.mem_map] at h'
     specialize h' hd.op hm rfl
-    simp [State.progress, hd.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_progress] at h'
+    simp [State.progress, hd.exec.ctx_adds_rcn, Context.mem_record_progress_iff] at h'
 
 theorem mem_progress :
   (e : s₁ ⇓ᵢ* s₂) → ∀ rcn, rcn ∈ s₂.progress ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.progress := by
@@ -376,46 +376,33 @@ protected theorem deterministic :
 
 
 
-theorem trivial_eq [State.Trivial s₁] : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
-  | refl => rfl
-  | trans e _ => absurd (inferInstanceAs s₁.Trivial) e.not_Trivial 
+
+
+
 
 theorem tag_eq : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
   | refl => rfl
   | trans e e' => e.exec.preserves_tag.trans e'.tag_eq
 
--- TODO: To you need this for `ctx_eq`?
-theorem preserves_ctx_past_future :
-  (s₁ ⇓ᵢ* s₂) → ∀ g, g ≠ s₁.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g := by
-  intro h g hg
-  induction h
-  case refl => rfl
-  case trans s₁ _ sₘ he _ hi =>
-    rw [InstExecution.tag_eq $ trans he refl] at hg
-    exact (he.exec.preserves_ctx_past_future _ hg).trans $ hi hg
-    
-  /-
-  
-  ext1; ext1 g
-  have hc₁₂ := hc₁.rcns_eq hc₂
-  cases hc₁ with | mk e₁ hc₁ => 
-  cases hc₂ with | mk e₂ hc₂ => 
-  by_cases hg : g = s.tag
-  case pos => 
-    have h₁ := hc₁ |> Option.some_inj.mpr
-    have h₂ := hc₂ |> Option.some_inj.mpr
-    rw [Context.progress_def] at h₁ h₂
-    simp only [←e₁.tag_eq, ←e₂.tag_eq, ←hg] at h₁ h₂
-    simp only [h₁, h₂, hc₁₂]
-  case neg => simp only [←e₁.preserves_ctx_past_future g hg, e₂.preserves_ctx_past_future g hg]
-  -/
+theorem ctx_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.ctx = s₁.ctx.record' e.rcns
+  | refl => rfl
+  | trans e e' => Context.record'_cons ▸ e.ctx_eq ▸ e'.ctx_eq
 
-theorem ctx_eq (e : s₁ ⇓ᵢ* s₂) : s₂.ctx = s₁.ctx.process e.rcns :=
-  sorry
+theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) : 
+    (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
+  simp [rcns, InstStep.rcn]
 
-theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) (rcn : ID) : 
-  rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
-  sorry
+theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) : rcn ∉ s₁.progress := by
+  induction e
+  case refl => contradiction
+  case trans e e' hi =>
+    cases e'.rcns_trans_eq_cons e ▸ h
+    case head   => exact e.rcn_unprocessed
+    case tail h => exact mt e.monotonic_progress (hi h)
+      
+theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
+  simp [State.progress, e.ctx_eq, s₁.ctx.mem_record'_progress_iff e.rcns rcn, or_and_distrib_right]
+  exact e.mem_rcns_not_mem_progress
 
 theorem preserves_rcns {i : ID} : (s₁ ⇓ᵢ* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
   | refl => rfl

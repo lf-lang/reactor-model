@@ -34,8 +34,8 @@ inductive ChangeListStep : State → State → (List $ Identified Change) → Pr
 notation s₁:max " -[" cs "]→* " s₂:max => ChangeListStep s₁ s₂ cs
 
 inductive OperationStep : State → State → Operation → Prop
-  | skip : OperationStep s { s with ctx := s.ctx.addCurrentProcessed rcn } (.skip rcn)
-  | exec : (s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂) → OperationStep s₁ { s₂ with ctx := s₂.ctx.addCurrentProcessed rcn } (.exec rcn cs)
+  | skip : OperationStep s { s with ctx := s.ctx.record rcn } (.skip rcn)
+  | exec : (s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂) → OperationStep s₁ { s₂ with ctx := s₂.ctx.record rcn } (.exec rcn cs)
 
 notation s₁:max " -[" op "]↣ " s₂:max => OperationStep s₁ s₂ op
 
@@ -79,7 +79,7 @@ def InstExecution.ops : (s₁ ⇓ᵢ* s₂) → List Operation
   | trans hd tl => hd.op :: tl.ops
 
 def InstExecution.rcns (e : s₁ ⇓ᵢ* s₂) : List ID :=
-  e.ops.map (·.rcn)
+  e.ops.map Operation.rcn
 
 def InstExecution.changes (e : s₁ ⇓ᵢ* s₂) : List (Identified Change) :=
   e.ops.map (·.changes) |>.join

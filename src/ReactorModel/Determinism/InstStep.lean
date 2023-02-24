@@ -16,16 +16,11 @@ theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rt
   | .skip .. => rfl
   | .exec h => h.preserves_rcns
 
-theorem OperationStep.preserves_ctx_past_future :
-  (s₁ -[op]↣ s₂) → ∀ g, g ≠ s₁.tag → s₁.ctx.processedRcns g = s₂.ctx.processedRcns g
-  | .skip .., _, hg => by simp [s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
-  | .exec h,  _, hg => by simp [←h.preserves_ctx, s₁.ctx.addCurrentProcessed_preserves_ctx_past_future _ _ hg]
-
 theorem OperationStep.preserves_tag : (s₁ -[op]↣ s₂) → s₁.tag = s₂.tag
-  | .skip .. => by simp [Context.addCurrentProcessed_same_tag]
-  | .exec h => by simp [State.tag, Context.addCurrentProcessed_same_tag, h.preserves_ctx]
+  | .skip .. => by simp [Context.record_same_tag]
+  | .exec h => by simp [State.tag, Context.record_same_tag, h.preserves_ctx]
 
-theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.ctx = s₁.ctx.addCurrentProcessed op.rcn
+theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.ctx = s₁.ctx.record op.rcn
   | .exec h => by simp [Operation.rcn, h.preserves_ctx]
   | .skip .. => rfl
 
@@ -58,16 +53,16 @@ theorem InstStep.mem_progress :
     case pos => exact .inl hc
     case neg =>
       rw [State.progress, h.exec.ctx_adds_rcn, ←rcn] at ho
-      simp [Context.addCurrentProcessed_mem_progress.mp ho]
+      simp [Context.mem_record_progress_iff.mp ho]
   case mpr =>
     intro ho
     by_cases hc : rcn' = h.rcn
     case pos =>
       simp [hc]
       sorry
-      -- exact Context.addCurrentProcessed_mem_progress.mpr (.inl rfl)
+      -- exact Context.mem_record_progress_iff.mpr (.inl rfl)
     case neg =>
-      simp [State.progress, h.exec.ctx_adds_rcn, Context.addCurrentProcessed_mem_progress.mpr (.inr $ ho.resolve_left hc)]
+      simp [State.progress, h.exec.ctx_adds_rcn, Context.mem_record_progress_iff.mpr (.inr $ ho.resolve_left hc)]
 
 -- Corollary of `InstStep.mem_progress`.
 theorem InstStep.not_mem_progress :
@@ -262,7 +257,6 @@ theorem InstStep.indep_rcns_indep_output :
           rw [←hh] at hco'
           exact he.eq_obj?_nest h hco hco' 
         )
-
-theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬(State.Trivial s₁) :=
-  s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
   
+theorem InstStep.ctx_eq (e : s₁ ⇓ᵢ s₂) : s₂.ctx = s₁.ctx.record e.rcn := 
+  sorry
