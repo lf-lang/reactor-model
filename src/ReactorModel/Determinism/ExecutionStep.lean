@@ -30,9 +30,6 @@ theorem determinisic : (s ⇓- s₁) → (s ⇓- s₂) → s₁ = s₂
 instance preserves_Nontrivial [State.Nontrivial s₁] {e : s₁ ⇓- s₂} : State.Nontrivial s₂ :=
   match e with | ⟨_, _⟩ => inferInstance
 
-instance preserves_Trivial [State.Trivial s₁] {e : s₁ ⇓- s₂} : State.Trivial s₂ :=
-  match e with | ⟨_, _⟩ => inferInstance
-
 theorem rtr_eq : (s₁ ⇓- s₂) → s₁.rtr = s₂.rtr
   | ⟨_, _⟩ => rfl
 
@@ -77,9 +74,6 @@ theorem step_determined (e : s ⇓| s₁) (a : s ⇓- s₂) : False :=
 instance preserves_Nontrivial [h : State.Nontrivial s₁] {e : s₁ ⇓| s₂} : State.Nontrivial s₂ where
   nontrivial := e.preserves_rcns ▸ h.nontrivial
 
-instance preserves_Trivial [h : State.Trivial s₁] {e : s₁ ⇓| s₂} : State.Trivial s₂ where
-  trivial := e.preserves_rcns ▸ h.trivial
-
 theorem nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| s₃) : False :=
   have := e₁.preserves_Nontrivial -- TODO: Make this work via type class inference.
   absurd e₁.closed $ e₂.not_Closed
@@ -88,9 +82,6 @@ theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress 
   have := e.preserves_Nontrivial -- TODO: Make this work via type class inference.
   rw [e.fresh]
   exact Finset.nonempty.empty_ssubset $ e.closed.progress_not_empty
-
-theorem trivial_eq [State.Trivial s₁] (e : s₁ ⇓| s₂) : s₁ = s₂ :=
-  e.exec.trivial_eq
 
 end ClosedExecution
 
@@ -114,8 +105,6 @@ theorem seq_tag_lt : (s₁ ⇓ s₂) → (s₂ ⇓ s₃) → s₁.tag < s₃.tag
 instance preserves_Nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → State.Nontrivial s₂
   | close e => e.preserves_Nontrivial
   | advance a => a.preserves_Nontrivial
-
-instance preserves_Trivial [State.Trivial s₁] : (s₁ ⇓ s₂) → State.Trivial s₂ := sorry
 
 end Step
 

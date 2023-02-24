@@ -49,8 +49,6 @@ notation s₁:max " ⇓ᵢ " s₂:max => InstStep s₁ s₂
 
 def InstStep.rcn (e : s₁ ⇓ᵢ s₂) : ID := e.op.rcn
 
--- An execution at an instant is a series of steps,
--- which we model with the transitive closure.
 inductive InstExecution : State → State → Type
   | refl : InstExecution s s
   | trans : (s₁ ⇓ᵢ s₂) → (InstExecution s₂ s₃) → InstExecution s₁ s₃
@@ -105,8 +103,6 @@ inductive AdvanceTag : State → State → Type
 
 notation s₁:max " ⇓- " s₂:max => AdvanceTag s₁ s₂
 
--- Now we define a fully timed step, which can be a full instaneous execution, i.e. until no more
--- steps can be taken, or a time advancement.
 inductive Step (s₁ s₂ : State) : Type 
   | close (h : s₁ ⇓| s₂)
   | advance (h : s₁ ⇓- s₂)
@@ -117,8 +113,6 @@ end Execution
 
 open Execution
 
--- An execution of a reactor model is a series of execution steps.
--- We model this with a reflexive transitive closure:
 inductive Execution : State → State → Type
   | refl : Execution s s
   | step : (s₁ ⇓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
