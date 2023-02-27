@@ -20,7 +20,7 @@ theorem OperationStep.preserves_tag : (s₁ -[op]↣ s₂) → s₁.tag = s₂.t
   | .skip .. => by simp [State.record_preserves_tag]
   | .exec h => by simp [State.tag, State.record_preserves_tag, h.preserves_progress, h.preserves_tag]
 
-theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.progress = s₁.progress.insert op.rcn
+theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.progress = insert op.rcn s₁.progress
   | .exec h => sorry -- by simp [Operation.rcn, h.preserves_progress, h.preserves_tag]
   | .skip .. => rfl
 
@@ -71,7 +71,7 @@ theorem InstStep.mem_progress :
 -- Corollary of `InstStep.mem_progress`.
 theorem InstStep.not_mem_progress :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn' ∉ s₁.progress → rcn' ∉ s₂.progress := 
-  λ h hn hm => (mt h.mem_progress.mp) $ (not_or _ _).mpr ⟨hn, hm⟩
+  λ h hn hm => (mt h.mem_progress.mp) $ not_or.mpr ⟨hn, hm⟩
 
 -- Corollary of `InstStep.mem_progress`.
 theorem InstStep.monotonic_progress : (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.progress → rcn' ∈ s₂.progress := 
@@ -79,9 +79,6 @@ theorem InstStep.monotonic_progress : (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.progr
 
 theorem InstStep.strict_monotonic_progress :
   (s₁ ⇓ᵢ s₂) → s₁.progress ⊂ s₂.progress := by
-  intro h
-  apply Finset.ssubset_of_ne_subset
-  sorry
   sorry
 
 -- Corollary of `InstStep.mem_progress`.
@@ -197,7 +194,7 @@ theorem InstStep.indep_rcns_indep_output :
       rw [←hp] at ho'
       have he := Option.some_inj.mp $ ho.symm.trans ho'
       simp [he]
-      refine congr_arg2 _ ?_ rfl
+      refine congr_arg₂ _ ?_ rfl
       apply Finmap.restrict_ext
       intro p hp
       have ⟨_, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
@@ -263,5 +260,5 @@ theorem InstStep.indep_rcns_indep_output :
           exact he.eq_obj?_nest h hco hco' 
         )
   
-theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = s₁.progress.insert e.rcn := 
+theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = insert e.rcn s₁.progress := 
   sorry

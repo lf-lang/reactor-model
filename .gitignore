@@ -5,6 +5,8 @@
 /leanpkg.path
 /src/build
 /src/lean_packages
+/src/lake-packages
+/src/lake-manifest.json
 
 ## Core latex/pdflatex auxiliary files:
 *.aux

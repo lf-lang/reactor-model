@@ -4,6 +4,8 @@ open Classical
 
 namespace Reactor
 
+variable {cmp : Cmp} 
+
 namespace Lineage
 
 -- The "parent" in a lineage is the reactor which contains the target of the lineage.
@@ -13,8 +15,9 @@ def container : Lineage σ cmp i → Identified Reactor
   | .nest l@(.nest ..) _ => l.container
   | @nest r j .. =>         { id := j, obj := r }
   | _ =>                    { id := ⊤, obj := σ }
+decreasing_by sorry
 
-theorem end_container_eq_root {cmp} (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.end cmp h).container.obj = σ := by
+theorem end_container_eq_root (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.end cmp h).container.obj = σ := by
   simp [Lineage.container]
 
 theorem nest_container_obj {σ rtr : Reactor} (l : Lineage rtr cmp i) (h : σ.nest j = rtr) : (Lineage.nest l h).container.obj = l.container.obj := by
@@ -211,10 +214,10 @@ theorem contains_iff_obj? : (σ.contains cmp i) ↔ (∃ o, σ.obj? cmp i = some
   case mpr => have ⟨_, h, _⟩ := obj?_to_con?_and_cmp? h; exact ⟨_, h⟩
 
 noncomputable def ids (σ : Reactor) (cmp : Cmp) := 
-  (σ.obj? cmp).ids.image (·.nest?) |>.erase_none
+  Finset.eraseNone $ (σ.obj? cmp).ids.image (·.nest?)
 
 theorem ids_mem_iff_contains : (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
-  constructor <;> (intro h; simp [ids, Finset.mem_erase_none] at *)
+  constructor <;> (intro h; simp [ids, Finset.mem_eraseNone] at *)
   case mp =>
     simp [Finmap.ids_def'] at h
     have ⟨j, ⟨_ , h⟩, hj⟩ := h

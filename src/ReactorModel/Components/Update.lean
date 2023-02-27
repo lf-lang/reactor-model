@@ -33,7 +33,7 @@ theorem EqModID.ne_cmp_eq {σ₁ σ₂ : Reactor} {cmp cmp' : Cmp} {i : ID} :
 --   equiv : σ₁ ≈ σ₂
 --   target : σ₂.obj? cmp i = o
 --   objs : ∀ (cmp' i'), (cmp' ≠ cmp ∨ i' ≠ i) → σ₁.obj? cmp' i' = σ₂.obj? cmp' i'
-theorem EqModID.preserves_Equiv : (σ₁ %[cmp:i]= σ₂) → (cmp ≠ .rtr) → σ₁ ≈ σ₂ := by
+theorem EqModID.preserves_Equiv {cmp} : (σ₁ %[cmp:i]= σ₂) → (cmp ≠ .rtr) → σ₁ ≈ σ₂ := by
   sorry
 
 theorem EqModID.trans {σ₁ σ₂ σ₃ : Reactor} {cmp : Cmp} {i : ID} :
@@ -65,6 +65,7 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
     have h₃ := h_aux₂ .act (by intro; contradiction)
     have h₄ := h_aux₂ .stv (by intro; contradiction)
     simp [h₀, h₁, h₂, h₃, h₄]
+    sorry
   case a.rcn =>
     have h₀ := h_aux₁
     have h₁ := h_aux₂ .prt (by intro; contradiction)
@@ -72,6 +73,7 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
     have h₃ := h_aux₂ .act (by intro; contradiction)
     have h₄ := h_aux₂ .stv (by intro; contradiction)
     simp [h₀, h₁, h₂, h₃, h₄]
+    sorry
   case a.prt =>
     have h₀ := h_aux₁
     have h₁ := h_aux₂ .rtr (by intro; contradiction)
@@ -79,6 +81,7 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
     have h₃ := h_aux₂ .act (by intro; contradiction)
     have h₄ := h_aux₂ .stv (by intro; contradiction)
     simp [h₀, h₁, h₂, h₃, h₄]
+    sorry
   case a.act =>
     have h₀ := h_aux₁
     have h₁ := h_aux₂ .prt (by intro; contradiction)
@@ -86,6 +89,7 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
     have h₃ := h_aux₂ .rcn (by intro; contradiction)
     have h₄ := h_aux₂ .stv (by intro; contradiction)
     simp [h₀, h₁, h₂, h₃, h₄]
+    sorry
   case a.stv =>
     have h₀ := h_aux₁
     have h₁ := h_aux₂ .prt (by intro; contradiction)
@@ -93,6 +97,7 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
     have h₃ := h_aux₂ .rcn (by intro; contradiction)
     have h₄ := h_aux₂ .act (by intro; contradiction)
     simp [h₀, h₁, h₂, h₃, h₄]
+    sorry
 
 inductive Update (cmp : Cmp) (i : ID) (u : cmp.type → cmp.type → Prop) : Reactor → Reactor → Prop :=
   | top {σ₁ σ₂ v v'} :

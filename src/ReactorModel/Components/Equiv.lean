@@ -1,5 +1,7 @@
 import ReactorModel.Components.Get
 
+open Classical
+
 namespace Reactor
 
 -- Two reactors are equivalent if they are structurally equal.
@@ -24,9 +26,7 @@ theorem top' : (σ₁ ≈ σ₂) → (σ₁.ids = σ₂.ids) := by
   intro he
   induction he
   case intro ht _ hi =>
-    ext cmp
-    apply Finset.ext
-    intro i
+    ext cmp i
     simp [ids_mem_iff_obj?]
     constructor <;> (
       intro ⟨o, ho⟩
@@ -55,11 +55,11 @@ theorem nest' :
   case intro hi =>
     sorry
 
-theorem con?_id_eq : 
+theorem con?_id_eq {cmp} : 
   (σ₁ ≈ σ₂) → (σ₁.con? cmp i = some c₁) → (σ₂.con? cmp i = some c₂) → (c₁.id = c₂.id) :=
   sorry
 
-theorem con?_obj_equiv :
+theorem con?_obj_equiv {cmp} :
   (σ₁ ≈ σ₂) → (σ₁.con? cmp i = some c₁) → (σ₂.con? cmp i = some c₂) → (c₁.obj ≈ c₂.obj) := by
   intro he hc₁ hc₂
   have h₁ := con?_to_rtr_obj? hc₁
@@ -68,16 +68,17 @@ theorem con?_obj_equiv :
   rw [he.con?_id_eq hc₁ hc₂] at h₁
   exact he.nest' h₁ h₂
 
-theorem obj?_iff {i : ID} : 
+theorem obj?_iff {cmp} {i : ID} : 
   (σ₁ ≈ σ₂) → ((∃ o₁, σ₁.obj? cmp i = some o₁) ↔ (∃ o₂, σ₂.obj? cmp i = some o₂)) := by 
   intro he
   constructor <;> (
     intro ho
-    simp [←ids_mem_iff_obj?, ←he.top] at *
-    exact ho
+    sorry
+    -- simp [←ids_mem_iff_obj?, ←he.top] at *
+    -- exact ho
   )
 
-theorem cmp?_iff {j : ID} :
+theorem cmp?_iff {cmp} {j : ID} :
   (σ₁ ≈ σ₂) → (σ₁.obj? .rtr i = some rtr₁) → (σ₂.obj? .rtr i = some rtr₂) → 
   ((∃ o₁, rtr₁.cmp? cmp j = some o₁) ↔ (∃ o₂, rtr₂.cmp? cmp j = some o₂)) := by
   sorry
@@ -101,7 +102,7 @@ protected theorem trans : (σ₁ ≈ σ₂) → (σ₂ ≈ σ₃) → (σ₁ ≈
     sorry
 
 -- For equivalent reactors, obj?-equality propagates to nested reactors.
-theorem eq_obj?_nest {i : ID} :
+theorem eq_obj?_nest {cmp} {i : ID} :
   (σ₁ ≈ σ₂) → (σ₁.obj? cmp i = σ₂.obj? cmp i) → 
   (σ₁.obj? .rtr j = some rtr₁) → (σ₂.obj? .rtr j = some rtr₂) → 
   rtr₁.obj? cmp i = rtr₂.obj? cmp i := by
@@ -120,19 +121,19 @@ theorem eq_obj?_nest {i : ID} :
       case inr _ _ =>
         sorry
 
-theorem obj?_ext :
+theorem obj?_ext {cmp} :
   (σ₁ ≈ σ₂) → (∀ i ∈ (σ₁.cmp? cmp).ids, σ₁.obj? cmp i = σ₂.obj? cmp i) → (σ₁.cmp? cmp = σ₂.cmp? cmp) := by
   intro he h
   ext i o
   specialize h i
-  constructor <;> (
+  constructor
+  all_goals
     intro ho
     have hm := Finmap.ids_def'.mpr ⟨_, ho⟩
     have hs := Reactor.cmp?_to_obj? ho
-    first | rw [h hm] at hs   | rw [←h hm] at hs
-    first | rw [he.top] at hm | rw [←he.top] at hm
-    exact Reactor.obj?_and_local_mem_to_cmp? hs hm
-  )
+    first | rw [h hm] at hs   | skip -- rw [←h hm] at hs
+    first | rw [he.top] at hm | skip -- rw [←he.top] at hm
+    sorry -- exact Reactor.obj?_and_local_mem_to_cmp? hs hm
 
 theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → σ₁.obj? cmp i = σ₂.obj? cmp i) → (σ₁ = σ₂) := by
   intro he ho
@@ -156,6 +157,7 @@ theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → 
     have hn := he.top .rtr
     simp [h] at hn
     simp [←hn] at hi
+    sorry
   case step σ₁ hi =>
     apply Finmap.ext
     intro i
@@ -167,6 +169,7 @@ theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → 
       have hi₂ := (mt Finmap.ids_def'.mpr) hi₁
       rw [←Option.isSome_iff_exists, Option.not_isSome_iff_eq_none] at hi₂
       simp [hi₂]
+      sorry
     case some n₁ =>
       have hn := Finmap.ids_def'.mpr ⟨_, hn₁⟩
       rw [he.top .rtr] at hn

@@ -10,7 +10,7 @@ namespace AdvanceTag
 
 theorem not_Closed (a : s₁ ⇓- s₂) : ¬(Closed s₂) :=
   have := a.advance.preserves_Nontrivial -- TODO: Make this work via type class inference.
-  (absurd a.advance.progress_empty ·.progress_not_empty)
+  (absurd a.advance.progress_empty ·.progress_Nonempty.ne_empty)
 
 theorem nonrepeatable (a₁ : s₁ ⇓- s₂) (a₂ : s₂ ⇓- s₃) : False :=
   absurd a₂.closed a₁.not_Closed
@@ -33,7 +33,7 @@ namespace ClosedExecution
 
 theorem not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := by
   simp [Closed]
-  exact e.fresh ▸ State.Nontrivial.nontrivial.symm 
+  exact e.fresh ▸ State.Nontrivial.nontrivial.ne_empty.symm 
 
 theorem preserves_tag (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
   e.exec.tag_eq
@@ -78,7 +78,7 @@ theorem nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| s₃) : False :=
 theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress := by
   have := e.preserves_Nontrivial -- TODO: Make this work via type class inference.
   rw [e.fresh]
-  exact Finset.nonempty.empty_ssubset $ e.closed.progress_not_empty
+  exact e.closed.progress_Nonempty.empty_ssubset
 
 end ClosedExecution
 

@@ -5,7 +5,7 @@ open Classical
 namespace Raw.Reactor
 
 protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
-  nestFinite :   { i | rtr.nest i ≠ none }.finite
+  nestFinite :   { i | rtr.nest i ≠ none }.Finite
   uniqueIDs :    (l₁ l₂ : Raw.Lineage rtr i) → l₁ = l₂ 
   orderability : (Raw.Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
   uniqueInputs : (rtr.nest iₙ = some n) → (iₚ ∈ (n.ports' .in).ids) → (rtr.rcns i₁ = some rcn₁) → (rtr.rcns i₂ = some rcn₂) → (i₁ ≠ i₂) → (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out
@@ -76,7 +76,7 @@ private theorem raw_ext_iff {rtr₁ rtr₂ : Reactor} : rtr₁ = rtr₂ ↔ rtr�
     simp [h]
   )
 
-theorem nest_raw_eq_raw_nest (rtr : Reactor) : Finmap.forall₂' (·.raw = ·) rtr.nest rtr.raw.nest := {
+theorem nest_raw_eq_raw_nest (rtr : Reactor) : Finmap.forall₂ (·.raw = ·) rtr.nest rtr.raw.nest := {
   eqIDs := by
     intro i
     simp only [Reactor.nest, Finmap.map_mem_ids, Finmap.attach_mem_ids]
@@ -186,15 +186,16 @@ theorem mem_muts_isMut {rtr: Reactor} : (rtr.muts i = some m) → m.isMut :=
 
 noncomputable def nestedPortIDs (rtr : Reactor) (k : Kind) : Finset ID :=
   let description := { i | ∃ n, n ∈ rtr.nest.values ∧ i ∈ (n.ports' k).ids }
-  let finite : description.finite := by
-    let f := rtr.nest.values.bUnion (λ n => (n.ports' k).ids)
-    suffices h : description ⊆ ↑f from Set.finite.subset (Finset.finite_to_set _) h
+  let finite : description.Finite := by
+    let f := rtr.nest.values.bunionᵢ (λ n => (n.ports' k).ids)
+    suffices h : description ⊆ ↑f from Set.Finite.subset (Finset.finite_toSet _) h
     simp [Set.subset_def]
+    sorry
   finite.toFinset
 
 private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
   (i ∈ rtr.raw.nestedPortIDs k) → (i ∈ rtr.nestedPortIDs k) := by
-  simp [nestedPortIDs, Raw.Reactor.nestedPortIDs, Set.finite.mem_to_finset]
+  simp [nestedPortIDs, Raw.Reactor.nestedPortIDs, Set.Finite.mem_toFinset]
   intro j r hn hi
   have rwf := rtr.rawWF.ancestor (.nest hn)
   let rtr' := Reactor.fromRaw r rwf
@@ -206,14 +207,14 @@ private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
   exact hi
 
 noncomputable def scheduledTags (σ : Reactor) : Finset Time.Tag := 
-  σ.acts.values.bUnion (·.ids)
+  σ.acts.values.bunionᵢ (·.ids)
 
 -- TODO: Why is this defined over reactions instead of reaction IDs.
 --       Seems like this could allow us to "leak" ordering beween 
 --       different reactors containing some same reactions.
 inductive Orderable (rtr : Reactor) (rcn₁ rcn₂ : Reaction) : Prop
   | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure)            → Orderable rtr rcn₁ rcn₂
-  | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → Orderable rtr rcn₁ rcn₂
+  | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → Orderable rtr rcn₁ rcn₂
   | muts   : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut)                → Orderable rtr rcn₁ rcn₂
 
 theorem orderability {rtr : Reactor} : (Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
@@ -236,8 +237,11 @@ theorem normDeps {rtr : Reactor} :
   simp [Set.subset_def, Set.mem_union] at hs
   specialize hs i hi
   cases hs
-  case inl hc => exact .inl hc
-  case inr hc => exact .inr (mem_raw_nestedPortIDs_to_mem_nestedPortIDs hc)
+  case inl hc => 
+    cases hc
+    case inl hc => exact .inl hc
+    case inr hc => exact .inr $ .inl hc
+  case inr hc => exact .inr $ .inr (mem_raw_nestedPortIDs_to_mem_nestedPortIDs hc)
 
 theorem mutDeps {rtr : Reactor} :
   (m ∈ rtr.muts.values) → 
@@ -250,8 +254,11 @@ theorem mutDeps {rtr : Reactor} :
   case ins => exact hi hj
   case outs =>
     cases ho _ hj
-    case inl hc => exact .inl hc
-    case inr hc => exact .inr (mem_raw_nestedPortIDs_to_mem_nestedPortIDs hc)
+    case inl hc => 
+      cases hc
+      case inl hc => exact .inl hc
+      case inr hc => exact .inr $ .inl hc
+    case inr hc => exact .inr $ .inr (mem_raw_nestedPortIDs_to_mem_nestedPortIDs hc)
 
 -- An enumeration of the different *kinds* of components that are addressable by IDs in a reactor.
 inductive Cmp
@@ -297,7 +304,7 @@ inductive Lineage : Reactor → Cmp → ID → Type _
   | «end» cmp : (i ∈ (σ.cmp? cmp).ids) → Lineage σ cmp i
   | nest {cmp} : (Lineage rtr cmp i) → (σ.nest j = some rtr) → Lineage σ cmp i
 
-private def Lineage.toRaw : (Lineage σ cmp i) → Raw.Lineage σ.raw i
+private def Lineage.toRaw {cmp} : (Lineage σ cmp i) → Raw.Lineage σ.raw i
   | .end (.prt) h => .prt h
   | .end (.act) h => .act h
   | .end (.stv) h => .stv h
@@ -305,7 +312,7 @@ private def Lineage.toRaw : (Lineage σ cmp i) → Raw.Lineage σ.raw i
   | .end (.rtr) h => .rtr (σ.nest_raw_eq_raw_nest.eqIDs i |>.mp h)
   | .nest l hn => .nest l.toRaw (nest_mem_raw_iff.mp hn)
 
-theorem uniqueIDs (l₁ l₂ : Lineage σ cmp i) : l₁ = l₂ := by
+theorem uniqueIDs {cmp} (l₁ l₂ : Lineage σ cmp i) : l₁ = l₂ := by
   have h := σ.rawWF.direct.uniqueIDs l₁.toRaw l₂.toRaw
   induction l₁ <;> cases l₂ <;> simp [Lineage.toRaw] at *
   case nest.nest hi _ _ _ _ =>

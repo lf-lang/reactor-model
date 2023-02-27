@@ -6,10 +6,10 @@ abbrev State.Trivial (s : State) : Prop :=
   s.rtr.ids .rcn = ∅
 
 theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial := by
-  by_contra hc; exact h ⟨hc⟩ 
+  by_contra hc; exact h ⟨Finset.nonempty_of_ne_empty hc⟩
 
 theorem State.Nontrivial.not_Trivial (h : Nontrivial s) : ¬s.Trivial :=
-  h.nontrivial
+  h.nontrivial.ne_empty
 
 section
 
@@ -21,8 +21,8 @@ theorem State.Advance.preserves_Trivial : (Advance s₁ s₂) → s₂.Trivial
 theorem AdvanceTag.preserves_Trivial (a : s₁ ⇓- s₂) : s₂.Trivial :=
   a.advance.preserves_Trivial triv
 
-theorem ClosedExecution.preserves_Trivial {e : s₁ ⇓| s₂} : s₂.Trivial :=
-  e.preserves_rcns.trans triv
+theorem ClosedExecution.preserves_Trivial {e : s₁ ⇓| s₂} : s₂.Trivial := by
+  simp [State.Trivial, ←e.preserves_rcns, triv]
 
 theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
   | close e => e.preserves_Trivial triv

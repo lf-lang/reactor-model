@@ -70,8 +70,8 @@ def triggersOn (rcn : Reaction) (i : Input) : Prop :=
 -- ports as dependency and antidependency respectively, and does nothing but relay the
 -- value from its input to its output.
 noncomputable def relay (src dst : ID) : Reaction := {
-  deps := λ r => match r with | .in => Finset.singleton src | .out => Finset.singleton dst,
-  triggers := Finset.singleton src,
+  deps := λ r => match r with | .in => {src} | .out => {dst},
+  triggers := {src},
   prio := none,
   body := λ i => match i.ports src with | none => [] | some v => [.port dst v],
   tsSubInDeps := by simp,

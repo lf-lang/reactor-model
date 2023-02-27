@@ -20,8 +20,6 @@ inductive Change
 
 namespace Change
 
-section
-
 variable [DecidableEq ID]
 
 abbrev isPort : Change → Bool 
@@ -106,7 +104,7 @@ theorem actionValue?_none {c : Change} :
   cases c
   case action => 
     intro v
-    simp [actionValue?] at h
+    simp only [actionValue?] at h
     split at h
     case inl => contradiction
     case inr h' => 
@@ -115,8 +113,6 @@ theorem actionValue?_none {c : Change} :
       have := h' h
       contradiction
   all_goals simp
-
-end 
 
 def target : Change → Option ID
   | port t .. | state t .. | action t .. => t

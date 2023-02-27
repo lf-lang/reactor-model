@@ -1,5 +1,7 @@
 import ReactorModel.Execution.State
 
+open Classical
+
 namespace Execution
 
 -- NOTE: This does not constrain actions to have to be scheduled into the future.

@@ -26,7 +26,7 @@ inductive Dependency (σ : Reactor) : ID → ID → Prop
   | depOverlap :
     (σ.obj? .rcn (i₁ : ID) = some rcn₁) →
     (σ.obj? .rcn (i₂ : ID) = some rcn₂) →
-    ((rcn₁.deps .out ∩ rcn₂.deps .in).nonempty) →
+    ((rcn₁.deps .out ∩ rcn₂.deps .in).Nonempty) →
     Dependency σ i₁ i₂
   | mutNest :
     (σ.obj? .rcn (iₘ : ID) = some m) → 
@@ -62,8 +62,7 @@ theorem nonoverlapping_deps :
   (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
   intro ⟨hi, _⟩ ho₁ ho₂
   by_contra hc
-  simp [Finset.eq_empty_iff_forall_not_mem] at hc
-  exact absurd (Dependency.depOverlap ho₁ ho₂ hc) hi
+  exact absurd (Dependency.depOverlap ho₁ ho₂ $ Finset.nonempty_of_ne_empty hc) hi
  
 theorem ne_rtr_or_pure : 
   (i₁ >[σ]< i₂) → (i₁ ≠ i₂) →

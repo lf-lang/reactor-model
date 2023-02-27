@@ -1,5 +1,7 @@
 import ReactorModel.Components.Reaction
 
+open Classical
+
 protected inductive Raw.Reactor 
   | mk 
     (ports : ID ⇉ Port)
@@ -35,23 +37,17 @@ theorem ext_iff {rtr₁ rtr₂ : Raw.Reactor} :
   rtr₁.state = rtr₂.state ∧ rtr₁.rcns = rtr₂.rcns ∧ 
   rtr₁.nest  = rtr₂.nest := by
   constructor
-  case mp =>
+  all_goals
     intro h
     cases rtr₁
     cases rtr₂
-    simp [h]
-  case mpr =>
-    intro h
-    simp [ports, state, rcns, acts, nest] at h
-    cases rtr₁
-    cases rtr₂
-    simp [h]
+    simp_all [ports, state, rcns, acts, nest]
 
 end Raw.Reactor
 
 inductive Raw.Orderable (rtr : Raw.Reactor) (rcn₁ rcn₂ : Reaction) 
   | impure : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (¬rcn₁.isPure) → (¬rcn₂.isPure)            → Orderable rtr rcn₁ rcn₂
-  | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).nonempty → Orderable rtr rcn₁ rcn₂
+  | output : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → Orderable rtr rcn₁ rcn₂
   | muts   : (rtr.rcns i₁ = rcn₁) → (rtr.rcns i₂ = rcn₂) → (i₁ ≠ i₂) → (rcn₁.isMut) → (rcn₂.isMut)                → Orderable rtr rcn₁ rcn₂
 
 protected inductive Raw.Lineage : Raw.Reactor → ID → Type _ 

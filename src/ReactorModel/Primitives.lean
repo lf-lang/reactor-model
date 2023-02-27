@@ -1,4 +1,4 @@
-import ReactorModel.Mathlib
+import ReactorModel.Extensions
 
 -- A `PresentValue` is a non-absent value.
 -- We use this is `Value` to define the complete type of values.
@@ -47,7 +47,7 @@ def RootedID.nest? : RootedID → Option ID
 
 -- The `nest?` function is injective (technically even bijective) 
 -- as a return value of `none` is unique to `RootedID.root`.
-theorem RootedID.nest?_inj : nest?.injective :=
+theorem RootedID.nest?_inj : nest?.Injective :=
   λ i j => by cases i <;> cases j <;> simp [nest?]
 
 -- The `Identified` type extends a given type with a rooted ID.

@@ -22,11 +22,11 @@ def Execution.Operation.changes : Execution.Operation → List (Identified Chang
 namespace Execution.State
 
 class Nontrivial (s : Execution.State) : Prop where
-  nontrivial : s.rtr.ids .rcn ≠ ∅  
+  nontrivial : (s.rtr.ids .rcn).Nonempty
 
 def Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
 
-theorem Closed.progress_not_empty [Nontrivial s] : Closed s → s.progress ≠ ∅ := by
+theorem Closed.progress_Nonempty [Nontrivial s] : Closed s → s.progress.Nonempty := by
   simp_all [Closed, Nontrivial.nontrivial]  
 
 /-
@@ -216,8 +216,8 @@ theorem Advance.determinisic (a₁ : Advance s s₁) (a₂ : Advance s s₂) : s
 theorem Advance.tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
   | mk h => h.bound
 
-def record (s : State) (rcn : ID) : State := 
-  { s with progress := s.progress.insert rcn }
+def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
+  { s with progress := insert rcn s.progress }
   
 theorem record_preserves_tag (s : State) (rcn : ID) : (s.record rcn).tag = s.tag := 
   rfl
@@ -244,7 +244,7 @@ theorem mem_record_progress_iff (s : State) (rcn₁ rcn₂ : ID) :
     | .inl h => h ▸ s.mem_record_progress_self rcn₁
     | .inr h => record_progress_monotonic _ h
 
-def record' (s : State) : List ID → State
+def record' [DecidableEq ID] (s : State) : List ID → State
   | [] => s
   | hd :: tl => (s.record hd).record' tl
 
