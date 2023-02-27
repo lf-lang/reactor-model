@@ -34,8 +34,8 @@ inductive ChangeListStep : State → State → (List $ Identified Change) → Pr
 notation s₁:max " -[" cs "]→* " s₂:max => ChangeListStep s₁ s₂ cs
 
 inductive OperationStep : State → State → Operation → Prop
-  | skip : OperationStep s { s with ctx := s.ctx.record rcn } (.skip rcn)
-  | exec : (s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂) → OperationStep s₁ { s₂ with ctx := s₂.ctx.record rcn } (.exec rcn cs)
+  | skip : OperationStep s (s.record rcn) (.skip rcn)
+  | exec : (s₁ -[cs.map (⟨rcn, ·⟩)]→* s₂) → OperationStep s₁ (s₂.record rcn) (.exec rcn cs)
 
 notation s₁:max " -[" op "]↣ " s₂:max => OperationStep s₁ s₂ op
 
@@ -98,8 +98,9 @@ abbrev ClosedExecution.rcns (e : s₁ ⇓| s₂) : List ID :=
 
 -- Note: We don't clear the ports here. Thus, we define a more relaxed version of the reactor model
 --       for which we can still prove determinism.
-inductive AdvanceTag : State → State → Type 
-  | mk (h : s.nextTag = some g) : (Closed s) → AdvanceTag s (s.advanceTag g $ s.tag_lt_nextTag h)
+structure AdvanceTag (s₁ s₂ : State) where
+  closed : Closed s₁ 
+  advance : s₁.Advance s₂
 
 notation s₁:max " ⇓- " s₂:max => AdvanceTag s₁ s₂
 

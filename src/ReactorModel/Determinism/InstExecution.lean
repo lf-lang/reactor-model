@@ -41,7 +41,7 @@ theorem ops_nodup : (e : s₁ ⇓ᵢ* s₂) → List.Nodup e.ops := by
     have h' := tl.rcns_unprocessed hd.op.rcn
     simp [rcns, List.mem_map] at h'
     specialize h' hd.op hm rfl
-    simp [State.progress, hd.exec.ctx_adds_rcn, Context.mem_record_progress_iff] at h'
+    sorry -- simp [hd.exec.ctx_adds_rcn, State.mem_record_progress_iff] at h'
 
 theorem mem_progress :
   (e : s₁ ⇓ᵢ* s₂) → ∀ rcn, rcn ∈ s₂.progress ↔ rcn ∈ e.rcns ∨ rcn ∈ s₁.progress := by
@@ -69,9 +69,9 @@ theorem mem_progress :
 theorem self_progress : (e : s₁ ⇓ᵢ* s₂) → ∀ rcn ∈ e.rcns, rcn ∈ s₂.progress := 
   λ h _ hm => (h.mem_progress _).mpr $ .inl hm
   
-theorem eq_ctx_processed_rcns_perm : 
-  (e₁ : s ⇓ᵢ* s₁) → (e₂ : s ⇓ᵢ* s₂) → (s₁.ctx = s₂.ctx) → e₁.rcns ~ e₂.rcns := by
-  intro h₁ h₂ he
+theorem eq_context_processed_rcns_perm : 
+  (e₁ : s ⇓ᵢ* s₁) → (e₂ : s ⇓ᵢ* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → e₁.rcns ~ e₂.rcns := by
+  intro h₁ h₂ ht hp
   apply (List.perm_ext h₁.rcns_nodup h₂.rcns_nodup).mpr
   intro rcn
   by_cases hc : rcn ∈ s.progress
@@ -83,19 +83,21 @@ theorem eq_ctx_processed_rcns_perm :
     constructor <;> intro hm
     case mp => 
       have h := h₁.self_progress _ hm
-      rw [State.progress, he] at h
-      exact ((h₂.mem_progress _).mp h).resolve_right hc
+      sorry
+      -- rw [State.progress, he] at h
+      -- exact ((h₂.mem_progress _).mp h).resolve_right hc
     case mpr =>
       have h := h₂.self_progress _ hm
-      rw [State.progress, ←he] at h
-      exact ((h₁.mem_progress _).mp h).resolve_right hc
+      sorry
+      -- rw [State.progress, ←he] at h
+      -- exact ((h₁.mem_progress _).mp h).resolve_right hc
 
 /-theorem rcn_list_cons : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl :=
   (by cases · <;> simp [rcns])
 -/
 
 theorem to_ChangeListStep :
-  (e : s₁ ⇓ᵢ* s₂) → (s₁ -[e.changes]→* ⟨s₂.rtr, s₁.ctx⟩) := by
+  (e : s₁ ⇓ᵢ* s₂) → (s₁ -[e.changes]→* { s₁ with rtr := s₂.rtr}) := by
   intro e
   induction e
   case refl => exact .nil
@@ -363,10 +365,10 @@ theorem same_rcns_ChangeListEquiv {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂
   }
 
 protected theorem deterministic : 
-  (s ⇓ᵢ* s₁) → (s ⇓ᵢ* s₂) → (s₁.ctx = s₂.ctx) → s₁ = s₂ := by
-  intro e₁ e₂ hc
-  refine State.ext _ _ ?_ hc
-  have hp := e₁.eq_ctx_processed_rcns_perm e₂ hc
+  (s ⇓ᵢ* s₁) → (s ⇓ᵢ* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂ := by
+  intro e₁ e₂ ht hp
+  refine State.ext _ _ ?_ ht hp
+  have hp := e₁.eq_context_processed_rcns_perm e₂ ht hp
   have he := e₁.same_rcns_ChangeListEquiv hp
   injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
   assumption
@@ -384,9 +386,9 @@ theorem tag_eq : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
   | refl => rfl
   | trans e e' => e.exec.preserves_tag.trans e'.tag_eq
 
-theorem ctx_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.ctx = s₁.ctx.record' e.rcns
+theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = (s₁.record' e.rcns).progress
   | refl => rfl
-  | trans e e' => Context.record'_cons ▸ e.ctx_eq ▸ e'.ctx_eq
+  | trans e e' => sorry -- Context.record'_cons ▸ e.ctx_eq ▸ e'.ctx_eq
 
 theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) : 
     (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
@@ -401,7 +403,7 @@ theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) :
     case tail h => exact mt e.monotonic_progress (hi h)
       
 theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
-  simp [State.progress, e.ctx_eq, s₁.ctx.mem_record'_progress_iff e.rcns rcn, or_and_distrib_right]
+  simp [State.progress, e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_distrib_right]
   exact e.mem_rcns_not_mem_progress
 
 theorem preserves_rcns {i : ID} : (s₁ ⇓ᵢ* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)

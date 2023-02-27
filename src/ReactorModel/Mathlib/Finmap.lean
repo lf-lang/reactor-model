@@ -60,7 +60,10 @@ theorem empty_ids_empty : (∅ : α ⇉ β).ids = ∅ := by
   apply Finset.ext
   simp [ids_def]
 
-def nonempty (f : α ⇉ β) : Prop := ∃ i, f i ≠ none
+def Nonempty (f : α ⇉ β) : Prop := ∃ i, f i ≠ none
+
+theorem Nonempty.ids_nonempty (f : α ⇉ β) (h : Nonempty f) : f.ids.nonempty :=
+  ⟨h.choose, Finmap.ids_def.mpr h.choose_spec⟩
 
 noncomputable def lookup' (f : α ⇉ β) {i : α} (h : i ∈ f.ids) : β :=
    Exists.choose $ ids_def'.mp h
@@ -94,7 +97,7 @@ noncomputable def entries (f : α ⇉ β) : Finset (α × β) :=
 -- This can also be used to remove the value for an identifier by passing a value of `none`,
 -- as well as adding a new entry to the finmap, if the given identifier is not yet part of
 -- the finmap.
-noncomputable def update (f : α ⇉ β) (a : α) (b : Option β) : α ⇉ β := {
+def update [DecidableEq α] (f : α ⇉ β) (a : α) (b : Option β) : α ⇉ β := {
   lookup := Function.update f.lookup a b,
   finite := sorry
 }
@@ -103,7 +106,7 @@ noncomputable def update (f : α ⇉ β) (a : α) (b : Option β) : α ⇉ β :=
 -- an `Option` automatically. In this case `update'` can be used.
 noncomputable def update' (f : α ⇉ β) (a : α) (b : β) : α ⇉ β := f.update a b
 
-theorem update_nonempty (f : α ⇉ β) (a : α) (b : β) : f.nonempty → (f.update a b).nonempty := sorry
+theorem update_nonempty [DecidableEq α] (f : α ⇉ β) (a : α) (b : β) : Nonempty f → Nonempty (f.update a b) := sorry
 
 theorem update_self (f : α ⇉ β) {a : α} (b : Option β) : (f.update a b) a = b :=
   sorry

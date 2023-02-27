@@ -1,4 +1,3 @@
-import ReactorModel.Execution.Context
 import ReactorModel.Execution.Dependency
 
 open Classical
@@ -6,7 +5,8 @@ open Classical
 @[ext]
 structure Execution.State where
   rtr : Reactor
-  ctx : Context
+  tag : Time.Tag
+  progress : Finset ID
 
 inductive Execution.Operation 
   | skip (rcn : ID)
@@ -21,10 +21,6 @@ def Execution.Operation.changes : Execution.Operation → List (Identified Chang
 
 namespace Execution.State
 
-abbrev tag (s : State) : Time.Tag := s.ctx.tag
-
-abbrev progress (s : State) : Finset ID := s.ctx.progress
-
 class Nontrivial (s : Execution.State) : Prop where
   nontrivial : s.rtr.ids .rcn ≠ ∅  
 
@@ -33,11 +29,13 @@ def Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
 theorem Closed.progress_not_empty [Nontrivial s] : Closed s → s.progress ≠ ∅ := by
   simp_all [Closed, Nontrivial.nontrivial]  
 
-noncomputable abbrev advanceTag (s : State) (g : Time.Tag) (h : s.tag < g) : State := 
-  { s with ctx := s.ctx.advanceTag g h }
+/-
+noncomputable abbrev advanceTag (s : State) (g : Time.Tag) : State := 
+  { s with s := s.s.advanceTag g }
 
-instance [Nontrivial s] : Nontrivial (s.advanceTag g h) where
+instance [Nontrivial s] : Nontrivial (s.advanceTag g) where
   nontrivial := by simp [Nontrivial.nontrivial]
+-/
 
 structure allows (s : State) (rcn : ID) : Prop where
   deps : s.rtr.dependencies rcn ⊆ s.progress
@@ -54,9 +52,9 @@ noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input :=
   match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
   | some con, some rcn => some {
       ports := s.rtr.obj?' .prt |>.restrict (rcn.deps .in)  |>.map (·.val),
-      acts :=     s.rtr.obj?' .act |>.filterMap (· s.ctx.tag) |>.restrict (rcn.deps .in),
+      acts :=     s.rtr.obj?' .act |>.filterMap (· s.tag) |>.restrict (rcn.deps .in),
       state :=    con.obj.state, -- Equivalent: s.rtr.obj?' .stv |>.restrict con.obj.state.ids
-      tag :=      s.ctx.tag
+      tag :=      s.tag
     }
   | _, _ => none
 
@@ -92,7 +90,7 @@ theorem rcnInput_ports_def {s : State} :
   exact hi.left.symm
 
 theorem rcnInput_actions_def {s : State} :
-  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.ctx.tag) |>.restrict (rcn.deps .«in»))) := by
+  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.tag) |>.restrict (rcn.deps .«in»))) := by
   intro hi ho
   have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
   simp [rcnInput, hc, ho] at hi
@@ -106,7 +104,7 @@ theorem rcnInput_state_def {s : State} :
   exact hi.right.right.left.symm
 
 theorem rcnInput_time_def {s : State} :
-  (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.ctx.tag) := by
+  (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.tag) := by
   intro hi
   simp [rcnInput] at hi
   cases hc : s.rtr.con? .rcn j
@@ -198,13 +196,106 @@ theorem operation_some_to_Nontrivial (h : s.operation i = some o) : Nontrivial s
   have h := operation_to_contains h |> Reactor.ids_mem_iff_contains.mpr
   sorry
 
-def nextTag (s : State) : Option Time.Tag :=
-  s.rtr.scheduledTags.filter (s.ctx.tag < ·) |>.min
+structure NextTag (s : State) (next : Time.Tag) : Prop where
+  mem : next ∈ s.rtr.scheduledTags
+  bound : s.tag < next
+  least : ∀ g ∈ s.rtr.scheduledTags, (s.tag < g) → (next ≤ g)    
 
-theorem tag_lt_nextTag {s : State} {g : Time.Tag} :
-  (s.nextTag = g) → s.ctx.tag < g := by 
-  intro h
-  simp only [nextTag] at h
-  exact Finset.mem_of_min h |> (Finset.mem_filter _).mp |> And.right
+inductive Advance : State → State → Prop 
+  | mk : (NextTag s next) → Advance s { s with tag := next }
+
+instance Advance.preserves_Nontrivial [Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
+  | mk .. => sorry
+
+theorem Advance.progress_empty (a : Advance s₁ s₂) : s₂.progress = ∅ :=
+  sorry
+
+theorem Advance.determinisic (a₁ : Advance s s₁) (a₂ : Advance s s₂) : s₁ = s₂ :=
+  sorry
+
+theorem Advance.tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
+  | mk h => h.bound
+
+def record (s : State) (rcn : ID) : State := 
+  { s with progress := s.progress.insert rcn }
+  
+theorem record_preserves_tag (s : State) (rcn : ID) : (s.record rcn).tag = s.tag := 
+  rfl
+
+theorem record_comm (s : State) (rcn₁ rcn₂ : ID) : 
+    (s.record rcn₁).record rcn₂ = (s.record rcn₁).record rcn₂ := by
+  sorry
+
+theorem mem_record_progress_self (s : State) (rcn : ID) : rcn ∈ (s.record rcn).progress := by
+  sorry
+
+variable {s : State}
+
+theorem record_progress_monotonic (rcn₁ : ID) : (rcn₁ ∈ s.progress) → rcn₁ ∈ (s.record rcn₂).progress := by
+  sorry
+
+theorem mem_record_progress (h : rcn₁ ∈ (s.record rcn₂).progress) : (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
+  sorry
+
+theorem mem_record_progress_iff (s : State) (rcn₁ rcn₂ : ID) : 
+    rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) where
+  mp := mem_record_progress
+  mpr
+    | .inl h => h ▸ s.mem_record_progress_self rcn₁
+    | .inr h => record_progress_monotonic _ h
+
+def record' (s : State) : List ID → State
+  | [] => s
+  | hd :: tl => (s.record hd).record' tl
+
+theorem record'_cons : (s.record i).record' l = s.record' (i :: l) := rfl
+
+theorem record'_comm (s : State) (rcns : List ID) (rcn : ID) :
+    (s.record' rcns).record rcn = (s.record rcn).record' rcns := by
+  induction rcns generalizing s rcn
+  case nil => rfl
+  case cons hd tl hi => 
+    simp [record', record_comm, hi]
+    sorry
+
+theorem record'_perm_eq (h : l₁ ~ l₂) : s.record' l₁ = s.record' l₂ := by
+  induction h generalizing s
+  case nil     => rfl
+  case cons hi => simp [record', hi]
+  case swap    => simp [record', record_comm]; sorry
+  case trans   => simp_all
+
+theorem record'_progress_monotonic (l : List ID) (h : i ∈ s.progress) : 
+    i ∈ (s.record' l).progress := by
+  induction l generalizing s i
+  case nil => assumption
+  case cons hd _ hi => exact hi $ record_progress_monotonic _ h
+
+theorem record'_cons_progress_monotonic (h : i ∈ (s.record' tl).progress) : 
+    i ∈ (s.record' $ hd :: tl).progress := by
+  simp [record', ←record'_comm, record_progress_monotonic _ h]
+  
+theorem mem_list_to_mem_record'_progress (h : i ∈ l) : i ∈ (s.record' l).progress := by
+  induction l
+  case nil => contradiction
+  case cons hd tl hi =>
+    cases h
+    case head   => exact record'_progress_monotonic tl $ s.mem_record_progress_self i
+    case tail h => exact record'_cons_progress_monotonic $ hi h
+
+theorem mem_record'_progress_to_mem_progress_or_mem_list (h : i ∈ (s.record' l).progress) :
+    (i ∈ s.progress ∨ i ∈ l) := by
+  induction l generalizing s i <;> simp_all [record']
+  case cons hd tl hi =>
+    cases hi h
+    case inl h => cases mem_record_progress h <;> simp [*]
+    case inr h => simp [h]
+
+theorem mem_record'_progress_iff (s : State) (l : List ID) (i : ID) :
+    i ∈ (s.record' l).progress ↔ (i ∈ s.progress ∨ i ∈ l) where
+  mp := mem_record'_progress_to_mem_progress_or_mem_list
+  mpr 
+    | .inl h => record'_progress_monotonic l h
+    | .inr h => mem_list_to_mem_record'_progress h
 
 end Execution.State 

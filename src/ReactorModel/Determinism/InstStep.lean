@@ -17,19 +17,19 @@ theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rt
   | .exec h => h.preserves_rcns
 
 theorem OperationStep.preserves_tag : (s₁ -[op]↣ s₂) → s₁.tag = s₂.tag
-  | .skip .. => by simp [Context.record_same_tag]
-  | .exec h => by simp [State.tag, Context.record_same_tag, h.preserves_ctx]
+  | .skip .. => by simp [State.record_preserves_tag]
+  | .exec h => by simp [State.tag, State.record_preserves_tag, h.preserves_progress, h.preserves_tag]
 
-theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.ctx = s₁.ctx.record op.rcn
-  | .exec h => by simp [Operation.rcn, h.preserves_ctx]
+theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.progress = s₁.progress.insert op.rcn
+  | .exec h => sorry -- by simp [Operation.rcn, h.preserves_progress, h.preserves_tag]
   | .skip .. => rfl
 
 theorem OperationStep.to_ChangeListStep :
-  (e : s₁ -[op]↣ s₂) → (s₁ -[op.changes]→* { s₂ with ctx := s₁.ctx }) := by
+  (e : s₁ -[op]↣ s₂) → (s₁ -[op.changes]→* { s₂ with tag := s₁.tag, progress := s₁.progress }) := by
   intro e
   induction e <;> simp [Operation.changes, Operation.rcn]
   case skip => exact ChangeListStep.nil
-  case exec h => exact h.ctx_agnostic rfl
+  case exec h => exact h.context_agnostic rfl
 
 theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e₁.rcn = e₂.rcn) → s₁ = s₂ := by
   intro h
@@ -42,6 +42,9 @@ theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (s₁.rtr.contains .r
 
 theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
   e.allows.unprocessed
+
+theorem InstStep.preserves_tag (e : s₁ ⇓ᵢ s₂) : s₁.tag = s₂.tag := 
+  e.exec.preserves_tag
   
 theorem InstStep.mem_progress :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress) := by
@@ -51,18 +54,19 @@ theorem InstStep.mem_progress :
     intro ho
     by_cases hc : rcn' = h.rcn
     case pos => exact .inl hc
-    case neg =>
-      rw [State.progress, h.exec.ctx_adds_rcn, ←rcn] at ho
-      simp [Context.mem_record_progress_iff.mp ho]
+    case neg => sorry
+      -- rw [State.progress, h.exec.ctx_adds_rcn, ←rcn] at ho
+      -- simp [Context.mem_record_progress_iff _ _ _ |>.mp ho]
   case mpr =>
     intro ho
     by_cases hc : rcn' = h.rcn
     case pos =>
       simp [hc]
       sorry
-      -- exact Context.mem_record_progress_iff.mpr (.inl rfl)
+      -- exact Context.mem_record_progress_iff _ _ _ |>.mpr (.inl rfl)
     case neg =>
-      simp [State.progress, h.exec.ctx_adds_rcn, Context.mem_record_progress_iff.mpr (.inr $ ho.resolve_left hc)]
+      sorry
+      -- simp [State.progress, h.exec.ctx_adds_rcn, Context.mem_record_progress_iff _ _ _ |>.mpr (.inr $ ho.resolve_left hc)]
 
 -- Corollary of `InstStep.mem_progress`.
 theorem InstStep.not_mem_progress :
@@ -208,6 +212,7 @@ theorem InstStep.indep_rcns_indep_output :
       simp [he]
       apply Finmap.restrict_ext
       intro a ha
+      simp [h.preserves_tag]
       apply Finmap.filterMap_congr
       have ⟨_, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
       have hd := hi.symm.nonoverlapping_deps hr ho'
@@ -258,5 +263,5 @@ theorem InstStep.indep_rcns_indep_output :
           exact he.eq_obj?_nest h hco hco' 
         )
   
-theorem InstStep.ctx_eq (e : s₁ ⇓ᵢ s₂) : s₂.ctx = s₁.ctx.record e.rcn := 
+theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = s₁.progress.insert e.rcn := 
   sorry

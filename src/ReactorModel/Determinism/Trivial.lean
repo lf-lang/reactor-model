@@ -11,15 +11,15 @@ theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial := by
 theorem State.Nontrivial.not_Trivial (h : Nontrivial s) : ¬s.Trivial :=
   h.nontrivial
 
-theorem State.advanceTag_preserves_Trivial (triv : Trivial s) : Trivial (s.advanceTag g hg) := 
-  triv
-
 section
 
 variable {s₁ : State} (triv : s₁.Trivial)
 
-theorem AdvanceTag.preserves_Trivial : (s₁ ⇓- s₂) → s₂.Trivial
-  | ⟨_, _⟩ => s₁.advanceTag_preserves_Trivial triv
+theorem State.Advance.preserves_Trivial : (Advance s₁ s₂) → s₂.Trivial
+  | mk .. => triv
+
+theorem AdvanceTag.preserves_Trivial (a : s₁ ⇓- s₂) : s₂.Trivial :=
+  a.advance.preserves_Trivial triv
 
 theorem ClosedExecution.preserves_Trivial {e : s₁ ⇓| s₂} : s₂.Trivial :=
   e.preserves_rcns.trans triv
@@ -52,9 +52,10 @@ def to_AdvanceTagRTC (triv : s₁.Trivial) : (s₁ ⇓* s₂) → AdvanceTag.RTC
 theorem AdvanceTag.RTC.deterministic 
     (ht : s₁.tag = s₂.tag) (a₁ : AdvanceTag.RTC s s₁) (a₂ : AdvanceTag.RTC s s₂) : s₁ = s₂ := by
   induction a₁ <;> cases a₂
-  case refl.refl                       => rfl
-  case' refl.trans a _, trans.refl _ a => exact absurd ht a.tag_ne
-  case trans.trans a₁ _ hi _ a₂ c₂     => exact hi ht (a₂.determinisic a₁ ▸ c₂)
+  case refl.refl                   => rfl
+  case refl.trans a _              => sorry -- exact absurd ht a.tag_ne
+  case trans.refl _ a              => sorry -- exact absurd ht a.tag_ne
+  case trans.trans a₁ _ hi _ a₂ c₂ => exact hi ht (a₂.determinisic a₁ ▸ c₂)
 
 theorem trivial_deterministic 
     (triv : ¬s.Nontrivial) (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
