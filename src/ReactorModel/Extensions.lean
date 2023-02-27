@@ -54,8 +54,12 @@ theorem lastSome?_tail :
 
 end List
 
-theorem Finset.ssubset_ne {s₁ s₂ : Finset α} (h : s₁ ⊂ s₂) : s₁ ≠ s₂ := 
+namespace Finset 
+
+theorem ssubset_ne {s₁ s₂ : Finset α} (h : s₁ ⊂ s₂) : s₁ ≠ s₂ := 
   ssubset_iff_subset_ne.mp h |>.right
+
+end Finset
 
 structure Finmap (α β) where
   lookup : α → Option β 

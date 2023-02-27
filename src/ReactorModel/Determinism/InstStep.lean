@@ -177,7 +177,7 @@ theorem InstStep.eq_rcn_eq_changes {e₁ : s ⇓ᵢ s₁} {e₂ : s ⇓ᵢ s₂}
   simp [(h ▸ e₁.wfOp) ▸ e₂.wfOp |> Option.some_inj.mp]
 
 theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn >[s₁.rtr]< e.rcn) :=
-  λ h => by cases h <;> exact State.allows_requires_acyclic_deps $ by assumption
+  λ h => by cases h <;> exact State.Allows.requires_acyclic_deps $ by assumption
     
 theorem InstStep.indep_rcns_indep_output :
   (e : s ⇓ᵢ s') → (rcn' >[s.rtr]< e.rcn) → (rcn' ≠ e.rcn) → s.rcnOutput rcn' = s'.rcnOutput rcn' := by

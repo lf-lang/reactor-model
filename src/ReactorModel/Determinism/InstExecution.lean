@@ -388,13 +388,13 @@ theorem tag_eq : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
   | refl => rfl
   | trans e e' => e.exec.preserves_tag.trans e'.tag_eq
 
-theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = (s₁.record' e.rcns).progress
-  | refl => rfl
-  | trans e e' => sorry -- Context.record'_cons ▸ e.ctx_eq ▸ e'.ctx_eq
-
 theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) : 
     (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
   simp [rcns, InstStep.rcn]
+
+theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ e.rcns.toFinset
+  | refl => by simp [rcns]
+  | trans e e' => by simp [rcns_trans_eq_cons, e.progress_eq, e'.progress_eq]
 
 theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) : rcn ∉ s₁.progress := by
   induction e
@@ -405,7 +405,7 @@ theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) :
     case tail h => exact mt e.monotonic_progress (hi h)
       
 theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
-  simp [State.progress, e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
+  simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
 theorem preserves_rcns {i : ID} : (s₁ ⇓ᵢ* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)

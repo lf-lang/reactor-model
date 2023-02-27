@@ -44,7 +44,7 @@ notation s₁:max " -[" op "]↣ " s₂:max => OperationStep s₁ s₂ op
 structure InstStep (s₁ s₂ : State) where
   op : Operation
   wfOp : s₁.operation op.rcn = op
-  allows : s₁.allows op.rcn
+  allows : s₁.Allows op.rcn
   exec : s₁ -[op]↣ s₂
 
 notation s₁:max " ⇓ᵢ " s₂:max => InstStep s₁ s₂

@@ -24,7 +24,7 @@ theorem nontrivial_deterministic [State.Nontrivial s] :
   | refl, step e e', ht, hp | step e e', refl, ht, hp => 
     match seq_progress_ssubset_or_tag_lt e e' with
     | .inl h => absurd hp $ Finset.ssubset_ne (by simp_all) 
-    | .inr h => sorry -- WTF: absurd ht $ ne_of_lt h 
+    | .inr h => absurd ht $ ne_of_lt (by simp_all)
 
 theorem deterministic : 
     (s ⇓* s₁) → (s ⇓* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂ := 

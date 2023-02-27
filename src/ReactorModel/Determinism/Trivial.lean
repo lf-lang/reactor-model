@@ -1,4 +1,5 @@
 import ReactorModel.Determinism.ExecutionStep
+import Mathlib.Tactic.LibrarySearch
 
 namespace Execution
 
@@ -49,13 +50,16 @@ def to_AdvanceTagRTC (triv : s₁.Trivial) : (s₁ ⇓* s₂) → AdvanceTag.RTC
   | step (.advance a) e' => .trans a (e'.to_AdvanceTagRTC $ a.preserves_Trivial triv)
   | step (.close e) e'   => e.trivial_eq triv ▸ (e'.to_AdvanceTagRTC $ e.preserves_Trivial triv)
 
-theorem AdvanceTag.RTC.deterministic 
-    (ht : s₁.tag = s₂.tag) (a₁ : AdvanceTag.RTC s s₁) (a₂ : AdvanceTag.RTC s s₂) : s₁ = s₂ := by
-  induction a₁ <;> cases a₂
-  case refl.refl                   => rfl
-  case refl.trans a _              => sorry -- exact absurd ht a.tag_ne
-  case trans.refl _ a              => sorry -- exact absurd ht a.tag_ne
-  case trans.trans a₁ _ hi _ a₂ c₂ => exact hi ht (a₂.determinisic a₁ ▸ c₂)
+theorem AdvanceTag.RTC.tag_le : (AdvanceTag.RTC s₁ s₂) → s₁.tag ≤ s₂.tag
+  | refl => le_refl _
+  | trans a a' => le_trans (le_of_lt a.tag_lt) a'.tag_le
+
+theorem AdvanceTag.RTC.deterministic (ht : s₁.tag = s₂.tag) : 
+    (AdvanceTag.RTC s s₁) → (AdvanceTag.RTC s s₂) →  s₁ = s₂
+  | refl, refl => rfl
+  | refl, trans a a' => absurd ht      (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
+  | trans a a', refl => absurd ht.symm (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
+  | trans a₁ a₁', trans a₂ a₂' => a₁'.deterministic ht (a₂.determinisic a₁ ▸ a₂')
 
 theorem trivial_deterministic 
     (triv : ¬s.Nontrivial) (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
