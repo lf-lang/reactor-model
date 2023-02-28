@@ -43,6 +43,13 @@ theorem lastSome?_eq_some {l : List α} :
   (l.lastSome? f = some b) → ∃ (i : Fin l.length), (f l[i] = some b) ∧ (∀ {j}, (j > i) → f l[j] = none) :=
   sorry
 
+theorem lastSome?_eq_some_split {l : List α} : 
+  (l.lastSome? f = some b) → ∃ pre a suf, (l = pre ++ a :: suf) ∧ (f a = some b) ∧ (suf.All₂ (f · = none)) :=
+  sorry
+
+theorem lastSome?_eq_none {l : List α} : (l.lastSome? f = none) → l.All₂ (f · = none) :=
+  sorry
+
 theorem lastSome?_head : 
   ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = none) → some b = f hd :=
   sorry

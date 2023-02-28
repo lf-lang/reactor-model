@@ -233,13 +233,13 @@ theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
 theorem Update.preserves_ne_cmp {cmp} {f : cmp.type → cmp.type} 
     (u : σ₁ -[cmp:i f]→ σ₂) (hn : cmp' ≠ cmp := by exact (nomatch ·)) 
     (hc : cmp ≠ .rtr := by exact (nomatch ·)) (hc' : cmp' ≠ .rtr := by exact (nomatch ·)) : 
-    σ₁.obj? cmp' i' = σ₂.obj? cmp' i' := by
+    σ₁.obj? cmp' j = σ₂.obj? cmp' j := by
   sorry
 
 theorem Update.preserves_ne_id {cmp} {f : cmp.type → cmp.type} 
-    (u : σ₁ -[cmp:i f]→ σ₂) (hi : i' ≠ i) 
+    (u : σ₁ -[cmp:i f]→ σ₂) (hi : i ≠ j) 
     (hc : cmp ≠ .rtr := by exact (nomatch ·)) (hc' : cmp' ≠ .rtr := by exact (nomatch ·)) : 
-    σ₁.obj? cmp' i' = σ₂.obj? cmp' i' := by
+    σ₁.obj? cmp' j = σ₂.obj? cmp' j := by
   sorry
 
 -- TODO: Cf. comment on EqModID.preserves_Equiv.

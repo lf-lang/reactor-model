@@ -29,7 +29,7 @@ abbrev isPort : Change → Bool
 inductive IsPort (i : ID) : Change → Prop
   | intro : IsPort i (.port i v)
 
-theorem IsPort.iff_id_eq : IsPort i (.port j v) ↔ i = j where
+theorem IsPort.iff_id_eq : IsPort j (.port i v) ↔ i = j where
   mp | intro .. => rfl
   mpr h := h ▸ .intro
 
@@ -40,7 +40,7 @@ abbrev isState : Change → Bool
 inductive IsState (i : ID) : Change → Prop
   | intro : IsState i (.state i v)
 
-theorem IsState.iff_id_eq : IsState i (.state j v) ↔ i = j where
+theorem IsState.iff_id_eq : IsState j (.state i v) ↔ i = j where
   mp | intro .. => rfl
   mpr h := h ▸ .intro
 
@@ -51,16 +51,18 @@ abbrev isAction : Change → Bool
 inductive IsAction (i : ID) : Change → Prop
   | intro : IsAction i (.action i t v)
 
-theorem IsAction.iff_id_eq : IsAction i (.action j t v) ↔ i = j where
+theorem IsAction.iff_id_eq : IsAction j (.action i t v) ↔ i = j where
   mp | intro .. => rfl
   mpr h := h ▸ .intro
 
 inductive IsActionAt (i : ID) (t : Time) : Change → Prop
   | intro : IsActionAt i t (.action i t v)
 
-theorem not_IsActionAt_eq_ids_to_ne_time 
-    (h : ¬IsActionAt i t (.action i t' v)) : t' ≠ t := 
-  fun ht => absurd (ht ▸ .intro) h
+theorem not_IsActionAt_ne_ids_or_ne_time 
+    (h : ¬IsActionAt j t (.action i t' v)) : i ≠ j ∨ t' ≠ t := by
+  by_contra hc
+  simp [not_or] at hc
+  exact absurd (hc.left ▸ hc.right ▸ .intro) h
 
 def isActionForTime (t : Time) : Change → Bool 
   | action _ t' _ => t = t'
@@ -70,8 +72,8 @@ def portValue? (t : ID) : Change → Option Value
   | port t' v => if t' = t then some v else none
   | _ => none
 
-def stateValue? (t : ID) : Change → Option Value
-  | state t' v => if t' = t then some v else none
+def stateValue? (i : ID) : Change → Option Value
+  | state j v => if j = i then some v else none
   | _ => none
 
 def actionValue? (t : ID) (tm : Time) : Change → Option Value
@@ -87,6 +89,13 @@ theorem portValue?_some {c : Change} :
     split at h <;> simp_all      
   all_goals simp [portValue?] at *
 
+theorem IsPort.iff_portValue?_some : IsPort i c ↔ ∃ v, c.portValue? i = some v where
+  mp  | intro      => by simp [portValue?] 
+  mpr | .intro v h => by simp [portValue?_some h, intro]
+
+theorem not_IsPort_iff_portValue?_none : ¬(IsPort i c) ↔ c.portValue? i = none :=
+  sorry
+
 theorem stateValue?_some {c : Change} : 
   (c.stateValue? t = some v) → (c = .state t v) := by
   intro h
@@ -95,6 +104,29 @@ theorem stateValue?_some {c : Change} :
     simp [stateValue?] at h
     split at h <;> simp_all      
   all_goals simp [stateValue?] at *
+
+theorem IsState.iff_stateValue?_some : IsState i c ↔ ∃ v, c.stateValue? i = some v where
+  mp  | intro      => by simp [stateValue?] 
+  mpr | .intro v h => by simp [stateValue?_some h, intro]
+
+theorem not_IsState_iff_stateValue?_none : ¬(IsState i c) ↔ c.stateValue? i = none :=
+  sorry
+
+theorem actionValue?_none {c : Change} :
+  (c.actionValue? i t = none) → (∀ v, c ≠ .action i t v) := by
+  intro h
+  cases c
+  case action => 
+    intro v
+    simp only [actionValue?] at h
+    split at h
+    case inl => contradiction
+    case inr h' => 
+      simp at h' ⊢ 
+      intro h hh
+      have := h' h
+      contradiction
+  all_goals simp
 
 theorem isPort_iff_portValue?_eq_some {c : Change} :
   c.isPort ↔ (∃ t v, c.portValue? t = some v) := by
@@ -125,22 +157,6 @@ theorem isActionForTime_iff_actionValue?_eq_some {c : Change} :
     cases c <;> simp_all [actionValue?]
     case action =>
       split at h <;> simp_all
-
-theorem actionValue?_none {c : Change} :
-  (c.actionValue? i t = none) → (∀ v, c ≠ .action i t v) := by
-  intro h
-  cases c
-  case action => 
-    intro v
-    simp only [actionValue?] at h
-    split at h
-    case inl => contradiction
-    case inr h' => 
-      simp at h' ⊢ 
-      intro h hh
-      have := h' h
-      contradiction
-  all_goals simp
 
 def target : Change → Option ID
   | port t .. | state t .. | action t .. => t
