@@ -1,17 +1,9 @@
 import ReactorModel.Execution.State
+import ReactorModel.Execution.Schedule
 
 open Classical
 
 namespace Execution
-
--- NOTE: This does not constrain actions to have to be scheduled into the future.
---       If we schedule something for the past, it doesn't matter, since that action value will never be read.
---       But if the current tag has a microstep of 0, it is possible to schedule something for the current tag
---       (in the `none` case).
-noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
-  match act.ids.filter (·.time = t) |>.max with
-  | none => act.update ⟨t, 0⟩ v
-  | some g => act.update ⟨t, g.microstep + 1⟩ v
 
 inductive ChangeStep (s : State) : State → Identified Change → Prop 
   | port :   (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    → ChangeStep s { s with rtr := σ' } ⟨rcn, .port i v⟩

@@ -1,6 +1,6 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Set.Finite
-import Lean
+
 open Lean
 
 syntax "case' " (Lean.binderIdent*),* " => " tacticSeq : tactic
@@ -10,7 +10,6 @@ macro_rules
     `(tactic| ($[$tacs]*))
 
 namespace List
-
 
 theorem mem_cons_iff (a y : α) (l : List α) : a ∈ y :: l ↔ (a = y ∨ a ∈ l) :=
   sorry
@@ -61,6 +60,8 @@ theorem ssubset_ne {s₁ s₂ : Finset α} (h : s₁ ⊂ s₂) : s₁ ≠ s₂ :
 
 end Finset
 
+-- We need to use our own `Finmap` type based on `α → Option β`, as this is integral for the 
+-- definition of `Raw.Reactor`.
 structure Finmap (α β) where
   lookup : α → Option β 
   finite : { a | lookup a ≠ none }.Finite
@@ -82,36 +83,17 @@ instance : EmptyCollection (α ⇉ β) where
 instance : Inhabited (Finmap α β) where
   default := ∅
 
-@[simp]
-theorem empty_lookup_none : (∅ : α ⇉ β).lookup i = none := by 
-  rfl
-
-theorem ext_iff {f₁ f₂ : α ⇉ β} : f₁ = f₂ ↔ ∀ i, f₁ i = f₂ i :=
-  sorry
-
 @[ext]
-theorem ext (f₁ f₂ : α ⇉ β) (h : ∀ i, f₁ i = f₂ i) : f₁ = f₂ :=
-  ext_iff.mpr h
+theorem ext : {f₁ f₂ : α ⇉ β} → (h : ∀ a, f₁ a = f₂ a) → f₁ = f₂
+  | mk .., mk .., h => by simp; funext a; exact h a
 
 -- The (finite) set of inputs for which a given finmap has an associated value.
 noncomputable def ids (f : α ⇉ β) : Finset α :=
-  let description := { i | f i ≠ none }
-  let finite : description.Finite := f.finite
-  finite.toFinset
+  f.finite.toFinset
 
-theorem ids_def {f : α ⇉ β} {i : α} : i ∈ f.ids ↔ f i ≠ none := by
-  simp [ids, Set.Finite.mem_toFinset, Set.mem_setOf_eq]
+theorem mem_ids_iff {f : α ⇉ β} : i ∈ f.ids ↔ ∃ b, f i = some b := by
+  sorry
 
-theorem ids_def' {f : α ⇉ β} {i : α} : i ∈ f.ids ↔ ∃ b, f i = some b := by
-  apply Iff.intro
-  case mp =>  exact fun h => ⟨_, (Option.ne_none_iff_exists.mp $ ids_def.mp h).choose_spec.symm⟩
-  case mpr => exact fun ⟨_, h⟩ => ids_def.mpr $ Option.ne_none_iff_exists.mpr ⟨_, h.symm⟩
-
-@[simp]
-theorem empty_ids_empty : (∅ : α ⇉ β).ids = ∅ := by 
-  apply Finset.ext
-  simp [ids_def]
-   
 -- The (finite) set of values for which there exist inputs that map to them.
 noncomputable def values (f : α ⇉ β) : Finset β :=
   let description := { v : β | ∃ i, f i = v }
@@ -124,44 +106,37 @@ noncomputable def values (f : α ⇉ β) : Finset β :=
     have ⟨b, ⟨a, ha⟩, hb⟩ := h
     exists a
     apply And.intro
-    case left => simp [ids_def, ha]
+    case left => sorry -- simp [ids_def, ha]
     case right => simp [ha, hb]
   finite.toFinset
 
-theorem values_def {f : α ⇉ β} {v : β} : v ∈ f.values ↔ (∃ i, f i = some v) := by
+theorem mem_values_iff {f : α ⇉ β} : v ∈ f.values ↔ (∃ i, f i = some v) := by
   simp [values, Set.Finite.mem_toFinset, Set.mem_setOf_eq]
 
--- Replaces a single indentifier-value pair in a given finmap with a given new value.
--- This can also be used to remove the value for an identifier by passing a value of `none`,
--- as well as adding a new entry to the finmap, if the given identifier is not yet part of
--- the finmap.
-def update (f : α ⇉ β) (a : α) (b : Option β) : α ⇉ β := {
+def update (f : α ⇉ β) (a : α) (b : β) : α ⇉ β := {
   lookup := Function.update f.lookup a b,
   finite := sorry
 }
 
-theorem update_self (f : α ⇉ β) {a : α} (b : Option β) : (f.update a b) a = b :=
+theorem update_self (f : α ⇉ β) (a : α) (b : β) : (f.update a b) a = b :=
   sorry
 
-theorem update_ne (f : α ⇉ β) {a a' : α} (h : a ≠ a') (b : Option β) : (f.update a b) a' = f a' :=
+theorem update_ne (f : α ⇉ β) (h : a ≠ a') (b : β) : (f.update a b) a' = f a' :=
   sorry
 
--- The finmap that combines a given finmap `f` with a function `g`
--- by mapping all (defined) values in `f` through `g`. 
 def map (f : α ⇉ β) (g : β → γ) : α ⇉ γ := {
   lookup := fun a => (f a) >>= (some ∘ g),
   finite := by
     suffices h : { a | (fun i => (f i) >>= (some ∘ g)) a ≠ none } ⊆ ↑f.ids
       from Set.Finite.subset (Finset.finite_toSet _) h
     intro x h
-    simp only [ids_def]
     sorry
 }
 
-theorem map_mem_ids {f : α ⇉ β} {g : β → γ} {i} : i ∈ (f.map g).ids ↔ i ∈ f.ids :=
+theorem map_mem_ids {f : α ⇉ β} : i ∈ (f.map g).ids ↔ i ∈ f.ids :=
   sorry
 
-theorem map_def {f : α ⇉ β} {g : β → γ} {i v} (h : (f.map g) i = some v) : ∃ m, f i = some m ∧ g m = v :=
+theorem map_def {f : α ⇉ β} (h : (f.map g) i = some v) : ∃ m, f i = some m ∧ g m = v :=
   sorry
 
 noncomputable def map' (f : α ⇉ γ) (g : α → Option β) (h : g.Injective) : β ⇉ γ := {
@@ -179,7 +154,7 @@ def attach (f : α ⇉ β) : α ⇉ { b // b ∈ f.values } := {
   lookup := fun a =>
     match h:(f a) with
     | none => none
-    | some b => some ⟨b, (values_def.mpr ⟨a, h⟩)⟩,
+    | some b => some ⟨b, (mem_values_iff.mpr ⟨a, h⟩)⟩,
   finite := sorry
 }
 
@@ -234,7 +209,7 @@ theorem restrict_ext {f₁ f₂ : α ⇉ β} {as : Finset α} :
   (∀ a ∈ as, f₁ a = f₂ a) → f₁.restrict as = f₂.restrict as := 
   sorry
 
-structure forall₂ (r : β → γ → Prop) (f₁ : α ⇉ β) (f₂ : α → Option γ) : Prop where
+structure Forall₂ (r : β → γ → Prop) (f₁ : α ⇉ β) (f₂ : α → Option γ) : Prop where
   eqIDs : ∀ a, a ∈ f₁.ids ↔ f₂ a ≠ none
   rel : ∀ {a} {b : β} {c : γ}, (f₁ a = b) → (f₂ a = c) → r b c
 
@@ -243,6 +218,7 @@ def union (f₁ f₂ : α ⇉ β) : α ⇉ β := {
   finite := sorry
 }
 
-instance : Union (α ⇉ β) := ⟨union⟩
+instance : Union (α ⇉ β) where 
+  union := union
 
 end Finmap

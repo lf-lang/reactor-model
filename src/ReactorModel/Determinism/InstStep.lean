@@ -1,4 +1,4 @@
-import ReactorModel.Determinism.ChangeSteps
+import ReactorModel.Determinism.ChangeListStep
 
 open Classical
 

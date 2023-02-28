@@ -25,7 +25,7 @@ theorem nest_container_obj {σ rtr : Reactor} (l : Lineage rtr cmp i) (h : σ.ne
 
 theorem container_cmp_mem (l : Lineage σ cmp i) : ∃ o, l.container.obj.cmp? cmp i = some o := by
   induction l
-  case «end» _ h => simp [container, Finmap.ids_def'.mp h]
+  case «end» _ h => simp [container, Finmap.mem_ids_iff.mp h]
   case nest hi => simp [nest_container_obj, hi]
 
 theorem nest_container_id_not_top {σ rtr : Reactor} (l : Lineage rtr cmp i) (h : σ.nest j = rtr) : (Lineage.nest l h).container.id ≠ ⊤ := by
@@ -157,7 +157,7 @@ theorem obj?_and_con?_to_cmp? {i : ID} :
 
 theorem cmp?_to_obj? : (σ.cmp? cmp i = some o) → (σ.obj? cmp i = some o) := by
   intro h
-  let l := Lineage.end _ $ Finmap.ids_def'.mpr ⟨_, h⟩
+  let l := Lineage.end _ $ Finmap.mem_ids_iff.mpr ⟨_, h⟩
   have h' := con?_def.mpr ⟨l, rfl⟩
   have hc : l.container = σ := Lineage.end_container_eq_root _
   simp [←hc] at h
@@ -219,14 +219,14 @@ noncomputable def ids (σ : Reactor) (cmp : Cmp) :=
 theorem ids_mem_iff_contains : (i ∈ σ.ids cmp) ↔ (σ.contains cmp i) := by
   constructor <;> (intro h; simp [ids, Finset.mem_eraseNone] at *)
   case mp =>
-    simp [Finmap.ids_def'] at h
+    simp [Finmap.mem_ids_iff] at h
     have ⟨j, ⟨_ , h⟩, hj⟩ := h
     cases j <;> simp [RootedID.nest?] at hj
     rw [←hj]
     exact ⟨_, (obj?_to_con?_and_cmp? h).choose_spec.left⟩
   case mpr =>
     have ⟨_, h, _⟩ := con?_to_obj?_and_cmp? h.choose_spec
-    exact ⟨_, Finmap.ids_def'.mpr ⟨_, h⟩, by simp [RootedID.nest?]⟩  
+    exact ⟨_, Finmap.mem_ids_iff.mpr ⟨_, h⟩, by simp [RootedID.nest?]⟩  
 
 theorem ids_mem_iff_obj? : (i ∈ σ.ids cmp) ↔ (∃ o, σ.obj? cmp i = some o) := by
   simp [←contains_iff_obj?, ids_mem_iff_contains]
@@ -238,7 +238,7 @@ theorem obj?_and_local_mem_to_cmp? {i : ID} :
   rw [←hm]
   suffices h : σ = c.obj by simp [h]
   have ⟨l, hl⟩ := con?_def.mp hc
-  have hm := Finmap.ids_def'.mpr ⟨_, hm⟩
+  have hm := Finmap.mem_ids_iff.mpr ⟨_, hm⟩
   simp [←Lineage.end_container_eq_root hm, ←Lineage.end_container_eq_root hi]
   sorry
 

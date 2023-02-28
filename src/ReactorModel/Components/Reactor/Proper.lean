@@ -60,7 +60,7 @@ def rcns  : Reactor → ID ⇉ Reaction         := (·.raw.rcns)
 def nest (rtr : Reactor) : ID ⇉ Reactor :=
   let raw : ID ⇉ Raw.Reactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
   raw.attach.map (λ ⟨_, h⟩ => Reactor.fromRaw _ (by
-      have ⟨_, hm⟩ := Finmap.values_def.mp h
+      have ⟨_, hm⟩ := Finmap.mem_values_iff.mp h
       exact rtr.rawWF.ancestor (Raw.Reactor.Ancestor.nest hm)
     )
   )  
@@ -76,11 +76,11 @@ private theorem raw_ext_iff {rtr₁ rtr₂ : Reactor} : rtr₁ = rtr₂ ↔ rtr�
     simp [h]
   )
 
-theorem nest_raw_eq_raw_nest (rtr : Reactor) : Finmap.forall₂ (·.raw = ·) rtr.nest rtr.raw.nest := {
+theorem nest_raw_eq_raw_nest (rtr : Reactor) : Finmap.Forall₂ (·.raw = ·) rtr.nest rtr.raw.nest := {
   eqIDs := by
     intro i
     simp only [Reactor.nest, Finmap.map_mem_ids, Finmap.attach_mem_ids]
-    exact Finmap.ids_def,
+    sorry -- exact Finmap.ids_def,
   rel := by
     intro _ _ _ hr hr'
     simp only [nest] at hr
@@ -93,7 +93,7 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor} {i} : rtr.nest i = rtr' ↔ rtr.ra
   case mp =>
     intro h
     have ⟨hi, hv⟩ := nest_raw_eq_raw_nest rtr
-    have hm : i ∈ rtr.nest.ids := Finmap.ids_def'.mpr ⟨rtr', h⟩
+    have hm : i ∈ rtr.nest.ids := Finmap.mem_ids_iff.mpr ⟨rtr', h⟩
     have ⟨_, hx⟩ := Option.ne_none_iff_exists.mp $ (hi i).mp hm
     have he := hv h hx.symm
     simp [←hx, he]
@@ -101,7 +101,7 @@ theorem nest_mem_raw_iff {rtr rtr' : Reactor} {i} : rtr.nest i = rtr' ↔ rtr.ra
     intro h
     have ⟨hi, hv⟩ := nest_raw_eq_raw_nest rtr
     have hi := (hi i).mpr (Option.ne_none_iff_exists.mpr ⟨rtr'.raw, h.symm⟩)
-    have ⟨x, hx⟩ := Finmap.ids_def'.mp hi
+    have ⟨x, hx⟩ := Finmap.mem_ids_iff.mp hi
     have he := hv hx h
     simp [hx]
     exact raw_ext_iff.mpr he  
@@ -141,7 +141,7 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor} :
       have h₁' := (h₁.eqIDs i).mpr
       simp only [Option.ne_none_iff_exists] at h₁'
       have h₁' := h₁' ⟨rcn, hc.symm⟩
-      simp only [Finmap.ids_def'] at h₁'
+      simp only [Finmap.mem_ids_iff] at h₁'
       have ⟨x, hx⟩ := h₁'
       rw [h] at h₁
       have h₂' := (h₁.eqIDs i).mpr
@@ -202,7 +202,7 @@ private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
   have hr : r = rtr'.raw := rfl
   rw [hr] at hn
   exists rtr'
-  simp [Finmap.values_def.mpr ⟨_, nest_mem_raw_iff.mpr hn⟩, ports']
+  simp [Finmap.mem_values_iff.mpr ⟨_, nest_mem_raw_iff.mpr hn⟩, ports']
   simp [Raw.Reactor.ports'] at hi
   exact hi
 

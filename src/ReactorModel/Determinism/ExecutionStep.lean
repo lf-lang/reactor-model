@@ -100,7 +100,7 @@ theorem seq_tag_lt : (s₁ ⇓ s₂) → (s₂ ⇓ s₃) → s₁.tag < s₃.tag
   | advance a,  close e    => e.preserves_tag ▸ a.tag_lt
 
 instance preserves_Nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → State.Nontrivial s₂
-  | close e => e.preserves_Nontrivial
+  | close e   => e.preserves_Nontrivial
   | advance a => a.preserves_Nontrivial
 
 end Step

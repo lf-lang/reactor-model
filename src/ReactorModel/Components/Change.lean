@@ -26,13 +26,41 @@ abbrev isPort : Change → Bool
   | port .. => true
   | _ => false
 
+inductive IsPort (i : ID) : Change → Prop
+  | intro : IsPort i (.port i v)
+
+theorem IsPort.iff_id_eq : IsPort i (.port j v) ↔ i = j where
+  mp | intro .. => rfl
+  mpr h := h ▸ .intro
+
 abbrev isState : Change → Bool 
   | state .. => true
   | _ => false
 
+inductive IsState (i : ID) : Change → Prop
+  | intro : IsState i (.state i v)
+
+theorem IsState.iff_id_eq : IsState i (.state j v) ↔ i = j where
+  mp | intro .. => rfl
+  mpr h := h ▸ .intro
+
 abbrev isAction : Change → Bool 
   | action .. => true
   | _ => false
+
+inductive IsAction (i : ID) : Change → Prop
+  | intro : IsAction i (.action i t v)
+
+theorem IsAction.iff_id_eq : IsAction i (.action j t v) ↔ i = j where
+  mp | intro .. => rfl
+  mpr h := h ▸ .intro
+
+inductive IsActionAt (i : ID) (t : Time) : Change → Prop
+  | intro : IsActionAt i t (.action i t v)
+
+theorem not_IsActionAt_eq_ids_to_ne_time 
+    (h : ¬IsActionAt i t (.action i t' v)) : t' ≠ t := 
+  fun ht => absurd (ht ▸ .intro) h
 
 def isActionForTime (t : Time) : Change → Bool 
   | action _ t' _ => t = t'

@@ -209,7 +209,7 @@ theorem changes_order_to_ops_internal_order {e : s₁ ⇓ᵢ* s₂} {ic : Fin e.
   (∀ j c', (j > io) → (op.changes[j]? = some c') → c'.obj.stateValue? i = none) := by
   sorry
 
-theorem same_ops_ChangeListEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
+theorem same_ops_ChangeEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.portValue? i) = e₂.changes.lastSome? (·.obj.portValue? i)) := by
   intro ho i
   /-cases hc : e₁.changes.lastSome? (·.obj.portValue? i)
@@ -283,7 +283,7 @@ theorem state_change_mem_op_rcn_impure {e : s₁ ⇓ᵢ* s₂} :
   (op ∈ e.ops) → (⟨op.rcn, .state i v⟩ ∈ op.changes) →
   ∃ rcn, (s₁.rtr.obj? .rcn op.rcn = some rcn) ∧ (¬rcn.isPure) := sorry
 
-theorem same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
+theorem same_ops_ChangeEquiv_state {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.stateValue? i) = e₂.changes.lastSome? (·.obj.stateValue? i)) := by
   intro ho i
   have ⟨v₁, hc₁⟩ : ∃ v, e₁.changes.lastSome? (·.obj.stateValue? i) = some v := sorry
@@ -353,18 +353,18 @@ theorem same_ops_ChangeListEquiv_state {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ*
     -- Thus (wlog. assuming op₁ must appear before op₂) e₁.ops must also contain op₂ (by `ho`) somewhere after op₁. 
     -- Thus the assumption hj₂ is false.
 
-theorem same_ops_ChangeListEquiv_actions {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
+theorem same_ops_ChangeEquiv_actions {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i t, e₁.changes.filterMap (·.obj.actionValue? i t) = e₂.changes.filterMap (·.obj.actionValue? i t)) := by
   sorry
 
-theorem same_rcns_ChangeListEquiv {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} : 
+theorem same_rcns_ChangeEquiv {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} : 
   (e₁.rcns ~ e₂.rcns) → (e₁.changes ⋈ e₂.changes) := by
   intro hr
   have ho := e₁.same_rcns_same_ops e₂ hr
   exact {
-    ports := same_ops_ChangeListEquiv_ports ho,
-    state := same_ops_ChangeListEquiv_state ho,
-    actions := same_ops_ChangeListEquiv_actions ho
+    ports := same_ops_ChangeEquiv_ports ho,
+    state := same_ops_ChangeEquiv_state ho,
+    actions := same_ops_ChangeEquiv_actions ho
   }
 
 protected theorem deterministic : 
@@ -372,7 +372,7 @@ protected theorem deterministic :
   intro e₁ e₂ ht hp
   refine State.ext _ _ ?_ ht hp
   have hp := e₁.eq_context_processed_rcns_perm e₂ ht hp
-  have he := e₁.same_rcns_ChangeListEquiv hp
+  have he := e₁.same_rcns_ChangeEquiv hp
   injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
     
 

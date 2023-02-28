@@ -26,14 +26,14 @@ theorem ClosedExecution.preserves_Trivial {e : s₁ ⇓| s₂} : s₂.Trivial :=
   simp [State.Trivial, ←e.preserves_rcns, triv]
 
 theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
-  | close e => e.preserves_Trivial triv
+  | close e   => e.preserves_Trivial triv
   | advance a => a.preserves_Trivial triv
 
 theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial :=
   s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
 
 theorem InstExecution.trivial_eq : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
-  | refl => rfl
+  | refl      => rfl
   | trans e _ => absurd triv e.not_Trivial 
 
 theorem ClosedExecution.trivial_eq (e : s₁ ⇓| s₂) : s₁ = s₂ :=
@@ -51,14 +51,14 @@ def to_AdvanceTagRTC (triv : s₁.Trivial) : (s₁ ⇓* s₂) → AdvanceTag.RTC
   | step (.close e) e'   => e.trivial_eq triv ▸ (e'.to_AdvanceTagRTC $ e.preserves_Trivial triv)
 
 theorem AdvanceTag.RTC.tag_le : (AdvanceTag.RTC s₁ s₂) → s₁.tag ≤ s₂.tag
-  | refl => le_refl _
+  | refl       => le_refl _
   | trans a a' => le_trans (le_of_lt a.tag_lt) a'.tag_le
 
 theorem AdvanceTag.RTC.deterministic (ht : s₁.tag = s₂.tag) : 
     (AdvanceTag.RTC s s₁) → (AdvanceTag.RTC s s₂) →  s₁ = s₂
-  | refl, refl => rfl
-  | refl, trans a a' => absurd ht      (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
-  | trans a a', refl => absurd ht.symm (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
+  | refl,         refl         => rfl
+  | refl,         trans a a'   => absurd ht      (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
+  | trans a a',   refl         => absurd ht.symm (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
   | trans a₁ a₁', trans a₂ a₂' => a₁'.deterministic ht (a₂.determinisic a₁ ▸ a₂')
 
 theorem trivial_deterministic 

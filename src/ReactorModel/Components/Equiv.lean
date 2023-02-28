@@ -4,6 +4,8 @@ open Classical
 
 namespace Reactor
 
+-- Note: By this definition two reactors can be structurally equivalent despite having their input
+--       and output ports flipped.
 -- Two reactors are equivalent if they are structurally equal.
 inductive Equiv : Reactor → Reactor → Prop where
   | intro : (∀ cmp, (σ₁.cmp? cmp).ids = (σ₂.cmp? cmp).ids) →
@@ -32,15 +34,15 @@ theorem top' : (σ₁ ≈ σ₂) → (σ₁.ids = σ₂.ids) := by
       intro ⟨o, ho⟩
       cases obj?_decomposition' ho
       case inl hc =>
-        have hm := Finmap.ids_def'.mpr ⟨_, hc⟩
+        have hm := Finmap.mem_ids_iff.mpr ⟨_, hc⟩
         first | rw [ht cmp] at hm | rw [←ht cmp] at hm
-        have ⟨_, hm⟩ := Finmap.ids_def'.mp hm
+        have ⟨_, hm⟩ := Finmap.mem_ids_iff.mp hm
         exact ⟨_, cmp?_to_obj? hm⟩
       case inr hc =>
         have ⟨_, _, hc, ho'⟩ := hc
-        have hm := Finmap.ids_def'.mpr ⟨_, hc⟩
+        have hm := Finmap.mem_ids_iff.mpr ⟨_, hc⟩
         first | rw [ht .rtr] at hm | rw [←ht .rtr] at hm
-        have ⟨_, hm⟩ := Finmap.ids_def'.mp hm
+        have ⟨_, hm⟩ := Finmap.mem_ids_iff.mp hm
         first | specialize hi hc hm | specialize hi hm hc
         have h' := ids_mem_iff_obj?.mpr ⟨_, ho'⟩
         first | rw [ hi] at h' | rw [←hi] at h'
@@ -129,7 +131,7 @@ theorem obj?_ext {cmp} :
   constructor
   all_goals
     intro ho
-    have hm := Finmap.ids_def'.mpr ⟨_, ho⟩
+    have hm := Finmap.mem_ids_iff.mpr ⟨_, ho⟩
     have hs := Reactor.cmp?_to_obj? ho
     first | rw [h hm] at hs   | skip -- rw [←h hm] at hs
     first | rw [he.top] at hm | skip -- rw [←he.top] at hm
@@ -148,15 +150,14 @@ theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → 
   )
   case base σ₁ h =>
     rw [h] 
-    apply Finmap.ext
-    intro i
+    ext1 i
     by_contra hc
     simp at hc
     rw [←Ne.def] at hc
-    have hi := Finmap.ids_def.mpr hc.symm
-    have hn := he.top .rtr
-    simp [h] at hn
-    simp [←hn] at hi
+    -- have hi := Finmap.ids_def.mpr hc.symm
+    -- have hn := he.top .rtr
+    -- simp [h] at hn
+    -- simp [←hn] at hi
     sorry
   case step σ₁ hi =>
     apply Finmap.ext
@@ -164,19 +165,19 @@ theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → 
     cases hn₁ : σ₁.nest i
     case none =>
       rw [←Option.not_isSome_iff_eq_none, Option.isSome_iff_exists] at hn₁
-      have hi₁ := (mt Finmap.ids_def'.mp) hn₁
+      have hi₁ := (mt Finmap.mem_ids_iff.mp) hn₁
       rw [he.top .rtr] at hi₁
-      have hi₂ := (mt Finmap.ids_def'.mpr) hi₁
+      have hi₂ := (mt Finmap.mem_ids_iff.mpr) hi₁
       rw [←Option.isSome_iff_exists, Option.not_isSome_iff_eq_none] at hi₂
       simp [hi₂]
       sorry
     case some n₁ =>
-      have hn := Finmap.ids_def'.mpr ⟨_, hn₁⟩
+      have hn := Finmap.mem_ids_iff.mpr ⟨_, hn₁⟩
       rw [he.top .rtr] at hn
-      have ⟨n₂, hn₂⟩ := Finmap.ids_def'.mp hn
+      have ⟨n₂, hn₂⟩ := Finmap.mem_ids_iff.mp hn
       simp [cmp?] at hn₂
       simp [hn₂]
-      apply hi n₁ (Finmap.values_def.mpr ⟨_, hn₁⟩) (he.nest hn₁ hn₂)
+      apply hi n₁ (Finmap.mem_values_iff.mpr ⟨_, hn₁⟩) (he.nest hn₁ hn₂)
       intro cmp i' hc
       exact eq_obj?_nest he (ho cmp i' hc) (cmp?_to_obj? hn₁) (cmp?_to_obj? hn₂)
 
