@@ -373,7 +373,7 @@ protected theorem deterministic :
   refine State.ext _ _ ?_ ht hp
   have hp := e₁.eq_context_processed_rcns_perm e₂ ht hp
   have he := e₁.same_rcns_ChangeEquiv hp
-  injection e₁.to_ChangeListStep.equiv_changes_eq_result e₂.to_ChangeListStep he
+  injection e₁.to_ChangeListStep.equiv_changes_deterministic e₂.to_ChangeListStep he
     
 
 
