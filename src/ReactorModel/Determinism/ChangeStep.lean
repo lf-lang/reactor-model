@@ -41,11 +41,6 @@ theorem preserves_unchanged_action
   case' state u, port u => exact u.preserves_ne_cmp 
   all_goals rfl
 
--- TODO: It might be simpler here to add the condition that `s₁.rtr.obj? .prt i = some p` and then
---       include the port kind in the result. Then we don't have to prove things about the ports
---       value and kind separately. Cf. `ChangeListStep.lastSome?_some_port` for details on how
---       this split complicates things.
---       How is this related to `port_change'`?
 theorem port_change : 
     (s₁ -[⟨rcn, .port i v⟩]→ s₂) → ∃ k, s₂.rtr.obj? .prt i = some { val := v, kind := k }
   | port u => by

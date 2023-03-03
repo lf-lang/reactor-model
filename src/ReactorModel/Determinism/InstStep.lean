@@ -8,9 +8,9 @@ theorem OperationStep.deterministic : (s -[op]↣ s₁) → (s -[op]↣ s₂) �
   | .skip .., .skip .. => rfl
   | .exec h₁, .exec h₂ => by simp [h₁.deterministic h₂]
 
-theorem OperationStep.preserves_Equiv : (s₁ -[op]↣ s₂) → (s₁.rtr ≈ s₂.rtr)
+theorem OperationStep.equiv : (s₁ -[op]↣ s₂) → (s₁.rtr ≈ s₂.rtr)
   | .skip => .refl
-  | .exec h => h.preserves_Equiv
+  | .exec h => h.equiv
 
 theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i
   | .skip .. => rfl
@@ -227,7 +227,7 @@ theorem InstStep.indep_rcns_indep_output :
       have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
       have hs := State.rcnInput_state_def hj hc
       have hs' := State.rcnInput_state_def hj' hc'
-      have hq := h.exec.preserves_Equiv
+      have hq := h.exec.equiv
       have hh := hq.con?_id_eq hc hc'
       have hc := Reactor.con?_to_rtr_obj? hc
       have hc' := Reactor.con?_to_rtr_obj? hc'
@@ -249,7 +249,7 @@ theorem InstStep.indep_rcns_indep_output :
           rw [h] at hj
           exact State.rcnOutput_congr (hj.trans hj'.symm) hp
         rw [hs, hs']
-        have he := h.exec.preserves_Equiv
+        have he := h.exec.equiv
         exact (he.con?_obj_equiv hco hco').obj?_ext (cmp := .stv) (by
           intro j _
           have h := h.pure_preserves_state (j := j) hr hp'

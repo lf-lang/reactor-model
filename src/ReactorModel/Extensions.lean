@@ -1,5 +1,6 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Set.Finite
+import Mathlib.Tactic.LibrarySearch
 
 open Lean
 
@@ -11,20 +12,11 @@ macro_rules
 
 namespace List
 
-theorem mem_cons_iff (a y : α) (l : List α) : a ∈ y :: l ↔ (a = y ∨ a ∈ l) :=
+theorem filterMap_nil_iff {l : List α} : (l.filterMap f = []) ↔ (l.All₂ (f · = none)) := by
   sorry
 
-theorem filterMap_nil' {l : List α} : (l.filterMap f = []) → ∀ a ∈ l, f a = none := by
-  sorry
-
-theorem filterMap_cons' {l : List α} :
-  (l.filterMap f = hd :: tl) → 
-  ∃ lhd ltl, (lhd ++ ltl = l) ∧ (lhd.filterMap f = [hd]) ∧ (ltl.filterMap f = tl) :=
-  sorry
-
-theorem filterMap_singleton_split [DecidableEq β] {l : List α} {f : α → Option β}:
-  (l.filterMap f = [b]) → 
-  ∃ hd a tl, (hd ++ [a] ++ tl = l) ∧ (hd.filterMap f = []) ∧ (f a = some b) ∧ (tl.filterMap f = []) :=
+theorem filterMap_cons_split {l : List α} {f : α → Option β} (h : l.filterMap f = hd :: tl) : 
+    ∃ l₁ a l₂, (l₁ ++ a :: l₂ = l) ∧ (l₁.All₂ (f · = none)) ∧ (f a = some hd) ∧ (l₂.filterMap f = tl) :=
   sorry
 
 def lastSome? (f : α → Option β) : List α → Option β
@@ -44,7 +36,7 @@ theorem lastSome?_eq_some {l : List α} :
   sorry
 
 theorem lastSome?_eq_some_split {l : List α} : 
-  (l.lastSome? f = some b) → ∃ pre a suf, (l = pre ++ a :: suf) ∧ (f a = some b) ∧ (suf.All₂ (f · = none)) :=
+  (l.lastSome? f = some b) → ∃ l₁ a l₂, (l = l₁ ++ a :: l₂) ∧ (f a = some b) ∧ (l₂.All₂ (f · = none)) :=
   sorry
 
 theorem lastSome?_eq_none {l : List α} : (l.lastSome? f = none) → l.All₂ (f · = none) :=

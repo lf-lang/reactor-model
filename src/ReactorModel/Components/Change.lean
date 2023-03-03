@@ -22,6 +22,8 @@ namespace Change
 
 variable [DecidableEq ID]
 
+-- TODO: Remove the Bool-based functions.
+
 abbrev isPort : Change → Bool 
   | port .. => true
   | _ => false
@@ -76,8 +78,8 @@ def stateValue? (i : ID) : Change → Option Value
   | state j v => if j = i then some v else none
   | _ => none
 
-def actionValue? (t : ID) (tm : Time) : Change → Option Value
-  | action t' tm' v  => if t' = t ∧ tm' = tm then some v else none
+def actionValue? (i : ID) (t : Time) : Change → Option Value
+  | action j t' v  => if i = j ∧ t = t' then some v else none
   | _ => none
 
 theorem portValue?_some {c : Change} : 
@@ -112,51 +114,16 @@ theorem IsState.iff_stateValue?_some : IsState i c ↔ ∃ v, c.stateValue? i = 
 theorem not_IsState_iff_stateValue?_none : ¬(IsState i c) ↔ c.stateValue? i = none :=
   sorry
 
-theorem actionValue?_none {c : Change} :
-  (c.actionValue? i t = none) → (∀ v, c ≠ .action i t v) := by
-  intro h
-  cases c
-  case action => 
-    intro v
-    simp only [actionValue?] at h
-    split at h
-    case inl => contradiction
-    case inr h' => 
-      simp at h' ⊢ 
-      intro h hh
-      have := h' h
-      contradiction
-  all_goals simp
+theorem actionValue?_some {c : Change}: 
+  (c.actionValue? i t = some v) → (c = .action i t v) := by
+  sorry
 
-theorem isPort_iff_portValue?_eq_some {c : Change} :
-  c.isPort ↔ (∃ t v, c.portValue? t = some v) := by
-  constructor
-  case mp =>
-    cases c <;> simp [isPort, portValue?]
-    case port t v => exists t, v; simp
-  case mpr =>
-    cases c <;> simp [portValue?]
+theorem IsActionAt.iff_actionValue?_some : IsActionAt i t c ↔ ∃ v, c.actionValue? i t = some v where
+  mp  | intro      => by simp [actionValue?] 
+  mpr | .intro v h => by sorry
 
-theorem isState_iff_stateValue?_eq_some {c : Change} :
-  c.isState ↔ (∃ t v, c.stateValue? t = some v) := by
-  constructor
-  case mp =>
-    cases c <;> simp [isState, stateValue?]
-    case state t v => exists t, v; simp
-  case mpr =>
-    cases c <;> simp [stateValue?]
-
-theorem isActionForTime_iff_actionValue?_eq_some {c : Change} :
-  (c = .action i t v) ↔ (c.actionValue? i t = some v) := by
-  constructor
-  case mp =>
-    intro h
-    cases c <;> simp_all [actionValue?]
-  case mpr =>
-    intro h
-    cases c <;> simp_all [actionValue?]
-    case action =>
-      split at h <;> simp_all
+theorem not_IsActionAt_iff_actionValue?_none : ¬(IsActionAt i t c) ↔ c.actionValue? i t = none :=
+  sorry
 
 def target : Change → Option ID
   | port t .. | state t .. | action t .. => t

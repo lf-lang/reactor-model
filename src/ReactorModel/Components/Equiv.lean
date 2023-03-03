@@ -70,6 +70,7 @@ theorem con?_obj_equiv {cmp} :
   rw [he.con?_id_eq hc₁ hc₂] at h₁
   exact he.nest' h₁ h₂
 
+-- TODO: Rename this to obj?_some_iff
 theorem obj?_iff {cmp} {i : ID} : 
   (σ₁ ≈ σ₂) → ((∃ o₁, σ₁.obj? cmp i = some o₁) ↔ (∃ o₂, σ₂.obj? cmp i = some o₂)) := by 
   intro he
@@ -79,6 +80,10 @@ theorem obj?_iff {cmp} {i : ID} :
     -- simp [←ids_mem_iff_obj?, ←he.top] at *
     -- exact ho
   )
+
+theorem obj?_none_iff {cmp} {i : ID} (e : σ₁ ≈ σ₂) : 
+    (σ₁.obj? cmp i = none) ↔ (σ₂.obj? cmp i = none) := by 
+  sorry
 
 theorem cmp?_iff {cmp} {j : ID} :
   (σ₁ ≈ σ₂) → (σ₁.obj? .rtr i = some rtr₁) → (σ₂.obj? .rtr i = some rtr₂) → 

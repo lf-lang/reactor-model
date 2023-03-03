@@ -11,32 +11,19 @@ noncomputable def schedule (act : Time.Tag ⇉ Value) (t : Time) (v : Value) : T
   | none => act.update ⟨t, 0⟩ v
   | some g => act.update ⟨t, g.microstep + 1⟩ v
 
-theorem schedule_preserves_unchanged_time (h : t ≠ t') : a ⟨t', m⟩ = (schedule a t v) ⟨t', m⟩ := by
-  unfold schedule
-  split
-  all_goals
-    apply Eq.symm
-    sorry
-    -- apply Finmap.update_ne
-    -- simp [h]
+theorem schedule_preserves_unchanged_time (h : t ≠ t') : a ⟨t', m⟩ = schedule a t v ⟨t', m⟩ := by
+  sorry
 
-theorem schedule_time_inj :
-  (∀ m, a₁ ⟨t, m⟩ = a₂ ⟨t, m⟩) → (schedule a₁ t v) ⟨t, m⟩ = (schedule a₂ t v) ⟨t, m⟩ := by
-  intro h
-  unfold schedule
-  cases a₁.ids.filter (·.time = t) |>.max <;>
-  cases a₂.ids.filter (·.time = t) |>.max
-  case' none.none, none.some =>
-    cases m
-    case zero => sorry -- simp [Finmap.update_self]
-    case succ => sorry -- simp [Finmap.update_ne, h]
-  case' some.some m₁ _, some.none m₁ =>
-    simp
-    by_cases hm : m₁.microstep + 1 = m
-    case pos => sorry -- simp [hm, Finmap.update_self]
-    case neg => 
-      sorry
-      -- have hm' : Time.Tag.mk t (m₁.microstep + 1) ≠ ⟨t, m⟩ := by simp [hm]
-      -- simp [Finmap.update_ne _ hm', h
-  
+noncomputable def schedule' (act : Time.Tag ⇉ Value) (t : Time) : (List Value) → Time.Tag ⇉ Value
+  | .nil => act
+  | .cons v tl => schedule' (schedule act t v) t tl
+
+theorem schedule'_cons (act : Time.Tag ⇉ Value) : 
+    schedule' act t (hd :: tl) = schedule' (schedule act t hd) t tl := 
+  rfl
+
+theorem schedule'_tag_congr {act₁ act₂ : Time.Tag ⇉ Value} (h : act₁ ⟨t, m⟩ = act₂ ⟨t, m⟩) :
+    (schedule' act₁ t l) ⟨t, m⟩ = (schedule' act₂ t l) ⟨t, m⟩ :=
+  sorry
+
 end Execution

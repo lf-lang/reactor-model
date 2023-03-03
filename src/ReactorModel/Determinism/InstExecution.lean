@@ -60,7 +60,7 @@ theorem mem_progress :
     case mpr =>
       cases hc with
       | inl h => 
-        cases (List.mem_cons_iff ..).mp h with
+        cases (List.mem_cons ..).mp h with
         | inl h => exact hi.mpr $ .inr (h ▸ h₁.self_progress)
         | inr h => exact hi.mpr $ .inl h
       | inr h => exact hi.mpr $ .inr $ h₁.monotonic_progress h
