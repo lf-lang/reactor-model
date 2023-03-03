@@ -123,7 +123,7 @@ theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i
   case top ha _ _ => exact ⟨Lineage.end cmp $ Finmap.mem_ids_iff.mpr ⟨_, ha⟩⟩
   case nest hn _ _ hi => exact ⟨Lineage.nest hi.some hn⟩
 
-theorem Update.obj?_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : ∃ o, σ₁.obj? cmp i = some o := by
+theorem Update.obj?_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : ∃ o, σ₁[cmp][i] = some o := by
   sorry
 
 theorem Update.preserves_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : Nonempty (Lineage σ₂ cmp i) := by
@@ -162,7 +162,7 @@ theorem Update.unique' {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.
   λ h₁ h₂ => Update.unique h₁ h₂ λ _ _ _ hv₁ hv₂ => hv₁.trans hv₂.symm
 
 theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} :
-  (σ₁ -[cmp;i u]→ σ₂) → ∃ v v', (σ₁.obj? cmp i = some v) ∧ (σ₂.obj? cmp i = some v') ∧ (u v v') := by
+  (σ₁ -[cmp;i u]→ σ₂) → ∃ v v', (σ₁[cmp][i] = some v) ∧ (σ₂[cmp][i] = some v') ∧ (u v v') := by
   intro h
   induction h
   case top hv hv' hu => exact ⟨_, _, Reactor.cmp?_to_obj? hv, Reactor.cmp?_to_obj? hv', hu⟩
@@ -171,7 +171,7 @@ theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type
     exact ⟨_, _, Reactor.obj?_nest hr₁ ho₁, Reactor.obj?_nest hr₂ ho₂, hu⟩ 
 
 theorem Update.change' {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
-  (σ₁ -[cmp:i f]→ σ₂) → ∃ v, (σ₁.obj? cmp i = some v) ∧ (σ₂.obj? cmp i = f v) := by
+  (σ₁ -[cmp:i f]→ σ₂) → ∃ v, (σ₁[cmp][i] = some v) ∧ (σ₂[cmp][i] = f v) := by
   sorry
 
 notation u₂ " ● " u₁ => λ v₁ v₂ => ∃ v, (u₁ v₁ v) ∧ (u₂ v v₂)
@@ -220,7 +220,7 @@ theorem Update.funcs_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cm
   exact Update.unique' hc₁ hc₂
 
 theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
-  (σ₁ -[cmp:i f]→ σ₂) → (cmp' ≠ cmp ∨ i' ≠ i) → (cmp ≠ .rtr) → (cmp' ≠ .rtr) → (σ₁.obj? cmp' i' = σ₂.obj? cmp' i') := by
+  (σ₁ -[cmp:i f]→ σ₂) → (cmp' ≠ cmp ∨ i' ≠ i) → (cmp ≠ .rtr) → (cmp' ≠ .rtr) → (σ₁[cmp'][i'] = σ₂[cmp'][i']) := by
   intro h ho hr hr'
   induction h
   case top he _ _ _ =>
@@ -233,13 +233,13 @@ theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
 theorem Update.preserves_ne_cmp {cmp} {f : cmp.type → cmp.type} 
     (u : σ₁ -[cmp:i f]→ σ₂) (hn : cmp' ≠ cmp := by exact (nomatch ·)) 
     (hc : cmp ≠ .rtr := by exact (nomatch ·)) (hc' : cmp' ≠ .rtr := by exact (nomatch ·)) : 
-    σ₁.obj? cmp' j = σ₂.obj? cmp' j := by
+    σ₁[cmp'][j] = σ₂[cmp'][j] := by
   sorry
 
 theorem Update.preserves_ne_id {cmp} {f : cmp.type → cmp.type} 
     (u : σ₁ -[cmp:i f]→ σ₂) (hi : i ≠ j) 
     (hc : cmp ≠ .rtr := by exact (nomatch ·)) (hc' : cmp' ≠ .rtr := by exact (nomatch ·)) : 
-    σ₁.obj? cmp' j = σ₂.obj? cmp' j := by
+    σ₁[cmp'][j] = σ₂[cmp'][j] := by
   sorry
 
 -- TODO: Cf. comment on EqModID.preserves_Equiv.

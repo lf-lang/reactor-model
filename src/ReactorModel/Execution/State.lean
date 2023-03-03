@@ -41,7 +41,7 @@ theorem Allows.requires_acyclic_deps {s : State} : (s.Allows rcn) → (rcn >[s.r
   exact absurd (hd _ h) hu
 
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
-  match s.rtr.con? .rcn i, s.rtr.obj? .rcn i with
+  match s.rtr.con? .rcn i, s.rtr[.rcn][i] with
   | some con, some rcn => some {
       ports := s.rtr.obj?' .prt |>.restrict (rcn.deps .in)  |>.map (·.val),
       acts :=     s.rtr.obj?' .act |>.filterMap (· s.tag) |>.restrict (rcn.deps .in),
@@ -51,15 +51,15 @@ noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input :=
   | _, _ => none
 
 noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
-  match s.rtr.obj? .rcn i, s.rcnInput i with
+  match s.rtr[.rcn][i], s.rcnInput i with
     | some rcn, some i => rcn i 
     | _, _ => none
   
 theorem rcnInput_iff_obj? {s : State} : 
-  (∃ i, s.rcnInput rcn = some i) ↔ (∃ o, s.rtr.obj? .rcn rcn = some o) := by
+  (∃ i, s.rcnInput rcn = some i) ↔ (∃ o, s.rtr[.rcn][rcn] = some o) := by
   constructor <;> intro ⟨_, h⟩
   case mp =>
-    cases hc : s.rtr.obj? .rcn rcn <;> simp [rcnInput, hc] at *
+    cases hc : s.rtr[.rcn][rcn] <;> simp [rcnInput, hc] at *
   case mpr =>
     have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? h
     simp [rcnInput, hc, h]
@@ -69,20 +69,20 @@ private theorem rcnInput_iff_rcnOutput {s : State} :
   (∃ i, s.rcnInput j = some i) ↔ (∃ o, s.rcnOutput j = some o) := by
   constructor <;> (
     intro h; simp [rcnInput, rcnOutput] at *
-    cases ho : s.rtr.obj? .rcn j
+    cases ho : s.rtr[.rcn][j]
     case none => simp [ho] at h
     case some => have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
   )
 
 theorem rcnInput_ports_def {s : State} :
-  (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (p = (s.rtr.obj?' .prt |>.restrict (rcn.deps .in) |>.map (·.val))) := by
+  (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (p = (s.rtr.obj?' .prt |>.restrict (rcn.deps .in) |>.map (·.val))) := by
   intro hi ho
   have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
   simp [rcnInput, hc, ho] at hi
   exact hi.left.symm
 
 theorem rcnInput_actions_def {s : State} :
-  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr.obj? .rcn j = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.tag) |>.restrict (rcn.deps .«in»))) := by
+  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.tag) |>.restrict (rcn.deps .«in»))) := by
   intro hi ho
   have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
   simp [rcnInput, hc, ho] at hi
@@ -107,7 +107,7 @@ theorem rcnInput_time_def {s : State} :
     exact hi.right.right.right.symm
     
 theorem rcnInput_to_rcnOutput {s : State} : 
-  (s.rcnInput j = some i) → (∃ rcn, s.rtr.obj? .rcn j = some rcn ∧ s.rcnOutput j = rcn i) := by
+  (s.rcnInput j = some i) → (∃ rcn, s.rtr[.rcn][j] = some rcn ∧ s.rcnOutput j = rcn i) := by
   intro h
   have ⟨_, ho⟩ := rcnInput_iff_obj?.mp ⟨_, h⟩
   exact ⟨_, ho, by simp [rcnOutput, ho, h]⟩
@@ -115,33 +115,33 @@ theorem rcnInput_to_rcnOutput {s : State} :
 theorem rcnOutput_to_contains {s : State} :
   (s.rcnOutput rcn = some o) → (s.rtr.contains .rcn rcn) := by
   intro h
-  cases ho : s.rtr.obj? .rcn rcn
+  cases ho : s.rtr[.rcn][rcn]
   case none => simp [rcnOutput, ho] at h
   case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
 
 private theorem rcnOutput_to_rcn_body {s : State} {j : ID} : 
-  (s.rcnOutput j = some o) → (∃ i rcn, s.rtr.obj? .rcn j = some rcn ∧ rcn i = o) := by
+  (s.rcnOutput j = some o) → (∃ i rcn, s.rtr[.rcn][j] = some rcn ∧ rcn i = o) := by
   intro h
   have ⟨_, hi⟩ := rcnInput_iff_rcnOutput.mpr ⟨_, h⟩
   have ⟨_, ho, hb⟩ := rcnInput_to_rcnOutput hi
   exact ⟨_, _, ho, Option.some_inj.mp $ hb.symm.trans h⟩
 
 theorem rcnOutput_port_dep_only {s : State} (v) : 
-  (s.rcnOutput i = some o) → (s.rtr.obj? .rcn i = some rcn) → (p ∉ rcn.deps .out) → .port p v ∉ o := by
+  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (p ∉ rcn.deps .out) → .port p v ∉ o := by
   intro ho hr hp
   have ⟨x, _, hr', hb⟩ := rcnOutput_to_rcn_body ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
   exact rcn.prtOutDepOnly x v hp
 
 theorem rcnOutput_action_dep_only {s : State}(t v) : 
-  (s.rcnOutput i = some o) → (s.rtr.obj? .rcn i = some rcn) → (a ∉ rcn.deps .out) → .action a t v ∉ o := by
+  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (a ∉ rcn.deps .out) → .action a t v ∉ o := by
   intro ho hr hp
   have ⟨x, _, hr', hb⟩ := rcnOutput_to_rcn_body ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
   exact rcn.actOutDepOnly x t v hp
 
 theorem rcnOutput_pure {s : State} (v) : 
-  (s.rcnOutput i = some o) → (s.rtr.obj? .rcn i = some rcn) → (rcn.isPure) → .state j v ∉ o := by
+  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (rcn.isPure) → .state j v ∉ o := by
   intro ho hr hp
   have ⟨x, _, hr', hb⟩ := rcnOutput_to_rcn_body ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
@@ -159,12 +159,12 @@ theorem rcnOutput_state_local {s : State} (v) :
   exact absurd (rcn.stateLocal hm) hs
 
 theorem rcnOutput_congr {s₁ s₂ : State} :
-  (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rtr.obj? .rcn rcn = s₂.rtr.obj? .rcn rcn) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) :=
+  (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rtr[.rcn][rcn] = s₂.rtr[.rcn][rcn]) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) :=
   (by simp [rcnOutput, ←·, ·])
 
 theorem rcnOutput_pure_congr {s₁ s₂ : State} :
   (s₁.rcnInput i = some ⟨p, a, x₁, t⟩) → (s₂.rcnInput i = some ⟨p, a, x₂, t⟩) → 
-  (s₁.rtr.obj? .rcn i = some rcn) → (s₂.rtr.obj? .rcn i = some rcn) → (rcn.isPure) →
+  (s₁.rtr[.rcn][i] = some rcn) → (s₂.rtr[.rcn][i] = some rcn) → (rcn.isPure) →
   (s₁.rcnOutput i = s₂.rcnOutput i) :=
   λ hi₁ hi₂ ho₁ ho₂ hp => by simp [rcnOutput, ho₁, ho₂, hi₁, hi₂, hp.input _ x₁, hp.input _ x₂]
   

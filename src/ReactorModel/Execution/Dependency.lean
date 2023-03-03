@@ -11,25 +11,25 @@ open Classical
 inductive Dependency (σ : Reactor) : ID → ID → Prop
   | prio :
     (σ.con? .rcn i₁ = σ.con? .rcn i₂) →
-    (σ.obj? .rcn i₁ = some rcn₁) →
-    (σ.obj? .rcn i₂ = some rcn₂) →
+    (σ[.rcn][i₁] = some rcn₁) →
+    (σ[.rcn][i₂] = some rcn₂) →
     (rcn₁.isMut ↔ rcn₂.isMut) → 
     (rcn₁.prio > rcn₂.prio) →
     Dependency σ i₁ i₂
   | mutNorm :
     (σ.con? .rcn iₘ = σ.con? .rcn iₙ) →
-    (σ.obj? .rcn iₘ = some m) →
-    (σ.obj? .rcn iₙ = some n) →
+    (σ[.rcn][iₘ] = some m) →
+    (σ[.rcn][iₙ] = some n) →
     (m.isMut) → 
     (n.isNorm) → 
     Dependency σ iₘ iₙ
   | depOverlap :
-    (σ.obj? .rcn (i₁ : ID) = some rcn₁) →
-    (σ.obj? .rcn (i₂ : ID) = some rcn₂) →
+    (σ[.rcn][(i₁ : ID)] = some rcn₁) →
+    (σ[.rcn][(i₂ : ID)] = some rcn₂) →
     ((rcn₁.deps .out ∩ rcn₂.deps .in).Nonempty) →
     Dependency σ i₁ i₂
   | mutNest :
-    (σ.obj? .rcn (iₘ : ID) = some m) → 
+    (σ[.rcn][(iₘ : ID)] = some m) → 
     (m.isMut) → 
     (σ.con? .rcn iₘ = some rtr₁) →
     (rtr₂ ∈ rtr₁.obj.nest.values) → 
@@ -58,7 +58,7 @@ protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
 -- TODO: Come up with better names for these theorems.
 
 theorem nonoverlapping_deps : 
-  (i₁ >[σ]< i₂) → (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
+  (i₁ >[σ]< i₂) → (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
   (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
   intro ⟨hi, _⟩ ho₁ ho₂
   by_contra hc
@@ -66,7 +66,7 @@ theorem nonoverlapping_deps :
  
 theorem ne_rtr_or_pure : 
   (i₁ >[σ]< i₂) → (i₁ ≠ i₂) →
-  (σ.obj? .rcn i₁ = some rcn₁) → (σ.obj? .rcn i₂ = some rcn₂) →
+  (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
   (σ.con? .rcn i₁ = some c₁) → (σ.con? .rcn i₂ = some c₂) →
   (c₁.id ≠ c₂.id) ∨ rcn₁.isPure ∨ rcn₂.isPure := by
   intro h hn ho₁ ho₂ hc₁ hc₂ 
