@@ -6,6 +6,8 @@ namespace Reactor
 
 variable {cmp : Component} 
 
+-- TODO: Move this into ReactorType.lean, or better make a separate file for ReactorType.Indexable.
+
 namespace Lineage
 
 theorem end_container_eq_root {σ : Reactor} (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.final h).container.obj = σ := by

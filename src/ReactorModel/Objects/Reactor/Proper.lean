@@ -1,8 +1,8 @@
-import ReactorModel.Objects.Reactor.Wellformed
+import ReactorModel.Objects.Reactor.Raw
 
 structure Reactor where
   raw : Reactor.Raw
-  private wf : raw.Wellformed
+  private wf : ReactorType.Wellformed raw
 
 namespace Reactor
 
@@ -13,14 +13,6 @@ def rcns  : Reactor → ID ⇀ Reaction         := (·.raw.rcns)
 
 def nest (rtr : Reactor) : ID ⇀ Reactor :=
   rtr.raw.nest.attach.map fun ⟨raw, h⟩ => { raw := raw, wf := rtr.wf.nested h.choose_spec }
-
-def_lineage_type Reactor      -- defines `componentType`, `cmp?` and `Lineage`
-def_lineage_accessors Reactor -- defines `Lineage.container`, `con?` and `obj?`
-
-notation rtr "[" cmp "][" i "]" => Reactor.obj? rtr cmp i
-
-noncomputable def scheduledTags (rtr : Reactor) : Set Time.Tag := 
-  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.dom) }
 
 private theorem nest_raw_comm (rtr : Reactor) : 
     rtr.raw.nest = rtr.nest.map Reactor.raw := by
@@ -40,10 +32,16 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor} :
     mpr := by simp_all
   }
 
--- The lifted version of `Raw.uniqueIDs`.
-theorem uniqueIDs {cmp} (rtr : Reactor) (l₁ l₂ : Lineage cmp i rtr) : l₁ = l₂ := by
-  sorry
+instance : ReactorType.Proper Reactor where
+  ports      := Reactor.ports
+  acts       := Reactor.acts
+  state      := Reactor.state
+  rcns       := Reactor.rcns
+  nest       := Reactor.nest
+  uniqueIDs  := sorry
+  wellformed := sorry
 
--- TODO: Lift all the theorems of `wf` to use `Reactor.obj?` instead of `Reactor.Raw.obj?`.
+noncomputable def scheduledTags (rtr : Reactor) : Set Time.Tag := 
+  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.dom) }
 
 end Reactor
