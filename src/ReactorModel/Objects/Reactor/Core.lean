@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.ReactorType
+import ReactorModel.Objects.Reactor.TypeClasses.Basic
 
 namespace Reactor
 

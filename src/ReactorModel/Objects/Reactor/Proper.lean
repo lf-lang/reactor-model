@@ -1,8 +1,10 @@
 import ReactorModel.Objects.Reactor.Raw
+import ReactorModel.Objects.Reactor.TypeClasses.Proper
 
+open ReactorType in
 structure Reactor where
   raw : Reactor.Raw
-  private wf : ReactorType.Wellformed raw
+  private wf : Wellformed raw
 
 namespace Reactor
 

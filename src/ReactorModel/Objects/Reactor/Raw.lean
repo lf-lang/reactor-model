@@ -1,7 +1,9 @@
 import ReactorModel.Objects.Reactor.Core
+import ReactorModel.Objects.Reactor.TypeClasses.Indexable
 
 namespace Reactor
 
+open ReactorType in
 protected structure Raw where
   core : Reactor.Core
   private coreUniqueIDs : ∀ {cmp i} (l₁ l₂ : Lineage cmp i core), l₁ = l₂ 
