@@ -60,7 +60,7 @@ theorem ssubset_ne {s₁ s₂ : Finset α} (h : s₁ ⊂ s₂) : s₁ ≠ s₂ :
 end Finset
 
 -- We need to use our own `Finmap` type based on `α → Option β`, as this is integral for the 
--- definition of `Raw.Reactor`.
+-- definition of `RawReactor`.
 structure Finmap (α β) where
   lookup : α → Option β 
   finite : { a | lookup a ≠ none }.Finite

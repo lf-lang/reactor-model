@@ -2,9 +2,10 @@ import ReactorModel.Components.Reactor.Raw
 
 open Classical
 
-namespace Raw.Reactor
+/-
+namespace RawReactor
 
-protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
+protected structure WellFormed.Direct (rtr : RawReactor) : Prop where
   nestFinite :   { i | rtr.nest i ≠ none }.Finite
   uniqueIDs :    (l₁ l₂ : Raw.Lineage rtr i) → l₁ = l₂ 
   orderability : (Raw.Orderable rtr rcn₁ rcn₂) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)   
@@ -20,7 +21,7 @@ protected structure WellFormed.Direct (rtr : Raw.Reactor) : Prop where
 --    can produce a `Raw.Change.create` which contains `r₂`
 --
 -- The `Ancestor` relation forms the transitive closure over the previous cases.
-inductive Ancestor : Raw.Reactor → Raw.Reactor → Prop 
+inductive Ancestor : RawReactor → RawReactor → Prop 
   | nest : (parent.nest i = some child) → Ancestor parent child
   | trans : (Ancestor rtr₁ rtr₂) → (Ancestor rtr₂ rtr₃) → (Ancestor rtr₁ rtr₃)
 
@@ -30,16 +31,17 @@ inductive Ancestor : Raw.Reactor → Raw.Reactor → Prop
 --    required for a "proper" reactor.
 -- 2. `offspring` ensures that all nested and creatable reactors also satisfy `directlyWellFormed`.
 --    The `isAncestorOf` relation formalizes the notion of (transitive) nesting and "creatability".
-structure WellFormed (σ : Raw.Reactor) : Prop where
+structure WellFormed (σ : RawReactor) : Prop where
   direct : WellFormed.Direct σ 
   offspring : ∀ {rtr}, Ancestor σ rtr → WellFormed.Direct rtr
 
-theorem WellFormed.ancestor {rtr₁ rtr₂ : Raw.Reactor} (hw : WellFormed rtr₁)  (ha : Ancestor rtr₁ rtr₂) : WellFormed rtr₂ := {
+theorem WellFormed.ancestor {rtr₁ rtr₂ : RawReactor} (hw : WellFormed rtr₁)  (ha : Ancestor rtr₁ rtr₂) : WellFormed rtr₂ := {
   direct := hw.offspring ha,
   offspring := (hw.offspring $ ha.trans ·)
 }
 
-end Raw.Reactor
+end RawReactor
+-/
 
 -- A `Reactor` is a raw reactor that is also well-formed.
 --
@@ -47,8 +49,8 @@ end Raw.Reactor
 -- The `fromRaw ::` names the constructor of `Reactor`.
 structure Reactor where
   private fromRaw ::
-    private raw : Raw.Reactor
-    private rawWF : Raw.Reactor.WellFormed raw  
+    private raw : RawReactor
+    private rawWF : RawReactor.WellFormed raw  
 
 namespace Reactor
 
@@ -58,10 +60,10 @@ def state : Reactor → ID ⇉ Value            := (·.raw.state)
 def rcns  : Reactor → ID ⇉ Reaction         := (·.raw.rcns)
 
 def nest (rtr : Reactor) : ID ⇉ Reactor :=
-  let raw : ID ⇉ Raw.Reactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
+  let raw : ID ⇉ RawReactor := { lookup := rtr.raw.nest, finite := rtr.rawWF.direct.nestFinite }
   raw.attach.map (λ ⟨_, h⟩ => Reactor.fromRaw _ (by
       have ⟨_, hm⟩ := Finmap.mem_values_iff.mp h
-      exact rtr.rawWF.ancestor (Raw.Reactor.Ancestor.nest hm)
+      exact rtr.rawWF.ancestor (RawReactor.Ancestor.nest hm)
     )
   )  
 
@@ -119,7 +121,7 @@ theorem ext_iff {rtr₁ rtr₂ : Reactor} :
   case mpr =>
     intro h
     apply raw_ext_iff.mpr
-    apply Raw.Reactor.ext_iff.mpr
+    apply RawReactor.ext_iff.mpr
     simp only [ports, rcns, acts, state] at h
     simp [h]
     have ⟨_, _, _, _, h⟩ := h
@@ -195,7 +197,7 @@ noncomputable def nestedPortIDs (rtr : Reactor) (k : Kind) : Finset ID :=
 
 private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
   (i ∈ rtr.raw.nestedPortIDs k) → (i ∈ rtr.nestedPortIDs k) := by
-  simp [nestedPortIDs, Raw.Reactor.nestedPortIDs, Set.Finite.mem_toFinset]
+  simp [nestedPortIDs, RawReactor.nestedPortIDs, Set.Finite.mem_toFinset]
   intro j r hn hi
   have rwf := rtr.rawWF.ancestor (.nest hn)
   let rtr' := Reactor.fromRaw r rwf
@@ -203,7 +205,7 @@ private theorem mem_raw_nestedPortIDs_to_mem_nestedPortIDs {rtr : Reactor} :
   rw [hr] at hn
   exists rtr'
   simp [Finmap.mem_values_iff.mpr ⟨_, nest_mem_raw_iff.mpr hn⟩, ports']
-  simp [Raw.Reactor.ports'] at hi
+  simp [RawReactor.ports'] at hi
   exact hi
 
 noncomputable def scheduledTags (σ : Reactor) : Finset Time.Tag := 

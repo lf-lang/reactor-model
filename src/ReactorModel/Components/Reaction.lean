@@ -2,12 +2,30 @@ import ReactorModel.Components.Change
 
 open Classical
 
+abbrev Partial (α β) := α → Option β
+
+infixr:50 " ⇀ " => Partial
+
+def Partial.ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
+
+def Partial.attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
+  fun a => 
+    match h : f a with
+    | none => none
+    | some b => some ⟨b, ⟨_, h⟩⟩
+
+def Partial.map (f : α ⇀ β) (g : β → γ) : α ⇀ γ := 
+  fun a => g <$> f a
+
+def Partial.filter (f : α ⇀ β) (p : β → Prop) [DecidablePred p] : α ⇀ β := 
+  fun a => f a >>= fun b => if p b then b else none
+
 @[ext]
 structure Reaction.Input where
-  ports : ID ⇉ Value
-  acts : ID ⇉ Value
-  state : ID ⇉ Value
-  tag : Time.Tag
+  ports : ID ⇀ Value
+  acts  : ID ⇀ Value
+  state : ID ⇀ Value
+  tag   : Time.Tag
 
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
@@ -23,8 +41,8 @@ structure Reaction.Input where
 open Reaction in
 @[ext]
 structure Reaction where
-  deps :          Kind → Finset ID
-  triggers :      Finset ID
+  deps :          Kind → Set ID
+  triggers :      Set ID
   prio :          Priority
   body :          Input → List Change
   tsSubInDeps :   triggers ⊆ deps .in
@@ -40,22 +58,22 @@ namespace Reaction
 instance : CoeFun Reaction (λ _ => Input → List Change) where
   coe rcn := rcn.body
 
--- A reaction is normal ("norm") if its body produces no mutating changes.
-def isNorm (rcn : Reaction) : Prop :=
+-- A reaction is normal if its body produces no mutating changes.
+def Normal (rcn : Reaction) : Prop :=
   ∀ {i c}, (c ∈ rcn i) → ¬c.mutates 
 
--- A reaction is a mutation if it is not "normal", i.e. it does produce
--- mutating changes for some input.
-def isMut (rcn : Reaction) : Prop := ¬rcn.isNorm
+-- A reaction is a mutation if it is not "normal", i.e. it does produce mutating changes for some 
+-- input.
+def Mutates (rcn : Reaction) : Prop := ¬rcn.Normal
 
 -- A reaction is pure if it does not interact with its container's state.
-structure isPure (rcn : Reaction) : Prop where
+structure Pure (rcn : Reaction) : Prop where
   input : ∀ i s, rcn i = rcn { i with state := s }
   output : (c ∈ rcn.body i) → c.isPort ∨ c.isAction
 
-theorem isMut_not_isPure (rcn : Reaction) : rcn.isMut → ¬rcn.isPure := by
+theorem Mutates.not_Pure (rcn : Reaction) : rcn.Mutates → ¬rcn.Pure := by
   intro hm ⟨_, ho⟩
-  simp [isMut, isNorm] at hm
+  simp [Mutates, Normal] at hm
   have ⟨_, c, hb, _⟩ := hm
   specialize ho hb
   cases ho <;> cases c <;> simp [Change.mutates] at *    
@@ -77,7 +95,7 @@ noncomputable def relay (src dst : ID) : Reaction := {
   tsSubInDeps := by simp,
   prtOutDepOnly := by
     intro _ i 
-    cases hs : i.ports src <;> simp_all [Option.elim, hs, Finset.not_mem_singleton]
+    cases hs : i.ports src <;> simp_all [Option.elim, hs]
   actOutDepOnly := by
     intro _ i
     cases hs : i.ports src <;> simp [Option.elim, hs]
@@ -89,7 +107,7 @@ noncomputable def relay (src dst : ID) : Reaction := {
     cases hs : i.ports src <;> simp [hs] at h
 }
 
-theorem relay_isPure (i₁ i₂) : (Reaction.relay i₁ i₂).isPure := {
+theorem relay_Pure (i₁ i₂) : (Reaction.relay i₁ i₂).Pure := {
   input := by simp [relay],
   output := by intro _ i h; cases hc : i.ports i₁ <;> simp_all [relay, hc, h]
 }

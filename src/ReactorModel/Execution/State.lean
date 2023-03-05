@@ -169,7 +169,7 @@ theorem rcnOutput_pure_congr {s₁ s₂ : State} :
   λ hi₁ hi₂ ho₁ ho₂ hp => by simp [rcnOutput, ho₁, ho₂, hi₁, hi₂, hp.input _ x₁, hp.input _ x₂]
   
 def triggers (s : State) (r : ID) :=
-  ∃ rcn i, (s.rtr.obj? .rcn r = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.triggersOn i)
+  ∃ rcn i, (s.rtr[.rcn][r] = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.triggersOn i)
 
 noncomputable def operation (s : State) (i : ID) : Option Operation :=
   if s.triggers i 
