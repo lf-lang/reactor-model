@@ -1,24 +1,6 @@
-import ReactorModel.Components.Change
+import ReactorModel.Objects.Change
 
 open Classical
-
-abbrev Partial (α β) := α → Option β
-
-infixr:50 " ⇀ " => Partial
-
-def Partial.ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
-
-def Partial.attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
-  fun a => 
-    match h : f a with
-    | none => none
-    | some b => some ⟨b, ⟨_, h⟩⟩
-
-def Partial.map (f : α ⇀ β) (g : β → γ) : α ⇀ γ := 
-  fun a => g <$> f a
-
-def Partial.filter (f : α ⇀ β) (p : β → Prop) [DecidablePred p] : α ⇀ β := 
-  fun a => f a >>= fun b => if p b then b else none
 
 @[ext]
 structure Reaction.Input where

@@ -1,4 +1,4 @@
-import ReactorModel.Components.Equiv
+import ReactorModel.Objects.Equiv
 
 open Classical
 

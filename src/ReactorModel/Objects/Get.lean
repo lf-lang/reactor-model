@@ -1,59 +1,51 @@
-import ReactorModel.Components.Reactor.Proper
+import ReactorModel.Objects.Reactor.Proper
 
 open Classical
 
 namespace Reactor
 
-variable {cmp : Cmp} 
+variable {cmp : Component} 
 
 namespace Lineage
 
--- The "parent" in a lineage is the reactor which contains the target of the lineage.
--- This function returns that reactor along with its ID.
--- If the direct parent is the top-level reactor `σ`, then the ID is `⊤`.
-def container : Lineage σ cmp i → Identified Reactor 
-  | .nest l@(.nest ..) _ => l.container
-  | @nest r j .. =>         { id := j, obj := r }
-  | _ =>                    { id := ⊤, obj := σ }
-decreasing_by sorry
-
-theorem end_container_eq_root (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.end cmp h).container.obj = σ := by
+theorem end_container_eq_root {σ : Reactor} (h : i ∈ (σ.cmp? cmp).ids) : (Lineage.final h).container.obj = σ := by
   simp [Lineage.container]
 
-theorem nest_container_obj {σ rtr : Reactor} (l : Lineage rtr cmp i) (h : σ.nest j = rtr) : (Lineage.nest l h).container.obj = l.container.obj := by
+theorem nest_container_obj {σ rtr : Reactor} (l : Lineage cmp i rtr) (h : σ.nest j = rtr) : (Lineage.nest h l).container.obj = l.container.obj := by
   cases l <;> simp [container]
 
-theorem container_cmp_mem (l : Lineage σ cmp i) : ∃ o, l.container.obj.cmp? cmp i = some o := by
+theorem container_cmp_mem (l : Lineage cmp i σ) : ∃ o, l.container.obj.cmp? cmp i = some o := by
   induction l
-  case «end» _ h => simp [container, Finmap.mem_ids_iff.mp h]
+  case final _ h => sorry -- simp [container, Finmap.mem_ids_iff.mp h]
   case nest hi => simp [nest_container_obj, hi]
 
-theorem nest_container_id_not_top {σ rtr : Reactor} (l : Lineage rtr cmp i) (h : σ.nest j = rtr) : (Lineage.nest l h).container.id ≠ ⊤ := by
+theorem nest_container_id_not_top {σ rtr : Reactor} (l : Lineage cmp i rtr) (h : σ.nest j = rtr) : (Lineage.nest h l).container.id ≠ ⊤ := by
   by_contra hc
   induction l generalizing σ j <;> simp [container] at hc
-  case nest hn hi => exact hi hn hc
+  case nest hn _ hi => exact hi hn hc
 
 theorem nest_container_id 
-  {σ rtr₁ rtr₂ : Reactor} {l₁ : Lineage rtr₁ cmp i₁} {l₂ : Lineage rtr₂ cmp i₂} 
+  {σ rtr₁ rtr₂ : Reactor} {l₁ : Lineage cmp i₁ rtr₁} {l₂ : Lineage cmp i₂ rtr₂} 
   {h₁ : σ.nest j₁ = rtr₁} {h₂ : σ.nest j₂ = rtr₂} : 
-  ((Lineage.nest l₁ h₁).container.id = (Lineage.nest l₂ h₂).container.id) → 
+  ((Lineage.nest h₁ l₁).container.id = (Lineage.nest h₂ l₂).container.id) → 
   l₁.container.id = l₂.container.id := by 
   intro hi
   cases l₁ <;> cases l₂
-  case end.end => simp [container]
-  case end.nest hm₁ rtr₂ j₂ hn₂ l₂ => 
+  case final.final => simp [container]
+  case final.nest hm₁ rtr₂ j₂ hn₂ l₂ => 
     exfalso
     simp [container] at hi
     sorry
-  case nest.end => sorry
+  case nest.final => sorry
   case nest.nest => simp_all [container]
 
-theorem container_eq_id_eq_obj {l₁ : Lineage σ cmp i₁} {l₂ : Lineage σ cmp i₂} : (l₁.container.id = l₂.container.id) → l₁.container = l₂.container := by
+theorem container_eq_id_eq_obj {l₁ : Lineage cmp i₁ σ} {l₂ : Lineage cmp i₂ σ} : (l₁.container.id = l₂.container.id) → l₁.container = l₂.container := by
   intro hi
   induction l₁ <;> cases l₂ <;> (simp [container] at *)
-  case end.nest hn l =>     exact absurd hi.symm (l.nest_container_id_not_top hn)
-  case nest.end l hn _ _ => exact absurd hi      (l.nest_container_id_not_top hn)
-  case nest.nest rtr₁ _ _ j₁ _ l₁ hn₁ h rtr₂ j₂ hn₂ l₂ =>
+  case final.nest l hn =>     exact absurd hi.symm (l.nest_container_id_not_top hn)
+  case nest.final hn l _ _ => exact absurd hi      (l.nest_container_id_not_top hn)
+  sorry
+  /-case nest.nest rtr₁ _ _ j₁ _ l₁ hn₁ h rtr₂ j₂ hn₂ l₂ =>
     suffices hj : j₁ = j₂ by
       subst hj
       have hr := hn₁.symm.trans hn₂ |> Option.some_inj.mp
@@ -61,30 +53,15 @@ theorem container_eq_id_eq_obj {l₁ : Lineage σ cmp i₁} {l₂ : Lineage σ c
       apply Identified.ext _ _ hi
       simp [nest_container_obj, h (nest_container_id hi)]
     sorry
+  -/
 
 end Lineage
 
--- Note, as we have `Reactor.uniqueIDs`, the choice in `h.some` is always unique.
-noncomputable def con? (σ : Reactor) (cmp : Cmp) (i : ID) : Option (Identified Reactor) := 
-  if h : Nonempty (Lineage σ cmp i) then h.some.container else none
-
-theorem con?_def : 
-  (σ.con? cmp i = some c) ↔ (∃ l : Lineage σ cmp i, l.container = c) := by
+theorem con?_def : (σ.con? cmp i = some c) ↔ (∃ l : Lineage cmp i σ, l.container = c) := by
   rw [con?]
   split <;> simp
   case inl h => exact ⟨λ _ => ⟨h.some, by simp_all⟩, λ ⟨l, hl⟩ => by simp [σ.uniqueIDs h.some l, hl]⟩
   case inr h => exact (λ l => absurd (Nonempty.intro l) h  )      
-
-noncomputable def obj? (σ : Reactor) (cmp : Cmp) : (RootedID) ⇉ cmp.type := {
-  lookup := λ i => 
-    match i, cmp with 
-    | ⊤, .rtr => σ
-    | .nest i, cmp => σ.con? cmp i >>= (·.obj.cmp? cmp i)
-    | _, _ => none
-  finite := sorry
-}
-
-notation rtr "[" cmp "][" i "]" => Reactor.obj? rtr cmp i
 
 noncomputable def obj?' (σ : Reactor) (cmp : Cmp) : ID ⇉ cmp.type := 
   σ.obj? cmp |>.map' (·.nest?) RootedID.nest?_inj

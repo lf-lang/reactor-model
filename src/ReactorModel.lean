@@ -1,4 +1,4 @@
-import ReactorModel.Components
+import ReactorModel.Objects
 import ReactorModel.Determinism
 import ReactorModel.Execution
 import ReactorModel.Extensions

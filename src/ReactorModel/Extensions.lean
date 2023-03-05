@@ -59,6 +59,42 @@ theorem ssubset_ne {s₁ s₂ : Finset α} (h : s₁ ⊂ s₂) : s₁ ≠ s₂ :
 
 end Finset
 
+abbrev Partial (α β) := α → Option β
+
+infixr:50 " ⇀ " => Partial
+
+namespace Partial
+
+def dom (f : α ⇀ β) := { a | ∃ b, f a = some b }
+
+abbrev ids (f : α ⇀ β) := f.dom
+
+def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
+  fun a => 
+    match h : f a with
+    | none => none
+    | some b => some ⟨b, ⟨_, h⟩⟩
+
+def map (f : α ⇀ β) (g : β → γ) : α ⇀ γ := 
+  fun a => g <$> f a
+
+theorem map_map (f : α ⇀ β) (g₁ : β → γ) (g₂ : γ → δ) : (f.map g₁).map g₂ = f.map (g₂ ∘ g₁) := 
+  sorry
+
+theorem attach_map_val (f : α ⇀ β) : f.attach.map Subtype.val = f := 
+  sorry
+
+theorem map_inj {f₁ f₂ : α ⇀ β} (hi : g.Injective) (h : f₁.map g = f₂.map g) : f₁ = f₂ :=
+  sorry
+
+def filter (f : α ⇀ β) (p : β → Prop) [DecidablePred p] : α ⇀ β := 
+  fun a => f a >>= fun b => if p b then b else none
+
+end Partial
+
+
+-- TODO: Remove Finmap?
+
 -- We need to use our own `Finmap` type based on `α → Option β`, as this is integral for the 
 -- definition of `RawReactor`.
 structure Finmap (α β) where
@@ -108,7 +144,7 @@ noncomputable def values (f : α ⇉ β) : Finset β :=
     case left => sorry -- simp [ids_def, ha]
     case right => simp [ha, hb]
   finite.toFinset
-
+ 
 theorem mem_values_iff {f : α ⇉ β} : v ∈ f.values ↔ (∃ i, f i = some v) := by
   simp [values, Set.Finite.mem_toFinset, Set.mem_setOf_eq]
 
