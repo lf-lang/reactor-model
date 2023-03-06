@@ -9,6 +9,9 @@ class Indexable (α) extends ReactorType α where
 
 namespace Indexable
 
+instance [ReactorType α] [Indexable β] [ReactorType.LawfulCoe α β] : Indexable α where
+  uniqueIDs := sorry
+
 open Classical in
 noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) (i : ID) : Option (Identified α) := 
   if l : Nonempty (Lineage cmp i rtr) then l.some.container else none

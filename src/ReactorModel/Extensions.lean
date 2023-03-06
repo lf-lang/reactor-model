@@ -75,7 +75,7 @@ def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } :=
     | none => none
     | some b => some ⟨b, ⟨_, h⟩⟩
 
-def map (f : α ⇀ β) (g : β → γ) : α ⇀ γ := 
+def map (g : β → γ) (f : α ⇀ β) : α ⇀ γ := 
   fun a => g <$> f a
 
 theorem map_map (f : α ⇀ β) (g₁ : β → γ) (g₂ : γ → δ) : (f.map g₁).map g₂ = f.map (g₂ ∘ g₁) := 

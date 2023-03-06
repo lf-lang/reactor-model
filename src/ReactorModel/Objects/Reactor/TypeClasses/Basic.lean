@@ -36,6 +36,43 @@ class ReactorType (α : Type _) where
 
 namespace ReactorType
 
+scoped macro "lawfulCoe_nest_proof" : tactic => 
+  `(tactic| simp [ReactorType.nest, Partial.map_map, Function.comp, Partial.attach_map_val])
+
+protected class LawfulCoe (α β) [a : ReactorType α] [b : ReactorType β] extends Coe α β where
+  ports : b.ports ∘ coe = a.ports                    := by rfl
+  acts  : b.acts  ∘ coe = a.acts                     := by rfl
+  rcns  : b.rcns  ∘ coe = a.rcns                     := by rfl
+  state : b.state ∘ coe = a.state                    := by rfl
+  nest  : b.nest  ∘ coe = (Partial.map coe) ∘ a.nest := by lawfulCoe_nest_proof
+
+class Extensional (α) extends ReactorType α where
+  ext_iff : 
+    rtr₁ = rtr₂ ↔ 
+    (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
+    (rcns rtr₁ = rcns rtr₂) ∧ (nest rtr₁ = nest rtr₂)
+
+@[ext]
+theorem Extensional.ext [inst : Extensional α] {rtr₁ rtr₂ : α} : 
+    (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
+    (rcns rtr₁ = rcns rtr₂) ∧ (nest rtr₁ = nest rtr₂) → rtr₁ = rtr₂ 
+  := inst.ext_iff.mpr
+
+protected class Extensional.LawfulCoe (α β) [ReactorType α] [Extensional β] 
+    extends ReactorType.LawfulCoe α β where
+  coe_ext_iff : rtr₁ = rtr₂ ↔ (coe rtr₁ = coe rtr₂)
+
+instance [ReactorType α] [e : Extensional β] [c : Extensional.LawfulCoe α β] : Extensional α where
+  ext_iff := by
+    intro rtr₁ rtr₂ 
+    simp [c.coe_ext_iff, e.ext_iff, ←c.ports, ←c.acts, ←c.rcns, ←c.state]
+    intros
+    rw [←Function.comp_apply (f := nest), ←Function.comp_apply (f := nest), c.nest]
+    exact {
+      mp := Partial.map_inj (by simp [Function.Injective, c.coe_ext_iff])
+      mpr := by simp_all
+    }
+
 abbrev componentType [ReactorType α] : Component → Type _
   | .rtr => α 
   | .rcn => Reaction
@@ -58,5 +95,5 @@ def Lineage.container [ReactorType α] {cmp} {rtr : α} : Lineage cmp i rtr → 
   | nest _ (nest h l)              => container (nest h l)
   | nest (rtr₁ := con) (j := j) .. => { id := j, obj := con }
   | _                              => { id := ⊤, obj := rtr }
-
+  
 end ReactorType
