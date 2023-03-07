@@ -5,19 +5,19 @@ open Reactor (Component)
 namespace ReactorType
 
 class Indexable (α) extends ReactorType α where
-  uniqueIDs : ∀ {rtr : α} {cmp i}, Subsingleton (Lineage cmp i rtr)
+  uniqueIDs : ∀ {rtr : α}, UniqueIDs rtr
 
 namespace Indexable
 
-instance [ReactorType α] [Indexable β] [ReactorType.LawfulCoe α β] : Indexable α where
-  uniqueIDs := sorry
+instance [ReactorType α] [ind : Indexable β] [ReactorType.LawfulCoe α β] : Indexable α where
+  uniqueIDs := UniqueIDs.lift ind.uniqueIDs 
 
 open Classical in
 noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) (i : ID) : Option (Identified α) := 
   if l : Nonempty (Lineage cmp i rtr) then l.some.container else none
 
-noncomputable def obj? [inst : ReactorType.Indexable α] (rtr : α) : 
-    (cmp : Component) → cmp.idType ⇀ inst.componentType cmp
+noncomputable def obj? [ind : ReactorType.Indexable α] (rtr : α) : 
+    (cmp : Component) → cmp.idType ⇀ ind.componentType cmp
   | .rcn, i       => con? rtr .rcn i >>= (cmp? .rcn ·.obj i)
   | .prt, i       => con? rtr .prt i >>= (cmp? .prt ·.obj i)
   | .act, i       => con? rtr .act i >>= (cmp? .act ·.obj i)
@@ -38,7 +38,6 @@ theorem obj?_lift {rtr₁ : α} {cmp o} {j : ID}
 theorem obj?_lift_root {rtr₁ : α} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][⊤] = some rtr₃) : 
     ∃ j, rtr₁[.rtr][j] = some rtr₃ := by
   sorry
-
 
 end Indexable
 end ReactorType

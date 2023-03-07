@@ -3,10 +3,9 @@ import ReactorModel.Objects.Reactor.TypeClasses.Indexable
 
 namespace Reactor
 
-open ReactorType in
 protected structure Raw where
   core : Reactor.Core
-  uniqueIDs : ∀ {cmp i} (l₁ l₂ : Lineage cmp i core), l₁ = l₂ 
+  uniqueIDs : ReactorType.UniqueIDs core
 
 namespace Raw
 
@@ -17,20 +16,21 @@ instance : ReactorType Reactor.Raw where
   state    := state ∘ core
   rcns     := rcns  ∘ core
   nest rtr := 
-    nest rtr.core |>.attach.map fun ⟨core, h⟩ => {
+    (nest rtr.core).attach.map fun ⟨core, h⟩ => {
       core := core
-      uniqueIDs := by
-        intro _ _ l₁ l₂
-        injection rtr.uniqueIDs (.nest h.choose_spec l₁) (.nest h.choose_spec l₂)
+      uniqueIDs := {
+        allEq := fun l₁ l₂ => 
+          by injection rtr.uniqueIDs.allEq (.nest h.choose_spec l₁) (.nest h.choose_spec l₂)
+      }
     }
 
-instance : ReactorType.Indexable Reactor.Raw where
-  uniqueIDs := sorry
-
--- Note: From this we get `ReactorType.Extensional Reactor.Raw`.
+-- Note: From this we also get `ReactorType.Extensional Reactor.Raw`.
 instance : ReactorType.Extensional.LawfulCoe Reactor.Raw Reactor.Core where
   coe := Reactor.Raw.core
   coe_ext_iff := by intro (mk ..) (mk ..); simp  
+
+instance : ReactorType.Indexable Reactor.Raw where
+  uniqueIDs := ReactorType.UniqueIDs.lift (β := Reactor.Core) $ Reactor.Raw.uniqueIDs ‹_› 
 
 end Raw
 end Reactor

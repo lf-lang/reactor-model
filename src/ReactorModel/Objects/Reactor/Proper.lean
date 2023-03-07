@@ -15,7 +15,7 @@ instance : ReactorType Reactor where
   state    := state ∘ raw
   rcns     := rcns  ∘ raw
   nest rtr := 
-    nest rtr.raw |>.attach.map fun ⟨raw, h⟩ => { 
+    (nest rtr.raw).attach.map fun ⟨raw, h⟩ => { 
       raw := raw, 
       wf := rtr.wf.nested h.choose_spec 
     }
@@ -24,9 +24,6 @@ instance : ReactorType Reactor where
 instance : ReactorType.Extensional.LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
   coe_ext_iff := by intro (mk ..) (mk ..); simp
-
-instance : ReactorType.Proper Reactor where
-  wellformed := sorry
 
 noncomputable def scheduledTags (rtr : Reactor) : Set Time.Tag := 
   { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.dom) }

@@ -56,11 +56,11 @@ structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
   mutationDeps : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → (rcn.Mutates) → (d ∈ rcn.deps k) → (MutationDependency con d k) 
   acyclicDeps  : Dependency.Acyclic rtr
 
-open Lean in set_option hygiene false in
+set_option hygiene false in
 scoped macro "wf_nested_proof " name:ident : term => `(
   @fun
-  | .nest i => ($(mkIdentFrom name $ `wf ++ name.getId) $ obj?_lift h ·)
-  | .root   => ($(mkIdentFrom name $ `wf ++ name.getId) <| obj?_lift_root h · |>.choose_spec)
+  | .nest _ => ($name ‹_› $ obj?_lift h ·)
+  | .root   => ($name ‹_› <| obj?_lift_root h · |>.choose_spec)
 )
 
 theorem nested {rtr₁ : α} (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where
@@ -73,8 +73,4 @@ theorem nested {rtr₁ : α} (wf : Wellformed rtr₁) (h : nest rtr₁ i = some 
   acyclicDeps              := wf.acyclicDeps.nested h
 
 end Wellformed
-
-class Proper (α) extends Indexable α where
-  wellformed : ∀ rtr : α, Wellformed rtr
-
 end ReactorType

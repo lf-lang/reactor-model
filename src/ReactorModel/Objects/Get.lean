@@ -6,7 +6,7 @@ namespace Reactor
 
 variable {cmp : Component} 
 
--- TODO: Move this into Indexable.lean.
+-- TODO?: Move this into Indexable.lean.
 
 namespace Lineage
 

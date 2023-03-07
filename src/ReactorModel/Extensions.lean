@@ -69,6 +69,9 @@ def dom (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
 abbrev ids (f : α ⇀ β) := f.dom
 
+theorem mem_ids_iff {f : α ⇀ β} : (i ∈ f.ids) ↔ (∃ b, f i = some b) := by
+  simp [ids, dom]
+
 def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
   fun a => 
     match h : f a with
@@ -78,15 +81,21 @@ def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } :=
 def map (g : β → γ) (f : α ⇀ β) : α ⇀ γ := 
   fun a => g <$> f a
 
-theorem map_map (f : α ⇀ β) (g₁ : β → γ) (g₂ : γ → δ) : (f.map g₁).map g₂ = f.map (g₂ ∘ g₁) := 
+theorem map_val (f : α ⇀ β) (g : β → γ) : (f.map g) a = (f a).map g := 
+  rfl
+
+theorem map_map (f : α ⇀ β) (g₁ : β → γ) (g₂ : γ → δ) : (f.map g₁).map g₂ = f.map (g₂ ∘ g₁) := by
+  simp [map]
+
+theorem map_inj {f₁ f₂ : α ⇀ β} (hi : g.Injective) (h : f₁.map g = f₂.map g) : f₁ = f₂ := by
+  funext a
+  replace h : f₁.map g a = f₂.map g a := by simp [h]
+  exact Option.map_injective hi h
+
+theorem attach_map_val (f : α ⇀ β) : f.attach.map Subtype.val = f := by
   sorry
 
-theorem attach_map_val (f : α ⇀ β) : f.attach.map Subtype.val = f := 
-  sorry
-
-theorem map_inj {f₁ f₂ : α ⇀ β} (hi : g.Injective) (h : f₁.map g = f₂.map g) : f₁ = f₂ :=
-  sorry
-
+-- TODO: Is this used anywhere?
 def filter (f : α ⇀ β) (p : β → Prop) [DecidablePred p] : α ⇀ β := 
   fun a => f a >>= fun b => if p b then b else none
 
