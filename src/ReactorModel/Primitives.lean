@@ -62,6 +62,9 @@ structure Identified (α) where
 -- Any `Identified α` can be coerced back to an `α`.
 instance : CoeHead (Identified α) α := ⟨Identified.obj⟩
 
+instance [Coe α β] : Coe (Identified α) (Identified β) where
+  coe i := { id := i.id, obj := i.obj }
+
 -- The `Priority` type is used to impose a (potentially partial) 
 -- order on reactions. The order of priorities is given by the
 -- order on `Nat` with the addition that a priority of `none` is

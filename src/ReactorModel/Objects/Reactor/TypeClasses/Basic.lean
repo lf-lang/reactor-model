@@ -12,7 +12,7 @@ inductive Component
 
 namespace Component
 
-abbrev idType : Component → Type _
+abbrev idType : Component → Type
   | rtr => RootedID
   | _   => ID
 
@@ -27,7 +27,7 @@ end Reactor
 
 open Reactor (Component)
 
-class ReactorType (α : Type _) where
+class ReactorType (α : Type) where
   ports : α → ID ⇀ Port             
   acts :  α → ID ⇀ Time.Tag ⇀ Value 
   state : α → ID ⇀ Value            
@@ -51,7 +51,7 @@ theorem LawfulCoe.nest' [a : ReactorType α] [b : ReactorType β] [c : ReactorTy
   rw [←Function.comp_apply (f := ReactorType.nest), c.nest]
   simp
 
-class Extensional (α) extends ReactorType α where
+class Extensional (α : Type) extends ReactorType α where
   ext_iff : 
     rtr₁ = rtr₂ ↔ 
     (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
@@ -77,7 +77,7 @@ instance [ReactorType α] [e : Extensional β] [c : Extensional.LawfulCoe α β]
       mpr := by simp_all
     }
 
-abbrev componentType [ReactorType α] : Component → Type _
+abbrev componentType [ReactorType α] : Component → Type
   | .rtr => α 
   | .rcn => Reaction
   | .prt => Port
@@ -91,38 +91,54 @@ abbrev cmp? [inst : ReactorType α] : (cmp : Component) → α → ID ⇀ inst.c
   | .act => acts
   | .stv => state
 
+instance [a : ReactorType α] [b : ReactorType β] [c : ReactorType.LawfulCoe α β] {cmp : Component} :
+    Coe (a.componentType cmp) (b.componentType cmp) where
+  coe := 
+    match cmp with
+    | .rcn | .prt | .act | .stv => id
+    | .rtr => c.coe
+
+theorem LawfulCoe.lower_cmp?_eq_some
+    [a : ReactorType α] [b : ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} (cmp) {o}
+    (h : a.cmp? cmp rtr i = some o) : b.cmp? cmp rtr i = some ↑o := by
+  split <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
+  simp [c.nest', Partial.map_val]
+  exists o
+
+theorem LawfulCoe.lower_mem_cmp?_ids 
+    [a : ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} (cmp)
+    (h : i ∈ (cmp? cmp rtr).ids) : i ∈ (cmp? cmp (rtr : β)).ids :=
+  ⟨h.choose, c.lower_cmp?_eq_some _ h.choose_spec⟩ 
+
+theorem LawfulCoe.lift_cmp?_eq_some 
+    [a : ReactorType α] [b : ReactorType β] [ReactorType.LawfulCoe α β] (cmp) {i : ID} {rtr : α}
+    {o : a.componentType cmp} (h : b.cmp? cmp rtr i = some o) : a.cmp? cmp rtr i = some o :=
+  sorry
+
+theorem LawfulCoe.lift_mem_cmp?_ids 
+    [a : ReactorType α] [b : ReactorType β] [ReactorType.LawfulCoe α β] (cmp) {i : ID} {rtr : α}
+    (h : i ∈ (b.cmp? cmp rtr).ids) : i ∈ (a.cmp? cmp rtr).ids :=
+  sorry
+
 inductive Lineage [ReactorType α] (cmp : Component) (i : ID) : α → Type _ 
   | final : i ∈ (cmp? cmp rtr).ids → Lineage cmp i rtr
   | nest : (nest rtr₁ j = some rtr₂) → (Lineage cmp i rtr₂) → Lineage cmp i rtr₁
 
-theorem LawfulCoe.lower_nest_eq_some 
-    [a : ReactorType α] [b : ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr₁ rtr₂ : α}
-    (h : a.nest rtr₁ i = some rtr₂) : b.nest (rtr₁ : β) i = some (rtr₂ : β) := by
-  simp [c.nest', Partial.map_val]
-  exists rtr₂
-
-theorem LawfulCoe.lower_mem_cmp?_ids 
-    [a : ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} : 
-    {cmp : Component} → (i ∈ (cmp? cmp rtr).ids) → i ∈ (cmp? cmp (rtr : β)).ids
-  | .rcn, h => by simp_all [cmp?, ←c.rcns]
-  | .prt, h => by simp_all [cmp?, ←c.ports]
-  | .act, h => by simp_all [cmp?, ←c.acts]
-  | .stv, h => by simp_all [cmp?, ←c.state]
-  | .rtr, h => by
-    simp [cmp?, Partial.mem_ids_iff] at h ⊢ 
-    exact ⟨h.choose, c.lower_nest_eq_some h.choose_spec⟩ 
-
 namespace Lineage
-
-def container [ReactorType α] {cmp} {rtr : α} : Lineage cmp i rtr → Identified α
-  | nest _ (nest h l)              => container (nest h l)
-  | nest (rtr₁ := con) (j := j) .. => { id := j, obj := con }
-  | _                              => { id := ⊤, obj := rtr }
 
 def fromLawfulCoe [ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] 
     {rtr : α} {cmp} : (Lineage cmp i rtr) → Lineage cmp i (rtr : β)
-  | final h  => final (c.lower_mem_cmp?_ids h)
-  | nest h l => nest (c.lower_nest_eq_some h) (fromLawfulCoe l)
+  | final h  => final (c.lower_mem_cmp?_ids _ h)
+  | nest h l => nest (c.lower_cmp?_eq_some (cmp := .rtr) h) (fromLawfulCoe l)
+
+instance [ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} {cmp} :
+    Coe (Lineage cmp i rtr) (Lineage cmp i (rtr : β)) where
+  coe := Lineage.fromLawfulCoe
+
+theorem nonempty_from_lawfulCoe 
+    [ReactorType α] [ReactorType β] [ReactorType.LawfulCoe α β] {rtr : α} {cmp}
+    (h : Nonempty $ Lineage cmp i rtr) : Nonempty $ Lineage cmp i (rtr : β) :=
+  h.elim (.intro $ .fromLawfulCoe ·)
 
 inductive Equivalent [ReactorType α] [ReactorType β] {cmp} : 
     {rtr₁ : α} → {rtr₂ : β} → (Lineage cmp i rtr₁) → (Lineage cmp i rtr₂) → Prop 

@@ -12,6 +12,12 @@ namespace Indexable
 instance [ReactorType α] [ind : Indexable β] [ReactorType.LawfulCoe α β] : Indexable α where
   uniqueIDs := UniqueIDs.lift ind.uniqueIDs 
 
+def _root_.ReactorType.Lineage.container [ReactorType α] {cmp} {rtr : α} :
+    Lineage cmp i rtr → Identified α
+  | .nest _ (.nest h l)             => container (.nest h l)
+  | .nest (rtr₁ := con) (j := j) .. => { id := j, obj := con }
+  | _                               => { id := ⊤, obj := rtr }
+
 open Classical in
 noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) (i : ID) : Option (Identified α) := 
   if l : Nonempty (Lineage cmp i rtr) then l.some.container else none
@@ -28,14 +34,39 @@ noncomputable def obj? [ind : ReactorType.Indexable α] (rtr : α) :
 notation rtr "[" cmp "][" i "]" => ReactorType.Indexable.obj? rtr cmp i
 notation rtr "[" cmp "][" i "]&" => ReactorType.Indexable.con? rtr cmp i
 
+end Indexable
+
+theorem LawfulCoe.lower_container_eq
+    [Indexable α] [Indexable β] [ReactorType.LawfulCoe α β] {cmp} {rtr : α} {l : Lineage cmp i rtr}
+    (h : l.container = con) : (l : Lineage cmp i (rtr : β)).container = ↑con := by
+  sorry
+
+theorem LawfulCoe.lower_con?_some 
+    [Indexable α] [Indexable β] [c : ReactorType.LawfulCoe α β] {rtr : α} {cmp} 
+    (h : rtr[cmp][i]& = some con) : (rtr : β)[cmp][i]& = some ↑con := by
+  sorry
+
+theorem LawfulCoe.lower_obj?_some 
+    [Indexable α] [b : Indexable β] [ReactorType.LawfulCoe α β] {rtr : α} {cmp} {i o} 
+    (h : rtr[cmp][i] = some o) : (rtr : β)[cmp][i] = some ↑o := by
+  sorry
+
+namespace Indexable
+
 variable [Indexable α]
 
-theorem obj?_lift {rtr₁ : α} {cmp o} {j : ID} 
+theorem obj?_nested {rtr₁ : α} {cmp o} {j : ID} 
     (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp][j] = some o) : rtr₁[cmp][j] = some o := by
   sorry
 
+-- This is a version of `obj?_nested`, where we don't restrict `j` to be an `ID`. This makes a 
+-- difference when `cmp = .rtr`. Note that if `cmp = .rtr` and `j = ⊤`, then `j' = .nest i`.
+theorem obj?_nested' {rtr₁ : α} {cmp o j}
+    (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp][j] = some o) : ∃ j', rtr₁[cmp][j'] = some o := by
+  sorry
+
 -- Note: By `ho` we get `rtr₂ = rtr₃`.
-theorem obj?_lift_root {rtr₁ : α} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][⊤] = some rtr₃) : 
+theorem obj?_nested_root {rtr₁ : α} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][⊤] = some rtr₃) : 
     ∃ j, rtr₁[.rtr][j] = some rtr₃ := by
   sorry
 
