@@ -1,5 +1,5 @@
 import ReactorModel.Objects.Reactor.Raw
-import ReactorModel.Objects.Reactor.TypeClasses.Proper
+import ReactorModel.Objects.Reactor.ReactorType.Wellformed
 
 structure Reactor where
   raw : Reactor.Raw

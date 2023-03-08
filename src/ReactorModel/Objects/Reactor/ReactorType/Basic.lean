@@ -131,10 +131,7 @@ def fromLawfulCoe [ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe �
   | final h  => final (c.lower_mem_cmp?_ids _ h)
   | nest h l => nest (c.lower_cmp?_eq_some (cmp := .rtr) h) (fromLawfulCoe l)
 
-instance [ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} {cmp} :
-    Coe (Lineage cmp i rtr) (Lineage cmp i (rtr : β)) where
-  coe := Lineage.fromLawfulCoe
-
+-- TODO: Delete this if it remains unused.
 theorem nonempty_from_lawfulCoe 
     [ReactorType α] [ReactorType β] [ReactorType.LawfulCoe α β] {rtr : α} {cmp}
     (h : Nonempty $ Lineage cmp i rtr) : Nonempty $ Lineage cmp i (rtr : β) :=

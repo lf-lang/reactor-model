@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.TypeClasses.Basic
+import ReactorModel.Objects.Reactor.ReactorType.Basic
 
 open Reactor (Component)
 
@@ -35,6 +35,10 @@ notation rtr "[" cmp "][" i "]" => ReactorType.Indexable.obj? rtr cmp i
 notation rtr "[" cmp "][" i "]&" => ReactorType.Indexable.con? rtr cmp i
 
 end Indexable
+
+instance [ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} {cmp} :
+    Coe (Lineage cmp i rtr) (Lineage cmp i (rtr : β)) where
+  coe := Lineage.fromLawfulCoe
 
 theorem LawfulCoe.lower_container_eq
     [Indexable α] [Indexable β] [ReactorType.LawfulCoe α β] {cmp} {rtr : α} {l : Lineage cmp i rtr}

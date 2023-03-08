@@ -1,5 +1,6 @@
-import ReactorModel.Objects.Reactor.Proper
+import ReactorModel.Objects.Reactor.Basic
 
+/-
 open Classical
 
 namespace Reactor
@@ -224,3 +225,4 @@ theorem obj?_and_local_mem_to_cmp? {i : ID} :
   sorry
 
 end Reactor
+-/

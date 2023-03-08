@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.TypeClasses.Indexable
+import ReactorModel.Objects.Reactor.ReactorType.Indexable
 
 namespace ReactorType
 

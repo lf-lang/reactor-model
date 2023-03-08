@@ -1,5 +1,5 @@
 import ReactorModel.Objects.Reactor.Core
-import ReactorModel.Objects.Reactor.TypeClasses.Indexable
+import ReactorModel.Objects.Reactor.ReactorType.Indexable
 
 namespace Reactor
 

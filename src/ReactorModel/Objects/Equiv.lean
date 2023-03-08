@@ -4,8 +4,11 @@ open Classical
 
 namespace Reactor
 
--- Note: By this definition two reactors can be structurally equivalent despite having their input
+-- TODO: Do we use this relation for more than proving that reactions are preserved?
+--
+-- NOTE: By this definition two reactors can be structurally equivalent despite having their input
 --       and output ports flipped.
+--
 -- Two reactors are equivalent if they are structurally equal.
 inductive Equiv : Reactor → Reactor → Prop where
   | intro : (∀ cmp, (σ₁.cmp? cmp).ids = (σ₂.cmp? cmp).ids) →
