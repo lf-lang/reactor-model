@@ -39,17 +39,25 @@ namespace ReactorType
 scoped macro "lawfulCoe_nest_proof" : tactic => 
   `(tactic| simp [ReactorType.nest, Partial.map_map, Function.comp, Partial.attach_map_val])
 
-protected class LawfulCoe (α β) [a : ReactorType α] [b : ReactorType β] extends Coe α β where
+scoped macro "lawfulCoe_inj_proof" : tactic => 
+  `(tactic| (simp [Function.Injective]; intro ⟨_, _⟩ ⟨_, _⟩; simp))
+
+class LawfulCoe (α β) [a : ReactorType α] [b : ReactorType β] extends Coe α β where
   ports : b.ports ∘ coe = a.ports                    := by rfl
   acts  : b.acts  ∘ coe = a.acts                     := by rfl
   rcns  : b.rcns  ∘ coe = a.rcns                     := by rfl
   state : b.state ∘ coe = a.state                    := by rfl
   nest  : b.nest  ∘ coe = (Partial.map coe) ∘ a.nest := by lawfulCoe_nest_proof
+  inj   : coe.Injective                              := by lawfulCoe_inj_proof
 
-theorem LawfulCoe.nest' [a : ReactorType α] [b : ReactorType β] [c : ReactorType.LawfulCoe α β] :
+theorem LawfulCoe.nest' [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] :
     b.nest (c.coe rtr) = (a.nest rtr).map c.coe := by
   rw [←Function.comp_apply (f := ReactorType.nest), c.nest]
   simp
+
+theorem LawfulCoe.coe_ext_iff [ReactorType α] [ReactorType β] [c : LawfulCoe α β] 
+    {rtr₁ rtr₂ : α} : rtr₁ = rtr₂ ↔ (rtr₁ : β) = (rtr₂ : β) :=
+  ⟨(congr_arg _ ·), (c.inj ·)⟩
 
 class Extensional (α : Type) extends ReactorType α where
   ext_iff : 
@@ -63,11 +71,7 @@ theorem Extensional.ext [inst : Extensional α] {rtr₁ rtr₂ : α} :
     (rcns rtr₁ = rcns rtr₂) ∧ (nest rtr₁ = nest rtr₂) → rtr₁ = rtr₂ 
   := inst.ext_iff.mpr
 
-protected class Extensional.LawfulCoe (α β) [ReactorType α] [Extensional β] 
-    extends ReactorType.LawfulCoe α β where
-  coe_ext_iff : rtr₁ = rtr₂ ↔ (coe rtr₁ = coe rtr₂)
-
-instance [ReactorType α] [e : Extensional β] [c : Extensional.LawfulCoe α β] : Extensional α where
+instance [ReactorType α] [e : Extensional β] [c : LawfulCoe α β] : Extensional α where
   ext_iff := by
     intro rtr₁ rtr₂ 
     simp [c.coe_ext_iff, e.ext_iff, ←c.ports, ←c.acts, ←c.rcns, ←c.state, c.nest']
@@ -91,34 +95,49 @@ abbrev cmp? [inst : ReactorType α] : (cmp : Component) → α → ID ⇀ inst.c
   | .act => acts
   | .stv => state
 
-instance [a : ReactorType α] [b : ReactorType β] [c : ReactorType.LawfulCoe α β] {cmp : Component} :
+instance [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {cmp : Component} :
     Coe (a.componentType cmp) (b.componentType cmp) where
   coe := 
     match cmp with
     | .rcn | .prt | .act | .stv => id
     | .rtr => c.coe
 
+theorem LawfulCoe.lower_cmp?_eq_none
+    [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {rtr : α} (cmp)
+    (h : a.cmp? cmp rtr i = none) : b.cmp? cmp rtr i = none := by
+  cases cmp <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
+  simp [c.nest', Partial.map_val]
+  assumption
+
 theorem LawfulCoe.lower_cmp?_eq_some
-    [a : ReactorType α] [b : ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} (cmp) {o}
+    [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {rtr : α} (cmp) {o}
     (h : a.cmp? cmp rtr i = some o) : b.cmp? cmp rtr i = some ↑o := by
   split <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
   simp [c.nest', Partial.map_val]
   exists o
 
 theorem LawfulCoe.lower_mem_cmp?_ids 
-    [a : ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] {rtr : α} (cmp)
+    [a : ReactorType α] [ReactorType β] [c : LawfulCoe α β] {rtr : α} (cmp)
     (h : i ∈ (cmp? cmp rtr).ids) : i ∈ (cmp? cmp (rtr : β)).ids :=
   ⟨h.choose, c.lower_cmp?_eq_some _ h.choose_spec⟩ 
 
 theorem LawfulCoe.lift_cmp?_eq_some 
-    [a : ReactorType α] [b : ReactorType β] [ReactorType.LawfulCoe α β] (cmp) {i : ID} {rtr : α}
-    {o : a.componentType cmp} (h : b.cmp? cmp rtr i = some o) : a.cmp? cmp rtr i = some o :=
-  sorry
+    [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] (cmp) {i : ID} {rtr : α}
+    {o : a.componentType cmp} (h : b.cmp? cmp rtr i = some ↑o) : a.cmp? cmp rtr i = some o := by
+  split at h <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
+  simp [c.nest', Partial.map_val] at h
+  have ⟨_, _, h⟩ := h
+  cases c.inj h
+  assumption
 
-theorem LawfulCoe.lift_mem_cmp?_ids 
-    [a : ReactorType α] [b : ReactorType β] [ReactorType.LawfulCoe α β] (cmp) {i : ID} {rtr : α}
-    (h : i ∈ (b.cmp? cmp rtr).ids) : i ∈ (a.cmp? cmp rtr).ids :=
-  sorry
+-- Note: This theorem exludes `cmp = .rtr`, because that case is harder than the others and we only
+--       ever use this theorem for `cmp = .act` anyway.
+theorem LawfulCoe.lift_mem_cmp?_ids [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] 
+    (cmp) {rtr : α} (h : i ∈ (b.cmp? cmp rtr).ids) (hc : cmp ≠ .rtr := by simp) : 
+    i ∈ (a.cmp? cmp rtr).ids := by
+  cases cmp 
+  case rtr => contradiction
+  all_goals exact ⟨h.choose, c.lift_cmp?_eq_some _ h.choose_spec⟩ 
 
 inductive Lineage [ReactorType α] (cmp : Component) (i : ID) : α → Type _ 
   | final : i ∈ (cmp? cmp rtr).ids → Lineage cmp i rtr
@@ -126,14 +145,14 @@ inductive Lineage [ReactorType α] (cmp : Component) (i : ID) : α → Type _
 
 namespace Lineage
 
-def fromLawfulCoe [ReactorType α] [ReactorType β] [c : ReactorType.LawfulCoe α β] 
+def fromLawfulCoe [ReactorType α] [ReactorType β] [c : LawfulCoe α β] 
     {rtr : α} {cmp} : (Lineage cmp i rtr) → Lineage cmp i (rtr : β)
   | final h  => final (c.lower_mem_cmp?_ids _ h)
   | nest h l => nest (c.lower_cmp?_eq_some (cmp := .rtr) h) (fromLawfulCoe l)
 
 -- TODO: Delete this if it remains unused.
 theorem nonempty_from_lawfulCoe 
-    [ReactorType α] [ReactorType β] [ReactorType.LawfulCoe α β] {rtr : α} {cmp}
+    [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} {cmp}
     (h : Nonempty $ Lineage cmp i rtr) : Nonempty $ Lineage cmp i (rtr : β) :=
   h.elim (.intro $ .fromLawfulCoe ·)
 
@@ -151,8 +170,7 @@ theorem symm [ReactorType α] [ReactorType β]
     (e : Equivalent l₁ l₂) : (Equivalent l₂ l₁) := by
   induction e <;> constructor; assumption
 
-theorem trans [ReactorType α] [ReactorType β] [ReactorType γ] 
-    {rtr₁ : α} {rtr₂ : β} {rtr₃ : γ} {cmp} 
+theorem trans [ReactorType α] [ReactorType β] [ReactorType γ] {rtr₁ : α} {rtr₂ : β} {rtr₃ : γ} {cmp} 
     {l₁ : Lineage cmp i rtr₁} {l₂ : Lineage cmp i rtr₂} {l₃ : Lineage cmp i rtr₃}
     (e₁ : Equivalent l₁ l₂) (e₂ : Equivalent l₂ l₃) : (Equivalent l₁ l₃) := by
   induction e₁ generalizing l₃ rtr₃ <;> cases e₂ <;> constructor
@@ -172,7 +190,7 @@ theorem to_eq [ReactorType α] {cmp} {rtr : α}
     {l₁ l₂ : Lineage cmp i rtr} (e : Equivalent l₁ l₂) : l₁ = l₂ := 
   e.to_eq' rfl
     
-theorem from_lawfulCoe [ReactorType α] [ReactorType β] [ReactorType.LawfulCoe α β] {rtr : α} {cmp} 
+theorem from_lawfulCoe [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} {cmp} 
     (l : Lineage cmp i rtr) : Equivalent l (Lineage.fromLawfulCoe l : Lineage _ _ (rtr : β)) := by
   induction l
   case final => constructor
@@ -184,8 +202,8 @@ end Lineage
 def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
   ∀ {cmp i}, Subsingleton (Lineage cmp i rtr)
 
-theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [ReactorType.LawfulCoe α β]
-    {rtr : α} (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
+theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
+    (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
   allEq l₁ l₂ :=
     h.allEq (.fromLawfulCoe l₁) (.fromLawfulCoe l₂) ▸ Lineage.Equivalent.from_lawfulCoe l₁ 
       |>.trans (Lineage.Equivalent.from_lawfulCoe l₂).symm 

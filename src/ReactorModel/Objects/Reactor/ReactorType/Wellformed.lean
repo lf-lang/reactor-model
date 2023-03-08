@@ -36,8 +36,8 @@ theorem nested [Indexable α] {rtr₁ : α}
   | mutNest h₁       => exact mutNest (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
   | trans _ _ d₁ d₂  => exact trans d₁ d₂
 
-theorem lower [Indexable α] [Indexable β] [c : ReactorType.LawfulCoe α β] {rtr : α} 
-    (d : Dependency rtr i₁ i₂) : Dependency (rtr : β) i₁ i₂ := by
+theorem lower [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (d : Dependency rtr i₁ i₂) :
+    Dependency (rtr : β) i₁ i₂ := by
   induction d with
   | prio h₁ h₂ h₃ =>
      exact prio (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂) (c.lower_cmp?_eq_some .rcn h₃) 
@@ -56,12 +56,12 @@ theorem lower [Indexable α] [Indexable β] [c : ReactorType.LawfulCoe α β] {r
 def Acyclic [Indexable α] (rtr : α) : Prop :=
   ∀ i, ¬Dependency rtr i i 
 
-theorem Acyclic.nested [Indexable α] {rtr₁ : α} 
-    (a : Acyclic rtr₁) (h : nest rtr₁ i = some rtr₂) : Acyclic rtr₂ :=
+theorem Acyclic.nested [Indexable α] {rtr₁ : α} (a : Acyclic rtr₁) (h : nest rtr₁ i = some rtr₂) :  
+    Acyclic rtr₂ :=
   fun i d => absurd (d.nested h) (a i)
 
-theorem Acyclic.lift [Indexable α] [Indexable β] [ReactorType.LawfulCoe α β] {rtr : α} 
-    (a : Acyclic (rtr : β)) : Acyclic rtr :=
+theorem Acyclic.lift [Indexable α] [Indexable β] [LawfulCoe α β] {rtr : α} (a : Acyclic (rtr : β)) : 
+    Acyclic rtr :=
   fun i d => absurd d.lower (a i) 
   
 end Dependency
@@ -92,13 +92,11 @@ scoped macro "norm_and_mut_lift_proof" : term => `(
     exact .nest (lift_cmp?_eq_some .rtr hc) (lift_cmp?_eq_some .prt hp)
 )
 
-theorem NormalDependency.lift 
-    [ReactorType α] [ReactorType β] [ReactorType.LawfulCoe α β] {rtr : α} : 
+theorem NormalDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} : 
     (NormalDependency (rtr : β) i k) → NormalDependency rtr i k :=
   norm_and_mut_lift_proof
 
-theorem MutationDependency.lift 
-    [ReactorType α] [ReactorType β] [ReactorType.LawfulCoe α β] {rtr : α} :
+theorem MutationDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} :
     (MutationDependency (rtr : β) i k) → MutationDependency rtr i k :=
   norm_and_mut_lift_proof
 
@@ -138,8 +136,8 @@ theorem nested [Indexable α] {rtr₁ : α}
   uniqueInputs h₁ h₂ h₃ h₄ := 
     wf.uniqueInputs (obj?_nested h h₁) (obj?_nested h h₂) h₃ (obj?_nested h h₄) 
 
-theorem lift [Indexable α] [Indexable β] [c : ReactorType.LawfulCoe α β] {rtr : α} 
-    (wf : Wellformed (rtr : β)) : Wellformed rtr where
+theorem lift [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (wf : Wellformed (rtr : β)) : 
+    Wellformed rtr where
   uniqueInputs h₁ h₂ h₃ h₄ := 
     wf.uniqueInputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) h₃ (c.lower_obj?_some h₄)
   overlapPrio h₁ h₂ h₃ := 

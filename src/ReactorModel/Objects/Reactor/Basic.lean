@@ -20,9 +20,8 @@ instance : ReactorType Reactor where
     }
 
 -- Note: From this we get `ReactorType.Extensional Reactor` and `ReactorType.Indexable Reactor`.
-instance : ReactorType.Extensional.LawfulCoe Reactor Reactor.Raw where
+instance : ReactorType.LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
-  coe_ext_iff := by intro (mk ..) (mk ..); simp
 
 theorem wellformed (rtr : Reactor) : ReactorType.Wellformed rtr :=
   rtr.wf.lift (rtr := rtr)
@@ -36,6 +35,6 @@ abbrev rcns  (rtr : Reactor) := ReactorType.rcns rtr
 abbrev nest  (rtr : Reactor) := ReactorType.nest rtr
 
 noncomputable def scheduledTags (rtr : Reactor) : Set Time.Tag := 
-  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.dom) }
+  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.supp) }
 
 end Reactor

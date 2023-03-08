@@ -25,9 +25,8 @@ instance : ReactorType Reactor.Raw where
     }
 
 -- Note: From this we also get `ReactorType.Extensional Reactor.Raw`.
-instance : ReactorType.Extensional.LawfulCoe Reactor.Raw Reactor.Core where
+instance : ReactorType.LawfulCoe Reactor.Raw Reactor.Core where
   coe := Reactor.Raw.core
-  coe_ext_iff := by intro (mk ..) (mk ..); simp  
 
 instance : ReactorType.Indexable Reactor.Raw where
   uniqueIDs := ReactorType.UniqueIDs.lift (β := Reactor.Core) $ Reactor.Raw.uniqueIDs ‹_› 

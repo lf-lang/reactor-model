@@ -65,12 +65,12 @@ infixr:50 " ⇀ " => Partial
 
 namespace Partial
 
-def dom (f : α ⇀ β) := { a | ∃ b, f a = some b }
+def supp (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
-abbrev ids (f : α ⇀ β) := f.dom
+abbrev ids (f : α ⇀ β) := f.supp
 
 theorem mem_ids_iff {f : α ⇀ β} : (i ∈ f.ids) ↔ (∃ b, f i = some b) := by
-  simp [ids, dom]
+  simp [ids, supp]
 
 def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
   fun a => 

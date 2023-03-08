@@ -19,9 +19,8 @@ instance : ReactorType Reactor.Core where
   rcns  | mk _ _ _ r _ => r
   nest  | mk _ _ _ _ n => n
 
-open ReactorType in 
 instance : ReactorType.Extensional Reactor.Core where
-  ext_iff := by intro (mk ..) (mk ..); simp [ports, state, rcns, acts, nest]
+  ext_iff := by intro (mk ..) (mk ..); open ReactorType in simp [ports, state, rcns, acts, nest]
 
 end Core
 end Reactor
