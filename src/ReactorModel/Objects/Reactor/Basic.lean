@@ -35,6 +35,6 @@ abbrev rcns  (rtr : Reactor) := ReactorType.rcns rtr
 abbrev nest  (rtr : Reactor) := ReactorType.nest rtr
 
 noncomputable def scheduledTags (rtr : Reactor) : Set Time.Tag := 
-  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.supp) }
+  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }
 
 end Reactor

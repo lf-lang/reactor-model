@@ -171,24 +171,24 @@ theorem same_rcns_same_ops (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) :
 
 theorem port_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
   (e.changes[i].obj = .port p v) → 
-  ∃ op rcn, (op ∈ e.ops) ∧ (⟨op.rcn, .port p v⟩ ∈ op.changes) ∧ (s₁.rtr.obj? .rcn op.rcn = some rcn) ∧ (p ∈ rcn.deps .out) := by
+  ∃ op rcn, (op ∈ e.ops) ∧ (⟨op.rcn, .port p v⟩ ∈ op.changes) ∧ (s₁.rtr[.rcn][op.rcn] = some rcn) ∧ (p ∈ rcn.deps .out) := by
   sorry
 
 theorem state_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
   (e.changes[i].obj = .state a v) → 
-  ∃ op, (op ∈ e.ops) ∧ (⟨op.rcn, .state a v⟩ ∈ op.changes) ∧ (s₁.rtr.con? .stv a = s₁.rtr.con? .rcn op.rcn) := by
+  ∃ op, (op ∈ e.ops) ∧ (⟨op.rcn, .state a v⟩ ∈ op.changes) ∧ (s₁.rtr[.stv][a]& = s₁.rtr[.rcn][op.rcn]&) := by
   sorry
 
 theorem Reactor.uniqueInputs' {rtr : Reactor} {iₚ i₁ i₂ : ID} :
-  (rtr.obj? .prt iₚ = some p) → (p.kind = .in) →
-  (rtr.obj? .rcn i₁ = some rcn₁) → (rtr.obj? .rcn i₂ = some rcn₂) → (i₁ ≠ i₂) → 
+  (rtr[.prt][iₚ] = some p) → (p.kind = .in) →
+  (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
   (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out := by
   sorry
 
 theorem Reactor.out_port_out_dep_eq_parent {rtr : Reactor} {iₚ iᵣ : ID} :
-  (rtr.obj? .prt iₚ = some p) → (p.kind = .out) →
-  (rtr.obj? .rcn iᵣ = some rcn) → (iₚ ∈ rcn.deps .out) → 
-  (rtr.con? .prt iₚ = rtr.con? .rcn iᵣ) := by
+  (rtr[.prt][iₚ] = some p) → (p.kind = .out) →
+  (rtr[.rcn][iᵣ] = some rcn) → (iₚ ∈ rcn.deps .out) → 
+  (rtr[.prt][iₚ]& = rtr[.rcn][iᵣ]&) := by
   sorry
 
 theorem op_eq_rcn_eq {e : s₁ ⇓ᵢ* s₂} :
@@ -237,7 +237,7 @@ theorem same_ops_ChangeEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s�
   -- if port i is an input port, there can be at most one reaction that writes to it
   -- if port i is an output port, if there exist multiple ports connected to it, there must be an order on them
   -- lets assume i is a valid port 
-  have ⟨p, hp⟩ : ∃ p, s.rtr.obj? .prt i = some p := sorry
+  have ⟨p, hp⟩ : ∃ p, s.rtr[.prt][i] = some p := sorry
   cases hk : p.kind
   case «in» =>
     have hr : op₁.rcn = op₂.rcn := by
@@ -267,21 +267,23 @@ theorem List.last_with_property_unique {l : List α} {p : α → Prop} {i₁ i�
   i₁ = i₂ :=
   sorry
 
+/-
 theorem Reactor.orderable_impure {rtr : Reactor} {i₁ i₂ : ID} :
-  (rtr.obj? .rcn i₁ = some rcn₁) → (¬rcn₁.isPure) → 
-  (rtr.obj? .rcn i₂ = some rcn₂) → (¬rcn₂.isPure) →
-  (rtr.con? .rcn i₁ = rtr.con? .rcn i₂) → (i₁ ≠ i₂) → 
+  (rtr[.rcn][i₁] = some rcn₁) → (¬rcn₁.Pure) → 
+  (rtr[.rcn][i₂] = some rcn₂) → (¬rcn₂.Pure) →
+  (rtr[.rcn][i₁]& = rtr[.rcn][i₂]&) → (i₁ ≠ i₂) → 
   Reactor.Orderable rtr rcn₁ rcn₂ :=
   sorry
+-/
 
 theorem state_change_mem_op_rcn_eq_con? {e : s₁ ⇓ᵢ* s₂} :
   (op ∈ e.ops) → (⟨op.rcn, .state i v⟩ ∈ op.changes) → 
-  (s₁.rtr.con? .stv i = s₁.rtr.con? .rcn op.rcn)
+  (s₁.rtr[.stv][i]& = s₁.rtr[.rcn][op.rcn]&)
   := sorry
 
 theorem state_change_mem_op_rcn_impure {e : s₁ ⇓ᵢ* s₂} :
   (op ∈ e.ops) → (⟨op.rcn, .state i v⟩ ∈ op.changes) →
-  ∃ rcn, (s₁.rtr.obj? .rcn op.rcn = some rcn) ∧ (¬rcn.isPure) := sorry
+  ∃ rcn, (s₁.rtr[.rcn][op.rcn] = some rcn) ∧ (¬rcn.Pure) := sorry
 
 theorem same_ops_ChangeEquiv_state {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
   (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.stateValue? i) = e₂.changes.lastSome? (·.obj.stateValue? i)) := by
@@ -331,22 +333,22 @@ theorem same_ops_ChangeEquiv_state {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s�
     have ⟨rcn₂, hor₂, hp₂⟩ := e₂.state_change_mem_op_rcn_impure hom₂ hcm₂
     -- There must exist a dependency relation between the two reactions.
     have hd : (op₁.rcn >[s.rtr] op₂.rcn) ∨ (op₂.rcn >[s.rtr] op₁.rcn) := by
-      by_cases hm : rcn₁.isMut ↔ rcn₂.isMut
-      case pos =>
-        cases s.rtr.orderability (Reactor.orderable_impure hor₁ hp₁ hor₂ hp₂ H1 hr)
-        case inl hp => exact .inr (Dependency.prio H1.symm hor₂ hor₁ hm.symm hp)
-        case inr hp => exact .inl (Dependency.prio H1      hor₁ hor₂ hm      hp)
+      by_cases hm : rcn₁.Mutates ↔ rcn₂.Mutates
+      case pos => sorry
+        -- cases s.rtr.orderability (Reactor.orderable_impure hor₁ hp₁ hor₂ hp₂ H1 hr)
+        -- case inl hp => exact .inr (Dependency.prio H1.symm hor₂ hor₁ hm.symm hp)
+        -- case inr hp => exact .inl (Dependency.prio H1      hor₁ hor₂ hm      hp)
       case neg =>
         rw [not_iff] at hm
-        by_cases hm₁ : rcn₁.isMut
+        by_cases hm₁ : rcn₁.Mutates
         case pos =>
           have hm₂ := mt hm.mpr $ not_not.mpr hm₁
-          simp [Reaction.isMut] at hm₂
-          exact .inl (Dependency.mutNorm H1 hor₁ hor₂ hm₁ hm₂)
+          simp [Reaction.Mutates] at hm₂
+          sorry -- exact .inl (Dependency.mutNorm H1 hor₁ hor₂ hm₁ hm₂)
         case neg =>
           have hm₂ := hm.mp hm₁
-          simp [Reaction.isMut] at hm₁
-          exact .inr (Dependency.mutNorm H1.symm hor₂ hor₁ hm₂ hm₁)
+          simp [Reaction.Mutates] at hm₁
+          sorry -- exact .inr (Dependency.mutNorm H1.symm hor₂ hor₁ hm₂ hm₁)
     sorry
     -- Thus, within the list of ops, the ordering between the ops is the same within e₁.ops and e₂.ops
     -- (because execution respects dependency order: `ops_respect_dependencies`).
@@ -392,9 +394,11 @@ theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) :
     (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
   simp [rcns, InstStep.rcn]
 
-theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ e.rcns.toFinset
+theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ { i | i ∈ e.rcns }
   | refl => by simp [rcns]
-  | trans e e' => by simp [rcns_trans_eq_cons, e.progress_eq, e'.progress_eq]
+  | trans e e' => by 
+    simp [rcns_trans_eq_cons, e.progress_eq, e'.progress_eq]
+    sorry
 
 theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) : rcn ∉ s₁.progress := by
   induction e
@@ -408,7 +412,7 @@ theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
   simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
-theorem preserves_rcns {i : ID} : (s₁ ⇓ᵢ* s₂) → (s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i)
+theorem preserves_rcns {i : ID} : (s₁ ⇓ᵢ* s₂) → (s₁.rtr[.rcn][i] = s₂.rtr[.rcn][i])
   | refl => rfl
   | trans e e' => e.exec.preserves_rcns ▸ e'.preserves_rcns
 

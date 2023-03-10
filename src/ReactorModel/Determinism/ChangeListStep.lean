@@ -64,21 +64,21 @@ theorem equiv : (s₁ -[cs]→* s₂) → s₁.rtr ≈ s₂.rtr
   | nil .. => .refl
   | cons e e' => e.equiv.trans e'.equiv
 
-theorem preserves_unchanged_ports {i : ID} (h : cs.All₂ (¬·.obj.IsPort i)) : 
+theorem preserves_unchanged_ports {i : ID} (h : cs.All₂ (¬·.obj.IsPortᵢ i)) : 
     (s₁ -[cs]→* s₂) → s₁.rtr[.prt][i] = s₂.rtr[.prt][i]
   | nil => rfl
   | cons e e' => by
     have ⟨h, h'⟩ := (List.all₂_cons _ _ _).mp h
     exact e'.preserves_unchanged_ports h' ▸ e.preserves_unchanged_port h
 
-theorem preserves_unchanged_state {i : ID} (h : cs.All₂ (¬·.obj.IsState i)) :
+theorem preserves_unchanged_state {i : ID} (h : cs.All₂ (¬·.obj.IsStateᵢ i)) :
     (s₁ -[cs]→* s₂) → s₁.rtr[.stv][i] = s₂.rtr[.stv][i]
   | nil => rfl
   | cons e e' => by
     have ⟨h, h'⟩ := (List.all₂_cons _ _ _).mp h
     exact e'.preserves_unchanged_state h' ▸ e.preserves_unchanged_state h
 
-theorem preserves_unchanged_actions {i : ID} (h : cs.All₂ (¬·.obj.IsAction i)) :
+theorem preserves_unchanged_actions {i : ID} (h : cs.All₂ (¬·.obj.IsActionᵢ i)) :
     (s₁ -[cs]→* s₂) → s₁.rtr[.act][i] = s₂.rtr[.act][i]
   | nil => rfl
   | cons e e' => by
@@ -95,8 +95,8 @@ theorem port_kind_deterministic {i : ID}
     (ho₁ : s₁.rtr[.prt][i] = some { kind := k₁, val := v₁ }) 
     (ho₂ : s₂.rtr[.prt][i] = some { kind := k₂, val := v₂ }) : 
     k₁ = k₂ := by
-  have ⟨_, h₁⟩ := e₁.equiv.obj?_iff.mpr ⟨_, ho₁⟩ 
-  have ⟨_, h₂⟩ := e₂.equiv.obj?_iff.mpr ⟨_, ho₂⟩ 
+  have ⟨_, h₁⟩ := e₁.equiv.obj?_some_iff.mpr ⟨_, ho₁⟩ 
+  have ⟨_, h₂⟩ := e₂.equiv.obj?_some_iff.mpr ⟨_, ho₂⟩ 
   injection h₁ ▸ h₂ with h
   subst h
   have ⟨_, h₁⟩ := e₁.preserves_port_kind h₁
@@ -111,7 +111,7 @@ theorem lastSome?_none_preserves_ports
     (e : s₁ -[cs]→* s₂) (h : cs.lastSome? (·.obj.portValue? i) = none) :
     s₁.rtr[.prt][i] = s₂.rtr[.prt][i] := by
   apply e.preserves_unchanged_ports
-  simp [Change.not_IsPort_iff_portValue?_none, List.lastSome?_eq_none h]
+  simp [Change.IsPortᵢ.not_iff_portValue?_none, List.lastSome?_eq_none h]
 
 theorem lastSome?_some_port 
     (e : s₁ -[cs]→* s₂) (h : cs.lastSome? (·.obj.portValue? i) = some v) :
@@ -119,7 +119,7 @@ theorem lastSome?_some_port
   have ⟨_, _, c, cs, _, _, _, e, e', hc, hcs, _⟩ := e.lastSome?_some_split h
   simp at hc
   rw [Change.portValue?_some hc] at e
-  simp [←Change.not_IsPort_iff_portValue?_none] at hcs
+  simp [←Change.IsPortᵢ.not_iff_portValue?_none] at hcs
   rw [←e'.preserves_unchanged_ports hcs]
   have ⟨k, _⟩ := e.port_change
   exists k
@@ -128,18 +128,18 @@ theorem lastSome?_none_preserves_state
     (e : s₁ -[cs]→* s₂) (h : cs.lastSome? (·.obj.stateValue? i) = none) :
     s₁.rtr[.stv][i] = s₂.rtr[.stv][i] := by
   apply e.preserves_unchanged_state
-  simp [Change.not_IsState_iff_stateValue?_none, List.lastSome?_eq_none h]
+  simp [Change.IsStateᵢ.not_iff_stateValue?_none, List.lastSome?_eq_none h]
 
 theorem lastSome?_some_state (e : s₁ -[cs]→* s₂) (h : cs.lastSome? (·.obj.stateValue? i) = some v) :
     s₂.rtr[.stv][i] = some v := by
   have ⟨_, _, c, cs, _, _, _, e, e', hc, hcs, _⟩ := e.lastSome?_some_split h
   simp at hc
   rw [Change.stateValue?_some hc] at e
-  simp [←Change.not_IsState_iff_stateValue?_none] at hcs
+  simp [←Change.IsStateᵢ.not_iff_stateValue?_none] at hcs
   rw [←e'.preserves_unchanged_state hcs, ←e.state_change]
   
 theorem preserves_actions_at_unchanged_times {i : ID} 
-    (e : s₁ -[cs]→* s₂) (h : cs.All₂ (¬·.obj.IsActionAt i t)) (ho₁ : s₁.rtr[.act][i] = some a₁) :
+    (e : s₁ -[cs]→* s₂) (h : cs.All₂ (¬·.obj.IsActionₜ i t)) (ho₁ : s₁.rtr[.act][i] = some a₁) :
     ∃ a₂, (s₂.rtr[.act][i] = some a₂) ∧ (a₁ ⟨t, m⟩ = a₂ ⟨t, m⟩) := by
   induction e generalizing a₁
   case nil => exists a₁
@@ -153,7 +153,7 @@ theorem filterMap_nil_preserves_actions_at_time {i : ID}
     (ho₁ : s₁.rtr[.act][i] = some a₁) (ho₂ : s₂.rtr[.act][i] = some a₂) : 
     a₁ ⟨t, m⟩ = a₂ ⟨t, m⟩ := by
   have h := List.filterMap_nil_iff.mp h
-  simp [←Change.not_IsActionAt_iff_actionValue?_none] at h
+  simp [←Change.IsActionₜ.not_iff_actionValue?_none] at h
   have ⟨_, h, ht⟩ := e.preserves_actions_at_unchanged_times h ho₁ (t := t) (m := m)
   simp_all
 
@@ -166,7 +166,7 @@ theorem action_at_time_eq_schedule'_filterMap {i : ID}
   case cons hd tl hi =>
     have ⟨_, _, _, _, _, _, e₁, e₂, e₃, hcs₁, hc, hcs₂, _⟩ := e.filterMap_cons_split hl
     cases Change.actionValue?_some hc
-    simp [←Change.not_IsActionAt_iff_actionValue?_none] at hcs₁
+    simp [←Change.IsActionₜ.not_iff_actionValue?_none] at hcs₁
     have ⟨_, ho, h⟩ := e₁.preserves_actions_at_unchanged_times hcs₁ ho₁ (t := t) (m := m)
     simp [hi e₃ (e₂.action_change ho) ho₂ hcs₂, ←schedule'_cons, schedule'_tag_congr h]
 
@@ -191,9 +191,9 @@ theorem equiv_changes_eq_present_actions {i : ID}
     (e₁ : s -[cs₁]→* s₁) (e₂ : s -[cs₂]→* s₂) (h : ActionChangeEquiv cs₁ cs₂) 
     (ho₁ : s₁.rtr[.act][i] = some a₁) (ho₂ : s₂.rtr[.act][i] = some a₂) :
     a₁ = a₂ := by
-  refine Finmap.ext ?_
+  refine Finmap.ext_lookup ?_
   intro ⟨t, m⟩ 
-  have ⟨_, ho⟩ := e₁.equiv.obj?_iff.mpr ⟨_, ho₁⟩
+  have ⟨_, ho⟩ := e₁.equiv.obj?_some_iff.mpr ⟨_, ho₁⟩
   simp [
     e₁.action_at_time_eq_schedule'_filterMap ho ho₁,
     e₂.action_at_time_eq_schedule'_filterMap ho ho₂,
@@ -206,13 +206,13 @@ theorem equiv_changes_eq_actions {i : ID}
   match ha : s.rtr[.act][i] with
   | none => (e₂.equiv.obj?_none_iff.mp ha) ▸ (e₁.equiv.obj?_none_iff.mp ha)
   | some _ => 
-    have ⟨_, h₁⟩ := e₁.equiv.obj?_iff.mp ⟨_, ha⟩
-    have ⟨_, h₂⟩ := e₂.equiv.obj?_iff.mp ⟨_, ha⟩
+    have ⟨_, h₁⟩ := e₁.equiv.obj?_some_iff.mp ⟨_, ha⟩
+    have ⟨_, h₂⟩ := e₂.equiv.obj?_some_iff.mp ⟨_, ha⟩
     e₁.equiv_changes_eq_present_actions e₂ h h₁ h₂ ▸ h₁ |>.trans h₂.symm
 
 theorem equiv_changes_eq_rtr (e₁ : s -[cs₁]→* s₁) (e₂ : s -[cs₂]→* s₂) (h : cs₁ ⋈ cs₂) : 
     s₁.rtr = s₂.rtr := by
-  apply (e₁.equiv.symm.trans e₂.equiv).obj?_ext'
+  apply (e₁.equiv.symm.trans e₂.equiv).ext_obj?
   intro cmp _ _
   cases cmp
   case prt => exact e₁.equiv_changes_eq_ports e₂ h.ports

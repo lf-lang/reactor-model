@@ -4,10 +4,10 @@ import Mathlib.Tactic.LibrarySearch
 namespace Execution
 
 abbrev State.Trivial (s : State) : Prop := 
-  s.rtr.ids .rcn = ∅
+  s.rtr[.rcn].ids = ∅
 
 theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial := by
-  by_contra hc; exact h ⟨Finset.nonempty_of_ne_empty hc⟩
+  by_contra hc; exact h ⟨Set.nonempty_iff_ne_empty.mpr hc⟩
 
 theorem State.Nontrivial.not_Trivial (h : Nontrivial s) : ¬s.Trivial :=
   h.nontrivial.ne_empty

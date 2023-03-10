@@ -4,6 +4,8 @@ open Classical
 
 namespace Reactor
 
+/-
+
 -- Note, this only applies restrictions to the top level of the given reactor.
 -- Nested components are addressed by the Update relation.
 def EqModID (σ₁ σ₂ : Reactor) (cmp : Cmp) (i : ID) : Prop :=
@@ -99,7 +101,10 @@ theorem EqModID.eq_from_eq_val_for_id {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i 
     simp [h₀, h₁, h₂, h₃, h₄]
     sorry
 
-inductive Update (cmp : Cmp) (i : ID) (u : cmp.type → cmp.type → Prop) : Reactor → Reactor → Prop :=
+-/
+
+def Update [a : ReactorType.Indexable α] (cmp : Component) (i : ID) (u : a.componentType cmp → a.componentType cmp → Prop) : α → α → Prop := sorry
+  /-
   | top {σ₁ σ₂ v v'} :
     (σ₁ %[cmp:i]= σ₂) →
     (σ₁.cmp? cmp i = some v) →
@@ -112,12 +117,14 @@ inductive Update (cmp : Cmp) (i : ID) (u : cmp.type → cmp.type → Prop) : Rea
     (σ₂.nest j = some rtr₂) →
     (Update cmp i u rtr₁ rtr₂) →
     Update cmp i u σ₁ σ₂
+  -/
 
 notation σ₁:max " -[" cmp ";" i:max u "]→ " σ₂:max => Reactor.Update cmp i u σ₁ σ₂
 
 set_option quotPrecheck false in
 notation σ₁:max " -[" cmp ":" i:max f "]→ " σ₂:max => Reactor.Update cmp i (λ v v' => v' = f v) σ₁ σ₂
 
+/-
 theorem Update.requires_lineage_to_target {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} (h : σ₁ -[cmp;i u]→ σ₂) : Nonempty (Lineage σ₁ cmp i) := by
   induction h
   case top ha _ _ => exact ⟨Lineage.end cmp $ Finmap.mem_ids_iff.mpr ⟨_, ha⟩⟩
@@ -156,11 +163,15 @@ theorem Update.unique {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.t
     let l₂ := Lineage.nest hu.requires_lineage_to_target.some hn
     have hc := σ₁.uniqueIDs l₁ l₂
     cases cmp <;> contradiction
-  
-theorem Update.unique' {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
-  (σ -[cmp:i f]→ σ₁) → (σ -[cmp:i f]→ σ₂) → σ₁ = σ₂ :=
-  λ h₁ h₂ => Update.unique h₁ h₂ λ _ _ _ hv₁ hv₂ => hv₁.trans hv₂.symm
+-/
 
+variable [a : ReactorType.Indexable α]
+
+theorem Update.unique {rtr : α} {cmp} {i : ID} {f : a.componentType cmp → a.componentType cmp} :
+  (rtr -[cmp:i f]→ rtr₁) → (rtr -[cmp:i f]→ rtr₂) → rtr₁ = rtr₂ :=
+  sorry
+
+/-
 theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type → cmp.type → Prop} :
   (σ₁ -[cmp;i u]→ σ₂) → ∃ v v', (σ₁[cmp][i] = some v) ∧ (σ₂[cmp][i] = some v') ∧ (u v v') := by
   intro h
@@ -169,11 +180,13 @@ theorem Update.change {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u : cmp.type
   case nest hr₁ hr₂ _ hi =>
     have ⟨_, _, ho₁, ho₂, hu⟩ := hi
     exact ⟨_, _, Reactor.obj?_nest hr₁ ho₁, Reactor.obj?_nest hr₂ ho₂, hu⟩ 
+-/
 
-theorem Update.change' {σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {f : cmp.type → cmp.type} :
-  (σ₁ -[cmp:i f]→ σ₂) → ∃ v, (σ₁[cmp][i] = some v) ∧ (σ₂[cmp][i] = f v) := by
+theorem Update.change {rtr₁ : α} {cmp} {i : ID} {f : a.componentType cmp → a.componentType cmp} :
+  (rtr₁ -[cmp:i f]→ rtr₂) → ∃ v, (rtr₁[cmp][i] = some v) ∧ (rtr₂[cmp][i] = f v) := by
   sorry
 
+/-
 notation u₂ " ● " u₁ => λ v₁ v₂ => ∃ v, (u₁ v₁ v) ∧ (u₂ v v₂)
 
 theorem Update.compose {σ σ₁ σ₂ : Reactor} {cmp : Cmp} {i : ID} {u₁ u₂ : cmp.type → cmp.type → Prop} :
@@ -218,10 +231,13 @@ theorem Update.funcs_comm {σ σ₁ σ₂ σ₁₂ σ₂₁ : Reactor} {cmp : Cm
   have hc₂ := Update.compose' h₂ h₂₁
   rw [hc] at hc₂
   exact Update.unique' hc₁ hc₂
+-/
 
-theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
-  (σ₁ -[cmp:i f]→ σ₂) → (cmp' ≠ cmp ∨ i' ≠ i) → (cmp ≠ .rtr) → (cmp' ≠ .rtr) → (σ₁[cmp'][i'] = σ₂[cmp'][i']) := by
-  intro h ho hr hr'
+theorem Update.preserves_ne_cmp_or_id {rtr₁ : α} {cmp} {f : a.componentType cmp → a.componentType cmp}
+  (u : rtr₁ -[cmp:i f]→ rtr₂) (ho : cmp' ≠ cmp ∨ i' ≠ i := by simp) (hr : cmp ≠ .rtr := by simp) 
+  (hr' : cmp' ≠ .rtr := by simp) : rtr₁[cmp'][i'] = rtr₂[cmp'][i'] := by
+  sorry
+  /-intro h ho hr hr'
   induction h
   case top he _ _ _ =>
     have H := he _ _ ho
@@ -229,24 +245,26 @@ theorem Update.preserves_ne_cmp_or_id {cmp} {f : cmp.type → cmp.type} :
   case nest he _ _ _ hi =>
     -- have H := he _ _ ho
     sorry
+  -/
 
-theorem Update.preserves_ne_cmp {cmp} {f : cmp.type → cmp.type} 
-    (u : σ₁ -[cmp:i f]→ σ₂) (hn : cmp' ≠ cmp := by exact (nomatch ·)) 
+theorem Update.preserves_ne_cmp {rtr₁ : α} {cmp} {f : a.componentType cmp → a.componentType cmp} 
+    (u : rtr₁ -[cmp:i f]→ rtr₂) (hn : cmp' ≠ cmp := by exact (nomatch ·)) 
     (hc : cmp ≠ .rtr := by exact (nomatch ·)) (hc' : cmp' ≠ .rtr := by exact (nomatch ·)) : 
-    σ₁[cmp'][j] = σ₂[cmp'][j] := by
+    rtr₁[cmp'][j] = rtr₂[cmp'][j] := by
   sorry
 
-theorem Update.preserves_ne_id {cmp} {f : cmp.type → cmp.type} 
-    (u : σ₁ -[cmp:i f]→ σ₂) (hi : i ≠ j) 
+theorem Update.preserves_ne_id {rtr₁ : α} {cmp} {f : a.componentType cmp → a.componentType cmp} 
+    (u : rtr₁ -[cmp:i f]→ rtr₂) (hi : i ≠ j) 
     (hc : cmp ≠ .rtr := by exact (nomatch ·)) (hc' : cmp' ≠ .rtr := by exact (nomatch ·)) : 
-    σ₁[cmp'][j] = σ₂[cmp'][j] := by
+    rtr₁[cmp'][j] = rtr₂[cmp'][j] := by
   sorry
 
 -- TODO: Cf. comment on EqModID.preserves_Equiv.
-theorem Update.equiv {cmp} {u : cmp.type → cmp.type → Prop} 
-    (u : σ₁ -[cmp;i u]→ σ₂) (hc : cmp ≠ .rtr := by exact (nomatch ·)) : σ₁ ≈ σ₂ := by
+theorem Update.equiv {rtr₁ : α} {cmp} {u : a.componentType cmp → a.componentType cmp → Prop} 
+    (u : rtr₁ -[cmp;i u]→ rtr₂) (hc : cmp ≠ .rtr := by exact (nomatch ·)) : rtr₁ ≈ rtr₂ := by
   sorry
 
+/-
 structure Mutation.rtrRel (cmp : Cmp) (cmpRel : (ID ⇉ cmp.type) → (ID ⇉ cmp.type) → Prop) (σ₁ σ₂ : Reactor) : Prop where
   eqCmps : ∀ cmp', (cmp' ≠ cmp) → σ₁.cmp? cmp' = σ₂.cmp? cmp'
   mutate : cmpRel (σ₁.cmp? cmp) (σ₂.cmp? cmp)
@@ -260,5 +278,7 @@ notation σ₁:max " -[" cmp:max "/" r:max cmpRel "]→ " σ₂:max => Reactor.M
 
 set_option quotPrecheck false in
 notation σ₁:max " -[" cmp:max "|" r:max f "]→ " σ₂:max => Reactor.Mutation σ₁ σ₂ cmp (λ c c' => c' = f c) r
+
+-/
 
 end Reactor

@@ -2,45 +2,7 @@ import ReactorModel.Objects
 
 open Classical
 
--- About the norm-condition in prio: 
--- We want to establish a dependency between mutations with priorities 
--- as well normal reactions with priorities, but not between normal reactions
--- and mutations. Otherwise a normal reaction might take precedence over
--- a mutation. Also the precedence of mutations over normal reactions is
--- handled by mutNorm - so this would potentially just create a redundancy.
-inductive Dependency (σ : Reactor) : ID → ID → Prop
-  | prio :
-    (σ.con? .rcn i₁ = σ.con? .rcn i₂) →
-    (σ[.rcn][i₁] = some rcn₁) →
-    (σ[.rcn][i₂] = some rcn₂) →
-    (rcn₁.isMut ↔ rcn₂.isMut) → 
-    (rcn₁.prio > rcn₂.prio) →
-    Dependency σ i₁ i₂
-  | mutNorm :
-    (σ.con? .rcn iₘ = σ.con? .rcn iₙ) →
-    (σ[.rcn][iₘ] = some m) →
-    (σ[.rcn][iₙ] = some n) →
-    (m.isMut) → 
-    (n.isNorm) → 
-    Dependency σ iₘ iₙ
-  | depOverlap :
-    (σ[.rcn][(i₁ : ID)] = some rcn₁) →
-    (σ[.rcn][(i₂ : ID)] = some rcn₂) →
-    ((rcn₁.deps .out ∩ rcn₂.deps .in).Nonempty) →
-    Dependency σ i₁ i₂
-  | mutNest :
-    (σ[.rcn][(iₘ : ID)] = some m) → 
-    (m.isMut) → 
-    (σ.con? .rcn iₘ = some rtr₁) →
-    (rtr₂ ∈ rtr₁.obj.nest.values) → 
-    (iᵣ ∈ rtr₂.rcns.ids) → 
-    Dependency σ iₘ iᵣ
-  | trans : 
-    Dependency σ i₁ i₂ → 
-    Dependency σ i₂ i₃ → 
-    Dependency σ i₁ i₃
-
-notation i₁:max " >[" σ "] " i₂:max => Dependency σ i₁ i₂
+notation i₁:max " >[" σ "] " i₂:max => ReactorType.Dependency σ i₁ i₂
 
 def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
 
@@ -62,14 +24,15 @@ theorem nonoverlapping_deps :
   (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
   intro ⟨hi, _⟩ ho₁ ho₂
   by_contra hc
-  exact absurd (Dependency.depOverlap ho₁ ho₂ $ Finset.nonempty_of_ne_empty hc) hi
+  sorry -- exact absurd (ReactorType.Dependency.depOverlap ho₁ ho₂ $ Finset.nonempty_of_ne_empty hc) hi
  
 theorem ne_rtr_or_pure : 
   (i₁ >[σ]< i₂) → (i₁ ≠ i₂) →
   (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
-  (σ.con? .rcn i₁ = some c₁) → (σ.con? .rcn i₂ = some c₂) →
-  (c₁.id ≠ c₂.id) ∨ rcn₁.isPure ∨ rcn₂.isPure := by
-  intro h hn ho₁ ho₂ hc₁ hc₂ 
+  (σ[.rcn][i₁]& = some c₁) → (σ[.rcn][i₂]& = some c₂) →
+  (c₁.id ≠ c₂.id) ∨ rcn₁.Pure ∨ rcn₂.Pure := by
+  sorry
+  /-intro h hn ho₁ ho₂ hc₁ hc₂ 
   by_contra hc
   have ⟨hc, hp⟩ := (not_or ..).mp hc
   simp [not_or] at hp hc
@@ -108,5 +71,6 @@ theorem ne_rtr_or_pure :
       case inr hpr =>
         have hd := Dependency.prio hre.symm ho₁ ho₂ (by simp [hm₁, hm₂]) hpr
         exact absurd hd h.left 
-
+  -/
+  
 end Indep

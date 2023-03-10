@@ -20,13 +20,12 @@ structure Reaction.Input where
 -- This field is used to define when a reaction triggers (cf. `triggersOn`).
 --
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
-open Reaction in
 @[ext]
 structure Reaction where
   deps :          Kind → Set ID
   triggers :      Set ID
   prio :          Priority
-  body :          Input → List Change
+  body :          Reaction.Input → List Change
   tsSubInDeps :   triggers ⊆ deps .in
   prtOutDepOnly : ∀ i v,   (o ∉ deps .out) → (.port o v) ∉ body i
   actOutDepOnly : ∀ i t v, (o ∉ deps .out) → (.action o t v) ∉ body i
@@ -37,44 +36,46 @@ namespace Reaction
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
-instance : CoeFun Reaction (λ _ => Input → List Change) where
+instance : CoeFun Reaction (fun _ => Input → List Change) where
   coe rcn := rcn.body
 
--- A reaction is normal if its body produces no mutating changes.
+-- A reaction is normal if its body only produces normal changes.
 def Normal (rcn : Reaction) : Prop :=
-  ∀ {i c}, (c ∈ rcn i) → ¬c.mutates 
+  ∀ {i c}, (c ∈ rcn i) → c.IsNormal 
 
--- A reaction is a mutation if it is not "normal", i.e. it does produce mutating changes for some 
--- input.
-def Mutates (rcn : Reaction) : Prop := ¬rcn.Normal
+-- A reaction is a mutation if its body can produce mutating changes.
+def Mutates (rcn : Reaction) : Prop := 
+  ∃ i c, (c ∈ rcn i) ∧ c.IsMutation 
 
 -- A reaction is pure if it does not interact with its container's state.
 structure Pure (rcn : Reaction) : Prop where
   input : ∀ i s, rcn i = rcn { i with state := s }
-  output : (c ∈ rcn.body i) → c.isPort ∨ c.isAction
+  output : (c ∈ rcn.body i) → c.IsPort ∨ c.IsAction
 
-theorem Mutates.not_Pure (rcn : Reaction) : rcn.Mutates → ¬rcn.Pure := by
-  intro hm ⟨_, ho⟩
-  simp [Mutates, Normal] at hm
-  have ⟨_, c, hb, _⟩ := hm
-  specialize ho hb
-  cases ho <;> cases c <;> simp [Change.mutates] at *    
+theorem Mutates.not_Pure {rcn : Reaction} : rcn.Mutates → ¬rcn.Pure := by
+  intro ⟨_, _, _, ⟨⟩⟩ ⟨_, ho⟩
+  cases ho ‹_› <;> contradiction
   
 -- The condition under which a given reaction triggers on a given (input) port-assignment.
-def triggersOn (rcn : Reaction) (i : Input) : Prop :=
-  ∃ t v, (t ∈ rcn.triggers) ∧ (i.ports t = some v) ∧ (v.isPresent)
+def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
+  ∃ t v, (t ∈ rcn.triggers) ∧ (i.ports t = some v) ∧ (v.IsPresent)
   
 -- Relay reactions are a specific kind of reaction that allow us to simplify what
 -- it means for reactors' ports to be connected. We can formalize connections between
 -- reactors' ports by creating a reaction that declares these ports and only these
 -- ports as dependency and antidependency respectively, and does nothing but relay the
 -- value from its input to its output.
-noncomputable def relay (src dst : ID) : Reaction := {
-  deps := λ r => match r with | .in => {src} | .out => {dst},
-  triggers := {src},
-  prio := none,
-  body := λ i => match i.ports src with | none => [] | some v => [.port dst v],
-  tsSubInDeps := by simp,
+def relay (src dst : ID) : Reaction where
+  deps 
+    | .in => {src} 
+    | .out => {dst}
+  triggers := {src}
+  prio := none
+  body i := 
+    match i.ports src with 
+    | none => [] 
+    | some v => [.port dst v]
+  tsSubInDeps := by simp
   prtOutDepOnly := by
     intro _ i 
     cases hs : i.ports src <;> simp_all [Option.elim, hs]
@@ -83,15 +84,16 @@ noncomputable def relay (src dst : ID) : Reaction := {
     cases hs : i.ports src <;> simp [Option.elim, hs]
   actNotPast := by
     intro i _ _ _ h
-    cases hs : i.ports src <;> simp [hs] at h,
+    cases hs : i.ports src <;> simp [hs] at h
   stateLocal := by
     intro i _ _ h
     cases hs : i.ports src <;> simp [hs] at h
-}
 
-theorem relay_Pure (i₁ i₂) : (Reaction.relay i₁ i₂).Pure := {
-  input := by simp [relay],
-  output := by intro _ i h; cases hc : i.ports i₁ <;> simp_all [relay, hc, h]
-}
+theorem Pure.relay (src dst) : Pure (relay src dst) where
+  input := by intros; rw [relay]
+  output := by 
+    intro _ i h
+    cases hc : i.ports src <;> (rw [relay] at h; simp [hc] at h)
+    exact .inl $ h ▸ .intro
 
 end Reaction

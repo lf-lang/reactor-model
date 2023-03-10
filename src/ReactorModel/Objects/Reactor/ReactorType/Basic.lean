@@ -29,7 +29,7 @@ open Reactor (Component)
 
 class ReactorType (α : Type) where
   ports : α → ID ⇀ Port             
-  acts :  α → ID ⇀ Time.Tag ⇀ Value 
+  acts :  α → ID ⇀ Time.Tag ⇉ Value 
   state : α → ID ⇀ Value            
   rcns :  α → ID ⇀ Reaction         
   nest :  α → ID ⇀ α      
@@ -85,7 +85,7 @@ abbrev componentType [ReactorType α] : Component → Type
   | .rtr => α 
   | .rcn => Reaction
   | .prt => Port
-  | .act => Time.Tag ⇀ Value
+  | .act => Time.Tag ⇉ Value
   | .stv => Value
 
 abbrev cmp? [inst : ReactorType α] : (cmp : Component) → α → ID ⇀ inst.componentType cmp

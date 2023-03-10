@@ -10,10 +10,10 @@ inductive ChangeStep (s : State) : State → Identified Change → Prop
   | state :  (s.rtr -[.stv:i λ _ => v]→ σ')         → ChangeStep s { s with rtr := σ' } ⟨rcn, .state i v⟩
   | action : (s.rtr -[.act:i (schedule · t v)]→ σ') → ChangeStep s { s with rtr := σ' } ⟨rcn, .action i t v⟩
   -- Mutations are (temporarily) no-ops:
-  | connect :    ChangeStep s s ⟨rcn, .connect i₁ i₂⟩
-  | disconnect : ChangeStep s s ⟨rcn, .disconnect i₁ i₂⟩
-  | create :     ChangeStep s s ⟨rcn, .create rtr⟩
-  | delete :     ChangeStep s s ⟨rcn, .delete i⟩
+  | connect :    ChangeStep s s ⟨rcn, .mut $ .connect i₁ i₂⟩
+  | disconnect : ChangeStep s s ⟨rcn, .mut $ .disconnect i₁ i₂⟩
+  | create :     ChangeStep s s ⟨rcn, .mut $ .create rtr⟩
+  | delete :     ChangeStep s s ⟨rcn, .mut $ .delete i⟩
   -- | connect {σ' src dst r} :    (s.rtr &[.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.update (s.freshID Cmp.rcn r) (Reaction.relay src dst))]→ σ') → ChangeStep rcn s ⟨σ', s.ctx⟩ (.connect src dst)
   -- | disconnect {σ' src dst r} : (s.rtr &[.rcn:rcn]= r) → (s.rtr -[Cmp.rcn|r (·.filter' (· ≠ Reaction.relay src dst))]→ σ')                  → ChangeStep rcn s ⟨σ', s.ctx⟩ (.disconnect src dst)
   -- TODO: `create` via reactor class instantiation function

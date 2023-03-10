@@ -9,152 +9,145 @@ opaque Reactor.Class : Type
 -- That is, we ignore all side effects that a reaction could have and only consider the
 -- part that is relevant to the reactor system: the API calls. 
 -- These API calls are formalized by the `Change` type:
-inductive Change
-  | port (port : ID) (value : Value)
-  | state (var : ID) (value : Value)
+namespace Change
+
+protected inductive Normal
+  | port   (port : ID) (value : Value)
+  | state  (var : ID) (value : Value)
   | action (action : ID) (time : Time) (value : Value)
-  | connect (srcPort : ID) (dstPort : ID)
+
+protected inductive Mutation
+  | connect    (srcPort : ID) (dstPort : ID)
   | disconnect (srcPort : ID) (dstPort : ID)
-  | create («class» : Reactor.Class)
-  | delete (rtr : ID)
+  | create     («class» : Reactor.Class)
+  | delete     (rtr : ID)
+
+end Change
+
+inductive Change
+  | norm  : Change.Normal → Change
+  | «mut» : Change.Mutation → Change 
 
 namespace Change
 
 variable [DecidableEq ID]
 
--- TODO: Remove the Bool-based functions.
+instance : Coe Change.Normal Change where
+  coe := norm
 
-abbrev isPort : Change → Bool 
-  | port .. => true
-  | _ => false
+instance : Coe Change.Mutation Change where
+  coe := «mut»
 
-inductive IsPort (i : ID) : Change → Prop
-  | intro : IsPort i (.port i v)
+@[match_pattern]
+abbrev port : ID → Value → Change := (.norm $ .port · ·) 
 
-theorem IsPort.iff_id_eq : IsPort j (.port i v) ↔ i = j where
+@[match_pattern]
+abbrev state : ID → Value → Change := (.norm $ .state · ·) 
+
+@[match_pattern]
+abbrev action : ID → Time → Value → Change := (.norm $ .action · · ·) 
+
+inductive IsNormal : Change → Prop
+  | intro : IsNormal (norm _)
+
+inductive IsMutation : Change → Prop
+  | intro : IsMutation («mut» _)
+
+namespace Normal 
+
+def id : Change.Normal → ID
+  | port i .. | state i .. | action i .. => i
+
+def value : Change.Normal → Value
+  | port _ v | state _ v | action _ _ v => v
+
+end Normal
+
+inductive IsPort : Change → Prop
+  | intro : IsPort (port _ _)
+
+inductive IsPortᵢ (i : ID) : Change → Prop
+  | intro : IsPortᵢ i (port i _)
+
+theorem IsPortᵢ.iff_id_eq : IsPortᵢ i (.port j v) ↔ j = i where
   mp | intro .. => rfl
   mpr h := h ▸ .intro
 
-abbrev isState : Change → Bool 
-  | state .. => true
-  | _ => false
-
-inductive IsState (i : ID) : Change → Prop
-  | intro : IsState i (.state i v)
-
-theorem IsState.iff_id_eq : IsState j (.state i v) ↔ i = j where
-  mp | intro .. => rfl
-  mpr h := h ▸ .intro
-
-abbrev isAction : Change → Bool 
-  | action .. => true
-  | _ => false
-
-inductive IsAction (i : ID) : Change → Prop
-  | intro : IsAction i (.action i t v)
-
-theorem IsAction.iff_id_eq : IsAction j (.action i t v) ↔ i = j where
-  mp | intro .. => rfl
-  mpr h := h ▸ .intro
-
-inductive IsActionAt (i : ID) (t : Time) : Change → Prop
-  | intro : IsActionAt i t (.action i t v)
-
-theorem not_IsActionAt_ne_ids_or_ne_time 
-    (h : ¬IsActionAt j t (.action i t' v)) : i ≠ j ∨ t' ≠ t := by
-  by_contra hc
-  simp [not_or] at hc
-  exact absurd (hc.left ▸ hc.right ▸ .intro) h
-
-def isActionForTime (t : Time) : Change → Bool 
-  | action _ t' _ => t = t'
-  | _ => false
-
-def portValue? (t : ID) : Change → Option Value
-  | port t' v => if t' = t then some v else none
+def portValue? (i : ID) : Change → Option Value
+  | port j v => if j = i then some v else none
   | _ => none
+
+theorem portValue?_some (h : portValue? i c = some v) : c = port i v := by
+  cases c <;> try cases ‹Change.Normal›  
+  all_goals simp [portValue?] at h
+  split at h <;> simp_all      
+
+theorem IsPortᵢ.iff_portValue?_some : (IsPortᵢ i c) ↔ (∃ v, c.portValue? i = some v) where
+  mp  | intro      => by simp [portValue?] 
+  mpr | .intro v h => by simp [portValue?_some h, intro]
+
+theorem IsPortᵢ.not_iff_portValue?_none : ¬(IsPortᵢ i c) ↔ (c.portValue? i = none) :=
+  sorry
+
+inductive IsState : Change → Prop
+  | intro : IsState (state _ _)
+
+inductive IsStateᵢ (i : ID) : Change → Prop
+  | intro : IsStateᵢ i (state i _)
+
+theorem IsStateᵢ.iff_id_eq : IsStateᵢ i (state j v) ↔ j = i where
+  mp | intro .. => rfl
+  mpr h := h ▸ .intro
 
 def stateValue? (i : ID) : Change → Option Value
   | state j v => if j = i then some v else none
   | _ => none
 
-def actionValue? (i : ID) (t : Time) : Change → Option Value
-  | action j t' v  => if i = j ∧ t = t' then some v else none
-  | _ => none
+theorem stateValue?_some (h : stateValue? i c = some v) : c = state i v := by
+  cases c <;> try cases ‹Change.Normal›  
+  all_goals simp [stateValue?] at h
+  split at h <;> simp_all      
 
-theorem portValue?_some {c : Change} : 
-  (c.portValue? t = some v) → (c = .port t v) := by
-  intro h
-  cases c 
-  case port t v =>
-    simp [portValue?] at h
-    split at h <;> simp_all      
-  all_goals simp [portValue?] at *
-
-theorem IsPort.iff_portValue?_some : IsPort i c ↔ ∃ v, c.portValue? i = some v where
-  mp  | intro      => by simp [portValue?] 
-  mpr | .intro v h => by simp [portValue?_some h, intro]
-
-theorem not_IsPort_iff_portValue?_none : ¬(IsPort i c) ↔ c.portValue? i = none :=
-  sorry
-
-theorem stateValue?_some {c : Change} : 
-  (c.stateValue? t = some v) → (c = .state t v) := by
-  intro h
-  cases c 
-  case state t v =>
-    simp [stateValue?] at h
-    split at h <;> simp_all      
-  all_goals simp [stateValue?] at *
-
-theorem IsState.iff_stateValue?_some : IsState i c ↔ ∃ v, c.stateValue? i = some v where
+theorem IsStateᵢ.iff_stateValue?_some : (IsStateᵢ i c) ↔ (∃ v, c.stateValue? i = some v) where
   mp  | intro      => by simp [stateValue?] 
   mpr | .intro v h => by simp [stateValue?_some h, intro]
 
-theorem not_IsState_iff_stateValue?_none : ¬(IsState i c) ↔ c.stateValue? i = none :=
+theorem IsStateᵢ.not_iff_stateValue?_none : ¬(IsStateᵢ i c) ↔ (c.stateValue? i = none) :=
   sorry
 
-theorem actionValue?_some {c : Change}: 
-  (c.actionValue? i t = some v) → (c = .action i t v) := by
-  sorry
+inductive IsAction : Change → Prop 
+  | intro : IsAction (action _ _ _)
 
-theorem IsActionAt.iff_actionValue?_some : IsActionAt i t c ↔ ∃ v, c.actionValue? i t = some v where
+inductive IsActionᵢ (i : ID) : Change → Prop
+  | intro : IsActionᵢ i (action i _ _)
+
+inductive IsActionₜ (i : ID) (t : Time) : Change → Prop
+  | intro : IsActionₜ i t (action i t _)
+
+theorem IsActionᵢ.iff_id_eq : IsActionᵢ i (action j t v) ↔ j = i where
+  mp | intro .. => rfl
+  mpr h := h ▸ .intro
+
+theorem IsActionₜ.not_to_ne_ids_or_ne_time (h : ¬IsActionₜ i t (action j u v)) : j ≠ i ∨ u ≠ t := by
+  by_contra hc
+  simp [not_or] at hc
+  exact absurd (hc.left ▸ hc.right ▸ .intro) h
+
+def actionValue? (i : ID) (t : Time) : Change → Option Value
+  | action j u v  => if j = i ∧ u = t then some v else none
+  | _ => none
+
+theorem actionValue?_some (h : actionValue? i t c = some v) : c = action i t v := by
+  cases c <;> try cases ‹Change.Normal›  
+  all_goals simp [actionValue?] at h
+  split at h <;> simp_all
+
+theorem IsActionₜ.iff_actionValue?_some : 
+    (IsActionₜ i t c) ↔ (∃ v, c.actionValue? i t = some v) where
   mp  | intro      => by simp [actionValue?] 
-  mpr | .intro v h => by sorry
+  mpr | .intro v h => by simp [actionValue?_some h, intro]
 
-theorem not_IsActionAt_iff_actionValue?_none : ¬(IsActionAt i t c) ↔ c.actionValue? i t = none :=
+theorem IsActionₜ.not_iff_actionValue?_none : ¬(IsActionₜ i t c) ↔ (c.actionValue? i t = none) :=
   sorry
-
-def target : Change → Option ID
-  | port t .. | state t .. | action t .. => t
-  | _                                    => none
-
--- Instances of `Change` can be split into two groups: 
--- those which express a mutation to the structure of a reactor system, 
--- and those which don't.
--- This distinction will be used later to differentiate between "normal"
--- reactions and mutations, as normal reactions are not allowed to produce
--- mutating changes.
-def mutates : Change → Prop 
-  | port ..       => False
-  | state ..      => False
-  | action ..     => False
-  | connect ..    => True
-  | disconnect .. => True
-  | create ..     => True
-  | delete ..     => True
-
--- It is decidable whether a change mutates.
-instance : DecidablePred mutates 
-  | port ..       => isFalse (by simp [mutates])
-  | state ..      => isFalse (by simp [mutates])
-  | action ..     => isFalse (by simp [mutates])
-  | connect ..    => isTrue  (by simp [mutates])
-  | disconnect .. => isTrue  (by simp [mutates])
-  | create ..     => isTrue  (by simp [mutates])
-  | delete ..     => isTrue  (by simp [mutates])
-
-theorem target_none_iff_mutates (c : Change) : c.target = none ↔ c.mutates := by
-  cases c <;> simp only [target, mutates]
 
 end Change

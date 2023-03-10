@@ -38,19 +38,19 @@ theorem not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := by
 theorem preserves_tag (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
   e.exec.tag_eq
 
-theorem preserves_rcns (e : s₁ ⇓| s₂) : s₁.rtr.ids .rcn = s₂.rtr.ids .rcn := by
-  simp [Finset.ext_iff, Reactor.ids_mem_iff_obj?, e.exec.preserves_rcns]
+theorem preserves_rcns (e : s₁ ⇓| s₂) : s₁.rtr[.rcn].ids = s₂.rtr[.rcn].ids := by
+  sorry -- simp [Finset.ext_iff, Reactor.ids_mem_iff_obj?, e.exec.preserves_rcns]
 
-theorem rcns_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.rtr.ids .rcn = s₂.rtr.ids .rcn :=
+theorem rcns_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.rtr[.rcn].ids = s₂.rtr[.rcn].ids :=
   e₁.preserves_rcns ▸ e₂.preserves_rcns
   
 theorem rcns_Nodup (e : s₁ ⇓| s₂) : e.rcns.Nodup := 
   e.exec.rcns_nodup
 
-theorem progress_def (e : s₁ ⇓| s₂) : s₂.progress = s₁.rtr.ids .rcn :=
+theorem progress_def (e : s₁ ⇓| s₂) : s₂.progress = s₁.rtr[.rcn].ids :=
   e.preserves_rcns ▸ e.closed
 
-theorem mem_rcns_iff (e : s₁ ⇓| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr.ids .rcn ∧ rcn ∉ s₁.progress) :=
+theorem mem_rcns_iff (e : s₁ ⇓| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr[.rcn].ids ∧ rcn ∉ s₁.progress) :=
   e.progress_def ▸ e.exec.mem_rcns_iff
 
 theorem rcns_perm (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : e₁.rcns ~ e₂.rcns := by

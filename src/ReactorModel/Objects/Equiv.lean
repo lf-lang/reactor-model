@@ -10,14 +10,42 @@ namespace Reactor
 --       and output ports flipped.
 --
 -- Two reactors are equivalent if they are structurally equal.
-inductive Equiv : Reactor → Reactor → Prop where
-  | intro : (∀ cmp, (σ₁.cmp? cmp).ids = (σ₂.cmp? cmp).ids) →
+--
+-- TODO: Can you find a non-recursive definition of Equiv that uses con? and obj?.
+--
+inductive Equiv [ReactorType.Indexable α] : α → α → Prop where
+  | intro : /-(∀ cmp, (σ₁.cmp? cmp).ids = (σ₂.cmp? cmp).ids) →
             (∀ {i rtr₁ rtr₂}, (σ₁.nest i = some rtr₁) → (σ₂.nest i = some rtr₂) → Equiv rtr₁ rtr₂)
-            → Equiv σ₁ σ₂
+            → -/Equiv σ₁ σ₂
 
 namespace Equiv
 
+-- TODO: Use HasEquiv for this
 notation σ₁:max " ≈ " σ₂:max => Reactor.Equiv σ₁ σ₂
+
+variable [ReactorType.Indexable α]
+
+protected theorem refl {rtr : α} : rtr ≈ rtr :=
+  sorry
+
+protected theorem symm {rtr₁ : α} : (rtr₁ ≈ rtr₂) → (rtr₂ ≈ rtr₁) := by
+  sorry
+
+protected theorem trans {rtr₁ : α} : (rtr₁ ≈ rtr₂) → (rtr₂ ≈ rtr₃) → (rtr₁ ≈ rtr₃) := by
+  sorry
+
+theorem obj?_some_iff {rtr₁ : α} {cmp} {i : ID} (e : rtr₁ ≈ rtr₂) :
+    (∃ o₁, rtr₁[cmp][i] = some o₁) ↔ (∃ o₂, rtr₂[cmp][i] = some o₂) := 
+  sorry
+
+theorem obj?_none_iff {rtr₁ : α}  {cmp} {i : ID} (e : rtr₁ ≈ rtr₂) : 
+    (rtr₁[cmp][i] = none) ↔ (rtr₂[cmp][i] = none) := by 
+  sorry
+
+theorem ext_obj? {rtr₁ : α} : (rtr₁ ≈ rtr₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → rtr₁[cmp][i] = rtr₂[cmp][i]) → (rtr₁ = rtr₂) :=
+  sorry
+
+/-
 
 variable {σ σ₁ σ₂ σ₃ : Reactor}
 
@@ -191,3 +219,4 @@ theorem obj?_ext' : (σ₁ ≈ σ₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → 
 
 end Equiv
 end Reactor
+-/

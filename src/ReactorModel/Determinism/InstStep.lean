@@ -12,7 +12,7 @@ theorem OperationStep.equiv : (s₁ -[op]↣ s₂) → (s₁.rtr ≈ s₂.rtr)
   | .skip => .refl
   | .exec h => h.equiv
 
-theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rtr.obj? .rcn i = s₂.rtr.obj? .rcn i
+theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rtr[.rcn][i] = s₂.rtr[.rcn][i]
   | .skip .. => rfl
   | .exec h => h.preserves_rcns
 
@@ -37,7 +37,7 @@ theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e
   have h := ((h ▸ e₁.wfOp) ▸ e₂.wfOp |> Option.some_inj.mp).symm ▸ e₂.exec
   exact e₁.exec.deterministic h
 
-theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (s₁.rtr.contains .rcn e.rcn) :=
+theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (e.rcn ∈ s₁.rtr[.rcn].ids) :=
   s₁.operation_to_contains e.wfOp 
 
 theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
@@ -103,7 +103,7 @@ theorem identified_changes_equiv_changes {cs : List Change} {o : List (Identifie
 -- then any instantaneous step of the reaction will keep that port
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (p ∉ r.deps .out) → (s₁.rtr.obj? .prt p = s₂.rtr.obj? .prt p)
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (p ∉ r.deps .out) → (s₁.rtr[.prt][p] = s₂.rtr[.prt][p])
   := sorry
   /-
   | skipReaction ..,         _,  _ => rfl
@@ -118,7 +118,7 @@ theorem InstStep.preserves_nondep_ports :
   -/
 
 theorem InstStep.preserves_nondep_actions : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (a ∉ r.deps .out) → (s₁.rtr.obj? .act a = s₂.rtr.obj? .act a)
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (a ∉ r.deps .out) → (s₁.rtr[.act][a] = s₂.rtr[.act][a])
   := sorry
   /-
   | skipReaction ..,        _,  _ => rfl
@@ -133,7 +133,7 @@ theorem InstStep.preserves_nondep_actions :
   -/
 
 theorem InstStep.pure_preserves_state {j : ID} : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.obj? .rcn e.rcn = some r) → (r.isPure) → (s₁.rtr.obj? .stv j = s₂.rtr.obj? .stv j)
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (r.Pure) → (s₁.rtr[.stv][j] = s₂.rtr[.stv][j])
   := sorry
   /-
   | skipReaction ..,    _,  _ => rfl
@@ -150,8 +150,8 @@ theorem InstStep.pure_preserves_state {j : ID} :
 -- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
 --       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
 theorem InstStep.preserves_external_state : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr.con? .rcn e.rcn = some c) → 
-  (s₁.rtr.obj? .rtr j = some c₁) → (s₂.rtr.obj? .rtr j = some c₂) → (c.id ≠ j) →
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn]& = some c) → 
+  (s₁.rtr[.rtr][j] = some c₁) → (s₂.rtr[.rtr][j] = some c₂) → (c.id ≠ j) →
   (c₁.state = c₂.state)
   := sorry
   /-
@@ -177,13 +177,13 @@ theorem InstStep.eq_rcn_eq_changes {e₁ : s ⇓ᵢ s₁} {e₂ : s ⇓ᵢ s₂}
   simp [(h ▸ e₁.wfOp) ▸ e₂.wfOp |> Option.some_inj.mp]
 
 theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn >[s₁.rtr]< e.rcn) :=
-  λ h => by cases h <;> exact State.Allows.requires_acyclic_deps $ by assumption
+  fun (mk ..) => State.Allows.requires_acyclic_deps ‹_› 
     
 theorem InstStep.indep_rcns_indep_output :
   (e : s ⇓ᵢ s') → (rcn' >[s.rtr]< e.rcn) → (rcn' ≠ e.rcn) → s.rcnOutput rcn' = s'.rcnOutput rcn' := by
   intro h hi hrne
   have hp := h.exec.preserves_rcns (i := rcn')
-  cases ho : s.rtr.obj? .rcn rcn' <;> cases ho' : s'.rtr.obj? .rcn rcn'
+  cases ho : s.rtr[.rcn][rcn'] <;> cases ho' : s'.rtr[.rcn][rcn']
   case none.none => simp [State.rcnOutput, ho, ho']
   case' none.some, some.none => simp [hp, ho'] at ho
   case some.some => 
@@ -194,6 +194,9 @@ theorem InstStep.indep_rcns_indep_output :
       rw [←hp] at ho'
       have he := Option.some_inj.mp $ ho.symm.trans ho'
       simp [he]
+      sorry
+    sorry
+      /-
       refine congr_arg₂ _ ?_ rfl
       apply Finmap.restrict_ext
       intro p hp
@@ -259,6 +262,7 @@ theorem InstStep.indep_rcns_indep_output :
           rw [←hh] at hco'
           exact he.eq_obj?_nest h hco hco' 
         )
+    -/
   
-theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = insert e.rcn s₁.progress := 
+theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = s₁.progress.insert e.rcn := 
   sorry

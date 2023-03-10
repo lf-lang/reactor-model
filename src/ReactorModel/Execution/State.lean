@@ -6,7 +6,7 @@ open Classical
 structure Execution.State where
   rtr : Reactor
   tag : Time.Tag
-  progress : Finset ID
+  progress : Set ID
 
 inductive Execution.Operation 
   | skip (rcn : ID)
@@ -22,12 +22,13 @@ def Execution.Operation.changes : Execution.Operation → List (Identified Chang
 namespace Execution.State
 
 class Nontrivial (s : Execution.State) : Prop where
-  nontrivial : (s.rtr.ids .rcn).Nonempty
+  nontrivial : s.rtr[.rcn].ids.Nonempty
 
-def Closed (s : State) : Prop := s.progress = s.rtr.ids .rcn
+def Closed (s : State) : Prop := s.progress = s.rtr[.rcn].ids
 
-theorem Closed.progress_Nonempty [Nontrivial s] : Closed s → s.progress.Nonempty := by
-  simp_all [Closed, Nontrivial.nontrivial]  
+theorem Closed.progress_Nonempty [n : Nontrivial s] (h : Closed s) : s.progress.Nonempty := by
+  simp_all [Closed]
+  exact Nontrivial.nontrivial
 
 structure Allows (s : State) (rcn : ID) : Prop where
   deps : s.rtr.dependencies rcn ⊆ s.progress
@@ -41,12 +42,12 @@ theorem Allows.requires_acyclic_deps {s : State} : (s.Allows rcn) → (rcn >[s.r
   exact absurd (hd _ h) hu
 
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
-  match s.rtr.con? .rcn i, s.rtr[.rcn][i] with
+  match s.rtr[.rcn][i]&, s.rtr[.rcn][i] with
   | some con, some rcn => some {
-      ports := s.rtr.obj?' .prt |>.restrict (rcn.deps .in)  |>.map (·.val),
-      acts :=     s.rtr.obj?' .act |>.filterMap (· s.tag) |>.restrict (rcn.deps .in),
-      state :=    con.obj.state, -- Equivalent: s.rtr.obj?' .stv |>.restrict con.obj.state.ids
-      tag :=      s.tag
+      ports := s.rtr[.prt] |>.restrict (rcn.deps .in) |>.map Port.val,
+      acts  := s.rtr[.act] |>.restrict (rcn.deps .in) |>.filterMap (·.lookup s.tag),
+      state := con.obj.state, -- Equivalent: s.rtr.obj?' .stv |>.restrict con.obj.state.ids
+      tag   := s.tag
     }
   | _, _ => none
 
@@ -61,8 +62,9 @@ theorem rcnInput_iff_obj? {s : State} :
   case mp =>
     cases hc : s.rtr[.rcn][rcn] <;> simp [rcnInput, hc] at *
   case mpr =>
-    have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? h
-    simp [rcnInput, hc, h]
+    sorry
+    -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? h
+    -- simp [rcnInput, hc, h]
 
 -- NOTE: This is a helper lemma for the theorems below.
 private theorem rcnInput_iff_rcnOutput {s : State} : 
@@ -71,40 +73,42 @@ private theorem rcnInput_iff_rcnOutput {s : State} :
     intro h; simp [rcnInput, rcnOutput] at *
     cases ho : s.rtr[.rcn][j]
     case none => simp [ho] at h
-    case some => have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
+    case some => sorry -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
   )
 
 theorem rcnInput_ports_def {s : State} :
-  (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (p = (s.rtr.obj?' .prt |>.restrict (rcn.deps .in) |>.map (·.val))) := by
+  (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (p = (s.rtr[.prt].restrict (rcn.deps .in) |>.map Port.val)) := by
   intro hi ho
-  have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
-  simp [rcnInput, hc, ho] at hi
-  exact hi.left.symm
+  sorry
+  -- have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+  -- simp [rcnInput, hc, ho] at hi
+  -- exact hi.left.symm
 
 theorem rcnInput_actions_def {s : State} :
-  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (a = (s.rtr.obj?' .act |>.filterMap (· s.tag) |>.restrict (rcn.deps .«in»))) := by
+  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (a = (s.rtr[.act].restrict (rcn.deps .in) |>.filterMap (·.lookup s.tag))) := by
   intro hi ho
-  have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
-  simp [rcnInput, hc, ho] at hi
-  exact hi.right.left.symm
+  sorry
+  -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+  -- simp [rcnInput, hc, ho] at hi
+  -- exact hi.right.left.symm
 
 theorem rcnInput_state_def {s : State} : 
-  (s.rcnInput j = some ⟨x, y, q, z⟩) → (s.rtr.con? .rcn j = some c) → (q = c.obj.state) := by
+  (s.rcnInput j = some ⟨x, y, q, z⟩) → (s.rtr[.rcn][j]& = some c) → (q = c.obj.state) := by
   intro hi hc
-  have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
-  simp [rcnInput, hc, ho] at hi
-  exact hi.right.right.left.symm
+  sorry
+  -- have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+  -- simp [rcnInput, hc, ho] at hi
+  -- exact hi.right.right.left.symm
 
-theorem rcnInput_time_def {s : State} :
-  (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.tag) := by
+theorem rcnInput_time_def {s : State} : (s.rcnInput j = some ⟨x, y, z, t⟩) → (t = s.tag) := by
   intro hi
   simp [rcnInput] at hi
-  cases hc : s.rtr.con? .rcn j
+  cases hc : s.rtr[.rcn][j]&
   case none => simp [hc] at hi
-  case some => 
-    have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
-    simp [rcnInput, hc, ho] at hi
-    exact hi.right.right.right.symm
+  case some => sorry
+    -- have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+    -- simp [rcnInput, hc, ho] at hi
+    -- exact hi.right.right.right.symm
     
 theorem rcnInput_to_rcnOutput {s : State} : 
   (s.rcnInput j = some i) → (∃ rcn, s.rtr[.rcn][j] = some rcn ∧ s.rcnOutput j = rcn i) := by
@@ -113,11 +117,11 @@ theorem rcnInput_to_rcnOutput {s : State} :
   exact ⟨_, ho, by simp [rcnOutput, ho, h]⟩
 
 theorem rcnOutput_to_contains {s : State} :
-  (s.rcnOutput rcn = some o) → (s.rtr.contains .rcn rcn) := by
+  (s.rcnOutput rcn = some o) → (rcn ∈ s.rtr[.rcn].ids) := by
   intro h
   cases ho : s.rtr[.rcn][rcn]
   case none => simp [rcnOutput, ho] at h
-  case some => exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
+  case some => sorry -- exact Reactor.contains_iff_obj?.mpr ⟨_, ho⟩
 
 private theorem rcnOutput_to_rcn_body {s : State} {j : ID} : 
   (s.rcnOutput j = some o) → (∃ i rcn, s.rtr[.rcn][j] = some rcn ∧ rcn i = o) := by
@@ -141,22 +145,24 @@ theorem rcnOutput_action_dep_only {s : State}(t v) :
   exact rcn.actOutDepOnly x t v hp
 
 theorem rcnOutput_pure {s : State} (v) : 
-  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (rcn.isPure) → .state j v ∉ o := by
+  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (rcn.Pure) → .state j v ∉ o := by
   intro ho hr hp
   have ⟨x, _, hr', hb⟩ := rcnOutput_to_rcn_body ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
   by_contra hc
   have hc := hp.output hc
   simp at hc
+  sorry
 
 theorem rcnOutput_state_local {s : State} (v) : 
-  (s.rcnOutput i = some o) → (s.rtr.con? .rcn i = some c) →
+  (s.rcnOutput i = some o) → (s.rtr[.rcn][i]& = some c) →
   (j ∉ c.obj.state.ids) → .state j v ∉ o := by
   intro h hc hs hm
-  have ⟨rcn, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
-  simp [rcnOutput, rcnInput, hc, ho] at h
-  rw [←h] at hm
-  exact absurd (rcn.stateLocal hm) hs
+  sorry
+  -- have ⟨rcn, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+  -- simp [rcnOutput, rcnInput, hc, ho] at h
+  -- rw [←h] at hm
+  -- exact absurd (rcn.stateLocal hm) hs
 
 theorem rcnOutput_congr {s₁ s₂ : State} :
   (s₁.rcnInput rcn = s₂.rcnInput rcn) → (s₁.rtr[.rcn][rcn] = s₂.rtr[.rcn][rcn]) → (s₁.rcnOutput rcn = s₂.rcnOutput rcn) :=
@@ -164,28 +170,28 @@ theorem rcnOutput_congr {s₁ s₂ : State} :
 
 theorem rcnOutput_pure_congr {s₁ s₂ : State} :
   (s₁.rcnInput i = some ⟨p, a, x₁, t⟩) → (s₂.rcnInput i = some ⟨p, a, x₂, t⟩) → 
-  (s₁.rtr[.rcn][i] = some rcn) → (s₂.rtr[.rcn][i] = some rcn) → (rcn.isPure) →
+  (s₁.rtr[.rcn][i] = some rcn) → (s₂.rtr[.rcn][i] = some rcn) → (rcn.Pure) →
   (s₁.rcnOutput i = s₂.rcnOutput i) :=
   λ hi₁ hi₂ ho₁ ho₂ hp => by simp [rcnOutput, ho₁, ho₂, hi₁, hi₂, hp.input _ x₁, hp.input _ x₂]
   
 def triggers (s : State) (r : ID) :=
-  ∃ rcn i, (s.rtr[.rcn][r] = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.triggersOn i)
+  ∃ rcn i, (s.rtr[.rcn][r] = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.TriggersOn i)
 
 noncomputable def operation (s : State) (i : ID) : Option Operation :=
   if s.triggers i 
   then (s.rcnOutput i) >>= (some $ .exec i ·)
-  else if s.rtr.contains .rcn i then some (.skip i)
+  else if i ∈ s.rtr[.rcn].ids then some (.skip i)
   else none
 
 theorem operation_to_contains {s : State} :
-  (s.operation rcn = some o) → (s.rtr.contains .rcn rcn) := by
+  (s.operation rcn = some o) → (rcn ∈ s.rtr[.rcn].ids) := by
   intro h
   simp [operation] at h
   split at h
   all_goals sorry
 
 theorem operation_some_to_Nontrivial (h : s.operation i = some o) : Nontrivial s := by
-  have h := operation_to_contains h |> Reactor.ids_mem_iff_contains.mpr
+  -- have h := operation_to_contains h |> Reactor.ids_mem_iff_contains.mpr
   sorry
 
 
@@ -220,20 +226,20 @@ theorem Advance.tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
   | mk h => h.bound
 
 def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
-  { s with progress := insert rcn s.progress }
+  { s with progress := s.progress.insert rcn }
   
 theorem record_preserves_tag (s : State) (rcn : ID) : (s.record rcn).tag = s.tag := 
   rfl
 
 theorem mem_record_progress_iff (s : State) (rcn₁ rcn₂ : ID) : 
     rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
-  simp [record]
+  simp [record, Set.insert]
 
 def record' [DecidableEq ID] (s : State) (rcns : List ID) : State := 
-  { s with progress := s.progress ∪ rcns.toFinset }
+  { s with progress := s.progress ∪ { i | i ∈ rcns } }
 
 theorem record'_perm_eq {s : State} (h : rcns₁ ~ rcns₂) : s.record' rcns₁ = s.record' rcns₂ := by
-  simp [record', List.toFinset_eq_of_perm rcns₁ rcns₂ h]
+  simp [record', h.mem_iff]
   
 theorem mem_record'_progress_iff (s : State) (rcns : List ID) (i : ID) :
     i ∈ (s.record' rcns).progress ↔ (i ∈ s.progress ∨ i ∈ rcns) := by

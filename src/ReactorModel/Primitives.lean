@@ -13,9 +13,8 @@ inductive Value
   | present (val : PresentValue)
 
 -- A value is considered "present" if it is not the absent value.
-def Value.isPresent : Value → Bool 
-  | absent => false
-  | present _ => true
+inductive Value.IsPresent : Value → Prop 
+  | intro : IsPresent (present _)
 
 -- We use IDs to reference various kinds of components like ports, reactions, actions, etc.
 -- The precise nature of IDs is not relevant, which is why we define the type as `opaque`.
