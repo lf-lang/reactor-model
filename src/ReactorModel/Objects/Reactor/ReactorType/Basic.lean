@@ -102,13 +102,6 @@ instance [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {cmp : 
     | .rcn | .prt | .act | .stv => id
     | .rtr => c.coe
 
-theorem LawfulCoe.lower_cmp?_eq_none
-    [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {rtr : α} (cmp)
-    (h : a.cmp? cmp rtr i = none) : b.cmp? cmp rtr i = none := by
-  cases cmp <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
-  simp [c.nest', Partial.map_val]
-  assumption
-
 theorem LawfulCoe.lower_cmp?_eq_some
     [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {rtr : α} (cmp) {o}
     (h : a.cmp? cmp rtr i = some o) : b.cmp? cmp rtr i = some ↑o := by
@@ -130,8 +123,8 @@ theorem LawfulCoe.lift_cmp?_eq_some
   cases c.inj h
   assumption
 
--- Note: This theorem exludes `cmp = .rtr`, because that case is harder than the others and we only
---       ever use this theorem for `cmp = .act` anyway.
+-- Note: This theorem excludes `cmp = .rtr`, because that case is harder than the other cases and we
+--       only ever use this theorem for `cmp = .act` anyway.
 theorem LawfulCoe.lift_mem_cmp?_ids [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] 
     (cmp) {rtr : α} (h : i ∈ (b.cmp? cmp rtr).ids) (hc : cmp ≠ .rtr := by simp) : 
     i ∈ (a.cmp? cmp rtr).ids := by

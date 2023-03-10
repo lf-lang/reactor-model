@@ -7,16 +7,37 @@ namespace ReactorType
 class Indexable (α) extends ReactorType α where
   uniqueIDs : ∀ {rtr : α}, UniqueIDs rtr
 
+namespace Lineage
+
+def container [ReactorType α] {cmp} {rtr : α} :
+    Lineage cmp i rtr → Identified α
+  | .nest _ (.nest h l)             => container (.nest h l)
+  | .nest (rtr₂ := con) (j := j) .. => { id := j, obj := con }
+  | .final _                        => { id := ⊤, obj := rtr }
+
+theorem nest_container [ReactorType α] {cmp} {rtr₁ rtr₂ : α} 
+    (h : ReactorType.nest rtr₁ i = some rtr₂) (l : Lineage cmp j rtr₂) : 
+    ∃ (k : ID) (con : α), (Lineage.nest h l).container = ⟨k, con⟩ := by
+  induction l generalizing i rtr₁
+  case final => simp [container]
+  case nest hn _ hi => simp [container, hi hn]
+
+theorem container_eq_root [ReactorType α] {cmp} {rtr : α}
+    {l : Lineage cmp i rtr} (h : l.container = ⟨⊤, con⟩) : rtr = con := by
+  induction l generalizing con
+  case final => 
+    simp [container] at h
+    assumption
+  case nest hn l _ =>
+    have ⟨_, _, _⟩ := nest_container hn l
+    simp_all
+
+end Lineage
+
 namespace Indexable
 
 instance [ReactorType α] [ind : Indexable β] [LawfulCoe α β] : Indexable α where
   uniqueIDs := UniqueIDs.lift ind.uniqueIDs 
-
-def _root_.ReactorType.Lineage.container [ReactorType α] {cmp} {rtr : α} :
-    Lineage cmp i rtr → Identified α
-  | .nest _ (.nest h l)             => container (.nest h l)
-  | .nest (rtr₁ := con) (j := j) .. => { id := j, obj := con }
-  | _                               => { id := ⊤, obj := rtr }
 
 open Classical in
 noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) (i : ID) : Option (Identified α) := 
@@ -37,6 +58,13 @@ notation rtr "[" cmp "][" i "]" => ReactorType.Indexable.obj? rtr cmp i
 
 variable [a : Indexable α]
 
+theorem con?_eq_some {rtr : α} {cmp} (h : rtr[cmp][i]& = some con) : 
+    ∃ l : Lineage cmp i rtr, l.container = con := by
+  simp [con?] at h
+  split at h
+  case inl n => exists n.some; injection h
+  case inr => contradiction
+
 theorem obj?_to_con?_and_cmp? {rtr : α} {cmp} {o} {i : ID} (h : rtr[cmp][i] = some o) :
     ∃ c, (rtr[cmp][i]& = some c) ∧ (cmp? cmp c.obj i = some o) := by
   cases cmp
@@ -55,32 +83,42 @@ theorem cmp?_to_obj? {rtr : α} {cmp} {o} (h : cmp? cmp rtr i = some o) : rtr[cm
     simp [obj?, bind]
     exact ⟨⟨⊤, rtr⟩, cmp?_to_con? h, h⟩ 
 
-set_option pp.proofs.withType false
-theorem con?_nested {rtr₁ : α} {cmp} {j : ID} 
-    (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp][j]& = some con) : rtr₁[cmp][j]& = some con := by
-  simp [con?] at ho ⊢
+theorem con?_nested {rtr₁ : α} {cmp} {c : ID}
+    (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp][j]& = some ⟨c, con⟩) : 
+    rtr₁[cmp][j]& = some ⟨c, con⟩ := by
+  simp [con?] at ho ⊢ 
   split at ho
   case inr => contradiction
   case inl n =>
-    have ⟨l₂⟩ := n
-    let l₁ := Lineage.nest h l₂
-    simp [←a.uniqueIDs.allEq l₂] at ho
-    simp [Nonempty.intro l₁, ←a.uniqueIDs.allEq l₁, ←ho]
-    cases h₂ : l₂
-    case nest => simp [h₂, Lineage.container] 
-    case final h =>
-      -- This case must hold a contradiction.
-      -- Otherwise `j` would have to be `⊤` which isn't possible by `j : ID`.
-      sorry 
-    
+    set l := n.some
+    cases hl : l
+    case final hc =>
+      simp [hl, Lineage.container] at ho
+    case nest l₂ h₂ =>
+      let l₁ := Lineage.nest h (.nest h₂ l₂)
+      simp [hl, Lineage.container] at ho
+      simp [Nonempty.intro l₁, ←a.uniqueIDs.allEq l₁, Lineage.container, ho]
+
+theorem con?_eq_root {rtr : α} {cmp} (h : rtr[cmp][i]& = some ⟨⊤, con⟩) : rtr = con :=
+  Lineage.container_eq_root (con?_eq_some h).choose_spec
+
 theorem obj?_nested {rtr₁ : α} {cmp o} {j : ID} 
     (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp][j] = some o) : rtr₁[cmp][j] = some o := by
   cases cmp <;> try cases j
   all_goals
     simp [obj?, bind]
-    have ⟨c, hc, ho⟩ := obj?_to_con?_and_cmp? ho 
-    have := con?_nested h hc
-    exists c
+    have ⟨⟨c, con⟩, hc, ho⟩ := obj?_to_con?_and_cmp? ho 
+    cases c
+    case nest c => 
+      have := con?_nested h hc
+      exists ⟨c, con⟩
+    case root => 
+      replace hc := con?_eq_root hc
+      simp at ho
+      subst hc
+      exists ⟨i, rtr₂⟩
+      let l := Lineage.nest h (.final $ Partial.mem_ids_iff.mpr ⟨_, ho⟩)
+      simp [ho, con?, Nonempty.intro l, ←a.uniqueIDs.allEq l, Lineage.container]
 
 -- Note: By `ho` we get `rtr₂ = rtr₃`.
 theorem obj?_nested_root {rtr₁ : α} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][⊤] = some rtr₃) : 
@@ -109,12 +147,14 @@ theorem LawfulCoe.lower_container_eq
   case final =>
     simp [Lineage.container] at h ⊢
     simp [←h]
-  case nest l _ => 
+  case nest l hi => 
     cases l 
     case final => 
-      sorry
+      simp [Lineage.fromLawfulCoe, Lineage.container] at h ⊢
+      simp [← h] 
     case nest hi =>
-      sorry
+      simp [Lineage.container] at h
+      simp [←hi h, Lineage.fromLawfulCoe, Lineage.container]
 
 theorem LawfulCoe.lower_con?_some [Indexable α] [b : Indexable β] [c : LawfulCoe α β] {rtr : α} {cmp} 
     (h : rtr[cmp][i]& = some con) : (rtr : β)[cmp][i]& = some ↑con := by
