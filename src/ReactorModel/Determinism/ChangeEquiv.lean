@@ -3,7 +3,7 @@ import ReactorModel.Execution
 open Classical
 
 def PortChangeEquiv (cs₁ cs₂ : List $ Identified Change) : Prop :=
-  ∀ i, cs₁.lastSome? (·.obj.portValue? i) = cs₂.lastSome? (·.obj.portValue? i)
+  ∀ k i, cs₁.lastSome? (·.obj.portValue? k i) = cs₂.lastSome? (·.obj.portValue? k i)
 
 infix:50 " ⋈ₚ " => PortChangeEquiv
 

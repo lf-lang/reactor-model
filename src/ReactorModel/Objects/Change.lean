@@ -12,7 +12,7 @@ opaque Reactor.Class : Type
 namespace Change
 
 protected inductive Normal
-  | port   (port : ID) (value : Value)
+  | port   (kind : Kind) (port : ID) (value : Value)
   | state  (var : ID) (value : Value)
   | action (action : ID) (time : Time) (value : Value)
 
@@ -39,7 +39,7 @@ instance : Coe Change.Mutation Change where
   coe := «mut»
 
 @[match_pattern]
-abbrev port : ID → Value → Change := (.norm $ .port · ·) 
+abbrev port : Kind → ID → Value → Change := (.norm $ .port · · ·) 
 
 @[match_pattern]
 abbrev state : ID → Value → Change := (.norm $ .state · ·) 
@@ -56,37 +56,37 @@ inductive IsMutation : Change → Prop
 namespace Normal 
 
 def id : Change.Normal → ID
-  | port i .. | state i .. | action i .. => i
+  | port _ i _ | state i .. | action i .. => i
 
 def value : Change.Normal → Value
-  | port _ v | state _ v | action _ _ v => v
+  | port _ _ v | state _ v | action _ _ v => v
 
 end Normal
 
 inductive IsPort : Change → Prop
-  | intro : IsPort (port _ _)
+  | intro : IsPort (port ..)
 
-inductive IsPortᵢ (i : ID) : Change → Prop
-  | intro : IsPortᵢ i (port i _)
+inductive IsPortᵢ (k : Kind) (i : ID) : Change → Prop
+  | intro : IsPortᵢ k i (port k i _)
 
-theorem IsPortᵢ.iff_id_eq : IsPortᵢ i (.port j v) ↔ j = i where
-  mp | intro .. => rfl
-  mpr h := h ▸ .intro
+theorem IsPortᵢ.iff_kind_and_id_eq : IsPortᵢ k i (port l j v) ↔ (j = i) ∧ (l = k) where
+  mp | intro .. => ⟨rfl, rfl⟩ 
+  mpr h := h.left ▸ h.right ▸ .intro
 
-def portValue? (i : ID) : Change → Option Value
-  | port j v => if j = i then some v else none
+def portValue? (k : Kind) (i : ID) : Change → Option Value
+  | port l j v => if (l = k) ∧ (j = i) then some v else none
   | _ => none
 
-theorem portValue?_some (h : portValue? i c = some v) : c = port i v := by
+theorem portValue?_some (h : portValue? k i c = some v) : c = port k i v := by
   cases c <;> try cases ‹Change.Normal›  
   all_goals simp [portValue?] at h
   split at h <;> simp_all      
 
-theorem IsPortᵢ.iff_portValue?_some : (IsPortᵢ i c) ↔ (∃ v, c.portValue? i = some v) where
+theorem IsPortᵢ.iff_portValue?_some : (IsPortᵢ k i c) ↔ (∃ v, c.portValue? k i = some v) where
   mp  | intro      => by simp [portValue?] 
   mpr | .intro v h => by simp [portValue?_some h, intro]
 
-theorem IsPortᵢ.not_iff_portValue?_none : ¬(IsPortᵢ i c) ↔ (c.portValue? i = none) :=
+theorem IsPortᵢ.not_iff_portValue?_none : ¬(IsPortᵢ k i c) ↔ (c.portValue? k i = none) :=
   sorry
 
 inductive IsState : Change → Prop

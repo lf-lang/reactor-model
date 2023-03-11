@@ -44,8 +44,8 @@ theorem Allows.requires_acyclic_deps {s : State} : (s.Allows rcn) → (rcn >[s.r
 noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
   match s.rtr[.rcn][i]&, s.rtr[.rcn][i] with
   | some con, some rcn => some {
-      ports := s.rtr[.prt] |>.restrict (rcn.deps .in) |>.map Port.val,
-      acts  := s.rtr[.act] |>.restrict (rcn.deps .in) |>.filterMap (·.lookup s.tag),
+      ports := fun k => s.rtr[.prt k].restrict { i | Reaction.Dependency.port k i ∈ rcn.deps .in },
+      acts  := s.rtr[.act].restrict { i | Reaction.Dependency.action i ∈ rcn.deps .in } |>.filterMap (·.lookup s.tag),
       state := con.obj.state, -- Equivalent: s.rtr.obj?' .stv |>.restrict con.obj.state.ids
       tag   := s.tag
     }
@@ -77,7 +77,7 @@ private theorem rcnInput_iff_rcnOutput {s : State} :
   )
 
 theorem rcnInput_ports_def {s : State} :
-  (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (p = (s.rtr[.prt].restrict (rcn.deps .in) |>.map Port.val)) := by
+  (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (p = fun k => s.rtr[.prt k].restrict { i | Reaction.Dependency.port k i ∈ rcn.deps .in }) := by
   intro hi ho
   sorry
   -- have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
@@ -85,7 +85,7 @@ theorem rcnInput_ports_def {s : State} :
   -- exact hi.left.symm
 
 theorem rcnInput_actions_def {s : State} :
-  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (a = (s.rtr[.act].restrict (rcn.deps .in) |>.filterMap (·.lookup s.tag))) := by
+  (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (a = (s.rtr[.act].restrict { i | Reaction.Dependency.action i ∈ rcn.deps .in } |>.filterMap (·.lookup s.tag))) := by
   intro hi ho
   sorry
   -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
@@ -131,18 +131,18 @@ private theorem rcnOutput_to_rcn_body {s : State} {j : ID} :
   exact ⟨_, _, ho, Option.some_inj.mp $ hb.symm.trans h⟩
 
 theorem rcnOutput_port_dep_only {s : State} (v) : 
-  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (p ∉ rcn.deps .out) → .port p v ∉ o := by
+  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (.port k p v ∈ o) → .port k p ∈ rcn.deps .out := by
   intro ho hr hp
   have ⟨x, _, hr', hb⟩ := rcnOutput_to_rcn_body ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
-  exact rcn.prtOutDepOnly x v hp
+  sorry -- exact rcn.prtOutDepOnly x v hp
 
 theorem rcnOutput_action_dep_only {s : State}(t v) : 
-  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (a ∉ rcn.deps .out) → .action a t v ∉ o := by
+  (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (.action a t v ∈ o) → (.action a ∈ rcn.deps .out) := by
   intro ho hr hp
   have ⟨x, _, hr', hb⟩ := rcnOutput_to_rcn_body ho
   simp [←hb, ←Option.some_inj.mp $ hr.symm.trans hr']
-  exact rcn.actOutDepOnly x t v hp
+  sorry -- exact rcn.actOutDepOnly x t v hp
 
 theorem rcnOutput_pure {s : State} (v) : 
   (s.rcnOutput i = some o) → (s.rtr[.rcn][i] = some rcn) → (rcn.Pure) → .state j v ∉ o := by

@@ -68,28 +68,30 @@ end Dependency
 
 namespace Wellformed
 
-inductive NormalDependency [ReactorType α] (rtr : α) (i : ID) (k : Kind) : Prop
-  | act  (h : i ∈ (acts rtr).ids)
-  | prt  (h : ports rtr i = some ⟨v, k⟩)
-  | nest (c : nest rtr j = some con) (h : ports con i = some ⟨v, k.opposite⟩)
+inductive NormalDependency [ReactorType α] (rtr : α) (k : Kind) : Reaction.Dependency → Prop
+  | act  : (i ∈ (acts rtr).ids) → NormalDependency rtr k (.action i)
+  | prt  : (i ∈ (ports rtr k).ids) → NormalDependency rtr k (.port k i)
+  | nest : (nest rtr j = some con) → (i ∈ (ports con k.opposite).ids) → 
+           NormalDependency rtr k (.port k i)
 
-inductive MutationDependency [ReactorType α] (rtr : α) (i : ID) : Kind → Prop
-  | act  : (i ∈ (acts rtr).ids)                                    → MutationDependency rtr i k
-  | prt  : (ports rtr i = some ⟨v, k⟩)                             → MutationDependency rtr i k
-  | nest : (nest rtr j = some con) → (ports con i = some ⟨v, .in⟩) → MutationDependency rtr i .out
+inductive MutationDependency [ReactorType α] (rtr : α) : Kind → Reaction.Dependency → Prop
+  | act  : (i ∈ (acts rtr).ids) → MutationDependency rtr k (.action i)
+  | prt  : (i ∈ (ports rtr k).ids) → MutationDependency rtr k (.port k i)
+  | nest : (nest rtr j = some con) → (i ∈ (ports con .in).ids) → 
+           MutationDependency rtr .out (.port .in i)
 
 set_option hygiene false in
 scoped macro "norm_and_mut_lift_proof" : term => `(
   open ReactorType LawfulCoe in
   fun
   | act h => .act $ lift_mem_cmp?_ids .act h
-  | prt h => .prt $ lift_cmp?_eq_some .prt h
+  | prt h => .prt $ lift_mem_cmp?_ids (.prt _) h
   | nest hc hp => by 
     have h := nest' (rtr := rtr) (β := β) ▸ hc 
     simp [Partial.map_val] at h
     obtain ⟨_, _, h⟩ := h
     subst h
-    exact .nest (lift_cmp?_eq_some .rtr hc) (lift_cmp?_eq_some .prt hp)
+    exact .nest (lift_cmp?_eq_some .rtr hc) (lift_mem_cmp?_ids (.prt _) hp)
 )
 
 theorem NormalDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} : 
@@ -102,7 +104,8 @@ theorem MutationDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α 
 
 structure _root_.ReactorType.Wellformed [Indexable α] (rtr : α) : Prop where
   uniqueInputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
-                 (rtr[.prt][i] = some ⟨v, .in⟩) → (i ∈ rcn₁.deps .out) → (i ∉ rcn₂.deps .out)  
+                 (i ∈ rtr[.inp].ids) → (.port .in i ∈ rcn₁.deps .out) → 
+                 (.port .in i ∉ rcn₂.deps .out)  
   overlapPrio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
                  (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → 
                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
@@ -113,9 +116,9 @@ structure _root_.ReactorType.Wellformed [Indexable α] (rtr : α) : Prop where
                  (i₁ ≠ i₂) → (rcn₁.Mutates) → (rcn₂.Mutates) →
                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
   normalDeps   : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → (rcn.Normal) → 
-                 (d ∈ rcn.deps k) → (NormalDependency con d k) 
+                 (d ∈ rcn.deps k) → (NormalDependency con k d) 
   mutationDeps : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → (rcn.Mutates) →
-                 (d ∈ rcn.deps k) → (MutationDependency con d k) 
+                 (d ∈ rcn.deps k) → (MutationDependency con k d) 
   acyclicDeps  : Dependency.Acyclic rtr
 
 set_option hygiene false in
@@ -134,12 +137,14 @@ theorem nested [Indexable α] {rtr₁ : α}
   mutationDeps             := wf_nested_proof mutationDeps
   acyclicDeps              := wf.acyclicDeps.nested h
   uniqueInputs h₁ h₂ h₃ h₄ := 
-    wf.uniqueInputs (obj?_nested h h₁) (obj?_nested h h₂) h₃ (obj?_nested h h₄) 
+    -- TODO: If we separate `.rtr` frrom `Component`, turn this into a lemma.
+    have h₄ := Partial.mem_ids_iff.mpr ⟨_, obj?_nested h (Partial.mem_ids_iff.mp h₄).choose_spec⟩ 
+    wf.uniqueInputs (obj?_nested h h₁) (obj?_nested h h₂) h₃ h₄
 
 theorem lift [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (wf : Wellformed (rtr : β)) : 
     Wellformed rtr where
   uniqueInputs h₁ h₂ h₃ h₄ := 
-    wf.uniqueInputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) h₃ (c.lower_obj?_some h₄)
+    wf.uniqueInputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) h₃ (c.lower_mem_obj?_ids h₄)
   overlapPrio h₁ h₂ h₃ := 
     wf.overlapPrio (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂) 
     (c.lower_cmp?_eq_some .rcn h₃)

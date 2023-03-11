@@ -2,12 +2,22 @@ import ReactorModel.Objects.Change
 
 open Classical
 
+namespace Reaction
+
+protected inductive Dependency
+  | port (k : Kind) (i : ID)
+  | action (i : ID)
+
 @[ext]
-structure Reaction.Input where
-  ports : ID ⇀ Value
+structure Input where
+  ports : Kind → ID ⇀ Value
   acts  : ID ⇀ Value
   state : ID ⇀ Value
   tag   : Time.Tag
+
+def Input.value (i : Input) : Reaction.Dependency → Option Value
+  | .port k j => i.ports k j
+  | .action j => i.acts j
 
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
@@ -21,18 +31,16 @@ structure Reaction.Input where
 --
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
-structure Reaction where
-  deps :          Kind → Set ID
-  triggers :      Set ID
+structure _root_.Reaction where
+  deps :          Kind → Set Reaction.Dependency
+  triggers :      Set Reaction.Dependency
   prio :          Priority
-  body :          Reaction.Input → List Change
+  body :          Input → List Change
   tsSubInDeps :   triggers ⊆ deps .in
-  prtOutDepOnly : ∀ i v,   (o ∉ deps .out) → (.port o v) ∉ body i
-  actOutDepOnly : ∀ i t v, (o ∉ deps .out) → (.action o t v) ∉ body i
-  actNotPast :    (.action a t v) ∈ body i → i.tag.time ≤ t
-  stateLocal :    (.state s v) ∈ body i → s ∈ i.state.ids
-  
-namespace Reaction
+  prtOutDepOnly : (.port k j v   ∈ body i) → .port k j ∈ deps .out 
+  actOutDepOnly : (.action j t v ∈ body i) → .action j ∈ deps .out
+  actNotPast :    (.action j t v ∈ body i) → i.tag.time ≤ t
+  stateLocal :    (.state j v    ∈ body i) → j ∈ i.state.ids
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
@@ -56,9 +64,9 @@ theorem Mutates.not_Pure {rcn : Reaction} : rcn.Mutates → ¬rcn.Pure := by
   intro ⟨_, _, _, ⟨⟩⟩ ⟨_, ho⟩
   cases ho ‹_› <;> contradiction
   
--- The condition under which a given reaction triggers on a given (input) port-assignment.
+-- The condition under which a given reaction triggers on a given input.
 def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
-  ∃ t v, (t ∈ rcn.triggers) ∧ (i.ports t = some v) ∧ (v.IsPresent)
+  ∃ t v, (t ∈ rcn.triggers) ∧ (i.value t = some v) ∧ (v.IsPresent)
   
 -- Relay reactions are a specific kind of reaction that allow us to simplify what
 -- it means for reactors' ports to be connected. We can formalize connections between
@@ -67,33 +75,25 @@ def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
 -- value from its input to its output.
 def relay (src dst : ID) : Reaction where
   deps 
-    | .in => {src} 
-    | .out => {dst}
-  triggers := {src}
+    | .in => {.port .out src} 
+    | .out => {.port .in dst}
+  triggers := {.port .out src}
   prio := none
   body i := 
-    match i.ports src with 
+    match i.ports .out src with 
     | none => [] 
-    | some v => [.port dst v]
-  tsSubInDeps := by simp
-  prtOutDepOnly := by
-    intro _ i 
-    cases hs : i.ports src <;> simp_all [Option.elim, hs]
-  actOutDepOnly := by
-    intro _ i
-    cases hs : i.ports src <;> simp [Option.elim, hs]
-  actNotPast := by
-    intro i _ _ _ h
-    cases hs : i.ports src <;> simp [hs] at h
-  stateLocal := by
-    intro i _ _ h
-    cases hs : i.ports src <;> simp [hs] at h
+    | some v => [.port .in dst v]
+  tsSubInDeps   := by simp
+  prtOutDepOnly := by intros; simp at *; split at * <;> simp_all 
+  actOutDepOnly := by intros; simp at *; split at * <;> simp_all 
+  actNotPast    := by intros; simp at *; split at * <;> simp_all 
+  stateLocal    := by intros; simp at *; split at * <;> simp_all 
 
 theorem Pure.relay (src dst) : Pure (relay src dst) where
   input := by intros; rw [relay]
   output := by 
     intro _ i h
-    cases hc : i.ports src <;> (rw [relay] at h; simp [hc] at h)
+    cases hc : i.ports .out src <;> (rw [relay] at h; simp [hc] at h)
     exact .inl $ h ▸ .intro
 
 end Reaction

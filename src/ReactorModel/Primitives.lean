@@ -120,13 +120,6 @@ abbrev Kind.opposite : Kind → Kind
   | .in => .out
   | .out => .in
 
--- Ports are the interface points of reactors, by which they can exchange values.
--- There are two kinds of ports: input and output ports.
--- The resulting definition reflects precisely these two aspects:
-structure Port where
-  val : Value
-  kind : Kind
-
 def Time := Nat
 deriving LinearOrder, Ord, DecidableEq, Inhabited
 

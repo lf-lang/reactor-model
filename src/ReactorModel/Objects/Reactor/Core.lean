@@ -4,7 +4,7 @@ namespace Reactor
 
 protected inductive Core 
   | mk 
-    (ports : ID ⇀ Port)
+    (ports : Kind → ID ⇀ Value)
     (acts :  ID ⇀ Time.Tag ⇉ Value)
     (state : ID ⇀ Value)
     (rcns :  ID ⇀ Reaction)

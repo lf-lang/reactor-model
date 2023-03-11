@@ -103,7 +103,7 @@ theorem identified_changes_equiv_changes {cs : List Change} {o : List (Identifie
 -- then any instantaneous step of the reaction will keep that port
 -- unchanged.
 theorem InstStep.preserves_nondep_ports : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (p ∉ r.deps .out) → (s₁.rtr[.prt][p] = s₂.rtr[.prt][p])
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (.port k p ∉ r.deps .out) → (s₁.rtr[.prt k][p] = s₂.rtr[.prt k][p])
   := sorry
   /-
   | skipReaction ..,         _,  _ => rfl
@@ -118,7 +118,7 @@ theorem InstStep.preserves_nondep_ports :
   -/
 
 theorem InstStep.preserves_nondep_actions : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (a ∉ r.deps .out) → (s₁.rtr[.act][a] = s₂.rtr[.act][a])
+  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (.action a ∉ r.deps .out) → (s₁.rtr[.act][a] = s₂.rtr[.act][a])
   := sorry
   /-
   | skipReaction ..,        _,  _ => rfl

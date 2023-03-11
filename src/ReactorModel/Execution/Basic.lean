@@ -6,8 +6,8 @@ open Classical
 namespace Execution
 
 inductive ChangeStep (s : State) : State → Identified Change → Prop 
-  | port :   (s.rtr -[.prt:i (⟨v, ·.kind⟩)]→ σ')    → ChangeStep s { s with rtr := σ' } ⟨rcn, .port i v⟩
-  | state :  (s.rtr -[.stv:i λ _ => v]→ σ')         → ChangeStep s { s with rtr := σ' } ⟨rcn, .state i v⟩
+  | port :   (s.rtr -[(.prt k):i   fun _ => v]→ σ') → ChangeStep s { s with rtr := σ' } ⟨rcn, .port k i v⟩
+  | state :  (s.rtr -[.stv:i       fun _ => v]→ σ') → ChangeStep s { s with rtr := σ' } ⟨rcn, .state i v⟩
   | action : (s.rtr -[.act:i (schedule · t v)]→ σ') → ChangeStep s { s with rtr := σ' } ⟨rcn, .action i t v⟩
   -- Mutations are (temporarily) no-ops:
   | connect :    ChangeStep s s ⟨rcn, .mut $ .connect i₁ i₂⟩

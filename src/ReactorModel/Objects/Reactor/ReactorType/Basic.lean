@@ -6,11 +6,14 @@ namespace Reactor
 inductive Component
   | rtr -- Nested reactors
   | rcn -- Reactions
-  | prt -- Ports
+  | prt (k : Kind) -- Ports
   | act -- Actions
   | stv -- State variables
 
 namespace Component
+
+abbrev inp := Component.prt .in
+abbrev out := Component.prt .out
 
 abbrev idType : Component → Type
   | rtr => RootedID
@@ -20,7 +23,7 @@ instance {cmp : Component} : Coe ID cmp.idType where
   coe i :=
     match cmp with
     | .rtr => .nest i
-    | .rcn | .prt | .act | .stv => i
+    | .rcn | .prt _ | .act | .stv => i
 
 end Component
 end Reactor
@@ -28,7 +31,7 @@ end Reactor
 open Reactor (Component)
 
 class ReactorType (α : Type) where
-  ports : α → ID ⇀ Port             
+  ports : α → Kind → ID ⇀ Value             
   acts :  α → ID ⇀ Time.Tag ⇉ Value 
   state : α → ID ⇀ Value            
   rcns :  α → ID ⇀ Reaction         
@@ -82,24 +85,24 @@ instance [ReactorType α] [e : Extensional β] [c : LawfulCoe α β] : Extension
     }
 
 abbrev componentType [ReactorType α] : Component → Type
-  | .rtr => α 
-  | .rcn => Reaction
-  | .prt => Port
-  | .act => Time.Tag ⇉ Value
-  | .stv => Value
+  | .rtr   => α 
+  | .rcn   => Reaction
+  | .prt _ => Value
+  | .act   => Time.Tag ⇉ Value
+  | .stv   => Value
 
 abbrev cmp? [inst : ReactorType α] : (cmp : Component) → α → ID ⇀ inst.componentType cmp
-  | .rtr => nest 
-  | .rcn => rcns
-  | .prt => ports
-  | .act => acts
-  | .stv => state
+  | .rtr   => nest 
+  | .rcn   => rcns
+  | .prt k => (ports · k)
+  | .act   => acts
+  | .stv   => state
 
 instance [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {cmp : Component} :
     Coe (a.componentType cmp) (b.componentType cmp) where
   coe := 
     match cmp with
-    | .rcn | .prt | .act | .stv => id
+    | .rcn | .prt _ | .act | .stv => id
     | .rtr => c.coe
 
 theorem LawfulCoe.lower_cmp?_eq_some

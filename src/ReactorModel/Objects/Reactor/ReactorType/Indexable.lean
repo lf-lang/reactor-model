@@ -47,12 +47,12 @@ notation rtr "[" cmp "][" i "]&" => ReactorType.Indexable.con? rtr cmp i
 
 noncomputable def obj? [ind : ReactorType.Indexable α] (rtr : α) : 
     (cmp : Component) → cmp.idType ⇀ ind.componentType cmp
-  | .rcn, i       => rtr[.rcn][i]& >>= (cmp? .rcn ·.obj i)
-  | .prt, i       => rtr[.prt][i]& >>= (cmp? .prt ·.obj i)
-  | .act, i       => rtr[.act][i]& >>= (cmp? .act ·.obj i)
-  | .stv, i       => rtr[.stv][i]& >>= (cmp? .stv ·.obj i)
-  | .rtr, .nest i => rtr[.rtr][i]& >>= (cmp? .rtr ·.obj i)
-  | .rtr, ⊤       => rtr
+  | .rcn,   i       => rtr[.rcn][i]&   >>= (cmp? .rcn     ·.obj i)
+  | .prt k, i       => rtr[.prt k][i]& >>= (cmp? (.prt k) ·.obj i)
+  | .act,   i       => rtr[.act][i]&   >>= (cmp? .act     ·.obj i)
+  | .stv,   i       => rtr[.stv][i]&   >>= (cmp? .stv     ·.obj i)
+  | .rtr,   .nest i => rtr[.rtr][i]&   >>= (cmp? .rtr     ·.obj i)
+  | .rtr,   ⊤       => rtr
 
 notation rtr "[" cmp "]" => ReactorType.Indexable.obj? rtr cmp
 notation rtr "[" cmp "][" i "]" => ReactorType.Indexable.obj? rtr cmp i
@@ -175,5 +175,10 @@ theorem LawfulCoe.lower_obj?_some
   all_goals
     have ⟨_, h₁, h₂⟩ := a.obj?_to_con?_and_cmp? h
     simp [Indexable.obj?, bind, c.lower_con?_some h₁, c.lower_cmp?_eq_some _ h₂]
+
+theorem LawfulCoe.lower_mem_obj?_ids
+    [a : Indexable α] [b : Indexable β] [c : LawfulCoe α β] {rtr : α} {cmp} {i} 
+    (h : i ∈ rtr[cmp].ids) : i ∈ (rtr : β)[cmp].ids :=
+  Partial.mem_ids_iff.mpr ⟨_, c.lower_obj?_some (Partial.mem_ids_iff.mp h).choose_spec⟩ 
 
 end ReactorType

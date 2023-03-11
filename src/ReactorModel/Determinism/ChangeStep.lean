@@ -19,14 +19,19 @@ theorem equiv (e : s₁ -[c]→ s₂) : s₁.rtr ≈ s₂.rtr := by
   case' port h, state h, action h => exact h.equiv
   all_goals exact .refl 
 
-theorem preserves_unchanged_port (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsPortᵢ i := by exact (nomatch ·)) :
-    s₁.rtr[.prt][i] = s₂.rtr[.prt][i] := by
+theorem preserves_unchanged_port (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsPortᵢ k i := by exact (nomatch ·)) :
+    s₁.rtr[.prt k][i] = s₂.rtr[.prt k][i] := by
   cases e
-  case port u => simp [Change.IsPortᵢ.iff_id_eq] at h; exact u.preserves_ne_id h
+  case port u => 
+    simp at h
+    cases not_and_or.mp $ Change.IsPortᵢ.iff_kind_and_id_eq.not.mp h
+    case inl h => exact u.preserves_ne_id h
+    case inr h => exact u.preserves_ne_cmp (by intro hc; injection hc.symm; contradiction) 
   case' state u, action u => exact u.preserves_ne_cmp
   all_goals rfl
 
-theorem preserves_unchanged_state (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsStateᵢ i := by exact (nomatch ·)) : 
+theorem preserves_unchanged_state 
+    (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsStateᵢ i := by exact (nomatch ·)) : 
     s₁.rtr[.stv][i] = s₂.rtr[.stv][i] := by
   cases e
   case state u => simp [Change.IsStateᵢ.iff_id_eq] at h; exact u.preserves_ne_id h
@@ -41,11 +46,8 @@ theorem preserves_unchanged_action
   case' state u, port u => exact u.preserves_ne_cmp 
   all_goals rfl
 
-theorem port_change : 
-    (s₁ -[⟨rcn, .port i v⟩]→ s₂) → ∃ k, s₂.rtr[.prt][i] = some { val := v, kind := k }
-  | port u => by
-    have ⟨p, _, _⟩ := u.change
-    exists p.kind    
+theorem port_change : (s₁ -[⟨rcn, .port k i v⟩]→ s₂) → s₂.rtr[.prt k][i] = some v
+  | port u => u.change.choose_spec.right
 
 theorem state_change : (s₁ -[⟨rcn, .state i v⟩]→ s₂) → s₂.rtr[.stv][i] = some v
   | state u => u.change.choose_spec.right
@@ -55,27 +57,6 @@ theorem action_change {i : ID} (h : s₁.rtr[.act][i] = some a) :
   | action u => by
     have ⟨_, h₁, h₂⟩ := u.change
     simp_all [h, h₁, h₂]
-
-theorem port_change' {i : ID} (h : s₁.rtr[.prt][i] = some p) :
-    (s₁ -[⟨rcn, .port i v⟩]→ s₂) → s₂.rtr[.prt][i] = some { p with val := v }
-  | port u => by
-    have ⟨_, h₁, h₂⟩ := u.change
-    simp_all [h, h₁, h₂]
-
-theorem port_preserves_port_kind {j : ID} 
-    (e : s₁ -[⟨rcn, .port i v⟩]→ s₂) (h : s₁.rtr[.prt][j] = some p) :
-    ∃ v, s₂.rtr[.prt][j] = some { p with val := v } :=
-  if hi : i = j
-  then ⟨v, hi ▸ e.port_change' (hi ▸ h)⟩ 
-  else ⟨_, e.preserves_unchanged_port (Change.IsPortᵢ.iff_id_eq.not.mpr hi) ▸ h⟩ 
-
-theorem preserves_port_kind {i : ID} (e : s₁ -[⟨rcn, c⟩]→ s₂) (h : s₁.rtr[.prt][i] = some p) :
-    ∃ v, s₂.rtr[.prt][i] = some { p with val := v } := by
-  cases c <;> try cases ‹Change.Normal›   
-  case norm.port => exact e.port_preserves_port_kind h
-  all_goals
-    simp [←e.preserves_unchanged_port (i := i), h]
-    exists p.val
 
 -- Note: `ho₁` and `e` imply that there exists some `a₂` such that `ho₂`.
 theorem preserves_same_action_at_unchanged_times

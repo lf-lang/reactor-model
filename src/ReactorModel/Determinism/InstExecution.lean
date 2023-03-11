@@ -170,8 +170,8 @@ theorem same_rcns_same_ops (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) :
   -/
 
 theorem port_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
-  (e.changes[i].obj = .port p v) → 
-  ∃ op rcn, (op ∈ e.ops) ∧ (⟨op.rcn, .port p v⟩ ∈ op.changes) ∧ (s₁.rtr[.rcn][op.rcn] = some rcn) ∧ (p ∈ rcn.deps .out) := by
+  (e.changes[i].obj = .port k p v) → 
+  ∃ op rcn, (op ∈ e.ops) ∧ (⟨op.rcn, .port k p v⟩ ∈ op.changes) ∧ (s₁.rtr[.rcn][op.rcn] = some rcn) ∧ (.port k p ∈ rcn.deps .out) := by
   sorry
 
 theorem state_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
@@ -180,15 +180,13 @@ theorem state_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
   sorry
 
 theorem Reactor.uniqueInputs' {rtr : Reactor} {iₚ i₁ i₂ : ID} :
-  (rtr[.prt][iₚ] = some p) → (p.kind = .in) →
-  (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
-  (iₚ ∈ rcn₁.deps .out) → iₚ ∉ rcn₂.deps .out := by
+  (iₚ ∈ rtr[.inp].ids) → (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
+  (.port .in iₚ ∈ rcn₁.deps .out) → .port .in iₚ ∉ rcn₂.deps .out := by
   sorry
 
 theorem Reactor.out_port_out_dep_eq_parent {rtr : Reactor} {iₚ iᵣ : ID} :
-  (rtr[.prt][iₚ] = some p) → (p.kind = .out) →
-  (rtr[.rcn][iᵣ] = some rcn) → (iₚ ∈ rcn.deps .out) → 
-  (rtr[.prt][iₚ]& = rtr[.rcn][iᵣ]&) := by
+  (iₚ ∈ rtr[.out].ids) → (rtr[.rcn][iᵣ] = some rcn) → (.port .out iₚ ∈ rcn.deps .out) → 
+  (rtr[.out][iₚ]& = rtr[.rcn][iᵣ]&) := by
   sorry
 
 theorem op_eq_rcn_eq {e : s₁ ⇓ᵢ* s₂} :
@@ -210,8 +208,8 @@ theorem changes_order_to_ops_internal_order {e : s₁ ⇓ᵢ* s₂} {ic : Fin e.
   sorry
 
 theorem same_ops_ChangeEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
-  (e₁.ops ~ e₂.ops) → (∀ i, e₁.changes.lastSome? (·.obj.portValue? i) = e₂.changes.lastSome? (·.obj.portValue? i)) := by
-  intro ho i
+  (e₁.ops ~ e₂.ops) → (∀ k i, e₁.changes.lastSome? (·.obj.portValue? k i) = e₂.changes.lastSome? (·.obj.portValue? k i)) := by
+  intro ho k i
   /-cases hc : e₁.changes.lastSome? (·.obj.portValue? i)
     case none =>
       have := (mt List.lastSome?_eq_some_iff.mpr) (Option.eq_none_iff_forall_not_mem.mp hc |> not_exists.mpr)
@@ -219,8 +217,8 @@ theorem same_ops_ChangeEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s�
     case some -/
     
   -- lets assume both sides are some just to get to the core of the argument rn:
-  have ⟨v₁, hc₁⟩ : ∃ v, e₁.changes.lastSome? (·.obj.portValue? i) = some v := sorry
-  have ⟨v₂, hc₂⟩ : ∃ v, e₂.changes.lastSome? (·.obj.portValue? i) = some v := sorry
+  have ⟨v₁, hc₁⟩ : ∃ v, e₁.changes.lastSome? (·.obj.portValue? k i) = some v := sorry
+  have ⟨v₂, hc₂⟩ : ∃ v, e₂.changes.lastSome? (·.obj.portValue? k i) = some v := sorry
   rw [hc₁, hc₂]
 
   have ⟨i₁, hi₁, hj₁⟩ := List.lastSome?_eq_some hc₁
@@ -237,6 +235,8 @@ theorem same_ops_ChangeEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s�
   -- if port i is an input port, there can be at most one reaction that writes to it
   -- if port i is an output port, if there exist multiple ports connected to it, there must be an order on them
   -- lets assume i is a valid port 
+  sorry
+  /-
   have ⟨p, hp⟩ : ∃ p, s.rtr[.prt][i] = some p := sorry
   cases hk : p.kind
   case «in» =>
@@ -258,6 +258,7 @@ theorem same_ops_ChangeEquiv_ports {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s�
       -- this could be by .prio, or .mutNorm.
       have hd : True := sorry
       sorry
+  -/
 
 theorem List.get?_eq_getElem? (l : List α) (i : Nat) : l.get? i = l[i]? := sorry
 
