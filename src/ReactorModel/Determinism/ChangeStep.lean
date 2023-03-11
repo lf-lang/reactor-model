@@ -11,7 +11,7 @@ theorem preserves_progress (e : s₁ -[c]→ s₂) : s₁.progress = s₂.progre
 theorem preserves_tag (e : s₁ -[c]→ s₂) : s₁.tag = s₂.tag := by
   cases e <;> rfl
 
-theorem preserves_rcns {i : ID} (e : s₁ -[c]→ s₂) : s₁.rtr[.rcn][i] = s₂.rtr[.rcn][i] := by
+theorem preserves_rcns (e : s₁ -[c]→ s₂) : s₁.rtr[.rcn] = s₂.rtr[.rcn] := by
   sorry
 
 theorem equiv (e : s₁ -[c]→ s₂) : s₁.rtr ≈ s₂.rtr := by

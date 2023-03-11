@@ -137,7 +137,7 @@ theorem nested [Indexable α] {rtr₁ : α}
   mutationDeps             := wf_nested_proof mutationDeps
   acyclicDeps              := wf.acyclicDeps.nested h
   uniqueInputs h₁ h₂ h₃ h₄ := 
-    -- TODO: If we separate `.rtr` frrom `Component`, turn this into a lemma.
+    -- TODO: If we separate `.rtr` from `Component`, turn this into a lemma.
     have h₄ := Partial.mem_ids_iff.mpr ⟨_, obj?_nested h (Partial.mem_ids_iff.mp h₄).choose_spec⟩ 
     wf.uniqueInputs (obj?_nested h h₁) (obj?_nested h h₂) h₃ h₄
 

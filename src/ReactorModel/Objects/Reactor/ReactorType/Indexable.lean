@@ -54,7 +54,7 @@ noncomputable def obj? [ind : ReactorType.Indexable α] (rtr : α) :
   | .rtr,   .nest i => rtr[.rtr][i]&   >>= (cmp? .rtr     ·.obj i)
   | .rtr,   ⊤       => rtr
 
-notation rtr "[" cmp "]" => ReactorType.Indexable.obj? rtr cmp
+notation (priority := 1001) rtr "[" cmp "]" => ReactorType.Indexable.obj? rtr cmp
 notation rtr "[" cmp "][" i "]" => ReactorType.Indexable.obj? rtr cmp i
 variable [a : Indexable α]
 

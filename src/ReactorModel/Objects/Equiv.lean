@@ -42,7 +42,7 @@ theorem obj?_none_iff {rtr₁ : α}  {cmp} {i : ID} (e : rtr₁ ≈ rtr₂) :
     (rtr₁[cmp][i] = none) ↔ (rtr₂[cmp][i] = none) := by 
   sorry
 
-theorem ext_obj? {rtr₁ : α} : (rtr₁ ≈ rtr₂) → (∀ cmp (i : ID), (cmp ≠ .rtr) → rtr₁[cmp][i] = rtr₂[cmp][i]) → (rtr₁ = rtr₂) :=
+theorem ext_obj? {rtr₁ : α} : (rtr₁ ≈ rtr₂) → (∀ cmp, (cmp ≠ .rtr) → rtr₁[cmp] = rtr₂[cmp]) → (rtr₁ = rtr₂) :=
   sorry
 
 /-

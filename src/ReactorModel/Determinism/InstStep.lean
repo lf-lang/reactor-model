@@ -12,7 +12,7 @@ theorem OperationStep.equiv : (s₁ -[op]↣ s₂) → (s₁.rtr ≈ s₂.rtr)
   | .skip => .refl
   | .exec h => h.equiv
 
-theorem OperationStep.preserves_rcns {i : ID} : (s₁ -[op]↣ s₂) → s₁.rtr[.rcn][i] = s₂.rtr[.rcn][i]
+theorem OperationStep.preserves_rcns : (s₁ -[op]↣ s₂) → s₁.rtr[.rcn] = s₂.rtr[.rcn]
   | .skip .. => rfl
   | .exec h => h.preserves_rcns
 
@@ -182,7 +182,7 @@ theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn >[s₁.rtr]< e
 theorem InstStep.indep_rcns_indep_output :
   (e : s ⇓ᵢ s') → (rcn' >[s.rtr]< e.rcn) → (rcn' ≠ e.rcn) → s.rcnOutput rcn' = s'.rcnOutput rcn' := by
   intro h hi hrne
-  have hp := h.exec.preserves_rcns (i := rcn')
+  have hp := h.exec.preserves_rcns
   cases ho : s.rtr[.rcn][rcn'] <;> cases ho' : s'.rtr[.rcn][rcn']
   case none.none => simp [State.rcnOutput, ho, ho']
   case' none.some, some.none => simp [hp, ho'] at ho

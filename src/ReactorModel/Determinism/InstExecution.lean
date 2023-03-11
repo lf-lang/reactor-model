@@ -169,6 +169,7 @@ theorem same_rcns_same_ops (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) :
   -- ... continue the list
   -/
 
+/-
 theorem port_change_to_op {e : s₁ ⇓ᵢ* s₂} {i : Fin e.changes.length} :
   (e.changes[i].obj = .port k p v) → 
   ∃ op rcn, (op ∈ e.ops) ∧ (⟨op.rcn, .port k p v⟩ ∈ op.changes) ∧ (s₁.rtr[.rcn][op.rcn] = some rcn) ∧ (.port k p ∈ rcn.deps .out) := by
@@ -370,13 +371,15 @@ theorem same_rcns_ChangeEquiv {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
     actions := same_ops_ChangeEquiv_actions ho
   }
 
+-/
+
 protected theorem deterministic : 
   (s ⇓ᵢ* s₁) → (s ⇓ᵢ* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂ := by
   intro e₁ e₂ ht hp
   refine State.ext _ _ ?_ ht hp
   have hp := e₁.eq_context_processed_rcns_perm e₂ ht hp
-  have he := e₁.same_rcns_ChangeEquiv hp
-  injection e₁.to_ChangeListStep.equiv_changes_deterministic e₂.to_ChangeListStep he
+  -- have he := e₁.same_rcns_ChangeEquiv hp
+  injection e₁.to_ChangeListStep.equiv_changes_deterministic e₂.to_ChangeListStep sorry
     
 
 
@@ -413,7 +416,7 @@ theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
   simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
-theorem preserves_rcns {i : ID} : (s₁ ⇓ᵢ* s₂) → (s₁.rtr[.rcn][i] = s₂.rtr[.rcn][i])
+theorem preserves_rcns : (s₁ ⇓ᵢ* s₂) → s₁.rtr[.rcn] = s₂.rtr[.rcn]
   | refl => rfl
   | trans e e' => e.exec.preserves_rcns ▸ e'.preserves_rcns
 

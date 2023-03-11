@@ -56,7 +56,7 @@ theorem preserves_tag : (s₁ -[cs]→* s₂) → s₁.tag = s₂.tag
   | nil => rfl
   | cons e e' => e.preserves_tag ▸ e'.preserves_tag
 
-theorem preserves_rcns {i : ID} : (s₁ -[cs]→* s₂) → (s₁.rtr[.rcn][i] = s₂.rtr[.rcn][i])
+theorem preserves_rcns : (s₁ -[cs]→* s₂) → s₁.rtr[.rcn] = s₂.rtr[.rcn]
   | nil => rfl
   | cons e e' => e.preserves_rcns ▸ e'.preserves_rcns
 
@@ -146,19 +146,21 @@ theorem action_at_time_eq_schedule'_filterMap {i : ID}
     have ⟨_, ho, h⟩ := e₁.preserves_actions_at_unchanged_times hcs₁ ho₁ (t := t) (m := m)
     simp [hi e₃ (e₂.action_change ho) ho₂ hcs₂, ←schedule'_cons, schedule'_tag_congr h]
 
-theorem equiv_changes_eq_ports {i : ID} 
+theorem equiv_changes_eq_ports 
     (e₁ : s -[cs₁]→* s₁) (e₂ : s -[cs₂]→* s₂) (h : PortChangeEquiv cs₁ cs₂) : 
-    s₁.rtr[.prt k][i] = s₂.rtr[.prt k][i] :=
-  match hc : cs₁.lastSome? (·.obj.portValue? k i) with
-  | none   => e₁.lastSome?_none_preserves_ports hc ▸ e₂.lastSome?_none_preserves_ports (h k i ▸ hc)
-  | some _ => by simp [e₁.lastSome?_some_port hc, e₂.lastSome?_some_port (h k i ▸ hc)]
+    s₁.rtr[.prt k] = s₂.rtr[.prt k] :=
+  funext fun i =>
+    match hc : cs₁.lastSome? (·.obj.portValue? k i) with
+    | none => e₁.lastSome?_none_preserves_ports hc ▸ e₂.lastSome?_none_preserves_ports (h k i ▸ hc)
+    | some _ => by simp [e₁.lastSome?_some_port hc, e₂.lastSome?_some_port (h k i ▸ hc)]
 
-theorem equiv_changes_eq_state {i : ID} 
+theorem equiv_changes_eq_state
     (e₁ : s -[cs₁]→* s₁) (e₂ : s -[cs₂]→* s₂) (h : StateChangeEquiv cs₁ cs₂) : 
-    s₁.rtr[.stv][i] = s₂.rtr[.stv][i] :=
-  match hc : cs₁.lastSome? (·.obj.stateValue? i) with
-  | none   => e₁.lastSome?_none_preserves_state hc ▸ e₂.lastSome?_none_preserves_state (h i ▸ hc)
-  | some _ => by simp [e₁.lastSome?_some_state hc, e₂.lastSome?_some_state (h i ▸ hc)]
+    s₁.rtr[.stv] = s₂.rtr[.stv] :=
+  funext fun i =>
+    match hc : cs₁.lastSome? (·.obj.stateValue? i) with
+    | none   => e₁.lastSome?_none_preserves_state hc ▸ e₂.lastSome?_none_preserves_state (h i ▸ hc)
+    | some _ => by simp [e₁.lastSome?_some_state hc, e₂.lastSome?_some_state (h i ▸ hc)]
 
 theorem equiv_changes_eq_present_actions {i : ID} 
     (e₁ : s -[cs₁]→* s₁) (e₂ : s -[cs₂]→* s₂) (h : ActionChangeEquiv cs₁ cs₂) 
@@ -186,11 +188,11 @@ theorem equiv_changes_eq_actions {i : ID}
 theorem equiv_changes_eq_rtr (e₁ : s -[cs₁]→* s₁) (e₂ : s -[cs₂]→* s₂) (h : cs₁ ⋈ cs₂) : 
     s₁.rtr = s₂.rtr := by
   apply (e₁.equiv.symm.trans e₂.equiv).ext_obj?
-  intro cmp _ _
+  intro cmp _
   cases cmp
   case prt => exact e₁.equiv_changes_eq_ports e₂ h.ports
   case stv => exact e₁.equiv_changes_eq_state e₂ h.state
-  case act => exact e₁.equiv_changes_eq_actions e₂ h.actions
+  case act => funext _; exact e₁.equiv_changes_eq_actions e₂ h.actions
   case rcn => exact e₁.preserves_rcns ▸ e₂.preserves_rcns
   case rtr => contradiction
 
