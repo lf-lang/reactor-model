@@ -1,4 +1,5 @@
-import ReactorModel.Objects.Equiv
+import ReactorModel.Objects.Reactor.Basic
+import ReactorModel.Objects.Reactor.ReactorType.Equivalent
 
 open Classical
 

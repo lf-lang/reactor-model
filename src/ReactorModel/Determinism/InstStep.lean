@@ -8,8 +8,9 @@ theorem OperationStep.deterministic : (s -[op]↣ s₁) → (s -[op]↣ s₂) �
   | .skip .., .skip .. => rfl
   | .exec h₁, .exec h₂ => by simp [h₁.deterministic h₂]
 
+open ReactorType in
 theorem OperationStep.equiv : (s₁ -[op]↣ s₂) → (s₁.rtr ≈ s₂.rtr)
-  | .skip => .refl
+  | .skip => Equivalent.refl
   | .exec h => h.equiv
 
 theorem OperationStep.preserves_rcns : (s₁ -[op]↣ s₂) → s₁.rtr[.rcn] = s₂.rtr[.rcn]

@@ -60,9 +60,10 @@ theorem preserves_rcns : (s₁ -[cs]→* s₂) → s₁.rtr[.rcn] = s₂.rtr[.rc
   | nil => rfl
   | cons e e' => e.preserves_rcns ▸ e'.preserves_rcns
 
+open ReactorType in
 theorem equiv : (s₁ -[cs]→* s₂) → s₁.rtr ≈ s₂.rtr
-  | nil .. => .refl
-  | cons e e' => e.equiv.trans e'.equiv
+  | nil .. => Equivalent.refl
+  | cons e e' => Equivalent.trans e.equiv e'.equiv
 
 theorem preserves_unchanged_ports {i : ID} (h : cs.All₂ (¬·.obj.IsPortᵢ k i)) : 
     (s₁ -[cs]→* s₂) → s₁.rtr[.prt k][i] = s₂.rtr[.prt k][i]
@@ -185,9 +186,10 @@ theorem equiv_changes_eq_actions {i : ID}
     have ⟨_, h₂⟩ := e₂.equiv.obj?_some_iff.mp ⟨_, ha⟩
     e₁.equiv_changes_eq_present_actions e₂ h h₁ h₂ ▸ h₁ |>.trans h₂.symm
 
+open ReactorType in
 theorem equiv_changes_eq_rtr (e₁ : s -[cs₁]→* s₁) (e₂ : s -[cs₂]→* s₂) (h : cs₁ ⋈ cs₂) : 
     s₁.rtr = s₂.rtr := by
-  apply (e₁.equiv.symm.trans e₂.equiv).ext_obj?
+  apply Equivalent.ext_obj? (Equivalent.trans (Equivalent.symm e₁.equiv) e₂.equiv) 
   intro cmp _
   cases cmp
   case prt => exact e₁.equiv_changes_eq_ports e₂ h.ports

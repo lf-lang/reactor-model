@@ -62,6 +62,9 @@ infixr:50 " ⇀ " => Partial
 
 namespace Partial
 
+instance {α β : Type _} : EmptyCollection (α ⇀ β) where
+  emptyCollection := (fun _ => none) 
+
 def supp (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
 abbrev ids (f : α ⇀ β) := f.supp

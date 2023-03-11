@@ -17,7 +17,7 @@ theorem preserves_rcns (e : s₁ -[c]→ s₂) : s₁.rtr[.rcn] = s₂.rtr[.rcn]
 theorem equiv (e : s₁ -[c]→ s₂) : s₁.rtr ≈ s₂.rtr := by
   cases e 
   case' port h, state h, action h => exact h.equiv
-  all_goals exact .refl 
+  all_goals rfl
 
 theorem preserves_unchanged_port (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsPortᵢ k i := by exact (nomatch ·)) :
     s₁.rtr[.prt k][i] = s₂.rtr[.prt k][i] := by
