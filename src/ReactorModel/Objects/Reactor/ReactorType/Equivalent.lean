@@ -2,6 +2,7 @@ import ReactorModel.Objects.Reactor.ReactorType.Indexable
 
 namespace ReactorType
 
+-- TODO: Adding equality of reactions makes Equivalent Dependency-graph preserving.
 def Equivalent [Indexable α] (rtr₁ rtr₂ : α) : Prop := 
   ∀ cmp, rtr₁[cmp]&.map (·.id) = rtr₂[cmp]&.map (·.id)
 

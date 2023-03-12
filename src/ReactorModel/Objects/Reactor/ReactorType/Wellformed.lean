@@ -9,6 +9,8 @@ open Indexable
 -- mutations. Otherwise a normal reaction might take precedence over a mutation. Also the precedence
 -- of mutations over normal reactions is handled by `mutNorm`, so this would potentially create a
 -- redundancy.
+--
+-- Note: `Dependency _ i₁ i₂` means that in `i₁` must occur before `i₂`. 
 inductive Dependency [Indexable α] (rtr : α) : ID → ID → Prop
   | prio :
     (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
@@ -26,6 +28,9 @@ inductive Dependency [Indexable α] (rtr : α) : ID → ID → Prop
     Dependency rtr i₁ i₂ → Dependency rtr i₂ i₃ → Dependency rtr i₁ i₃
 
 namespace Dependency
+
+instance [Indexable α] {rtr : α} : IsTrans ID (Dependency rtr) where 
+  trans _ _ _ := trans 
 
 theorem nested [Indexable α] {rtr₁ : α} 
     (h : nest rtr₁ i = some rtr₂) (d : Dependency rtr₂ i₁ i₂) : Dependency rtr₁ i₁ i₂ := by

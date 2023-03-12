@@ -373,10 +373,9 @@ theorem same_rcns_ChangeEquiv {e₁ : s ⇓ᵢ* s₁} {e₂ : s ⇓ᵢ* s₂} :
 
 -/
 
-protected theorem deterministic : 
-  (s ⇓ᵢ* s₁) → (s ⇓ᵢ* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂ := by
-  intro e₁ e₂ ht hp
-  refine State.ext _ _ ?_ ht hp
+protected theorem deterministic (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) 
+    (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : s₁ = s₂ := by
+  ext1 <;> try assumption
   have hp := e₁.eq_context_processed_rcns_perm e₂ ht hp
   -- have he := e₁.same_rcns_ChangeEquiv hp
   injection e₁.to_ChangeListStep.equiv_changes_deterministic e₂.to_ChangeListStep sorry

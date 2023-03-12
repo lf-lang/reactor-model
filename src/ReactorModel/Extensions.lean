@@ -51,6 +51,14 @@ theorem lastSome?_tail :
   ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = some b') → b = b' :=
   sorry
 
+-- Notes: 
+-- * This definition doesn't work if `r` isn't transitive.
+-- * In `cons` we don't require `r a₁ a₂` as `r` need not be a total order.
+inductive Topo (r : α → α → Prop) [IsTrans _ r] : List α → Prop
+  | nil : Topo r []
+  | singleton : Topo r [a]
+  | cons : ¬(r a₂ a₁) → Topo r (a₂ :: tl) → Topo r (a₁ :: a₂ :: tl)
+
 end List
 
 namespace Set 
