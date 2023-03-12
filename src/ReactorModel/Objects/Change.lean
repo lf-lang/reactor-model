@@ -86,8 +86,15 @@ theorem IsPortᵢ.iff_portValue?_some : (IsPortᵢ k i c) ↔ (∃ v, c.portValu
   mp  | intro      => by simp [portValue?] 
   mpr | .intro v h => by simp [portValue?_some h, intro]
 
-theorem IsPortᵢ.not_iff_portValue?_none : ¬(IsPortᵢ k i c) ↔ (c.portValue? k i = none) :=
-  sorry
+theorem IsPortᵢ.not_iff_portValue?_none : ¬(IsPortᵢ k i c) ↔ (c.portValue? k i = none) where
+  mp h := by
+    by_contra hc
+    have ⟨_, hc⟩ := Option.ne_none_iff_exists.mp hc
+    exact absurd (IsPortᵢ.iff_portValue?_some.mpr ⟨_, hc.symm⟩) h
+  mpr h := by
+    by_contra hc
+    have ⟨_, hc⟩ := IsPortᵢ.iff_portValue?_some.mp hc
+    simp [h] at hc
 
 inductive IsState : Change → Prop
   | intro : IsState (state _ _)
@@ -112,8 +119,15 @@ theorem IsStateᵢ.iff_stateValue?_some : (IsStateᵢ i c) ↔ (∃ v, c.stateVa
   mp  | intro      => by simp [stateValue?] 
   mpr | .intro v h => by simp [stateValue?_some h, intro]
 
-theorem IsStateᵢ.not_iff_stateValue?_none : ¬(IsStateᵢ i c) ↔ (c.stateValue? i = none) :=
-  sorry
+theorem IsStateᵢ.not_iff_stateValue?_none : ¬(IsStateᵢ i c) ↔ (c.stateValue? i = none) where
+  mp h := by
+    by_contra hc
+    have ⟨_, hc⟩ := Option.ne_none_iff_exists.mp hc
+    exact absurd (IsStateᵢ.iff_stateValue?_some.mpr ⟨_, hc.symm⟩) h
+  mpr h := by
+    by_contra hc
+    have ⟨_, hc⟩ := IsStateᵢ.iff_stateValue?_some.mp hc
+    simp [h] at hc
 
 inductive IsAction : Change → Prop 
   | intro : IsAction (action _ _ _)
@@ -147,7 +161,14 @@ theorem IsActionₜ.iff_actionValue?_some :
   mp  | intro      => by simp [actionValue?] 
   mpr | .intro v h => by simp [actionValue?_some h, intro]
 
-theorem IsActionₜ.not_iff_actionValue?_none : ¬(IsActionₜ i t c) ↔ (c.actionValue? i t = none) :=
-  sorry
+theorem IsActionₜ.not_iff_actionValue?_none : ¬(IsActionₜ i t c) ↔ (c.actionValue? i t = none) where
+  mp h := by
+    by_contra hc
+    have ⟨_, hc⟩ := Option.ne_none_iff_exists.mp hc
+    exact absurd (IsActionₜ.iff_actionValue?_some.mpr ⟨_, hc.symm⟩) h
+  mpr h := by
+    by_contra hc
+    have ⟨_, hc⟩ := IsActionₜ.iff_actionValue?_some.mp hc
+    simp [h] at hc
 
 end Change

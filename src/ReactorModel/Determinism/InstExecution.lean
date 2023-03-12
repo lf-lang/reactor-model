@@ -401,8 +401,8 @@ theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) :
 theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ { i | i ∈ e.rcns }
   | refl => by simp [rcns]
   | trans e e' => by 
-    simp [rcns_trans_eq_cons, e.progress_eq, e'.progress_eq]
-    sorry
+    simp [e.progress_eq ▸ e'.progress_eq, rcns_trans_eq_cons]
+    apply Set.insert_union'
 
 theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) : rcn ∉ s₁.progress := by
   induction e

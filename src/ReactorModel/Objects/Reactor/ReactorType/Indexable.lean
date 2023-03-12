@@ -41,8 +41,8 @@ instance [Extensional α] [ind : Indexable β] [LawfulCoe α β] : Indexable α 
   uniqueIDs := UniqueIDs.lift ind.uniqueIDs 
 
 open Classical in
-noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) (i : ID) : Option (Identified α) := 
-  if l : Nonempty (Lineage cmp i rtr) then l.some.container else none
+noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) : ID ⇀ Identified α := 
+  fun i => if l : Nonempty (Lineage cmp i rtr) then l.some.container else none
 
 notation rtr "[" cmp "]&"        => ReactorType.Indexable.con? rtr cmp
 notation rtr "[" cmp "][" i "]&" => ReactorType.Indexable.con? rtr cmp i

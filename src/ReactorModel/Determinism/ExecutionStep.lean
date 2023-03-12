@@ -38,8 +38,8 @@ theorem not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := by
 theorem preserves_tag (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
   e.exec.tag_eq
 
-theorem preserves_rcns (e : s₁ ⇓| s₂) : s₁.rtr[.rcn].ids = s₂.rtr[.rcn].ids := by
-  sorry -- simp [Finset.ext_iff, Reactor.ids_mem_iff_obj?, e.exec.preserves_rcns]
+theorem preserves_rcns (e : s₁ ⇓| s₂) : s₁.rtr[.rcn].ids = s₂.rtr[.rcn].ids :=
+  congr_arg _ e.exec.preserves_rcns
 
 theorem rcns_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.rtr[.rcn].ids = s₂.rtr[.rcn].ids :=
   e₁.preserves_rcns ▸ e₂.preserves_rcns

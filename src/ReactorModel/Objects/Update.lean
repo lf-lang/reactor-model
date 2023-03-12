@@ -251,7 +251,7 @@ theorem Update.preserves_ne_cmp_or_id {rtr₁ : α} {cmp} {f : a.componentType c
 theorem Update.preserves_ne_cmp {rtr₁ : α} {cmp} {f : a.componentType cmp → a.componentType cmp} 
     (u : rtr₁ -[cmp:i f]→ rtr₂) (hn : cmp' ≠ cmp := by exact (nomatch ·)) 
     (hc : cmp ≠ .rtr := by exact (nomatch ·)) (hc' : cmp' ≠ .rtr := by exact (nomatch ·)) : 
-    rtr₁[cmp'][j] = rtr₂[cmp'][j] := by
+    rtr₁[cmp'] = rtr₂[cmp'] := by
   sorry
 
 theorem Update.preserves_ne_id {rtr₁ : α} {cmp} {f : a.componentType cmp → a.componentType cmp} 

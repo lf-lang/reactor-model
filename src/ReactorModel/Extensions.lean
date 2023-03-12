@@ -53,8 +53,15 @@ theorem lastSome?_tail :
 
 end List
 
-theorem Set.ssubset_ne {s₁ s₂ : Set α} (h : s₁ ⊂ s₂) : s₁ ≠ s₂ :=
+namespace Set 
+
+theorem insert_union' (s₁ s₂ : Set α) (a : α) : (insert a s₁) ∪ s₂ = s₁ ∪ (insert a s₂) := by
+  rw [Set.insert_union, Set.union_comm, ←Set.insert_union, Set.union_comm]
+
+theorem ssubset_ne {s₁ s₂ : Set α} (h : s₁ ⊂ s₂) : s₁ ≠ s₂ :=
   ssubset_iff_subset_ne.mp h |>.right
+
+end Set
 
 abbrev Partial (α β) := α → Option β
 

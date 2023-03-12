@@ -12,7 +12,7 @@ theorem preserves_tag (e : s₁ -[c]→ s₂) : s₁.tag = s₂.tag := by
   cases e <;> rfl
 
 theorem preserves_rcns (e : s₁ -[c]→ s₂) : s₁.rtr[.rcn] = s₂.rtr[.rcn] := by
-  sorry
+  cases e <;> first | rfl | exact Reactor.Update.preserves_ne_cmp ‹_›
 
 theorem equiv (e : s₁ -[c]→ s₂) : s₁.rtr ≈ s₂.rtr := by
   cases e 
@@ -26,25 +26,22 @@ theorem preserves_unchanged_port (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsPortᵢ 
     simp at h
     cases not_and_or.mp $ Change.IsPortᵢ.iff_kind_and_id_eq.not.mp h
     case inl h => exact u.preserves_ne_id h
-    case inr h => exact u.preserves_ne_cmp (by intro hc; injection hc.symm; contradiction) 
-  case' state u, action u => exact u.preserves_ne_cmp
-  all_goals rfl
+    case inr h => simp [u.preserves_ne_cmp (cmp' := .prt k) (by intro hc; injection hc.symm; contradiction)]
+  all_goals first | rfl | simp [Reactor.Update.preserves_ne_cmp ‹_› (cmp' := .prt k)]
 
 theorem preserves_unchanged_state 
     (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsStateᵢ i := by exact (nomatch ·)) : 
     s₁.rtr[.stv][i] = s₂.rtr[.stv][i] := by
   cases e
   case state u => simp [Change.IsStateᵢ.iff_id_eq] at h; exact u.preserves_ne_id h
-  case' action u, port u => exact u.preserves_ne_cmp
-  all_goals rfl
+  all_goals first | rfl | simp [Reactor.Update.preserves_ne_cmp ‹_› (cmp' := .stv)]
 
 theorem preserves_unchanged_action 
     (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsActionᵢ i := by exact (nomatch ·)) : 
     s₁.rtr[.act][i] = s₂.rtr[.act][i] := by
   cases e 
   case action u => simp [Change.IsActionᵢ.iff_id_eq] at h; exact u.preserves_ne_id h
-  case' state u, port u => exact u.preserves_ne_cmp 
-  all_goals rfl
+  all_goals first | rfl | simp [Reactor.Update.preserves_ne_cmp ‹_› (cmp' := .act)]
 
 theorem port_change : (s₁ -[⟨rcn, .port k i v⟩]→ s₂) → s₂.rtr[.prt k][i] = some v
   | port u => u.change.choose_spec.right

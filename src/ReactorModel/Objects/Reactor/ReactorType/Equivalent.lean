@@ -3,7 +3,7 @@ import ReactorModel.Objects.Reactor.ReactorType.Indexable
 namespace ReactorType
 
 def Equivalent [Indexable α] (rtr₁ rtr₂ : α) : Prop := 
-  ∀ cmp, rtr₁[cmp]& = rtr₂[cmp]&
+  ∀ cmp, rtr₁[cmp]&.map (·.id) = rtr₂[cmp]&.map (·.id)
 
 namespace Equivalent
 
@@ -52,6 +52,7 @@ theorem weak_ext_obj? {rtr₁ : α} (e : rtr₁ ≈ rtr₂) (h : ∀ cmp, rtr₁
   · exact obj?_eq_to_cmp?_eq e (h .rtr)
 -/
 
+-- TODO?: Find an `obj?`-based induction principle.
 theorem ext_obj? {rtr₁ : α} (e : rtr₁ ≈ rtr₂) (h : ∀ cmp, (cmp ≠ .rtr) → rtr₁[cmp] = rtr₂[cmp]) : 
     rtr₁ = rtr₂ := by
   induction rtr₁ using Extensional.induction generalizing rtr₂
