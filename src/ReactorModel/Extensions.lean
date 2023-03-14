@@ -116,6 +116,12 @@ def restrict (f : α ⇀ β) (s : Set α) [DecidablePred (· ∈ s)] : α ⇀ β
 def filterMap (f : α ⇀ β) (g : β → Option γ) : α ⇀ γ := 
   fun a => f a >>= g
 
+def insert [DecidableEq α] (f : α ⇀ β) (a : α) (b : β) : α ⇀ β :=
+  fun a' => if a' = a then b else f a
+
+theorem insert_self_eq [DecidableEq α] (f : α ⇀ β) (a : α) (b : β) : (f.insert a b) a = b := by
+  simp [insert]
+
 end Partial
 
 namespace Finmap

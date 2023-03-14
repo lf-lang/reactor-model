@@ -109,7 +109,7 @@ theorem MutationDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α 
 
 structure _root_.ReactorType.Wellformed [Indexable α] (rtr : α) : Prop where
   uniqueInputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
-                 (i ∈ rtr[.inp].ids) → (.port .in i ∈ rcn₁.deps .out) → 
+                 (i ∈ rtr[.prt .in].ids) → (.port .in i ∈ rcn₁.deps .out) → 
                  (.port .in i ∉ rcn₂.deps .out)  
   overlapPrio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
                  (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → 
@@ -165,6 +165,57 @@ theorem lift [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (wf 
     wf.mutationDeps (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂) h₃ h₄ |>.lift
   acyclicDeps := 
     wf.acyclicDeps.lift (rtr := rtr)
+
+theorem updated [Indexable α] {rtr₁ rtr₂ : α} {cmp i f} 
+    (u : LawfulUpdate cmp i f rtr₁ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ :=
+  sorry
+    /-
+  wf.uniqueInputs h₁ h₂ _ h₄ :=
+    rtr.wf.uniqueInputs (rtr.raw.update_ne_cmp_some_obj? h₁) (rtr.raw.update_ne_cmp_some_obj? h₂) 
+    ‹_› sorry
+  wf.overlapPrio h₁ h₂ h₃ := 
+    have ⟨_, h₁'⟩ := Reactor.Raw.update_rtr_some_obj? h₁
+    have h₂ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₂
+    have h₃ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₃
+    rtr.wf.overlapPrio h₁' h₂ h₃
+  wf.impurePrio h₁ h₂ h₃ := 
+    have ⟨_, h₁'⟩ := Reactor.Raw.update_rtr_some_obj? h₁
+    have h₂ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₂
+    have h₃ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₃
+    rtr.wf.impurePrio h₁' h₂ h₃
+  wf.mutationPrio h₁ h₂ h₃ := 
+    have ⟨_, h₁'⟩ := Reactor.Raw.update_rtr_some_obj? h₁
+    have h₂ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₂
+    have h₃ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₃
+    rtr.wf.mutationPrio h₁' h₂ h₃
+  wf.normalDeps h₁ h₂ h₃ h₄ :=
+    have ⟨_, h₁'⟩ := Reactor.Raw.update_rtr_some_obj? h₁
+    have h₂ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₂
+    have := rtr.wf.normalDeps h₁' h₂ h₃ h₄
+    sorry 
+    -- We need a lifting theorem:
+    -- theorem NormalDependency.updated [Updatable α] {rtr : α}
+    --    (h : rtr[.rtr][j] = some con) (hu : (update rtr cmp i f)[.rtr][j] = some con') 
+    --    (hd : NormalDependency con k d) : NormalDependency con' k d := 
+    --  sorry  
+  wf.mutationDeps h₁ h₂ h₃ h₄ :=
+    have ⟨_, h₁'⟩ := Reactor.Raw.update_rtr_some_obj? h₁
+    have h₂ := Reactor.Raw.update_rtr_some_obj?_eq_cmp? .rcn h₁' h₁ h₂
+    have := rtr.wf.mutationDeps h₁' h₂ h₃ h₄
+    sorry 
+    -- We need a lifting theorem:
+    -- theorem MutationDependency.updated [Updatable α] {rtr : α}
+    --    (h : rtr[.rtr][j] = some con) (hu : (update rtr cmp i f)[.rtr][j] = some con') 
+    --    (hd : MutationDependency con k d) : MutationDependency con' k d := 
+    --  sorry
+  wf.acyclicDeps := 
+    have := rtr.wf.acyclicDeps
+    sorry
+    -- We need a lifting theorem:
+    -- theorem Dependency.Acyclic.updated [Updatable α] {rtr : α} (h : Acyclic rtr) : 
+    --     Acyclic (update rtr cmp i f) :=
+    --   sorry
+-/
 
 end Wellformed
 end ReactorType

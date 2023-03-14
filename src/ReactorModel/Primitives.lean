@@ -72,9 +72,9 @@ def Priority := Option Nat
 
 -- The order of priorities is given by the order on `Nat` with the
 -- addition that a priority of `none` is incomparable to all priorities.
-instance : PartialOrder Priority := {
-  le := λ p₁ p₂ => p₁ = p₂ ∨ ∃ v₁ v₂, p₁ = some v₁ ∧ p₂ = some v₂ ∧ v₁ ≤ v₂,
-  le_refl := by simp [LE.le], 
+instance : PartialOrder Priority where
+  le := λ p₁ p₂ => p₁ = p₂ ∨ ∃ v₁ v₂, p₁ = some v₁ ∧ p₂ = some v₂ ∧ v₁ ≤ v₂
+  le_refl := by simp [LE.le]
   le_trans := by
     intro p₁ p₂ p₃ h₁₂ h₂₃
     simp only [LE.le] at *
@@ -89,8 +89,8 @@ instance : PartialOrder Priority := {
       rw [h₂₃.left] at h₂
       rw [Option.some_inj.mp h₂] at h₂₃
       have h := Nat.le_trans h₁₂.right.right h₂₃.right.right
-      exact Or.inr ⟨v₁, v₃, ⟨h₁₂.left, ⟨h₂₃.right.left, h⟩⟩⟩,
-  lt_iff_le_not_le := by simp [LT.lt, LE.le],
+      exact Or.inr ⟨v₁, v₃, ⟨h₁₂.left, ⟨h₂₃.right.left, h⟩⟩⟩
+  lt_iff_le_not_le := by simp [LT.lt, LE.le]
   le_antisymm := by
     intro p₁ p₂ h₁₂ h₂₁
     simp only [LE.le] at *
@@ -104,7 +104,6 @@ instance : PartialOrder Priority := {
       have h₂ := Option.some_inj.mp h₂₁.right.left
       rw [←h₁, ←h₂] at h₂₁
       exact Option.some_inj.mpr $ Nat.le_antisymm h₁₂.right.right h₂₁.right.right
-}
 
 -- The `Kind` type is used to generically distinguish between things which
 -- have an "input" and "output" variant. This is the case for ports as well

@@ -1,5 +1,6 @@
 import ReactorModel.Objects.Reactor.Raw
 import ReactorModel.Objects.Reactor.ReactorType.Wellformed
+import ReactorModel.Objects.Reactor.ReactorType.Updatable
 
 structure Reactor where
   raw : Reactor.Raw
@@ -22,6 +23,14 @@ instance : ReactorType Reactor where
 -- Note: From this we get `ReactorType.Extensional Reactor` and `ReactorType.Indexable Reactor`.
 instance : ReactorType.LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
+
+open ReactorType Updatable in
+noncomputable instance : ReactorType.Updatable Reactor where
+  update rtr cmp i f := {
+    raw := update rtr.raw cmp i f
+    wf  := Wellformed.updated (lawfulUpdate (α := Reactor.Raw) rtr cmp i f) rtr.wf
+  }
+  lawfulUpdate rtr cmp i f := by exact lawfulUpdate (α := Reactor.Raw) rtr cmp i f |>.lift
 
 theorem wellformed (rtr : Reactor) : ReactorType.Wellformed rtr :=
   rtr.wf.lift (rtr := rtr)

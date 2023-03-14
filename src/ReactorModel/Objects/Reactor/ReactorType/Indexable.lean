@@ -1,8 +1,25 @@
-import ReactorModel.Objects.Reactor.ReactorType.Basic
+import ReactorModel.Objects.Reactor.ReactorType.Updatable
 
 open Reactor (Component)
 
 namespace ReactorType
+
+def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
+  ∀ {cmp i}, Subsingleton (Lineage cmp i rtr)
+
+theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
+    (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
+  allEq l₁ l₂ :=
+    h.allEq (.fromLawfulCoe l₁) (.fromLawfulCoe l₂) ▸ Lineage.Equivalent.from_lawfulCoe l₁ 
+      |>.trans (Lineage.Equivalent.from_lawfulCoe l₂).symm 
+      |>.to_eq
+
+theorem UniqueIDs.updated [ReactorType α] {rtr₁ rtr₂ : α} {cmp i f} 
+    (u : LawfulUpdate cmp i f rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
+  allEq l₁ l₂ := open Lineage in
+    h.allEq (.fromLawfulUpdate u l₁) (.fromLawfulUpdate u l₂) ▸ Equivalent.from_lawfulUpdate u l₁ 
+      |>.trans (Equivalent.from_lawfulUpdate u l₂).symm 
+      |>.to_eq
 
 class Indexable (α) extends Extensional α where
   uniqueIDs : ∀ {rtr : α}, UniqueIDs rtr
@@ -49,12 +66,10 @@ notation rtr "[" cmp "][" i "]&" => ReactorType.Indexable.con? rtr cmp i
 
 noncomputable def obj? [a : Indexable α] (rtr : α) : 
     (cmp : Component) → cmp.idType ⇀ a.componentType cmp
-  | .rcn,   i       => rtr[.rcn][i]&   >>= (cmp? .rcn     ·.obj i)
-  | .prt k, i       => rtr[.prt k][i]& >>= (cmp? (.prt k) ·.obj i)
-  | .act,   i       => rtr[.act][i]&   >>= (cmp? .act     ·.obj i)
-  | .stv,   i       => rtr[.stv][i]&   >>= (cmp? .stv     ·.obj i)
-  | .rtr,   .nest i => rtr[.rtr][i]&   >>= (cmp? .rtr     ·.obj i)
-  | .rtr,   ⊤       => rtr
+  | .val cmp, i       => rtr[.val cmp][i]& >>= (cmp? (.val cmp) ·.obj i)
+  | .rcn,     i       => rtr[.rcn][i]&     >>= (cmp? .rcn       ·.obj i)
+  | .rtr,     .nest i => rtr[.rtr][i]&     >>= (cmp? .rtr       ·.obj i)
+  | .rtr,     ⊤       => rtr
 
 notation (priority := 1001) rtr "[" cmp "]" => ReactorType.Indexable.obj? rtr cmp
 notation rtr "[" cmp "][" i "]"             => ReactorType.Indexable.obj? rtr cmp i

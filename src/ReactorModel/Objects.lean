@@ -10,4 +10,3 @@ import ReactorModel.Objects.Reactor.Core
 import ReactorModel.Objects.Reactor.Raw
 import ReactorModel.Objects.Change
 import ReactorModel.Objects.Reaction
-import ReactorModel.Objects.Update

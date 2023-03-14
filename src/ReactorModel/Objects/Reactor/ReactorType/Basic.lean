@@ -2,18 +2,30 @@ import ReactorModel.Objects.Reaction
 
 namespace Reactor
 
--- An enumeration of the different *kinds* of components that are addressable by ids in a reactor.
-inductive Component
-  | rtr            -- Nested reactors
-  | rcn            -- Reactions
+inductive Component.Valued
   | prt (k : Kind) -- Ports
   | act            -- Actions
-  | stv            -- State variables
+  | stv            -- State variables 
+
+-- An enumeration of the different *kinds* of components that are addressable by ids in a reactor.
+inductive Component
+  | val (v : Component.Valued)
+  | rtr -- Nested reactors
+  | rcn -- Reactions
 
 namespace Component
 
-abbrev inp := Component.prt .in
-abbrev out := Component.prt .out
+abbrev Valued.type : Valued → Type
+  | .prt _ => Value
+  | .act   => Time.Tag ⇉ Value
+  | .stv   => Value
+
+@[match_pattern] abbrev prt (k) := Component.val (.prt k)
+@[match_pattern] abbrev act     := Component.val .act
+@[match_pattern] abbrev stv     := Component.val .stv
+
+instance : Coe Component.Valued Component where
+  coe := val 
 
 abbrev idType : Component → Type
   | rtr => RootedID
@@ -23,7 +35,7 @@ instance {cmp : Component} : Coe ID cmp.idType where
   coe i :=
     match cmp with
     | .rtr => .nest i
-    | .rcn | .prt _ | .act | .stv => i
+    | .rcn | .val _ => i
 
 end Component
 end Reactor
@@ -63,11 +75,9 @@ theorem LawfulCoe.coe_ext_iff [ReactorType α] [ReactorType β] [c : LawfulCoe �
   ⟨(congr_arg _ ·), (c.inj ·)⟩
 
 abbrev componentType [ReactorType α] : Component → Type
-  | .rtr   => α 
-  | .rcn   => Reaction
-  | .prt _ => Value
-  | .act   => Time.Tag ⇉ Value
-  | .stv   => Value
+  | .rtr     => α 
+  | .rcn     => Reaction
+  | .val cmp => cmp.type
 
 abbrev cmp? [inst : ReactorType α] : (cmp : Component) → α → ID ⇀ inst.componentType cmp
   | .rtr   => nest 
@@ -107,7 +117,7 @@ theorem lift_cmp?_eq_some (cmp) {i : ID} {o : a.componentType cmp}
 --       only ever use this theorem for `cmp = .act` anyway.
 theorem lift_mem_cmp?_ids (cmp) (h : i ∈ (b.cmp? cmp rtr).ids) (hc : cmp ≠ .rtr := by simp) : 
     i ∈ (a.cmp? cmp rtr).ids := by
-  cases cmp 
+  cases cmp <;> try cases ‹Component.Valued›  
   case rtr => contradiction
   all_goals exact ⟨h.choose, c.lift_cmp?_eq_some _ h.choose_spec⟩ 
 
@@ -161,7 +171,7 @@ theorem to_eq {rtr : α} {l₁ l₂ : Lineage cmp i rtr} (e : Equivalent l₁ l�
   e.to_eq' rfl
     
 theorem from_lawfulCoe [LawfulCoe α β] {rtr : α} (l : Lineage cmp i rtr) : 
-    Equivalent l (Lineage.fromLawfulCoe l : Lineage _ _ (rtr : β)) := by
+    Equivalent l (l : Lineage cmp i (rtr : β)) := by
   induction l
   case final => constructor
   case nest e => simp [fromLawfulCoe, Equivalent.nest _ _ e]
@@ -200,15 +210,4 @@ instance [ReactorType α] [e : Extensional β] [c : LawfulCoe α β] : Extension
     }
 
 end Extensional
-
-def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
-  ∀ {cmp i}, Subsingleton (Lineage cmp i rtr)
-
-theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
-    (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
-  allEq l₁ l₂ :=
-    h.allEq (.fromLawfulCoe l₁) (.fromLawfulCoe l₂) ▸ Lineage.Equivalent.from_lawfulCoe l₁ 
-      |>.trans (Lineage.Equivalent.from_lawfulCoe l₂).symm 
-      |>.to_eq
-
 end ReactorType

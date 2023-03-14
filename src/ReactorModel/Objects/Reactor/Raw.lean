@@ -1,6 +1,8 @@
 import ReactorModel.Objects.Reactor.Core
 import ReactorModel.Objects.Reactor.ReactorType.Indexable
 
+open Classical
+
 namespace Reactor
 
 protected structure Raw where
@@ -30,6 +32,14 @@ instance : ReactorType.LawfulCoe Reactor.Raw Reactor.Core where
 
 instance : ReactorType.Indexable Reactor.Raw where
   uniqueIDs := ReactorType.UniqueIDs.lift (β := Reactor.Core) $ Reactor.Raw.uniqueIDs ‹_› 
+
+open ReactorType Updatable in
+noncomputable instance : ReactorType.Updatable Reactor.Raw where
+  update rtr cmp i f := {
+    core := update rtr.core cmp i f
+    uniqueIDs := UniqueIDs.updated (lawfulUpdate (α := Reactor.Core) rtr cmp i f) rtr.uniqueIDs
+  }
+  lawfulUpdate rtr cmp i f := by exact lawfulUpdate (α := Reactor.Core) rtr cmp i f |>.lift
 
 end Raw
 end Reactor
