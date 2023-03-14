@@ -4,6 +4,10 @@ open Classical
 
 namespace Reaction
 
+protected inductive Kind 
+  | «mut»
+  | norm 
+
 protected inductive Dependency
   | port (k : Kind) (i : ID)
   | action (i : ID)

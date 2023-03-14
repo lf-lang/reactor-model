@@ -5,18 +5,18 @@ open Reactor (Component)
 namespace ReactorType
 
 def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
-  ∀ {cmp i}, Subsingleton (Lineage cmp i rtr)
+  ∀ {cmp i}, Subsingleton (Member cmp i rtr)
 
 theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
     (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
   allEq l₁ l₂ :=
-    h.allEq (.fromLawfulCoe l₁) (.fromLawfulCoe l₂) ▸ Lineage.Equivalent.from_lawfulCoe l₁ 
-      |>.trans (Lineage.Equivalent.from_lawfulCoe l₂).symm 
+    h.allEq (.fromLawfulCoe l₁) (.fromLawfulCoe l₂) ▸ Member.Equivalent.from_lawfulCoe l₁ 
+      |>.trans (Member.Equivalent.from_lawfulCoe l₂).symm 
       |>.to_eq
 
 theorem UniqueIDs.updated [ReactorType α] {rtr₁ rtr₂ : α} {cmp i f} 
     (u : LawfulUpdate cmp i f rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
-  allEq l₁ l₂ := open Lineage in
+  allEq l₁ l₂ := open Member in
     h.allEq (.fromLawfulUpdate u l₁) (.fromLawfulUpdate u l₂) ▸ Equivalent.from_lawfulUpdate u l₁ 
       |>.trans (Equivalent.from_lawfulUpdate u l₂).symm 
       |>.to_eq
@@ -24,33 +24,33 @@ theorem UniqueIDs.updated [ReactorType α] {rtr₁ rtr₂ : α} {cmp i f}
 class Indexable (α) extends Extensional α where
   uniqueIDs : ∀ {rtr : α}, UniqueIDs rtr
 
-namespace Lineage
+namespace Member
 
 variable [Extensional α] {cmp}
 
-def container {rtr : α} : Lineage cmp i rtr → Identified α
+def container {rtr : α} : Member cmp i rtr → Identified α
   | .nest _ (.nest h l)             => container (.nest h l)
   | .nest (rtr₂ := con) (j := j) .. => { id := j, obj := con }
   | .final _                        => { id := ⊤, obj := rtr }
 
 theorem nest_container  {rtr₁ rtr₂ : α} 
-    (h : ReactorType.nest rtr₁ i = some rtr₂) (l : Lineage cmp j rtr₂) : 
-    ∃ (k : ID) (con : α), (Lineage.nest h l).container = ⟨k, con⟩ := by
-  induction l generalizing i rtr₁
+    (h : ReactorType.nest rtr₁ i = some rtr₂) (m : Member cmp j rtr₂) : 
+    ∃ (k : ID) (con : α), (Member.nest h m).container = ⟨k, con⟩ := by
+  induction m generalizing i rtr₁
   case final => simp [container]
   case nest hn _ hi => simp [container, hi hn]
 
-theorem container_eq_root {rtr : α} {l : Lineage cmp i rtr} (h : l.container = ⟨⊤, con⟩) : 
+theorem container_eq_root {rtr : α} {m : Member cmp i rtr} (h : m.container = ⟨⊤, con⟩) : 
     rtr = con := by
-  induction l generalizing con
+  induction m generalizing con
   case final => 
     simp [container] at h
     assumption
-  case nest hn l _ =>
-    have ⟨_, _, _⟩ := nest_container hn l
+  case nest hn m _ =>
+    have ⟨_, _, _⟩ := nest_container hn m
     simp_all
 
-end Lineage
+end Member
 
 namespace Indexable
 
@@ -59,7 +59,7 @@ instance [Extensional α] [ind : Indexable β] [LawfulCoe α β] : Indexable α 
 
 open Classical in
 noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) : ID ⇀ Identified α := 
-  fun i => if l : Nonempty (Lineage cmp i rtr) then l.some.container else none
+  fun i => if m : Nonempty (Member cmp i rtr) then m.some.container else none
 
 notation rtr "[" cmp "]&"        => ReactorType.Indexable.con? rtr cmp
 notation rtr "[" cmp "][" i "]&" => ReactorType.Indexable.con? rtr cmp i
@@ -77,7 +77,7 @@ notation rtr "[" cmp "][" i "]"             => ReactorType.Indexable.obj? rtr cm
 variable [a : Indexable α] {cmp : Component} {rtr rtr₁ : α}
 
 theorem con?_eq_some (h : rtr[cmp][i]& = some con) : 
-    ∃ l : Lineage cmp i rtr, l.container = con := by
+    ∃ m : Member cmp i rtr, m.container = con := by
   simp [con?] at h
   split at h
   case inl n => exists n.some; injection h
@@ -91,8 +91,8 @@ theorem obj?_to_con?_and_cmp? {o} {i : ID} (h : rtr[cmp][i] = some o) :
     assumption
 
 theorem cmp?_to_con? {o} (h : cmp? cmp rtr i = some o) : rtr[cmp][i]& = some ⟨⊤, rtr⟩ := by
-  let l := Lineage.final (Partial.mem_ids_iff.mpr ⟨_, h⟩)
-  simp [con?, Nonempty.intro l, ←a.uniqueIDs.allEq l, Lineage.container]
+  let m := Member.final (Partial.mem_ids_iff.mpr ⟨_, h⟩)
+  simp [con?, Nonempty.intro m, ←a.uniqueIDs.allEq m, Member.container]
 
 theorem cmp?_to_obj? {o} (h : cmp? cmp rtr i = some o) : rtr[cmp][i] = some o := by
   cases cmp
@@ -106,17 +106,17 @@ theorem con?_nested {c : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp]
   split at ho
   case inr => contradiction
   case inl n =>
-    set l := n.some
-    cases hl : l
+    set m := n.some
+    cases hm : m
     case final hc =>
-      simp [hl, Lineage.container] at ho
+      simp [hm, Member.container] at ho
     case nest l₂ h₂ =>
-      let l₁ := Lineage.nest h (.nest h₂ l₂)
-      simp [hl, Lineage.container] at ho
-      simp [Nonempty.intro l₁, ←a.uniqueIDs.allEq l₁, Lineage.container, ho]
+      let l₁ := Member.nest h (.nest h₂ l₂)
+      simp [hm, Member.container] at ho
+      simp [Nonempty.intro l₁, ←a.uniqueIDs.allEq l₁, Member.container, ho]
 
 theorem con?_eq_root (h : rtr[cmp][i]& = some ⟨⊤, con⟩) : rtr = con :=
-  Lineage.container_eq_root (con?_eq_some h).choose_spec
+  Member.container_eq_root (con?_eq_some h).choose_spec
 
 theorem obj?_nested {o} {j : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp][j] = some o) : 
     rtr₁[cmp][j] = some o := by
@@ -133,8 +133,8 @@ theorem obj?_nested {o} {j : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[
       simp at ho
       subst hc
       exists ⟨i, rtr₂⟩
-      let l := Lineage.nest h (.final $ Partial.mem_ids_iff.mpr ⟨_, ho⟩)
-      simp [ho, con?, Nonempty.intro l, ←a.uniqueIDs.allEq l, Lineage.container]
+      let m := Member.nest h (.final $ Partial.mem_ids_iff.mpr ⟨_, ho⟩)
+      simp [ho, con?, Nonempty.intro m, ←a.uniqueIDs.allEq m, Member.container]
 
 -- Note: By `ho` we get `rtr₂ = rtr₃`.
 theorem obj?_nested_root (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][⊤] = some rtr₃) : 
@@ -156,20 +156,20 @@ namespace LawfulCoe
 
 variable [a : Indexable α] [b : Indexable β] [c : LawfulCoe α β] {cmp : Component} {rtr : α}
 
-theorem lower_container_eq {l : Lineage cmp i rtr} (h : l.container = con) : 
-    (l : Lineage cmp i (rtr : β)).container = ↑con := by
-  induction l
+theorem lower_container_eq {m : Member cmp i rtr} (h : m.container = con) : 
+    (m : Member cmp i (rtr : β)).container = ↑con := by
+  induction m
   case final =>
-    simp [Lineage.container] at h ⊢
+    simp [Member.container] at h ⊢
     simp [←h]
-  case nest l hi => 
-    cases l 
+  case nest m hi => 
+    cases m 
     case final => 
-      simp [Lineage.fromLawfulCoe, Lineage.container] at h ⊢
+      simp [Member.fromLawfulCoe, Member.container] at h ⊢
       simp [← h] 
     case nest hi =>
-      simp [Lineage.container] at h
-      simp [←hi h, Lineage.fromLawfulCoe, Lineage.container]
+      simp [Member.container] at h
+      simp [←hi h, Member.fromLawfulCoe, Member.container]
 
 theorem lower_con?_some (h : rtr[cmp][i]& = some con) : (rtr : β)[cmp][i]& = some ↑con := by
   simp [Indexable.con?] at h ⊢
@@ -177,7 +177,7 @@ theorem lower_con?_some (h : rtr[cmp][i]& = some con) : (rtr : β)[cmp][i]& = so
   case inr => contradiction 
   case inl n =>
     injection h with h
-    simp [←c.lower_container_eq h, (⟨n.some⟩ : Nonempty (Lineage cmp i (rtr : β)))]
+    simp [←c.lower_container_eq h, (⟨n.some⟩ : Nonempty (Member cmp i (rtr : β)))]
     congr
     apply b.uniqueIDs.allEq
 

@@ -117,10 +117,14 @@ def filterMap (f : α ⇀ β) (g : β → Option γ) : α ⇀ γ :=
   fun a => f a >>= g
 
 def insert [DecidableEq α] (f : α ⇀ β) (a : α) (b : β) : α ⇀ β :=
-  fun a' => if a' = a then b else f a
+  fun a' => if a' = a then b else f a'
 
-theorem insert_self_eq [DecidableEq α] (f : α ⇀ β) (a : α) (b : β) : (f.insert a b) a = b := by
+theorem insert_same [DecidableEq α] (f : α ⇀ β) : (f.insert a b) a = b := by
   simp [insert]
+
+theorem insert_ne [DecidableEq α] (f : α ⇀ β) (h : a' ≠ a := by assumption) : 
+    (f.insert a b) a' = f a' := by
+  simp [insert, h]
 
 end Partial
 

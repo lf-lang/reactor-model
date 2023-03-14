@@ -29,11 +29,14 @@ inductive Dependency [Indexable α] (rtr : α) : ID → ID → Prop
 
 namespace Dependency
 
-instance [Indexable α] {rtr : α} : IsTrans ID (Dependency rtr) where 
+notation i₁ " [" rtr "]> " i₂ => Dependency rtr i₁ i₂
+
+variable [Indexable α] [Indexable β] {rtr rtr₁ : α}
+
+instance : IsTrans ID (Dependency rtr) where 
   trans _ _ _ := trans 
 
-theorem nested [Indexable α] {rtr₁ : α} 
-    (h : nest rtr₁ i = some rtr₂) (d : Dependency rtr₂ i₁ i₂) : Dependency rtr₁ i₁ i₂ := by
+theorem nested (h : nest rtr₁ i = some rtr₂) (d : i₁ [rtr₂]> i₂) : i₁ [rtr₁]> i₂ := by
   induction d with
   | prio h₁          => exact prio (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
   | mutNorm h₁       => exact mutNorm (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
@@ -41,8 +44,7 @@ theorem nested [Indexable α] {rtr₁ : α}
   | mutNest h₁       => exact mutNest (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
   | trans _ _ d₁ d₂  => exact trans d₁ d₂
 
-theorem lower [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (d : Dependency rtr i₁ i₂) :
-    Dependency (rtr : β) i₁ i₂ := by
+theorem lower [c : LawfulCoe α β] (d : i₁ [rtr]> i₂) : i₁ [(rtr : β)]> i₂ := by
   induction d with
   | prio h₁ h₂ h₃ =>
      exact prio (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂) (c.lower_cmp?_eq_some .rcn h₃) 
@@ -58,56 +60,58 @@ theorem lower [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (d 
   | trans _ _ d₁ d₂ => 
     exact trans d₁ d₂
 
-def Acyclic [Indexable α] (rtr : α) : Prop :=
-  ∀ i, ¬Dependency rtr i i 
+def Acyclic (rtr : α) : Prop :=
+  ∀ i, ¬(i [rtr]> i)
 
-theorem Acyclic.nested [Indexable α] {rtr₁ : α} (a : Acyclic rtr₁) (h : nest rtr₁ i = some rtr₂) :  
-    Acyclic rtr₂ :=
+theorem Acyclic.nested (a : Acyclic rtr₁) (h : nest rtr₁ i = some rtr₂) : Acyclic rtr₂ :=
   fun i d => absurd (d.nested h) (a i)
 
-theorem Acyclic.lift [Indexable α] [Indexable β] [LawfulCoe α β] {rtr : α} (a : Acyclic (rtr : β)) : 
-    Acyclic rtr :=
+theorem Acyclic.lift [LawfulCoe α β] (a : Acyclic (rtr : β)) : Acyclic rtr :=
   fun i d => absurd d.lower (a i) 
   
 end Dependency
 
 namespace Wellformed
 
-inductive NormalDependency [ReactorType α] (rtr : α) (k : Kind) : Reaction.Dependency → Prop
-  | act  : (i ∈ (acts rtr).ids) → NormalDependency rtr k (.action i)
-  | prt  : (i ∈ (ports rtr k).ids) → NormalDependency rtr k (.port k i)
-  | nest : (nest rtr j = some con) → (i ∈ (ports con k.opposite).ids) → 
-           NormalDependency rtr k (.port k i)
+variable [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} in section
 
-inductive MutationDependency [ReactorType α] (rtr : α) : Kind → Reaction.Dependency → Prop
-  | act  : (i ∈ (acts rtr).ids) → MutationDependency rtr k (.action i)
-  | prt  : (i ∈ (ports rtr k).ids) → MutationDependency rtr k (.port k i)
-  | nest : (nest rtr j = some con) → (i ∈ (ports con .in).ids) → 
-           MutationDependency rtr .out (.port .in i)
+-- `ValidDependent rtr rk dk d` means that in reactor `rtr`, reactions of kind `rk` can have `d` as 
+-- a valid dependency target of kind `dk`. For example, `ValidTarget rtr .mut .out (.port .in i)` 
+-- states that mutations can specify the input port identified by `i` as effect and 
+-- `ValidTarget rtr .norm .in (.action i)` states that normal reactions can specify the action 
+-- identified by `i` as source.
+-- TODO: Come up with a better name for this type.
+inductive ValidDependent (rtr : α) : Reaction.Kind → Kind → Reaction.Dependency → Prop
+  | act       : (i ∈ (acts rtr).ids) → ValidDependent rtr _ _ (.action i)
+  | prt       : (i ∈ (ports rtr dk).ids) → ValidDependent rtr _ dk (.port k i)
+  | nestedIn  : (nest rtr j = some con) → (i ∈ (ports con .in).ids) → 
+                ValidDependent rtr _ .out (.port .in i)
+  | nestedOut : (nest rtr j = some con) → (i ∈ (ports con .out).ids) → 
+               ValidDependent rtr .norm .in (.port .in i)
 
-set_option hygiene false in
-scoped macro "norm_and_mut_lift_proof" : term => `(
-  open ReactorType LawfulCoe in
-  fun
+-- TODO: Factor out a lemma for `nestedIn` and `nestedOut`.
+open ReactorType LawfulCoe in
+theorem ValidDependent.lift : (ValidDependent (rtr : β) rk dk d) → ValidDependent rtr rk dk d 
   | act h => .act $ lift_mem_cmp?_ids .act h
   | prt h => .prt $ lift_mem_cmp?_ids (.prt _) h
-  | nest hc hp => by 
+  | nestedIn hc hp => by 
     have h := nest' (rtr := rtr) (β := β) ▸ hc 
     simp [Partial.map_val] at h
     obtain ⟨_, _, h⟩ := h
     subst h
-    exact .nest (lift_cmp?_eq_some .rtr hc) (lift_mem_cmp?_ids (.prt _) hp)
-)
+    exact .nestedIn (lift_cmp?_eq_some .rtr hc) (lift_mem_cmp?_ids (.prt _) hp)
+  | nestedOut hc hp => by 
+    have h := nest' (rtr := rtr) (β := β) ▸ hc 
+    simp [Partial.map_val] at h
+    obtain ⟨_, _, h⟩ := h
+    subst h
+    exact .nestedOut (lift_cmp?_eq_some .rtr hc) (lift_mem_cmp?_ids (.prt _) hp)
 
-theorem NormalDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} : 
-    (NormalDependency (rtr : β) i k) → NormalDependency rtr i k :=
-  norm_and_mut_lift_proof
+end
 
-theorem MutationDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} :
-    (MutationDependency (rtr : β) i k) → MutationDependency rtr i k :=
-  norm_and_mut_lift_proof
+variable [Indexable α] [Indexable β] {rtr rtr₁ : α}
 
-structure _root_.ReactorType.Wellformed [Indexable α] (rtr : α) : Prop where
+structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
   uniqueInputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
                  (i ∈ rtr[.prt .in].ids) → (.port .in i ∈ rcn₁.deps .out) → 
                  (.port .in i ∉ rcn₂.deps .out)  
@@ -121,9 +125,9 @@ structure _root_.ReactorType.Wellformed [Indexable α] (rtr : α) : Prop where
                  (i₁ ≠ i₂) → (rcn₁.Mutates) → (rcn₂.Mutates) →
                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
   normalDeps   : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → (rcn.Normal) → 
-                 (d ∈ rcn.deps k) → (NormalDependency con k d) 
+                 (d ∈ rcn.deps k) → (ValidDependent con .norm k d) 
   mutationDeps : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → (rcn.Mutates) →
-                 (d ∈ rcn.deps k) → (MutationDependency con k d) 
+                 (d ∈ rcn.deps k) → (ValidDependent con .mut k d) 
   acyclicDeps  : Dependency.Acyclic rtr
 
 set_option hygiene false in
@@ -133,8 +137,7 @@ scoped macro "wf_nested_proof " name:ident : term => `(
   | .root   => ($name ‹_› <| obj?_nested_root h · |>.choose_spec)
 )
 
-theorem nested [Indexable α] {rtr₁ : α} 
-    (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where
+theorem nested (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where
   overlapPrio              := wf_nested_proof overlapPrio
   impurePrio               := wf_nested_proof impurePrio
   mutationPrio             := wf_nested_proof mutationPrio
@@ -146,8 +149,7 @@ theorem nested [Indexable α] {rtr₁ : α}
     have h₄ := Partial.mem_ids_iff.mpr ⟨_, obj?_nested h (Partial.mem_ids_iff.mp h₄).choose_spec⟩ 
     wf.uniqueInputs (obj?_nested h h₁) (obj?_nested h h₂) h₃ h₄
 
-theorem lift [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (wf : Wellformed (rtr : β)) : 
-    Wellformed rtr where
+theorem lift [c : LawfulCoe α β] (wf : Wellformed (rtr : β)) : Wellformed rtr where
   uniqueInputs h₁ h₂ h₃ h₄ := 
     wf.uniqueInputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) h₃ (c.lower_mem_obj?_ids h₄)
   overlapPrio h₁ h₂ h₃ := 
@@ -166,8 +168,7 @@ theorem lift [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (wf 
   acyclicDeps := 
     wf.acyclicDeps.lift (rtr := rtr)
 
-theorem updated [Indexable α] {rtr₁ rtr₂ : α} {cmp i f} 
-    (u : LawfulUpdate cmp i f rtr₁ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ :=
+theorem updated {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ :=
   sorry
     /-
   wf.uniqueInputs h₁ h₂ _ h₄ :=

@@ -21,22 +21,22 @@ inductive LawfulMemUpdate (cmp : Component.Valued) (i : ID) (f : cmp.type → cm
 
 inductive LawfulUpdate (cmp : Component.Valued) (i : ID) (f : cmp.type → cmp.type) : α → α → Prop
   | update : (LawfulMemUpdate cmp i f rtr₁ rtr₂) → LawfulUpdate cmp i f rtr₁ rtr₂
-  | notMem : (IsEmpty $ Lineage cmp i rtr)       → LawfulUpdate cmp i f rtr rtr
+  | notMem : (IsEmpty $ Member cmp i rtr)       → LawfulUpdate cmp i f rtr rtr
 
 def LawfulUpdate.lift [LawfulCoe α β] {rtr₁ rtr₂ : α} {cmp i f} 
     (u : LawfulUpdate cmp i f (rtr₁ : β) (rtr₂ : β)) : LawfulUpdate cmp i f rtr₁ rtr₂ :=
   sorry -- might need coe ∘ update = update ∘ coe  
 
--- TODO: Should these Lineage defs/theorems actually be about `Updatable`?
-def Lineage.fromLawfulUpdate {rtr₁ rtr₂ : α} {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) : 
-    (Lineage c j rtr₂) → Lineage c j rtr₁
+-- TODO: Should these Member defs/theorems actually be about `Updatable`?
+def Member.fromLawfulUpdate {rtr₁ rtr₂ : α} {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) : 
+    (Member c j rtr₂) → Member c j rtr₁
   | final h  => final sorry 
   | nest h l => sorry 
 
-theorem Lineage.Equivalent.from_lawfulUpdate 
-    {rtr₁ rtr₂ : α} {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (l : Lineage c j rtr₂) : 
-    Lineage.Equivalent l (Lineage.fromLawfulUpdate u l) := by
-  induction l
+theorem Member.Equivalent.from_lawfulUpdate 
+    {rtr₁ rtr₂ : α} {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
+    Member.Equivalent m (Member.fromLawfulUpdate u m) := by
+  induction m
   case final => constructor
   case nest e => sorry
 
@@ -55,14 +55,14 @@ intro c j
     constructor
     intro l₁ l₂
     open ReactorType in
-    by_cases Nonempty (Lineage cmp i rtr.core)
+    by_cases Nonempty (Member cmp i rtr.core)
     case neg =>
-      suffices h : Lineage c j (rtr.core.update cmp i f) = Lineage c j rtr.core from
+      suffices h : Member c j (rtr.core.update cmp i f) = Member c j rtr.core from
         (cast_inj h).mp $ rtr.uniqueIDs.allEq (cast h l₁) (cast h l₂)
       simp [Core.update, h]
     case pos =>
       generalize hl : h.some = l
-      have h : Lineage c j (rtr.core.update _ i f) = Lineage c j (Core.update.go _ i f l) := by
+      have h : Member c j (rtr.core.update _ i f) = Member c j (Core.update.go _ i f l) := by
         simp [hl, Core.update, h]
       apply (cast_inj h).mp
       set l₁' := cast h l₁

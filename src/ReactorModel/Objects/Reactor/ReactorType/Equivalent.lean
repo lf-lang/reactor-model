@@ -36,35 +36,5 @@ theorem obj?_none_iff {rtr₁ : α} {cmp i} (e : rtr₁ ≈ rtr₂) :
     (rtr₁[cmp][i] = none) ↔ (rtr₂[cmp][i] = none) := by 
   sorry
 
-/-
-theorem obj?_eq_to_cmp?_eq {rtr₁ : α} {cmp} (e : rtr₁ ≈ rtr₂) (h : rtr₁[cmp] = rtr₂[cmp]) : 
-    cmp? cmp rtr₁ = cmp? cmp rtr₂ := by
-  sorry
-
-theorem cmp?_eq_empty {rtr₁ : α} {cmp} (e : rtr₁ ≈ rtr₂) (h : cmp? cmp rtr₁ = ∅) : 
-    cmp? cmp rtr₂ = ∅ := by
-  sorry
-
-theorem weak_ext_obj? {rtr₁ : α} (e : rtr₁ ≈ rtr₂) (h : ∀ cmp, rtr₁[cmp] = rtr₂[cmp]) : 
-    rtr₁ = rtr₂ := by
-  ext
-  split_ands
-  · funext k; exact obj?_eq_to_cmp?_eq e (h $ .prt k)
-  · exact obj?_eq_to_cmp?_eq e (h .act)
-  · exact obj?_eq_to_cmp?_eq e (h .stv)
-  · exact obj?_eq_to_cmp?_eq e (h .rcn)
-  · exact obj?_eq_to_cmp?_eq e (h .rtr)
--/
-
--- TODO?: Find an `obj?`-based induction principle.
-theorem ext_obj? {rtr₁ : α} (e : rtr₁ ≈ rtr₂) (h : ∀ cmp, (cmp ≠ .rtr) → rtr₁[cmp] = rtr₂[cmp]) : 
-    rtr₁ = rtr₂ := by
-  induction rtr₁ using Extensional.induction generalizing rtr₂
-  case base h₁ => 
-    sorry
-  case step hi => 
-    sorry
-  skip
-
 end Equivalent
 end ReactorType
