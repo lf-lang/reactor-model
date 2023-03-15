@@ -154,6 +154,12 @@ theorem obj?_mem_ids_nested {cmp : Component.Valued}
     (h : nest rtr₁ i = some rtr₂) (hm : j ∈ rtr₂[cmp].ids) : j ∈ rtr₁[cmp].ids :=
   Partial.mem_ids_iff.mpr ⟨_, obj?_nested h (Partial.mem_ids_iff.mp hm).choose_spec⟩  
 
+theorem member_isEmpty_con?_none (h : IsEmpty (Member cmp i rtr)) : rtr[cmp][i]& = none := by
+  cases cmp <;> simp [con?, not_nonempty_iff.mpr h]
+
+theorem member_isEmpty_obj?_none (h : IsEmpty (Member cmp i rtr)) : rtr[cmp][i] = none := by
+  cases cmp <;> simp [obj?, member_isEmpty_con?_none h, bind]
+
 end Indexable
 
 namespace LawfulCoe
@@ -197,16 +203,75 @@ theorem lower_mem_obj?_ids {i} (h : i ∈ rtr[cmp].ids) : i ∈ (rtr : β)[cmp].
 
 end LawfulCoe
 
-namespace LawfulUpdate
-  
+open Indexable Updatable
+
+namespace LawfulMemUpdate
+
 variable [Indexable α] {rtr₁ : α}
 
-theorem unchanged {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (h : c ≠ cmp ∨ j ≠ i) : 
-    rtr₁[c][j] = rtr₂[c][j] :=
-  sorry
+theorem obj?_preserved {cmp f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) (h : c ≠ cmp ∨ j ≠ i) : 
+    rtr₂[c][j] = rtr₁[c][j] := by
+  -- TODO: We need to somehow distinguish whether [c][j] even identifies a component, and if so, 
+  --       whether it lives in the same reactor as [cmp][i].
+  induction u
+  case final e _ _ =>
+    have := e (c := c) (j := j) (by simp [h])
+    sorry
+  case nest =>
+    sorry
 
-theorem changed {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) : f <$> rtr₁[cmp][i] = rtr₂[cmp][i] :=
-  sorry
+theorem obj?_some₁ {cmp f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) : 
+    ∃ o, rtr₁[cmp][i] = some o := by
+  induction u 
+  case final         => exact ⟨_, cmp?_to_obj? ‹_›⟩
+  case nest h _ _ hi => exact ⟨_, obj?_nested h hi.choose_spec⟩
+
+theorem obj?_some₂ {cmp f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) : 
+    ∃ o, rtr₂[cmp][i] = some o := by
+  induction u 
+  case final       => exact ⟨_, cmp?_to_obj? ‹_›⟩
+  case nest h _ hi => exact ⟨_, obj?_nested h hi.choose_spec⟩
+
+theorem obj?_updated {cmp f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) : 
+    rtr₂[cmp][i] = f <$> rtr₁[cmp][i] := by
+  induction u
+  case final h₁ h₂ => 
+    rw [cmp?_to_obj? h₁, cmp?_to_obj? h₂, Option.map_some]
+  case nest h₁ h₂ u hi =>
+    have ⟨_, h₁'⟩ := u.obj?_some₁
+    have ⟨_, h₂'⟩ := u.obj?_some₂
+    rw [obj?_nested h₁ h₁', obj?_nested h₂ h₂']
+    exact h₁' ▸ h₂' ▸ hi
+
+end LawfulMemUpdate
+
+namespace LawfulUpdate
+
+variable [Indexable α] {rtr₁ : α}
+
+theorem obj?_preserved {cmp f} (h : c ≠ cmp ∨ j ≠ i) : 
+    (LawfulUpdate cmp i f rtr₁ rtr₂) → rtr₂[c][j] = rtr₁[c][j]
+  | update u => u.obj?_preserved h
+  | notMem _ => rfl
+
+theorem obj?_updated {cmp f} : (LawfulUpdate cmp i f rtr₁ rtr₂) → rtr₂[cmp][i] = f <$> rtr₁[cmp][i]
+  | update u => u.obj?_updated
+  | notMem h => by have h := member_isEmpty_obj?_none h; simp at h; simp [h]
 
 end LawfulUpdate
+
+namespace LawfulUpdatable
+
+-- TODO: We need this to handle a type class diamond. What is the proper way to fix this?
+private class LawfulUpdexable (α) extends Indexable α, LawfulUpdatable α  
+
+variable [LawfulUpdexable α] {rtr : α}
+
+theorem obj?_preserved {cmp f} (h : c ≠ cmp ∨ j ≠ i) : (update rtr cmp i f)[c][j] = rtr[c][j] :=
+  lawful rtr cmp i f |>.obj?_preserved h
+
+theorem obj?_updated {cmp f} : (update rtr cmp i f)[cmp][i] = f <$> rtr[cmp][i] :=
+  lawful rtr cmp i f |>.obj?_updated
+
+end LawfulUpdatable
 end ReactorType

@@ -28,7 +28,7 @@ instance : LawfulCoe Reactor Reactor.Raw where
 noncomputable instance : Updatable Reactor where
   update rtr cmp i f := {
     raw := Updatable.update rtr.raw cmp i f
-    wf  := Wellformed.updated (LawfulUpdatable.lawful (α := Reactor.Raw) rtr cmp i f) rtr.wf
+    wf  := Wellformed.equiv (LawfulUpdatable.lawful (α := Reactor.Raw) rtr cmp i f).equiv rtr.wf
   }
 
 -- Note: From this we get `ReactorType.LawfulUpdatable Reactor`.
