@@ -4,7 +4,7 @@ open Reactor (Component)
 
 namespace ReactorType
 
-variable [ReactorType α] [ReactorType β]
+variable [ReactorType α] [ReactorType β] in section
 
 def RootEqualUpTo (cmp : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
   ∀ {c j}, (c ≠ cmp ∨ j ≠ i) → cmp? c rtr₁ j = cmp? c rtr₂ j
@@ -40,13 +40,24 @@ theorem Member.Equivalent.from_lawfulUpdate
   case final => constructor
   case nest e => sorry
 
--- TODO: Do we even need/use this type class?
+end
+
 class Updatable (α) extends ReactorType α where
   update : α → (cmp : Component.Valued) → ID → (cmp.type → cmp.type) → α  
-  lawful : ∀ rtr cmp i f, LawfulUpdate cmp i f rtr (update rtr cmp i f)
+    
+class LawfulUpdatable (α) extends Updatable α where 
+  lawful : ∀ rtr cmp i f, LawfulUpdate cmp i f rtr (update rtr cmp i f)      
 
+scoped macro "lawfulUpdatableCoe_update_coe_comm_proof" : tactic =>
+  `(tactic| simp [Updatable.update, Coe.coe])
 
+class LawfulUpdatableCoe (α β) [a : Updatable α] [b : Updatable β] extends LawfulCoe α β where
+  update_coe_comm : 
+    ∀ {rtr cmp i f}, b.update (coe rtr) cmp i f = coe (a.update rtr cmp i f) := by 
+      lawfulUpdatableCoe_update_coe_comm_proof
 
+instance [Updatable α] [LawfulUpdatable β] [c : LawfulUpdatableCoe α β] : LawfulUpdatable α where
+  lawful rtr cmp i f := c.update_coe_comm ▸ LawfulUpdatable.lawful (rtr : β) cmp i f |>.lift 
 
 /-
 intro c j
@@ -73,46 +84,12 @@ intro c j
         sorry
 -/
 
-
-
-
 /-
 structure LawfulUpdate [Indexable α] 
     (rtr₁ rtr₂ : α) (cmp : Component.Valued) (i : ID) (f : cmp.type → cmp.type) : Prop where
   equiv     : rtr₁ ≈ rtr₂  
   unchanged : (c ≠ cmp ∨ j ≠ i) → rtr₁[c][j] = rtr₂[c][j]
   changed   : f <$> rtr₁[cmp][i] = rtr₂[cmp][i]
-
-theorem LawfulUpdate.lift [Indexable α] [Indexable β] [LawfulCoe α β] {cmp f} {rtr₁ rtr₂ : α}
-    (u : LawfulUpdate (rtr₁ : β) (rtr₂ : β) cmp i f) : LawfulUpdate rtr₁ rtr₂ cmp i f :=
-  sorry
-
-namespace LawfulUpdate
-
-variable [Indexable α] {rtr₁ rtr₂ : α}
-
--- TODO: Rename and clean up these theorems.
-
-theorem obj?_some_iff {cmp : Component.Valued} {f cmp' j} (u : LawfulUpdate rtr₁ rtr₂ cmp i f) :
-    (∃ o₁, rtr₁[cmp'][j] = some o₁) ↔ (∃ o₂, rtr₂[cmp'][j] = some o₂) := 
-  Equivalent.obj?_some_iff u.equiv
-
-theorem ne_cmp_obj?_eq {cmp' : Component} {cmp : Component.Valued} {f} 
-    (u : LawfulUpdate rtr₁ rtr₂ cmp i f) (hc : cmp' ≠ cmp := by simp) 
-    (hr : cmp' ≠ .rtr := by simp) : rtr₁[cmp'] = rtr₂[cmp'] := by
-  cases cmp'
-  case rtr => contradiction
-  case rcn => exact u.equiv.rcns
-  all_goals funext j; exact u.unchanged $ .inl (by simp_all)
-
-/-
-theorem update_rtr_some_obj?_eq_cmp? {cmp' : Component} {cmp : Component.Valued}  {f j i' o}
-    (h : rtr[.rtr][j] = some con) (hu : (rtr.update cmp i f)[.rtr][j] = some con') 
-    (hc : cmp? cmp' con' i' = some o) (hn₁ : cmp' ≠ cmp := by simp) (hn₂ : cmp' ≠ .rtr := by simp) :
-    cmp? cmp' con i' = some o :=
-  sorry
 -/
 
-end LawfulUpdate
--/
 end ReactorType

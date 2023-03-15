@@ -79,10 +79,10 @@ theorem updateMem_lawfulMemUpdate
 def update (rtr : Reactor.Core) (cmp : Component.Valued) (i : ID) (f : cmp.type → cmp.type) :=
   if l : Nonempty (Member cmp i rtr) then updateMem f l.some else rtr
 
-instance : ReactorType.Updatable Reactor.Core where
+instance : ReactorType.LawfulUpdatable Reactor.Core where
   update := update
   lawful rtr cmp i f := by
-    unfold update
+    simp [update]
     split
     case inr h => simp at h; exact .notMem h
     case inl h => exact .update $ updateMem_lawfulMemUpdate h.some f

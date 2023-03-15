@@ -1,10 +1,5 @@
 import ReactorModel.Objects.Reactor.ReactorType.Equivalent
 
--- TODO: Are all of the theorems required to prove the `updated` theorems, theorems about 
---       `Reactor.Equivalent`?
---       Notable exception is `nested_rcns_eq`, but read the TODO on that theorem.
---       Thus, are all of the `updated` theorems actually provable from `Equivalent`.
-
 namespace ReactorType
 
 open Indexable
@@ -65,22 +60,27 @@ theorem lower [c : LawfulCoe α β] (d : i₁ [rtr]> i₂) : i₁ [(rtr : β)]> 
   | trans _ _ d₁ d₂ => 
     exact trans d₁ d₂
 
-theorem updated {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (d : j₁ [rtr₂]> j₂) : j₁ [rtr₁]> j₂ := by
+open Equivalent in
+theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ [rtr₂]> j₂) : j₁ [rtr₁]> j₂ := by
   induction d with
   | prio h₁ h₂ h₃ => 
-    have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff u.equiv |>.mpr ⟨_, h₁⟩  
-    exact prio h₁' (u.nested_rcns_eq h₁' h₁ h₂) (u.nested_rcns_eq h₁' h₁ h₃) ‹_› ‹_›
+    -- TODO: The next 2 lines are a common pattern in the `updated` proofs. Perhaps create a 
+    --       (unidirectional) derivative of `Equivalent.obj?_some_iff` that includes equivalence.
+    have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩
+    have e := Equivalent.nested e h₁' h₁
+    exact prio h₁' (nested_rcns_eq e h₂) (nested_rcns_eq e h₃) ‹_› ‹_›
   | mutNorm h₁ h₂ h₃ => 
-    have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff u.equiv |>.mpr ⟨_, h₁⟩  
-    exact mutNorm h₁' (u.nested_rcns_eq h₁' h₁ h₂) (u.nested_rcns_eq h₁' h₁ h₃) ‹_› ‹_›
+    have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩  
+    have e := Equivalent.nested e h₁' h₁
+    exact mutNorm h₁' (nested_rcns_eq e h₂) (nested_rcns_eq e h₃) ‹_› ‹_›
   | depOverlap h₁ h₂ => 
-    exact depOverlap (u.equiv.rcns_eq.symm ▸ h₁) (u.equiv.rcns_eq.symm ▸ h₂) ‹_›
+    exact depOverlap (e.rcns_eq.symm ▸ h₁) (e.rcns_eq.symm ▸ h₂) ‹_›
   | mutNest h₁ h₂ h₃ _ h₄ => 
-    have ⟨_, h₁'⟩ := u.equiv.obj?_some_iff.mpr ⟨_, h₁⟩  
-    have e := Equivalent.nested u.equiv h₁' h₁
-    have ⟨_, h₂'⟩ := Equivalent.cmp?_some_iff e (cmp := .rtr) |>.mpr ⟨_, h₂⟩
-    have h₄' := Equivalent.mem_cmp?_ids_iff (Equivalent.nest e h₂' h₂) (cmp := .rcn) |>.mpr h₄
-    exact mutNest h₁' h₂' (u.nested_rcns_eq h₁' h₁ h₃) ‹_› h₄'
+    have ⟨_, h₁'⟩ := e.obj?_some_iff.mpr ⟨_, h₁⟩  
+    have e := Equivalent.nested e h₁' h₁
+    have ⟨_, h₂'⟩ := cmp?_some_iff e (cmp := .rtr) |>.mpr ⟨_, h₂⟩
+    have h₄' := mem_cmp?_ids_iff (Equivalent.nest e h₂' h₂) (cmp := .rcn) |>.mpr h₄
+    exact mutNest h₁' h₂' (nested_rcns_eq e h₃) ‹_› h₄'
   | trans _ _ d₁ d₂ => 
     exact trans d₁ d₂
 
@@ -95,8 +95,8 @@ theorem nested (a : Acyclic rtr₁) (h : nest rtr₁ i = some rtr₂) : Acyclic 
 theorem lift [LawfulCoe α β] (a : Acyclic (rtr : β)) : Acyclic rtr :=
   fun i d => absurd d.lower (a i) 
   
-theorem updated {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (a : Acyclic rtr₁) : Acyclic rtr₂ :=
-  fun i d => absurd (d.updated u) (a i) 
+theorem equiv (e : rtr₁ ≈ rtr₂) (a : Acyclic rtr₁) : Acyclic rtr₂ :=
+  fun i d => absurd (d.equiv e) (a i) 
 
 end Acyclic
 end Dependency
@@ -140,9 +140,9 @@ end
 variable [Indexable α] [Indexable β] {rtr rtr₁ : α}
 
 set_option hygiene false in
-scoped macro "updated_nested_proof " name:ident : term => `(
+scoped macro "equiv_nested_proof " name:ident : term => `(
   fun hc hp => 
-    have e := Equivalent.nested (LawfulUpdate.equiv ‹_›) h₁ h₂
+    have e := Equivalent.nested ‹_› h₁ h₂
     have ⟨_, hc'⟩ := Equivalent.cmp?_some_iff e (cmp := .rtr) |>.mp ⟨_, hc⟩ 
     have e := Equivalent.nest e hc hc'
     $(Lean.mkIdentFrom name $ `ValidDependency ++ name.getId) hc' 
@@ -150,13 +150,13 @@ scoped macro "updated_nested_proof " name:ident : term => `(
 )
 
 open Equivalent in
-theorem ValidDependency.updated {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂)
-    (h₁ : rtr₁[.rtr][j] = some con₁) (h₂ : rtr₂[.rtr][j] = some con₂) : 
+theorem ValidDependency.equiv 
+    (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][j] = some con₁) (h₂ : rtr₂[.rtr][j] = some con₂) : 
     (ValidDependency con₁ rk dk d) → ValidDependency con₂ rk dk d
-  | act h           => act $ mem_cmp?_ids_iff (nested u.equiv h₁ h₂) (cmp := .act) |>.mp h
-  | prt h           => prt $ mem_cmp?_ids_iff (nested u.equiv h₁ h₂) (cmp := .prt _) |>.mp h
-  | nestedIn hc hp  => (updated_nested_proof nestedIn) hc hp
-  | nestedOut hc hp => (updated_nested_proof nestedOut) hc hp
+  | act h           => act $ mem_cmp?_ids_iff (nested e h₁ h₂) (cmp := .act) |>.mp h
+  | prt h           => prt $ mem_cmp?_ids_iff (nested e h₁ h₂) (cmp := .prt _) |>.mp h
+  | nestedIn hc hp  => (equiv_nested_proof nestedIn) hc hp
+  | nestedOut hc hp => (equiv_nested_proof nestedOut) hc hp
 
 -- TODO: Refactor the `prio` conditions into one.
 structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
@@ -210,28 +210,27 @@ theorem lift [c : LawfulCoe α β] (wf : Wellformed (rtr : β)) : Wellformed rtr
     wf.uniqueInputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) ‹_› (c.lower_mem_obj?_ids h₄)
 
 set_option hygiene false in
-scoped macro "updated_prio_proof " name:ident : term => `(
+scoped macro "equiv_prio_proof " name:ident rtr₁:ident rtr₂:ident : term => `(
   fun h₁ h₂ h₃ => 
-    have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff u.equiv |>.mpr ⟨_, h₁⟩ 
-    have e := Equivalent.nested u.equiv h₁' h₁
+    have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff ‹$rtr₁ ≈ $rtr₂› |>.mpr ⟨_, h₁⟩ 
+    have e := Equivalent.nested ‹_› h₁' h₁
     $(Lean.mkIdentFrom name $ `Wellformed ++ name.getId) 
       ‹_› h₁' (Equivalent.nested_rcns_eq e h₂) (Equivalent.nested_rcns_eq e h₃)
 )
 
-theorem updated {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (wf : Wellformed rtr₁) : 
-    Wellformed rtr₂ where
-  overlapPrio  := updated_prio_proof overlapPrio
-  impurePrio   := updated_prio_proof impurePrio
-  mutationPrio := updated_prio_proof mutationPrio
-  acyclicDeps  := wf.acyclicDeps.updated u
+theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ where
+  overlapPrio  := equiv_prio_proof overlapPrio rtr₁ rtr₂
+  impurePrio   := equiv_prio_proof impurePrio rtr₁ rtr₂
+  mutationPrio := equiv_prio_proof mutationPrio rtr₁ rtr₂
+  acyclicDeps  := wf.acyclicDeps.equiv e
   validDeps h₁ h₂ h₃ := 
-    have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff u.equiv |>.mpr ⟨_, h₁⟩ 
-    have e := Equivalent.nested u.equiv h₁' h₁
+    have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
+    have e := Equivalent.nested e h₁' h₁
     have h₂' := Equivalent.nested_rcns_eq e h₂
-    wf.validDeps h₁' h₂' h₃ |>.updated u h₁' h₁
+    wf.validDeps h₁' h₂' h₃ |>.equiv ‹_› h₁' h₁
   uniqueInputs h₁ h₂ _ h₃ := 
-    have h₃' := Equivalent.mem_obj?_ids_iff u.equiv |>.mpr h₃
-    wf.uniqueInputs (u.equiv.rcns_eq.symm ▸ h₁) (u.equiv.rcns_eq.symm ▸ h₂) ‹_› h₃'
+    have h₃' := Equivalent.mem_obj?_ids_iff e |>.mpr h₃
+    wf.uniqueInputs (e.rcns_eq.symm ▸ h₁) (e.rcns_eq.symm ▸ h₂) ‹_› h₃'
 
 end Wellformed
 end ReactorType

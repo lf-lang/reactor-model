@@ -201,14 +201,6 @@ namespace LawfulUpdate
   
 variable [Indexable α] {rtr₁ : α}
 
--- TODO: Could this be a theorem on `Equivalent`?
---       Namely, if we have `h₁` and `h₂` and `Equivalent rtr₁ rtr₂` the same follows.
--- Note: `h₁` and `h₂` follow from eachother by `u.equiv`.
-theorem nested_rcns_eq {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) 
-    (h₁ : rtr₁[.rtr][j] = some n₁) (h₂ : rtr₂[.rtr][j] = some n₂) (h : cmp? .rcn n₂ k = some o) : 
-    cmp? .rcn n₁ k = some o :=
-  sorry
-
 theorem unchanged {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (h : c ≠ cmp ∨ j ≠ i) : 
     rtr₁[c][j] = rtr₂[c][j] :=
   sorry

@@ -8,7 +8,8 @@ structure Reactor where
 
 namespace Reactor
 
-open ReactorType in
+open ReactorType
+
 instance : ReactorType Reactor where
   ports    := ports ∘ raw
   acts     := acts  ∘ raw
@@ -21,25 +22,19 @@ instance : ReactorType Reactor where
     }
 
 -- Note: From this we get `ReactorType.Extensional Reactor` and `ReactorType.Indexable Reactor`.
-instance : ReactorType.LawfulCoe Reactor Reactor.Raw where
+instance : LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
 
--- TODO: Perhaps it would be useful to have two type classes:
--- (1) `Updatable` which only requires the `update` function.
--- (2) `LawfulUpdatable` which extends `Updatable` with the `lawful` property.
---
--- Then you should be able to do some automatic type class lifting via `LawfulCoe` again. Like:
--- `instance : [Updatable α] [LawfulUpdatable β] [LawfulCoe α β] : LawfulUpdatable α`.
--- This, you don't have to specify the `lawful` field below.
-open ReactorType Updatable in
-noncomputable instance : ReactorType.Updatable Reactor where
+noncomputable instance : Updatable Reactor where
   update rtr cmp i f := {
-    raw := update rtr.raw cmp i f
-    wf  := Wellformed.updated (lawful (α := Reactor.Raw) rtr cmp i f) rtr.wf
+    raw := Updatable.update rtr.raw cmp i f
+    wf  := Wellformed.updated (LawfulUpdatable.lawful (α := Reactor.Raw) rtr cmp i f) rtr.wf
   }
-  lawful rtr cmp i f := by exact lawful (α := Reactor.Raw) rtr cmp i f |>.lift
 
-theorem wellformed (rtr : Reactor) : ReactorType.Wellformed rtr :=
+-- Note: From this we get `ReactorType.LawfulUpdatable Reactor`.
+instance : LawfulUpdatableCoe Reactor Reactor.Raw where
+
+theorem wellformed (rtr : Reactor) : Wellformed rtr :=
   rtr.wf.lift (rtr := rtr)
 
 -- We add these definitions so that we can use dot-notation on `Reactor`s later. Type classes don't
