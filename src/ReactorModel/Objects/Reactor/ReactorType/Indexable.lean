@@ -22,7 +22,7 @@ theorem UniqueIDs.updated [ReactorType α] {rtr₁ rtr₂ : α} {cmp i f}
       |>.to_eq
 
 class Indexable (α) extends Extensional α where
-  uniqueIDs : ∀ {rtr : α}, UniqueIDs rtr
+  unique_ids : ∀ {rtr : α}, UniqueIDs rtr
 
 namespace Member
 
@@ -55,7 +55,7 @@ end Member
 namespace Indexable
 
 instance [Extensional α] [ind : Indexable β] [LawfulCoe α β] : Indexable α where
-  uniqueIDs := UniqueIDs.lift ind.uniqueIDs 
+  unique_ids := UniqueIDs.lift ind.unique_ids 
 
 open Classical in
 noncomputable def con? [Indexable α] (rtr : α) (cmp : Component) : ID ⇀ Identified α := 
@@ -92,7 +92,7 @@ theorem obj?_to_con?_and_cmp? {o} {i : ID} (h : rtr[cmp][i] = some o) :
 
 theorem cmp?_to_con? {o} (h : cmp? cmp rtr i = some o) : rtr[cmp][i]& = some ⟨⊤, rtr⟩ := by
   let m := Member.final (Partial.mem_ids_iff.mpr ⟨_, h⟩)
-  simp [con?, Nonempty.intro m, ←a.uniqueIDs.allEq m, Member.container]
+  simp [con?, Nonempty.intro m, ←a.unique_ids.allEq m, Member.container]
 
 theorem cmp?_to_obj? {o} (h : cmp? cmp rtr i = some o) : rtr[cmp][i] = some o := by
   cases cmp
@@ -113,7 +113,7 @@ theorem con?_nested {c : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp]
     case nest l₂ h₂ =>
       let l₁ := Member.nest h (.nest h₂ l₂)
       simp [hm, Member.container] at ho
-      simp [Nonempty.intro l₁, ←a.uniqueIDs.allEq l₁, Member.container, ho]
+      simp [Nonempty.intro l₁, ←a.unique_ids.allEq l₁, Member.container, ho]
 
 theorem con?_eq_root (h : rtr[cmp][i]& = some ⟨⊤, con⟩) : rtr = con :=
   Member.container_eq_root (con?_eq_some h).choose_spec
@@ -134,7 +134,7 @@ theorem obj?_nested {o} {j : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[
       subst hc
       exists ⟨i, rtr₂⟩
       let m := Member.nest h (.final $ Partial.mem_ids_iff.mpr ⟨_, ho⟩)
-      simp [ho, con?, Nonempty.intro m, ←a.uniqueIDs.allEq m, Member.container]
+      simp [ho, con?, Nonempty.intro m, ←a.unique_ids.allEq m, Member.container]
 
 -- Note: By `ho` we get `rtr₂ = rtr₃`.
 theorem obj?_nested_root (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][⊤] = some rtr₃) : 
@@ -149,6 +149,10 @@ theorem obj?_nested' {o j} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cmp][j
   cases cmp <;> try cases j
   case rtr.root => exact obj?_nested_root h ho
   all_goals exact ⟨_, obj?_nested h ho⟩
+
+theorem obj?_mem_ids_nested {cmp : Component.Valued} 
+    (h : nest rtr₁ i = some rtr₂) (hm : j ∈ rtr₂[cmp].ids) : j ∈ rtr₁[cmp].ids :=
+  Partial.mem_ids_iff.mpr ⟨_, obj?_nested h (Partial.mem_ids_iff.mp hm).choose_spec⟩  
 
 end Indexable
 
@@ -179,7 +183,7 @@ theorem lower_con?_some (h : rtr[cmp][i]& = some con) : (rtr : β)[cmp][i]& = so
     injection h with h
     simp [←c.lower_container_eq h, (⟨n.some⟩ : Nonempty (Member cmp i (rtr : β)))]
     congr
-    apply b.uniqueIDs.allEq
+    apply b.unique_ids.allEq
 
 theorem lower_obj?_some {i o} (h : rtr[cmp][i] = some o) : (rtr : β)[cmp][i] = some ↑o := by
   cases cmp <;> try cases i
@@ -192,4 +196,25 @@ theorem lower_mem_obj?_ids {i} (h : i ∈ rtr[cmp].ids) : i ∈ (rtr : β)[cmp].
   Partial.mem_ids_iff.mpr ⟨_, c.lower_obj?_some (Partial.mem_ids_iff.mp h).choose_spec⟩ 
 
 end LawfulCoe
+
+namespace LawfulUpdate
+  
+variable [Indexable α] {rtr₁ : α}
+
+-- TODO: Could this be a theorem on `Equivalent`?
+--       Namely, if we have `h₁` and `h₂` and `Equivalent rtr₁ rtr₂` the same follows.
+-- Note: `h₁` and `h₂` follow from eachother by `u.equiv`.
+theorem nested_rcns_eq {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) 
+    (h₁ : rtr₁[.rtr][j] = some n₁) (h₂ : rtr₂[.rtr][j] = some n₂) (h : cmp? .rcn n₂ k = some o) : 
+    cmp? .rcn n₁ k = some o :=
+  sorry
+
+theorem unchanged {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (h : c ≠ cmp ∨ j ≠ i) : 
+    rtr₁[c][j] = rtr₂[c][j] :=
+  sorry
+
+theorem changed {cmp f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) : f <$> rtr₁[cmp][i] = rtr₂[cmp][i] :=
+  sorry
+
+end LawfulUpdate
 end ReactorType

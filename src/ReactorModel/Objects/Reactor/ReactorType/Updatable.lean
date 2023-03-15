@@ -21,7 +21,7 @@ inductive LawfulMemUpdate (cmp : Component.Valued) (i : ID) (f : cmp.type → cm
 
 inductive LawfulUpdate (cmp : Component.Valued) (i : ID) (f : cmp.type → cmp.type) : α → α → Prop
   | update : (LawfulMemUpdate cmp i f rtr₁ rtr₂) → LawfulUpdate cmp i f rtr₁ rtr₂
-  | notMem : (IsEmpty $ Member cmp i rtr)       → LawfulUpdate cmp i f rtr rtr
+  | notMem : (IsEmpty $ Member cmp i rtr)        → LawfulUpdate cmp i f rtr rtr
 
 def LawfulUpdate.lift [LawfulCoe α β] {rtr₁ rtr₂ : α} {cmp i f} 
     (u : LawfulUpdate cmp i f (rtr₁ : β) (rtr₂ : β)) : LawfulUpdate cmp i f rtr₁ rtr₂ :=
@@ -40,12 +40,10 @@ theorem Member.Equivalent.from_lawfulUpdate
   case final => constructor
   case nest e => sorry
 
--- Note: We `ReactorType α` make a field instead of using `extends ReactorType α`, to avoid a 
---       diamond with `ReactorType.Indexable` later. 
-class Updatable (α) where
-  [inst : ReactorType α] 
+-- TODO: Do we even need/use this type class?
+class Updatable (α) extends ReactorType α where
   update : α → (cmp : Component.Valued) → ID → (cmp.type → cmp.type) → α  
-  lawfulUpdate : ∀ rtr cmp i f, LawfulUpdate cmp i f rtr (update rtr cmp i f)
+  lawful : ∀ rtr cmp i f, LawfulUpdate cmp i f rtr (update rtr cmp i f)
 
 
 
@@ -79,11 +77,6 @@ intro c j
 
 
 /-
--- TODO: Keep this definition, but try to find a simpler way to construct an instance of this type
---       which can be used for `Reactor.Core`.
---       Actually, perhaps the solution is to use the recursive definition and have these fields be
---       theorems. Then you could lower the requirement of `[Indexable α]` to `[ReactorType α]` and
---       create an instance for `Reactor.Core`.
 structure LawfulUpdate [Indexable α] 
     (rtr₁ rtr₂ : α) (cmp : Component.Valued) (i : ID) (f : cmp.type → cmp.type) : Prop where
   equiv     : rtr₁ ≈ rtr₂  

@@ -81,7 +81,7 @@ def update (rtr : Reactor.Core) (cmp : Component.Valued) (i : ID) (f : cmp.type 
 
 instance : ReactorType.Updatable Reactor.Core where
   update := update
-  lawfulUpdate rtr cmp i f := by
+  lawful rtr cmp i f := by
     unfold update
     split
     case inr h => simp at h; exact .notMem h

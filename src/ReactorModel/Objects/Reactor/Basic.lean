@@ -24,13 +24,20 @@ instance : ReactorType Reactor where
 instance : ReactorType.LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
 
+-- TODO: Perhaps it would be useful to have two type classes:
+-- (1) `Updatable` which only requires the `update` function.
+-- (2) `LawfulUpdatable` which extends `Updatable` with the `lawful` property.
+--
+-- Then you should be able to do some automatic type class lifting via `LawfulCoe` again. Like:
+-- `instance : [Updatable α] [LawfulUpdatable β] [LawfulCoe α β] : LawfulUpdatable α`.
+-- This, you don't have to specify the `lawful` field below.
 open ReactorType Updatable in
 noncomputable instance : ReactorType.Updatable Reactor where
   update rtr cmp i f := {
     raw := update rtr.raw cmp i f
-    wf  := Wellformed.updated (lawfulUpdate (α := Reactor.Raw) rtr cmp i f) rtr.wf
+    wf  := Wellformed.updated (lawful (α := Reactor.Raw) rtr cmp i f) rtr.wf
   }
-  lawfulUpdate rtr cmp i f := by exact lawfulUpdate (α := Reactor.Raw) rtr cmp i f |>.lift
+  lawful rtr cmp i f := by exact lawful (α := Reactor.Raw) rtr cmp i f |>.lift
 
 theorem wellformed (rtr : Reactor) : ReactorType.Wellformed rtr :=
   rtr.wf.lift (rtr := rtr)

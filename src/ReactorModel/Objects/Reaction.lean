@@ -2,11 +2,7 @@ import ReactorModel.Objects.Change
 
 open Classical
 
-namespace Reaction
-
-protected inductive Kind 
-  | «mut»
-  | norm 
+namespace Reaction 
 
 protected inductive Dependency
   | port (k : Kind) (i : ID)
@@ -58,6 +54,13 @@ def Normal (rcn : Reaction) : Prop :=
 -- A reaction is a mutation if its body can produce mutating changes.
 def Mutates (rcn : Reaction) : Prop := 
   ∃ i c, (c ∈ rcn i) ∧ c.IsMutation 
+
+protected inductive Kind 
+  | «mut»
+  | norm
+
+noncomputable def kind (rcn : Reaction) : Reaction.Kind :=
+  if rcn.Normal then .norm else .mut
 
 -- A reaction is pure if it does not interact with its container's state.
 structure Pure (rcn : Reaction) : Prop where
