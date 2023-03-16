@@ -4,15 +4,18 @@ open Classical ReactorType Updatable
 
 namespace Reactor
 
-theorem apply_rtr_equiv (rtr : Reactor) (c : Change) : rtr.apply c ≈ rtr := by
+theorem apply_equiv (rtr : Reactor) (c : Change) : rtr.apply c ≈ rtr := by
   cases c <;> try cases ‹Change.Normal›; <;> simp [apply]
   case «mut» => rfl
   all_goals apply LawfulUpdatable.equiv
 
 theorem apply_preserves_unchanged_port 
-    (s : State) (c : Change) (h : ¬c.IsPortᵢ k i := by exact (nomatch ·)) :
-    (s.apply c).rtr[.prt k][i] = s.rtr[.prt k][i] :=
-  cases e
+    (rtr : Reactor) (c : Change) (h : c.cmp ≠ .prt k := by exact (nomatch ·)) :
+    (rtr.apply c)[.prt k][i] = rtr[.prt k][i] := by
+  have := Change.IsPortᵢ.def.not.mp h
+  
+
+  cases c <;> try cases ‹Change.Normal›; <;> simp [apply]
   case port u => 
     simp at h
     cases not_and_or.mp $ Change.IsPortᵢ.iff_kind_and_id_eq.not.mp h

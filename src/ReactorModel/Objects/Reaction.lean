@@ -37,10 +37,10 @@ structure _root_.Reaction where
   prio :          Priority
   body :          Input → List Change
   tsSubInDeps :   triggers ⊆ deps .in
-  prtOutDepOnly : (.port k j v   ∈ body i) → .port k j ∈ deps .out 
-  actOutDepOnly : (.action j t v ∈ body i) → .action j ∈ deps .out
-  actNotPast :    (.action j t v ∈ body i) → i.tag.time ≤ t
-  stateLocal :    (.state j v    ∈ body i) → j ∈ i.state.ids
+  prtOutDepOnly : (.prt k j v ∈ body i) → .port k j ∈ deps .out 
+  actOutDepOnly : (.act j t v ∈ body i) → .action j ∈ deps .out
+  actNotPast :    (.act j t v ∈ body i) → i.tag.time ≤ t
+  stateLocal :    (.stv j v   ∈ body i) → j ∈ i.state.ids
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
@@ -89,7 +89,7 @@ def relay (src dst : ID) : Reaction where
   body i := 
     match i.ports .out src with 
     | none => [] 
-    | some v => [.port .in dst v]
+    | some v => [.prt .in dst v]
   tsSubInDeps   := by simp
   prtOutDepOnly := by intros; simp at *; split at * <;> simp_all 
   actOutDepOnly := by intros; simp at *; split at * <;> simp_all 

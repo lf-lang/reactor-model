@@ -9,4 +9,5 @@ import ReactorModel.Objects.Reactor.Basic
 import ReactorModel.Objects.Reactor.Core
 import ReactorModel.Objects.Reactor.Raw
 import ReactorModel.Objects.Change
+import ReactorModel.Objects.Component
 import ReactorModel.Objects.Reaction
