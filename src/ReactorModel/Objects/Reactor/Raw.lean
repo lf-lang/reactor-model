@@ -1,6 +1,7 @@
 import ReactorModel.Objects.Reactor.Core
 import ReactorModel.Objects.Reactor.ReactorType.Indexable
 
+noncomputable section
 open Classical
 
 namespace Reactor
@@ -29,11 +30,8 @@ instance : ReactorType Reactor.Raw where
 instance : LawfulCoe Reactor.Raw Reactor.Core where
   coe := Reactor.Raw.core
 
-instance : Indexable Reactor.Raw where
-  unique_ids := UniqueIDs.lift (β := Reactor.Core) $ Reactor.Raw.unique_ids ‹_› 
-
 open Updatable LawfulUpdatable in
-noncomputable instance : Updatable Reactor.Raw where
+instance : Updatable Reactor.Raw where
   update rtr cmp i f := {
     core := update rtr.core cmp i f
     unique_ids := UniqueIDs.updated (lawful (α := Reactor.Core) rtr cmp i f) rtr.unique_ids
@@ -41,6 +39,9 @@ noncomputable instance : Updatable Reactor.Raw where
 
 -- Note: From this we get `ReactorType.LawfulUpdatable Reactor.Raw`.
 instance : LawfulUpdatableCoe Reactor.Raw Reactor.Core where
+
+instance : Indexable Reactor.Raw where
+  unique_ids := UniqueIDs.lift (β := Reactor.Core) $ Reactor.Raw.unique_ids ‹_› 
 
 end Raw
 end Reactor

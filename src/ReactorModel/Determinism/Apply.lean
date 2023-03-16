@@ -16,16 +16,8 @@ theorem apply_equiv (rtr : Reactor) (c : Change) : rtr.apply c ≈ rtr := by
 theorem apply_preserves_unchanged_port (rtr : Reactor) (c : Change) (h : ¬c.Targets (.prt k) i) :
     (rtr.apply c)[.prt k][i] = rtr[.prt k][i] := by
   change_cases c
-  case prt k' _ =>
-    have := Change.Targets.norm_not h
-    simp [apply]
-    exact LawfulUpdatable.obj?_preserved this
-  -- case port u => 
-  --   simp at h
-  --   cases not_and_or.mp $ Change.IsPortᵢ.iff_kind_and_id_eq.not.mp h
-  --   case inl h => exact u.preserves_ne_id h
-  --   case inr h => simp [u.preserves_ne_cmp (cmp' := .prt k) (by intro hc; injection hc.symm; contradiction)]
-  all_goals first | rfl | simp [Reactor.Update.preserves_ne_cmp ‹_› (cmp' := .prt k)]
+  case prt => exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
+  all_goals first | rfl | exact LawfulUpdatable.obj?_preserved_cmp
 
 theorem preserves_unchanged_state 
     (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsStateᵢ i := by exact (nomatch ·)) : 

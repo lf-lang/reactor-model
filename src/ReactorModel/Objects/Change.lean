@@ -50,10 +50,10 @@ abbrev act (i : ID) (t : Time) (v : Value) : Change :=
 inductive Targets : Change → Component.Valued → ID → Prop
   | intro {cmp v} : Targets (norm ⟨cmp, i, v⟩) cmp i
 
-theorem Targets.norm_not {i : ID} {cmp} (h : ¬Targets (norm ⟨c, j, v⟩) cmp i) : c ≠ cmp ∨ j ≠ i := by
+theorem Targets.norm_not {cmp} (h : ¬Targets (norm ⟨c, j, v⟩) cmp i) : cmp ≠ c ∨ i ≠ j := by
   by_contra hc
   simp [not_or] at hc
-  exact absurd .intro (hc.left.symm ▸ hc.right.symm ▸ h)
+  exact absurd .intro (hc.left ▸ hc.right ▸ h)
 
 inductive IsNormal : Change → Prop
   | intro : IsNormal (norm _)

@@ -21,12 +21,12 @@ theorem UniqueIDs.updated [ReactorType α] {rtr₁ rtr₂ : α} {cmp i f}
       |>.trans (Equivalent.from_lawfulUpdate u l₂).symm 
       |>.to_eq
 
-class Indexable (α) extends Extensional α where
+class Indexable (α) extends LawfulUpdatable α where
   unique_ids : ∀ {rtr : α}, UniqueIDs rtr
 
 namespace Member
 
-variable [Extensional α] {cmp}
+variable [LawfulUpdatable α] {cmp}
 
 def container {rtr : α} : Member cmp i rtr → Identified α
   | .nest _ (.nest h l)             => container (.nest h l)
@@ -54,7 +54,7 @@ end Member
 
 namespace Indexable
 
-instance [Extensional α] [ind : Indexable β] [LawfulCoe α β] : Indexable α where
+instance [LawfulUpdatable α] [ind : Indexable β] [LawfulCoe α β] : Indexable α where
   unique_ids := UniqueIDs.lift ind.unique_ids 
 
 open Classical in
@@ -262,15 +262,12 @@ end LawfulUpdate
 
 namespace LawfulUpdatable
 
--- TODO: We need this to handle a type class diamond. What is the proper way to fix this?
-private class LawfulUpdexable (α) extends Indexable α, LawfulUpdatable α  
-
-variable [LawfulUpdexable α] {rtr : α}
+variable [Indexable α] {rtr : α}
 
 theorem obj?_preserved {cmp f} (h : c ≠ cmp ∨ j ≠ i) : (update rtr cmp i f)[c][j] = rtr[c][j] :=
   lawful rtr cmp i f |>.obj?_preserved h
 
-theorem obj?_preserved_cmp {cmp f} (h : c ≠ cmp) : (update rtr cmp i f)[c][j] = rtr[c][j] :=
+theorem obj?_preserved_cmp {cmp f} (h : c ≠ cmp := by exact (nomatch ·)) : (update rtr cmp i f)[c][j] = rtr[c][j] :=
   obj?_preserved $ .inl h
 
 theorem obj?_preserved_id {cmp f} {c : Component.Valued} (h : j ≠ i) : 

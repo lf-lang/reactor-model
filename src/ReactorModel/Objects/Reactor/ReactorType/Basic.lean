@@ -139,7 +139,7 @@ theorem from_lawfulCoe [LawfulCoe α β] {rtr : α} (m : Member cmp i rtr) :
 end Equivalent
 end Member
 
-class Extensional (α : Type) extends ReactorType α where
+class Extensional (α) extends ReactorType α where
   ext_iff : 
     rtr₁ = rtr₂ ↔ 
     (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
