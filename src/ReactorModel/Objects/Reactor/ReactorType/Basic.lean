@@ -17,7 +17,7 @@ namespace Component
 
 abbrev Valued.type : Valued → Type
   | .prt _ => Value
-  | .act   => Time.Tag ⇉ Value
+  | .act   => Action
   | .stv   => Value
 
 @[match_pattern] abbrev prt (k) := Component.val (.prt k)
@@ -44,11 +44,11 @@ open Reactor (Component)
 
 class ReactorType (α : Type) where
   ports : α → Kind → ID ⇀ Value             
-  acts  : α → ID ⇀ Time.Tag ⇉ Value 
+  acts  : α → ID ⇀ Action
   state : α → ID ⇀ Value            
   rcns  : α → ID ⇀ Reaction         
   nest  : α → ID ⇀ α      
-
+ 
 namespace ReactorType
 
 scoped macro "lawfulCoe_nest_proof" : tactic => 

@@ -1,61 +1,92 @@
-import ReactorModel.Execution.Dependency
+import ReactorModel.Execution.Reactor
 
+noncomputable section
 open Classical
 
+namespace Execution
+
 @[ext]
-structure Execution.State where
+structure State where
   rtr : Reactor
   tag : Time.Tag
   progress : Set ID
 
-inductive Execution.Operation 
-  | skip (rcn : ID)
-  | exec (rcn : ID) (changes : List Change)
+namespace State
 
-def Execution.Operation.rcn : Operation → ID
-  | skip rcn | exec rcn _ => rcn
-
-def Execution.Operation.changes : Execution.Operation → List (Identified Change)
-  | .skip _ => []
-  | .exec rcn cs => cs.map (⟨rcn, ·⟩)
-
-namespace Execution.State
-
-class Nontrivial (s : Execution.State) : Prop where
+class Nontrivial (s : State) : Prop where
   nontrivial : s.rtr[.rcn].ids.Nonempty
 
-def Closed (s : State) : Prop := s.progress = s.rtr[.rcn].ids
+def Closed (s : State) : Prop := 
+  s.progress = s.rtr[.rcn].ids
 
 theorem Closed.progress_Nonempty [n : Nontrivial s] (h : Closed s) : s.progress.Nonempty := by
   simp_all [Closed]
   exact Nontrivial.nontrivial
 
+-- Note: If `rcn` isn't a valid reaction identifier, this relation is also satisfied.
 structure Allows (s : State) (rcn : ID) : Prop where
   deps : s.rtr.dependencies rcn ⊆ s.progress
   unprocessed : rcn ∉ s.progress
 
-theorem Allows.requires_acyclic_deps {s : State} : (s.Allows rcn) → (rcn >[s.rtr]< rcn) := by
-  intro ⟨hd, hu⟩
-  by_contra h
-  simp [Set.subset_def, Reactor.dependencies] at hd
-  simp [Indep] at h
-  exact absurd (hd _ h) hu
-
-noncomputable def rcnInput (s : State) (i : ID) : Option Reaction.Input := 
-  match s.rtr[.rcn][i]&, s.rtr[.rcn][i] with
-  | some con, some rcn => some {
-      ports := fun k => s.rtr[.prt k].restrict { i | Reaction.Dependency.port k i ∈ rcn.deps .in },
-      acts  := s.rtr[.act].restrict { i | Reaction.Dependency.action i ∈ rcn.deps .in } |>.filterMap (·.lookup s.tag),
-      state := con.obj.state, -- Equivalent: s.rtr.obj?' .stv |>.restrict con.obj.state.ids
-      tag   := s.tag
-    }
-  | _, _ => none
-
-noncomputable def rcnOutput (s : State) (i : ID) : Option (List Change) :=
-  match s.rtr[.rcn][i], s.rcnInput i with
-    | some rcn, some i => rcn i 
-    | _, _ => none
+def input (s : State) (rcn : s.rtr.Valid .rcn) : Reaction.Input where
+  ports k := s.rtr[.prt k].restrict { i | .port k i ∈ rcn.obj.deps .in }
+  acts    := s.rtr[.act].restrict { i | .action i ∈ rcn.obj.deps .in } |>.filterMap (·.lookup s.tag)
+  state   := rcn.con.obj.state
+  tag     := s.tag
   
+def Triggers (s : State) (rcn : s.rtr.Valid .rcn) : Prop :=
+  rcn.obj.TriggersOn (s.input rcn)
+
+def exec (s : State) (rcn : s.rtr.Valid .rcn) : State :=
+  { s with rtr := s.rtr.apply' $ rcn.obj (s.input rcn) }  
+
+def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
+  { s with progress := s.progress.insert rcn }
+
+theorem record_preserves_tag (s : State) (rcn : ID) : (s.record rcn).tag = s.tag := 
+  rfl
+
+theorem mem_record_progress_iff (s : State) (rcn₁ rcn₂ : ID) : 
+    rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
+  simp [record, Set.insert]
+
+def record' [DecidableEq ID] (s : State) (rcns : List ID) : State := 
+  { s with progress := s.progress ∪ { i | i ∈ rcns } }
+
+theorem record'_perm_eq {s : State} (h : rcns₁ ~ rcns₂) : s.record' rcns₁ = s.record' rcns₂ := by
+  simp [record', h.mem_iff]
+  
+theorem mem_record'_progress_iff (s : State) (rcns : List ID) (i : ID) :
+    i ∈ (s.record' rcns).progress ↔ (i ∈ s.progress ∨ i ∈ rcns) := by
+  simp [record']
+
+structure NextTag (s : State) (next : Time.Tag) : Prop where
+  mem : next ∈ s.rtr.scheduledTags
+  bound : s.tag < next
+  least : ∀ g ∈ s.rtr.scheduledTags, (s.tag < g) → (next ≤ g)    
+
+theorem NextTag.deterministic (n₁ : NextTag s g₁) (n₂ : NextTag s g₂) : g₁ = g₂ :=
+  sorry
+
+inductive Advance : State → State → Prop 
+  | mk : (NextTag s next) → Advance s { s with tag := next, progress := ∅ }
+
+theorem Advance.progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
+  | mk .. => rfl
+
+instance Advance.preserves_Nontrivial [inst : Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
+  | mk .. => ⟨inst.nontrivial⟩
+
+theorem Advance.determinisic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
+  | mk h₁, mk h₂ => by ext1 <;> simp [h₁.deterministic h₂]
+  
+theorem Advance.tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
+  | mk h => h.bound
+
+end State
+end Execution 
+
+/-
 theorem rcnInput_iff_obj? {s : State} : 
   (∃ i, s.rcnInput rcn = some i) ↔ (∃ o, s.rtr[.rcn][rcn] = some o) := by
   constructor <;> intro ⟨_, h⟩
@@ -174,75 +205,4 @@ theorem rcnOutput_pure_congr {s₁ s₂ : State} :
   (s₁.rcnOutput i = s₂.rcnOutput i) :=
   λ hi₁ hi₂ ho₁ ho₂ hp => by simp [rcnOutput, ho₁, ho₂, hi₁, hi₂, hp.input _ x₁, hp.input _ x₂]
   
-def triggers (s : State) (r : ID) :=
-  ∃ rcn i, (s.rtr[.rcn][r] = some rcn) ∧ (s.rcnInput r = some i) ∧ (rcn.TriggersOn i)
-
-noncomputable def operation (s : State) (i : ID) : Option Operation :=
-  if s.triggers i 
-  then (s.rcnOutput i) >>= (some $ .exec i ·)
-  else if i ∈ s.rtr[.rcn].ids then some (.skip i)
-  else none
-
-theorem operation_to_contains {s : State} :
-  (s.operation rcn = some o) → (rcn ∈ s.rtr[.rcn].ids) := by
-  intro h
-  simp [operation] at h
-  split at h
-  all_goals sorry
-
-theorem operation_some_to_Nontrivial (h : s.operation i = some o) : Nontrivial s := by
-  -- have h := operation_to_contains h |> Reactor.ids_mem_iff_contains.mpr
-  sorry
-
-
-
-
-
-
-
-
-
-structure NextTag (s : State) (next : Time.Tag) : Prop where
-  mem : next ∈ s.rtr.scheduledTags
-  bound : s.tag < next
-  least : ∀ g ∈ s.rtr.scheduledTags, (s.tag < g) → (next ≤ g)    
-
-theorem NextTag.deterministic (n₁ : NextTag s g₁) (n₂ : NextTag s g₂) : g₁ = g₂ :=
-  sorry
-
-inductive Advance : State → State → Prop 
-  | mk : (NextTag s next) → Advance s { s with tag := next, progress := ∅ }
-
-theorem Advance.progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
-  | mk .. => rfl
-
-instance Advance.preserves_Nontrivial [inst : Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
-  | mk .. => ⟨inst.nontrivial⟩
-
-theorem Advance.determinisic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
-  | mk h₁, mk h₂ => by ext1 <;> simp [h₁.deterministic h₂]
-  
-theorem Advance.tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
-  | mk h => h.bound
-
-def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
-  { s with progress := s.progress.insert rcn }
-  
-theorem record_preserves_tag (s : State) (rcn : ID) : (s.record rcn).tag = s.tag := 
-  rfl
-
-theorem mem_record_progress_iff (s : State) (rcn₁ rcn₂ : ID) : 
-    rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
-  simp [record, Set.insert]
-
-def record' [DecidableEq ID] (s : State) (rcns : List ID) : State := 
-  { s with progress := s.progress ∪ { i | i ∈ rcns } }
-
-theorem record'_perm_eq {s : State} (h : rcns₁ ~ rcns₂) : s.record' rcns₁ = s.record' rcns₂ := by
-  simp [record', h.mem_iff]
-  
-theorem mem_record'_progress_iff (s : State) (rcns : List ID) (i : ID) :
-    i ∈ (s.record' rcns).progress ↔ (i ∈ s.progress ∨ i ∈ rcns) := by
-  simp [record']
-
-end Execution.State 
+-/

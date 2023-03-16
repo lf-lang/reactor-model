@@ -1,33 +1,30 @@
-import ReactorModel.Objects
+import ReactorModel.Execution
 
 open Classical
 
-notation i₁:max " >[" σ "] " i₂:max => ReactorType.Dependency σ i₁ i₂
+structure Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop where
+  source : ¬(rcn₁ [rtr]> rcn₂)
+  effect : ¬(rcn₂ [rtr]> rcn₁)
 
-def Reactor.dependencies (σ : Reactor) (rcn : ID) : Set ID := { rcn' | rcn' >[σ] rcn }
+notation rcn₁ " <[" rtr "]> " rcn₂ => Independent rtr rcn₁ rcn₂
 
--- TODO: Include `rcn₁ ≠ rcn₂` in this?
-def Indep (σ : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
-  ¬(rcn₁ >[σ] rcn₂) ∧ ¬(rcn₂ >[σ] rcn₁)
+namespace Independent
 
-notation i₁:max " >[" σ "]< " i₂:max => Indep σ i₁ i₂
-
-namespace Indep
-
-protected theorem symm : (rcn₁ >[σ]< rcn₂) → (rcn₂ >[σ]< rcn₁) :=
-  And.symm
+@[symm]
+protected theorem symm (h : rcn₁ <[rtr]> rcn₂) : rcn₂ <[rtr]> rcn₁ :=
+  ⟨h.effect, h.source⟩ 
 
 -- TODO: Come up with better names for these theorems.
 
 theorem nonoverlapping_deps : 
-  (i₁ >[σ]< i₂) → (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
+  (i₁ <[σ]> i₂) → (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
   (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
   intro ⟨hi, _⟩ ho₁ ho₂
   by_contra hc
   sorry -- exact absurd (ReactorType.Dependency.depOverlap ho₁ ho₂ $ Finset.nonempty_of_ne_empty hc) hi
  
 theorem ne_rtr_or_pure : 
-  (i₁ >[σ]< i₂) → (i₁ ≠ i₂) →
+  (i₁ <[σ]> i₂) → (i₁ ≠ i₂) →
   (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
   (σ[.rcn][i₁]& = some c₁) → (σ[.rcn][i₂]& = some c₂) →
   (c₁.id ≠ c₂.id) ∨ rcn₁.Pure ∨ rcn₂.Pure := by
@@ -73,4 +70,14 @@ theorem ne_rtr_or_pure :
         exact absurd hd h.left 
   -/
   
-end Indep
+end Independent
+
+-- TODO: This begs the question: Should acyclicity be a requirement of a reactor? Or rather a result
+--       of the execution semantics. I.e. if we have s₁ ⇓* s₂, we can conclude that s₁.rtr is acyclic.  
+--       (Note: This doesn't quite work as Execution is reflexive).
+theorem Execution.State.Allows.requires_acyclic_deps {s : State} : (s.Allows rcn) → (rcn <[s.rtr]> rcn) := by
+  intro ⟨hd, hu⟩
+  by_contra h
+  simp [Set.subset_def, Reactor.dependencies] at hd
+  simp [Indep] at h
+  exact absurd (hd _ h) hu

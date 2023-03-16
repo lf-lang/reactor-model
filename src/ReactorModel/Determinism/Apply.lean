@@ -1,26 +1,17 @@
 import ReactorModel.Execution
 
-open Classical
+open Classical ReactorType Updatable
 
-namespace Execution
-namespace ChangeStep
+namespace Reactor
 
-theorem preserves_progress (e : s₁ -[c]→ s₂) : s₁.progress = s₂.progress := by
-  cases e <;> rfl
+theorem apply_rtr_equiv (rtr : Reactor) (c : Change) : rtr.apply c ≈ rtr := by
+  cases c <;> try cases ‹Change.Normal›; <;> simp [apply]
+  case «mut» => rfl
+  all_goals apply LawfulUpdatable.equiv
 
-theorem preserves_tag (e : s₁ -[c]→ s₂) : s₁.tag = s₂.tag := by
-  cases e <;> rfl
-
-theorem preserves_rcns (e : s₁ -[c]→ s₂) : s₁.rtr[.rcn] = s₂.rtr[.rcn] := by
-  cases e <;> first | rfl | exact Reactor.Update.preserves_ne_cmp ‹_›
-
-theorem equiv (e : s₁ -[c]→ s₂) : s₁.rtr ≈ s₂.rtr := by
-  cases e 
-  case' port h, state h, action h => exact h.equiv
-  all_goals rfl
-
-theorem preserves_unchanged_port (e : s₁ -[c]→ s₂) (h : ¬c.obj.IsPortᵢ k i := by exact (nomatch ·)) :
-    s₁.rtr[.prt k][i] = s₂.rtr[.prt k][i] := by
+theorem apply_preserves_unchanged_port 
+    (s : State) (c : Change) (h : ¬c.IsPortᵢ k i := by exact (nomatch ·)) :
+    (s.apply c).rtr[.prt k][i] = s.rtr[.prt k][i] :=
   cases e
   case port u => 
     simp at h
@@ -107,5 +98,4 @@ theorem context_agnostic (e : s₁ -[c]→ s) (h : s₁.rtr = s₂.rtr) :
 theorem deterministic (e₁ : s -[c]→ s₁) (e₂ : s -[c]→ s₂) : s₁ = s₂ := by
   cases e₁ <;> cases e₂ <;> simp <;> try apply Reactor.Update.unique ‹_› ‹_› 
 
-end ChangeStep
-end Execution
+Reactor

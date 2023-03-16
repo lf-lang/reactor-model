@@ -48,4 +48,7 @@ abbrev nest  (rtr : Reactor) := ReactorType.nest rtr
 noncomputable def scheduledTags (rtr : Reactor) : Set Time.Tag := 
   { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }
 
+def dependencies (rtr : Reactor) (rcn : ID) : Set ID := 
+  { rcn' | rcn' [rtr]> rcn }
+
 end Reactor

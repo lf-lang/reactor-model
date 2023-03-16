@@ -7,7 +7,7 @@ namespace Reactor
 protected inductive Core 
   | mk 
     (ports : Kind → ID ⇀ Value)
-    (acts :  ID ⇀ Time.Tag ⇉ Value)
+    (acts :  ID ⇀ Action)
     (state : ID ⇀ Value)
     (rcns :  ID ⇀ Reaction)
     (nest :  ID → Option Reactor.Core)
@@ -28,9 +28,9 @@ noncomputable section Update
 open ReactorType
 
 abbrev «with» 
-    (rtr : Reactor.Core) (ports : Kind → ID ⇀ Value := ports rtr) 
-    (acts : ID ⇀ Time.Tag ⇉ Value := acts rtr) (state : ID ⇀ Value := state rtr) 
-    (rcns : ID ⇀ Reaction := rcns rtr) (nest : ID ⇀ Reactor.Core := nest rtr) :=
+    (rtr : Reactor.Core) (ports : Kind → ID ⇀ Value := ports rtr) (acts : ID ⇀ Action := acts rtr) 
+    (state : ID ⇀ Value := state rtr) (rcns : ID ⇀ Reaction := rcns rtr) 
+    (nest : ID ⇀ Reactor.Core := nest rtr) :=
   Reactor.Core.mk ports acts state rcns nest
 
 def insert [inst : ReactorType Reactor.Core] 

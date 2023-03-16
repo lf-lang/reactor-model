@@ -67,4 +67,9 @@ theorem LawfulUpdate.equiv [Indexable α] {rtr₁ : α} {cmp f} (u : LawfulUpdat
     rtr₁ ≈ rtr₂ := 
   sorry
 
+open Updatable in
+theorem LawfulUpdatable.equiv [Indexable α] [LawfulUpdatable α] {rtr : α} {cmp f} : 
+    (update rtr cmp i f) ≈ rtr := 
+  sorry
+
 end ReactorType

@@ -130,3 +130,7 @@ structure Time.Tag where
 
 -- TODO: Replace this with `deriving LinearOrder` once that feature is available again.
 instance : LinearOrder Time.Tag := sorry
+
+abbrev Action := Time.Tag ⇉ Value
+
+def Action.tags (a : Action) : Finset Time.Tag := a.keys
