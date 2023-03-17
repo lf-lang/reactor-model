@@ -20,37 +20,6 @@ theorem filterMap_cons_split {l : List α} {f : α → Option β} (h : l.filterM
     ∃ l₁ a l₂, (l₁ ++ a :: l₂ = l) ∧ (l₁.All₂ (f · = none)) ∧ (f a = some hd) ∧ (l₂.filterMap f = tl) :=
   sorry
 
-def lastSome? (f : α → Option β) : List α → Option β
-  | []    => none
-  | a::as => match lastSome? f as with
-    | some b => some b
-    | none   => f a
-
-theorem lastSome?_empty_eq_none : [].lastSome? f = none := rfl
-
-theorem lastSome?_eq_some_iff {l : List α} : 
-  (∃ b, l.lastSome? f = some b) ↔ (∃ b a, a ∈ l ∧ (f a) = some b) := 
-  sorry
-
-theorem lastSome?_eq_some {l : List α} : 
-  (l.lastSome? f = some b) → ∃ (i : Fin l.length), (f l[i] = some b) ∧ (∀ {j}, (j > i) → f l[j] = none) :=
-  sorry
-
-theorem lastSome?_eq_some_split {l : List α} : 
-  (l.lastSome? f = some b) → ∃ l₁ a l₂, (l = l₁ ++ a :: l₂) ∧ (f a = some b) ∧ (l₂.All₂ (f · = none)) :=
-  sorry
-
-theorem lastSome?_eq_none {l : List α} : (l.lastSome? f = none) → l.All₂ (f · = none) :=
-  sorry
-
-theorem lastSome?_head : 
-  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = none) → some b = f hd :=
-  sorry
-
-theorem lastSome?_tail : 
-  ((hd::tl).lastSome? f = some b) → (tl.lastSome? f = some b') → b = b' :=
-  sorry
-
 -- Notes: 
 -- * This definition doesn't work if `r` isn't transitive.
 -- * In `cons` we don't require `r a₁ a₂` as `r` need not be a total order.

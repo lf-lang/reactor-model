@@ -1,7 +1,6 @@
-import ReactorModel.Determinism.ChangeEquiv
-import ReactorModel.Determinism.ChangeListStep
-import ReactorModel.Determinism.ChangeStep
 import ReactorModel.Determinism.Execution
 import ReactorModel.Determinism.ExecutionStep
+import ReactorModel.Determinism.Independent
 import ReactorModel.Determinism.InstExecution
 import ReactorModel.Determinism.InstStep
+import ReactorModel.Determinism.Trivial

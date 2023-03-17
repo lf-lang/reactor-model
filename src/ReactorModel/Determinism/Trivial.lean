@@ -29,7 +29,7 @@ theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
   | advance a => a.preserves_Trivial triv
 
 theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial :=
-  s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
+  sorry -- s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
 
 theorem InstExecution.trivial_eq : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
   | refl      => rfl

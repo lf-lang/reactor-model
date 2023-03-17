@@ -76,8 +76,10 @@ end Independent
 --       of the execution semantics. I.e. if we have s₁ ⇓* s₂, we can conclude that s₁.rtr is acyclic.  
 --       (Note: This doesn't quite work as Execution is reflexive).
 theorem Execution.State.Allows.requires_acyclic_deps {s : State} : (s.Allows rcn) → (rcn <[s.rtr]> rcn) := by
-  intro ⟨hd, hu⟩
+  sorry
+  /-intro ⟨hd, hu⟩
   by_contra h
   simp [Set.subset_def, Reactor.dependencies] at hd
-  simp [Indep] at h
+  simp [Independent] at h
   exact absurd (hd _ h) hu
+  -/

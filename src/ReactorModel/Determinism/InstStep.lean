@@ -1,51 +1,20 @@
-import ReactorModel.Determinism.ChangeListStep
+import ReactorModel.Determinism.Independent
 
 open Classical
 
 namespace Execution
 
-theorem OperationStep.deterministic : (s -[op]↣ s₁) → (s -[op]↣ s₂) → (s₁ = s₂)
-  | .skip .., .skip .. => rfl
-  | .exec h₁, .exec h₂ => by simp [h₁.deterministic h₂]
-
-open ReactorType in
-theorem OperationStep.equiv : (s₁ -[op]↣ s₂) → (s₁.rtr ≈ s₂.rtr)
-  | .skip => Equivalent.refl
-  | .exec h => h.equiv
-
-theorem OperationStep.preserves_rcns : (s₁ -[op]↣ s₂) → s₁.rtr[.rcn] = s₂.rtr[.rcn]
-  | .skip .. => rfl
-  | .exec h => h.preserves_rcns
-
-theorem OperationStep.preserves_tag : (s₁ -[op]↣ s₂) → s₁.tag = s₂.tag
-  | .skip .. => by simp [State.record_preserves_tag]
-  | .exec h => by simp [State.tag, State.record_preserves_tag, h.preserves_progress, h.preserves_tag]
-
-theorem OperationStep.ctx_adds_rcn : (e : s₁ -[op]↣ s₂) → s₂.progress = insert op.rcn s₁.progress
-  | .exec h => sorry -- by simp [Operation.rcn, h.preserves_progress, h.preserves_tag]
-  | .skip .. => rfl
-
-theorem OperationStep.to_ChangeListStep :
-  (e : s₁ -[op]↣ s₂) → (s₁ -[op.changes]→* { s₂ with tag := s₁.tag, progress := s₁.progress }) := by
-  intro e
-  induction e <;> simp [Operation.changes, Operation.rcn]
-  case skip => exact ChangeListStep.nil
-  case exec h => exact h.context_agnostic rfl
-
 theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e₁.rcn = e₂.rcn) → s₁ = s₂ := by
-  intro h
-  rw [rcn] at h
-  have h := ((h ▸ e₁.wfOp) ▸ e₂.wfOp |> Option.some_inj.mp).symm ▸ e₂.exec
-  exact e₁.exec.deterministic h
+  sorry
 
-theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (e.rcn ∈ s₁.rtr[.rcn].ids) :=
-  s₁.operation_to_contains e.wfOp 
+theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (e.rcn.id ∈ s₁.rtr[.rcn].ids) :=
+  sorry -- s₁.operation_to_contains e.wfOp 
 
-theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
-  e.allows.unprocessed
+theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn.id ∉ s₁.progress := 
+  sorry -- e.allows.unprocessed
 
 theorem InstStep.preserves_tag (e : s₁ ⇓ᵢ s₂) : s₁.tag = s₂.tag := 
-  e.exec.preserves_tag
+  sorry -- e.exec.preserves_tag
   
 theorem InstStep.mem_progress :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress) := by
@@ -71,8 +40,8 @@ theorem InstStep.mem_progress :
 
 -- Corollary of `InstStep.mem_progress`.
 theorem InstStep.not_mem_progress :
-  (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn' ∉ s₁.progress → rcn' ∉ s₂.progress := 
-  λ h hn hm => (mt h.mem_progress.mp) $ not_or.mpr ⟨hn, hm⟩
+  (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn'.id ∉ s₁.progress → rcn'.id ∉ s₂.progress := 
+  sorry -- λ h hn hm => (mt h.mem_progress.mp) $ not_or.mpr ⟨hn, hm⟩
 
 -- Corollary of `InstStep.mem_progress`.
 theorem InstStep.monotonic_progress : (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.progress → rcn' ∈ s₂.progress := 
@@ -83,7 +52,7 @@ theorem InstStep.strict_monotonic_progress :
   sorry
 
 -- Corollary of `InstStep.mem_progress`.
-theorem InstStep.self_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.progress := 
+theorem InstStep.self_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn.id ∈ s₂.progress := 
   (·.mem_progress.mpr $ .inl rfl)
 
 theorem InstStep.not_Closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed := by
@@ -171,17 +140,12 @@ theorem InstStep.preserves_external_state :
     exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
   -/
 
-theorem InstStep.eq_rcn_eq_changes {e₁ : s ⇓ᵢ s₁} {e₂ : s ⇓ᵢ s₂} :
-  (e₁.rcn = e₂.rcn) → (e₁.op.changes = e₂.op.changes) := by
-  intro h
-  rw [rcn] at h
-  simp [(h ▸ e₁.wfOp) ▸ e₂.wfOp |> Option.some_inj.mp]
-
-theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn >[s₁.rtr]< e.rcn) :=
-  fun (mk ..) => State.Allows.requires_acyclic_deps ‹_› 
+theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn <[s₁.rtr]> e.rcn) :=
+  sorry -- fun (mk ..) => State.Allows.requires_acyclic_deps ‹_› 
     
+    /-
 theorem InstStep.indep_rcns_indep_output :
-  (e : s ⇓ᵢ s') → (rcn' >[s.rtr]< e.rcn) → (rcn' ≠ e.rcn) → s.rcnOutput rcn' = s'.rcnOutput rcn' := by
+  (e : s ⇓ᵢ s') → (rcn' <[s.rtr]> e.rcn) → (rcn' ≠ e.rcn) → s.output rcn' = s'.rcnOutput rcn' := by
   intro h hi hrne
   have hp := h.exec.preserves_rcns
   cases ho : s.rtr[.rcn][rcn'] <;> cases ho' : s'.rtr[.rcn][rcn']
@@ -197,7 +161,7 @@ theorem InstStep.indep_rcns_indep_output :
       simp [he]
       sorry
     sorry
-      /-
+      
       refine congr_arg₂ _ ?_ rfl
       apply Finmap.restrict_ext
       intro p hp
@@ -265,5 +229,5 @@ theorem InstStep.indep_rcns_indep_output :
         )
     -/
   
-theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = s₁.progress.insert e.rcn := 
+theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = s₁.progress.insert e.rcn.id := 
   sorry
