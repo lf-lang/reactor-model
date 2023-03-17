@@ -1,8 +1,15 @@
 import ReactorModel.Determinism.Independent
 
-open Classical
+open Classical ReactorType
 
 namespace Execution
+namespace InstStep
+
+theorem equiv : (s₁ ⇓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
+  | skip .. => .refl
+  | exec .. => by simp [State.record_preserves_rtr, Equivalent.symm $ s₁.exec_equiv _]
+
+end InstStep
 
 theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e₁.rcn = e₂.rcn) → s₁ = s₂ := by
   sorry

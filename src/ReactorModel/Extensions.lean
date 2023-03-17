@@ -56,6 +56,9 @@ abbrev ids (f : α ⇀ β) := f.supp
 theorem mem_ids_iff {f : α ⇀ β} : (i ∈ f.ids) ↔ (∃ b, f i = some b) := by
   simp [ids, supp]
 
+theorem ids_empty_iff {f : α ⇀ β} : (f.ids = ∅) ↔ (∀ i, f i = none) := by
+  sorry
+
 def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
   fun a => 
     match h : f a with

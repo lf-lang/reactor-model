@@ -1,6 +1,6 @@
 import ReactorModel.Determinism.InstStep
 
-open Classical
+open Classical ReactorType
 
 namespace Execution
 namespace InstExecution
@@ -124,9 +124,9 @@ protected theorem deterministic (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂)
 
 
 
-theorem tag_eq : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
+theorem preserves_tag : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
   | refl => rfl
-  | trans e e' => sorry -- e.exec.preserves_tag.trans e'.tag_eq
+  | trans e e' => e.preserves_tag.trans e'.preserves_tag
 
 theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) : 
     (trans e₁ e₂).rcns = e₁.rcn.id :: e₂.rcns := by
@@ -150,9 +150,9 @@ theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
   simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
-theorem preserves_rcns : (s₁ ⇓ᵢ* s₂) → s₁.rtr[.rcn] = s₂.rtr[.rcn]
-  | refl => rfl
-  | trans e e' => sorry -- e.exec.preserves_rcns ▸ e'.preserves_rcns
+theorem equiv : (s₁ ⇓ᵢ* s₂) → s₁.rtr ≈ s₂.rtr
+  | refl => .refl
+  | trans e e' => Equivalent.trans e.equiv e'.equiv
 
 end InstExecution
 end Execution

@@ -9,6 +9,10 @@ variable [ReactorType α] [ReactorType β] in section
 def RootEqualUpTo (cmp : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
   ∀ {c j}, (c ≠ cmp ∨ j ≠ i) → cmp? c rtr₁ j = cmp? c rtr₂ j
 
+theorem RootEqualUpTo.mem_ids_iff {cmp} {rtr₁ : α} (e : RootEqualUpTo cmp i rtr₁ rtr₂) 
+    (h : c ≠ cmp ∨ j ≠ i) : j ∈ (cmp? c rtr₁).ids ↔ j ∈ (cmp? c rtr₂).ids :=
+  sorry
+
 -- Note: Without ID-uniqueness this can be satisfied by updating exactly one of the occurrences of
 --       the target.
 inductive LawfulMemUpdate (cmp : Component.Valued) (i : ID) (f : cmp.type → cmp.type) : α → α → Prop
@@ -25,7 +29,7 @@ inductive LawfulUpdate (cmp : Component.Valued) (i : ID) (f : cmp.type → cmp.t
 
 def LawfulUpdate.lift [LawfulCoe α β] {rtr₁ rtr₂ : α} {cmp i f} 
     (u : LawfulUpdate cmp i f (rtr₁ : β) (rtr₂ : β)) : LawfulUpdate cmp i f rtr₁ rtr₂ :=
-  sorry -- might need coe ∘ update = update ∘ coe  
+  sorry -- might need coe ∘ update = update ∘ coe which is part of LawfulUpdatableCoe
 
 -- TODO: Should these Member defs/theorems actually be about `Updatable`?
 def Member.fromLawfulUpdate {rtr₁ rtr₂ : α} {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) : 

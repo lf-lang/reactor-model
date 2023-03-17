@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.ReactorType.Equivalent
+import ReactorModel.Objects.Reactor.ReactorType.Indexable
 
 namespace ReactorType
 
@@ -68,19 +68,19 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ [rtr₂]> j₂) : j₁ [rtr₁]>
     --       (unidirectional) derivative of `Equivalent.obj?_some_iff` that includes equivalence.
     have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩
     have e := Equivalent.nested e h₁' h₁
-    exact prio h₁' (nested_rcns_eq e h₂) (nested_rcns_eq e h₃) ‹_› ‹_›
+    exact prio h₁' (rcns_eq e ▸ h₂) (rcns_eq e ▸ h₃) ‹_› ‹_›
   | mutNorm h₁ h₂ h₃ => 
     have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩  
     have e := Equivalent.nested e h₁' h₁
-    exact mutNorm h₁' (nested_rcns_eq e h₂) (nested_rcns_eq e h₃) ‹_› ‹_›
+    exact mutNorm h₁' (rcns_eq e ▸ h₂) (rcns_eq e ▸ h₃) ‹_› ‹_›
   | depOverlap h₁ h₂ => 
-    exact depOverlap (e.rcns_eq.symm ▸ h₁) (e.rcns_eq.symm ▸ h₂) ‹_›
+    exact depOverlap (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_›
   | mutNest h₁ h₂ h₃ _ h₄ => 
     have ⟨_, h₁'⟩ := e.obj?_some_iff.mpr ⟨_, h₁⟩  
     have e := Equivalent.nested e h₁' h₁
     have ⟨_, h₂'⟩ := cmp?_some_iff e (cmp := .rtr) |>.mpr ⟨_, h₂⟩
     have h₄' := mem_cmp?_ids_iff (Equivalent.nest e h₂' h₂) (cmp := .rcn) |>.mpr h₄
-    exact mutNest h₁' h₂' (nested_rcns_eq e h₃) ‹_› h₄'
+    exact mutNest h₁' h₂' (rcns_eq e ▸ h₃) ‹_› h₄'
   | trans _ _ d₁ d₂ => 
     exact trans d₁ d₂
 
@@ -215,7 +215,7 @@ scoped macro "equiv_prio_proof " name:ident rtr₁:ident rtr₂:ident : term => 
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff ‹$rtr₁ ≈ $rtr₂› |>.mpr ⟨_, h₁⟩ 
     have e := Equivalent.nested ‹_› h₁' h₁
     $(Lean.mkIdentFrom name $ `Wellformed ++ name.getId) 
-      ‹_› h₁' (Equivalent.nested_rcns_eq e h₂) (Equivalent.nested_rcns_eq e h₃)
+      ‹_› h₁' (Equivalent.rcns_eq e ▸ h₂) (Equivalent.rcns_eq e ▸ h₃)
 )
 
 theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ where
@@ -226,11 +226,11 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr�
   validDeps h₁ h₂ h₃ := 
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
     have e := Equivalent.nested e h₁' h₁
-    have h₂' := Equivalent.nested_rcns_eq e h₂
+    have h₂' := Equivalent.rcns_eq e ▸ h₂
     wf.validDeps h₁' h₂' h₃ |>.equiv ‹_› h₁' h₁
   uniqueInputs h₁ h₂ _ h₃ := 
     have h₃' := Equivalent.mem_obj?_ids_iff e |>.mpr h₃
-    wf.uniqueInputs (e.rcns_eq.symm ▸ h₁) (e.rcns_eq.symm ▸ h₂) ‹_› h₃'
+    wf.uniqueInputs (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› h₃'
 
 end Wellformed
 end ReactorType

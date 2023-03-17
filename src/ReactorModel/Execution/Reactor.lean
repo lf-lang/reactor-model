@@ -67,6 +67,10 @@ theorem apply_action_change {rtr : Reactor} {i : rtr.Valid $ .act} :
   simp [apply, LawfulUpdatable.obj?_updated]
   exact ⟨_, ⟨i.valid.choose_spec, rfl⟩⟩ 
 
+theorem apply'_equiv (rtr : Reactor) : (cs : List Change) → rtr.apply' cs ≈ rtr 
+  | .nil     => .refl
+  | .cons hd tl => Equivalent.trans (rtr.apply hd |>.apply'_equiv tl) (apply_equiv rtr hd)
+
 /-
 -- Note: `ho₁` and `e` imply that there exists some `a₂` such that `ho₂`.
 theorem preserves_same_action_at_unchanged_times

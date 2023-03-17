@@ -1,5 +1,7 @@
 import ReactorModel.Determinism.ExecutionStep
 
+open ReactorType
+
 namespace Execution
 
 abbrev State.Trivial (s : State) : Prop := 
@@ -22,14 +24,17 @@ theorem AdvanceTag.preserves_Trivial (a : s₁ ⇓- s₂) : s₂.Trivial :=
   a.advance.preserves_Trivial triv
 
 theorem ClosedExecution.preserves_Trivial {e : s₁ ⇓| s₂} : s₂.Trivial := by
-  simp [State.Trivial, ←e.preserves_rcns, triv]
+  simp [State.Trivial, ←Equivalent.obj?_rcn_eq e.equiv, triv]
 
 theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
   | close e   => e.preserves_Trivial triv
   | advance a => a.preserves_Trivial triv
 
-theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial :=
-  sorry -- s₁.operation_some_to_Nontrivial e.wfOp |>.not_Trivial
+theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial := by
+  by_contra ht
+  simp [State.Trivial, Partial.ids_empty_iff] at ht
+  have := e.rcn.obj?_id_eq_obj ▸ ht e.rcn
+  contradiction
 
 theorem InstExecution.trivial_eq : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
   | refl      => rfl

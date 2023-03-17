@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.ReactorType.Updatable
+import ReactorModel.Objects.Reactor.ReactorType.Equivalent
 
 open Reactor (Component)
 
@@ -278,4 +278,30 @@ theorem obj?_updated {rtr : α} {cmp i f} : (update rtr cmp i f)[cmp][i] = f <$>
   lawful rtr cmp i f |>.obj?_updated
 
 end LawfulUpdatable
+
+namespace Equivalent
+
+variable [Indexable α] {rtr₁ : α}
+
+-- TODO: Rename this
+theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
+  sorry
+
+theorem mem_obj?_ids_iff {cmp i} (e : rtr₁ ≈ rtr₂) : 
+    (i ∈ rtr₁[cmp].ids) ↔ (i ∈ rtr₂[cmp].ids) := by
+  sorry
+
+theorem nested (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
+    n₁ ≈ n₂ := 
+  sorry
+
+theorem obj?_some_iff {cmp i} (e : rtr₁ ≈ rtr₂) :
+    (∃ o₁, rtr₁[cmp][i] = some o₁) ↔ (∃ o₂, rtr₂[cmp][i] = some o₂) := 
+  sorry
+
+theorem obj?_none_iff {cmp i} (e : rtr₁ ≈ rtr₂) : 
+    (rtr₁[cmp][i] = none) ↔ (rtr₂[cmp][i] = none) := by 
+  sorry
+
+end Equivalent
 end ReactorType

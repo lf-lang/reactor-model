@@ -40,8 +40,14 @@ def Triggers (s : State) (rcn : s.rtr.Valid .rcn) : Prop :=
 def exec (s : State) (rcn : s.rtr.Valid .rcn) : State :=
   { s with rtr := s.rtr.apply' $ rcn.obj (s.input rcn) }  
 
+theorem exec_equiv (s : State) (rcn : s.rtr.Valid .rcn) : (s.exec rcn).rtr ≈ s.rtr := 
+  Reactor.apply'_equiv _ _
+
 def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
   { s with progress := s.progress.insert rcn }
+
+theorem record_preserves_rtr (s : State) (rcn : ID) : (s.record rcn).rtr = s.rtr := 
+  rfl
 
 theorem record_preserves_tag (s : State) (rcn : ID) : (s.record rcn).tag = s.tag := 
   rfl
