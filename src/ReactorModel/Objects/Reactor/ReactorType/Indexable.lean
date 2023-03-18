@@ -283,7 +283,6 @@ namespace Equivalent
 
 variable [Indexable α] {rtr₁ : α}
 
--- TODO: Rename this
 theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
   sorry
 
@@ -292,7 +291,7 @@ theorem mem_obj?_ids_iff {cmp i} (e : rtr₁ ≈ rtr₂) :
   sorry
 
 theorem nested (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
-    n₁ ≈ n₂ := 
+    n₁ ≈ n₂ :=
   sorry
 
 theorem obj?_some_iff {cmp i} (e : rtr₁ ≈ rtr₂) :

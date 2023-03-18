@@ -1,9 +1,9 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Set.Finite
 import Mathlib.Data.Finmap
-import Mathlib.Tactic.LibrarySearch
+import Mathlib.Data.List.Card
 
-open Lean
+open Classical
 
 syntax "case' " (Lean.binderIdent*),* " => " tacticSeq : tactic
 macro_rules
@@ -13,21 +13,25 @@ macro_rules
 
 namespace List
 
-theorem filterMap_nil_iff {l : List α} : (l.filterMap f = []) ↔ (l.All₂ (f · = none)) := by
+def Topo (l : List α) (r : α → α → Prop) : Prop :=
+  ∀ {i₁ i₂ : Nat} {a₁ a₂}, (l.get? i₁ = some a₁) → (l.get? i₂ = some a₂) → (r a₁ a₂) → i₁ < i₂ 
+
+namespace Topo
+
+theorem Topo.tail (t : Topo (hd :: tl) r) : Topo tl r :=
   sorry
 
-theorem filterMap_cons_split {l : List α} {f : α → Option β} (h : l.filterMap f = hd :: tl) : 
-    ∃ l₁ a l₂, (l₁ ++ a :: l₂ = l) ∧ (l₁.All₂ (f · = none)) ∧ (f a = some hd) ∧ (l₂.filterMap f = tl) :=
+theorem Topo.erase {l : List α} (t : Topo l r) (a : α) : Topo (l.remove a) r :=
   sorry
 
--- Notes: 
--- * This definition doesn't work if `r` isn't transitive.
--- * In `cons` we don't require `r a₁ a₂` as `r` need not be a total order.
-inductive Topo (r : α → α → Prop) [IsTrans _ r] : List α → Prop
-  | nil : Topo r []
-  | singleton : Topo r [a]
-  | cons : ¬(r a₂ a₁) → Topo r (a₂ :: tl) → Topo r (a₁ :: a₂ :: tl)
+theorem Topo.head_indep (t : Topo (hd :: tl) r) : ∀ a ∈ tl, ¬(r a hd)  :=
+  sorry
 
+theorem Topo.move_indep {l : List α} (t : Topo l r) (ha : a ∈ l) (hi : ∀ b ∈ l, ¬(r b a)) : 
+    Topo (a :: l.erase a) r :=
+  sorry
+
+end Topo
 end List
 
 namespace Set 

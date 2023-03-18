@@ -2,7 +2,7 @@ import ReactorModel.Objects.Reactor.ReactorType.Updatable
 
 -- TODO: Rename `cmp` to `cm` globally, so there's no clash with `Ord.cmp`.
 
-namespace ReactorType
+namespace ReactorType 
 
 inductive Equivalent [ReactorType α] : α → α → Prop
   | intro

@@ -59,8 +59,8 @@ theorem self_progress : (e : s₁ ⇓ᵢ* s₂) → ∀ rcn ∈ e.rcns, rcn ∈ 
   λ h _ hm => (h.mem_progress _).mpr $ .inl hm
   
 theorem eq_context_processed_rcns_perm : 
-  (e₁ : s ⇓ᵢ* s₁) → (e₂ : s ⇓ᵢ* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → e₁.rcns ~ e₂.rcns := by
-  intro h₁ h₂ ht hp
+  (e₁ : s ⇓ᵢ* s₁) → (e₂ : s ⇓ᵢ* s₂) → (s₁.progress = s₂.progress) → e₁.rcns ~ e₂.rcns := by
+  intro h₁ h₂ hp
   apply (List.perm_ext h₁.rcns_nodup h₂.rcns_nodup).mpr
   intro rcn
   by_cases hc : rcn ∈ s.progress
@@ -109,11 +109,35 @@ theorem Reactor.out_port_out_dep_eq_parent {rtr : Reactor} {iₚ iᵣ : ID} :
   sorry
 -/
 
-protected theorem deterministic (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) 
-    (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : s₁ = s₂ := by
-  ext1 <;> try assumption
-  have hp := e₁.eq_context_processed_rcns_perm e₂ ht hp
+theorem prepend_minimal (e : s₁ ⇓ᵢ* s₂) (hm : i ∈ e.rcns) (hi : e.rcns ≮[s₁.rtr] i) :
+    ∃ (e' : s₁ ⇓ᵢ* s₂), e'.rcns = i :: (e.rcns.erase i) := by
   sorry
+
+theorem head_minimal (e : s₁ ⇓ᵢ* s₂) (h : e.rcns = hd :: tl) : e.rcns ≮[s₁.rtr] hd :=
+  sorry
+
+theorem rcns_perm_deterministic 
+    (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) (hp : e₁.rcns ~ e₂.rcns) : s₁.rtr = s₂.rtr := by
+  induction e₁
+  case refl => cases e₂ <;> simp [rcns] at hp ⊢ 
+  case trans s sₘ₁ s₁ e₁ e₁' hi =>
+    have hm := hp.mem_iff.mp $ List.mem_cons_self _ _
+    have hm' := trans e₁ e₁' |>.head_minimal rfl |>.perm hp
+    have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
+    cases e₂ <;> simp [rcns] at he₂
+    case trans sₘ₂ e₂ e₂' =>
+      obtain ⟨h, h'⟩ := he₂ 
+      cases e₁.deterministic e₂ (by ext; exact h.symm)
+      apply hi e₂'
+      rw [h']
+      exact List.perm_cons _ |>.mp (hp.trans $ List.perm_cons_erase hm)
+
+protected theorem deterministic 
+    (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
+    s₁ = s₂ := by
+  ext1 <;> try assumption
+  have hp := eq_context_processed_rcns_perm e₁ e₂ hp
+  exact rcns_perm_deterministic e₁ e₂ hp
     
 
 

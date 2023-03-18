@@ -29,14 +29,11 @@ inductive Dependency [Indexable α] (rtr : α) : ID → ID → Prop
 
 namespace Dependency
 
-notation i₁ " [" rtr "]> " i₂ => Dependency rtr i₁ i₂
+notation i₁ " <[" rtr "] " i₂ => Dependency rtr i₁ i₂
 
 variable [Indexable α] [Indexable β] {rtr rtr₁ : α}
 
-instance : IsTrans ID (Dependency rtr) where 
-  trans _ _ _ := trans 
-
-theorem nested (h : nest rtr₁ i = some rtr₂) (d : i₁ [rtr₂]> i₂) : i₁ [rtr₁]> i₂ := by
+theorem nested (h : nest rtr₁ i = some rtr₂) (d : i₁ <[rtr₂] i₂) : i₁ <[rtr₁] i₂ := by
   induction d with
   | prio h₁          => exact prio (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
   | mutNorm h₁       => exact mutNorm (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
@@ -44,7 +41,7 @@ theorem nested (h : nest rtr₁ i = some rtr₂) (d : i₁ [rtr₂]> i₂) : i�
   | mutNest h₁       => exact mutNest (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
   | trans _ _ d₁ d₂  => exact trans d₁ d₂
 
-theorem lower [c : LawfulCoe α β] (d : i₁ [rtr]> i₂) : i₁ [(rtr : β)]> i₂ := by
+theorem lower [c : LawfulCoe α β] (d : i₁ <[rtr] i₂) : i₁ <[(rtr : β)] i₂ := by
   induction d with
   | prio h₁ h₂ h₃ =>
     exact prio (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂) (c.lower_cmp?_eq_some .rcn h₃) 
@@ -61,7 +58,7 @@ theorem lower [c : LawfulCoe α β] (d : i₁ [rtr]> i₂) : i₁ [(rtr : β)]> 
     exact trans d₁ d₂
 
 open Equivalent in
-theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ [rtr₂]> j₂) : j₁ [rtr₁]> j₂ := by
+theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁] j₂ := by
   induction d with
   | prio h₁ h₂ h₃ => 
     -- TODO: The next 2 lines are a common pattern in the `updated` proofs. Perhaps create a 
@@ -79,13 +76,13 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ [rtr₂]> j₂) : j₁ [rtr₁]>
     have ⟨_, h₁'⟩ := e.obj?_some_iff.mpr ⟨_, h₁⟩  
     have e := Equivalent.nested e h₁' h₁
     have ⟨_, h₂'⟩ := cmp?_some_iff e (cmp := .rtr) |>.mpr ⟨_, h₂⟩
-    have h₄' := mem_cmp?_ids_iff (Equivalent.nest e h₂' h₂) (cmp := .rcn) |>.mpr h₄
+    have h₄' := mem_cmp?_ids_iff (Equivalent.nest_equiv e h₂' h₂) (cmp := .rcn) |>.mpr h₄
     exact mutNest h₁' h₂' (rcns_eq e ▸ h₃) ‹_› h₄'
   | trans _ _ d₁ d₂ => 
     exact trans d₁ d₂
 
 def Acyclic (rtr : α) : Prop :=
-  ∀ i, ¬(i [rtr]> i)
+  ∀ i, ¬(i <[rtr] i)
 
 namespace Acyclic
 
@@ -144,7 +141,7 @@ scoped macro "equiv_nested_proof " name:ident : term => `(
   fun hc hp => 
     have e := Equivalent.nested ‹_› h₁ h₂
     have ⟨_, hc'⟩ := Equivalent.cmp?_some_iff e (cmp := .rtr) |>.mp ⟨_, hc⟩ 
-    have e := Equivalent.nest e hc hc'
+    have e := Equivalent.nest_equiv e hc hc'
     $(Lean.mkIdentFrom name $ `ValidDependency ++ name.getId) hc' 
     (Equivalent.mem_cmp?_ids_iff e (cmp := .prt _) |>.mp hp)
 )

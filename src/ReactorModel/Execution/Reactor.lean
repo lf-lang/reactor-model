@@ -9,6 +9,7 @@ namespace Reactor
 -- TODO: Find a better name for this.
 --       * ID rtr cmp
 --       * Obj rtr cmp
+@[ext]
 structure Valid (rtr : Reactor) (cmp : Component) where
   id    : ID
   valid : ∃ obj, rtr[cmp][id] = some obj

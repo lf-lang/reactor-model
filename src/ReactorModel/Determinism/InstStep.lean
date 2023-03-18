@@ -1,4 +1,4 @@
-import ReactorModel.Determinism.Independent
+import ReactorModel.Determinism.Dependency
 
 open Classical ReactorType
 
@@ -11,8 +11,12 @@ theorem equiv : (s₁ ⇓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
 
 end InstStep
 
-theorem InstStep.determinisic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) : (e₁.rcn = e₂.rcn) → s₁ = s₂ := by
-  sorry
+theorem InstStep.deterministic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) (h : e₁.rcn = e₂.rcn) : s₁ = s₂ := by
+  cases e₁ <;> cases e₂ <;> 
+  all_goals 
+    simp [rcn] at h
+    subst h
+    first | rfl | contradiction
 
 theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (e.rcn.id ∈ s₁.rtr[.rcn].ids) :=
   sorry -- s₁.operation_to_contains e.wfOp 
@@ -147,7 +151,7 @@ theorem InstStep.preserves_external_state :
     exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
   -/
 
-theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn <[s₁.rtr]> e.rcn) :=
+theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn ≮[s₁.rtr]≯ e.rcn) :=
   sorry -- fun (mk ..) => State.Allows.requires_acyclic_deps ‹_› 
     
     /-
