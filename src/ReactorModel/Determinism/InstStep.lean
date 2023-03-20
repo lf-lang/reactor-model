@@ -27,13 +27,13 @@ end InstStep
 theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (e.rcn.id ∈ s₁.rtr[.rcn].ids) :=
   sorry -- s₁.operation_to_contains e.wfOp 
 
-theorem InstStep.rcn_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn.id ∉ s₁.progress := 
+theorem InstStep.rcn_not_mem_progress (e : s₁ ⇓ᵢ s₂) : e.rcn.id ∉ s₁.progress := 
   sorry -- e.allows.unprocessed
 
 theorem InstStep.preserves_tag (e : s₁ ⇓ᵢ s₂) : s₁.tag = s₂.tag := 
   sorry -- e.exec.preserves_tag
   
-theorem InstStep.mem_progress :
+theorem InstStep.mem_progress_iff :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress) := by
   intro h
   constructor
@@ -55,22 +55,22 @@ theorem InstStep.mem_progress :
       sorry
       -- simp [State.progress, h.exec.ctx_adds_rcn, Context.mem_record_progress_iff _ _ _ |>.mpr (.inr $ ho.resolve_left hc)]
 
--- Corollary of `InstStep.mem_progress`.
+-- Corollary of `InstStep.mem_progress_iff`.
 theorem InstStep.not_mem_progress :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn'.id ∉ s₁.progress → rcn'.id ∉ s₂.progress := 
   sorry -- λ h hn hm => (mt h.mem_progress.mp) $ not_or.mpr ⟨hn, hm⟩
 
 -- Corollary of `InstStep.mem_progress`.
 theorem InstStep.monotonic_progress : (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.progress → rcn' ∈ s₂.progress := 
-  (·.mem_progress.mpr $ .inr ·)
+  (·.mem_progress_iff.mpr $ .inr ·)
 
 theorem InstStep.strict_monotonic_progress :
   (s₁ ⇓ᵢ s₂) → s₁.progress ⊂ s₂.progress := by
   sorry
 
 -- Corollary of `InstStep.mem_progress`.
-theorem InstStep.self_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn.id ∈ s₂.progress := 
-  (·.mem_progress.mpr $ .inl rfl)
+theorem InstStep.rcn_mem_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn.id ∈ s₂.progress := 
+  (·.mem_progress_iff.mpr $ .inl rfl)
 
 theorem InstStep.not_Closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed := by
    sorry
