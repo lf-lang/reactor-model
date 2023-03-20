@@ -6,7 +6,7 @@ open Classical
 def Minimal (rtr : Reactor) (rcns : List ID) (rcn : ID) : Prop :=
   ∀ i ∈ rcns, ¬(i <[rtr] rcn)
 
-notation rcns " ≮[" rtr "] " rcn => Minimal rtr rcns rcn
+notation:50 rcns " ≮[" rtr "] " rcn => Minimal rtr rcns rcn
 
 theorem Minimal.perm (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
   (m · $ h.mem_iff.mpr ·)
@@ -84,7 +84,7 @@ end Independent
 -- TODO: This begs the question: Should acyclicity be a requirement of a reactor? Or rather a result
 --       of the execution semantics. I.e. if we have s₁ ⇓* s₂, we can conclude that s₁.rtr is acyclic.  
 --       (Note: This doesn't quite work as Execution is reflexive).
-theorem Execution.State.Allows.requires_acyclic_deps {s : State} : (s.Allows rcn) → (rcn ≮[s.rtr]≯ rcn) := by
+theorem Execution.State.Allows.acyclic {s : State} (a : s.Allows rcn) : (¬ rcn <[s.rtr] rcn) := by
   sorry
   /-intro ⟨hd, hu⟩
   by_contra h

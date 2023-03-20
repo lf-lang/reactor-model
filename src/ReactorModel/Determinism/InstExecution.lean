@@ -108,42 +108,7 @@ theorem Reactor.out_port_out_dep_eq_parent {rtr : Reactor} {iₚ iᵣ : ID} :
   (rtr[.out][iₚ]& = rtr[.rcn][iᵣ]&) := by
   sorry
 -/
-
-theorem prepend_minimal (e : s₁ ⇓ᵢ* s₂) (hm : i ∈ e.rcns) (hi : e.rcns ≮[s₁.rtr] i) :
-    ∃ (e' : s₁ ⇓ᵢ* s₂), e'.rcns = i :: (e.rcns.erase i) := by
-  sorry
-
-theorem head_minimal (e : s₁ ⇓ᵢ* s₂) (h : e.rcns = hd :: tl) : e.rcns ≮[s₁.rtr] hd :=
-  sorry
-
-theorem rcns_perm_deterministic 
-    (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) (hp : e₁.rcns ~ e₂.rcns) : s₁.rtr = s₂.rtr := by
-  induction e₁
-  case refl => cases e₂ <;> simp [rcns] at hp ⊢ 
-  case trans s sₘ₁ s₁ e₁ e₁' hi =>
-    have hm := hp.mem_iff.mp $ List.mem_cons_self _ _
-    have hm' := trans e₁ e₁' |>.head_minimal rfl |>.perm hp
-    have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
-    cases e₂ <;> simp [rcns] at he₂
-    case trans sₘ₂ e₂ e₂' =>
-      obtain ⟨h, h'⟩ := he₂ 
-      cases e₁.deterministic e₂ (by ext; exact h.symm)
-      apply hi e₂'
-      rw [h']
-      exact List.perm_cons _ |>.mp (hp.trans $ List.perm_cons_erase hm)
-
-protected theorem deterministic 
-    (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
-    s₁ = s₂ := by
-  ext1 <;> try assumption
-  have hp := eq_context_processed_rcns_perm e₁ e₂ hp
-  exact rcns_perm_deterministic e₁ e₂ hp
     
-
-
-
-
-
 
 
 
@@ -169,7 +134,7 @@ theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) :
     cases e'.rcns_trans_eq_cons e ▸ h
     case head   => exact e.rcn_unprocessed
     case tail h => exact mt e.monotonic_progress (hi h)
-      
+
 theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
   simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
   exact e.mem_rcns_not_mem_progress
@@ -177,6 +142,40 @@ theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
 theorem equiv : (s₁ ⇓ᵢ* s₂) → s₁.rtr ≈ s₂.rtr
   | refl => .refl
   | trans e e' => Equivalent.trans e.equiv e'.equiv
+
+theorem prepend_minimal (e : s₁ ⇓ᵢ* s₂) (hm : i ∈ e.rcns) (hi : e.rcns ≮[s₁.rtr] i) :
+    ∃ (e' : s₁ ⇓ᵢ* s₂), e'.rcns = i :: (e.rcns.erase i) := by
+  sorry
+
+theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn :: e'.rcns) ≮[s₁.rtr] e.rcn := by
+  by_contra hc
+  simp [Minimal] at hc
+  have ⟨_, hm, h⟩ := hc e.acyclic
+  replace hc := mt e.monotonic_progress $ e'.mem_rcns_not_mem_progress hm
+  exact absurd (e.allows_rcn.deps h) hc
+  
+theorem rcns_perm_deterministic 
+    (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) (hp : e₁.rcns ~ e₂.rcns) : s₁.rtr = s₂.rtr := by
+  induction e₁
+  case refl => cases e₂ <;> simp [rcns] at hp ⊢ 
+  case trans s sₘ₁ s₁ e₁ e₁' hi =>
+    have hm := hp.mem_iff.mp $ List.mem_cons_self _ _
+    have hm' := e₁'.head_minimal e₁ |>.perm hp
+    have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
+    cases e₂ <;> simp [rcns] at he₂
+    case trans sₘ₂ e₂ e₂' =>
+      have ⟨h, h'⟩ := he₂ 
+      cases e₁.deterministic e₂ (by ext; exact h.symm)
+      apply hi e₂'
+      rw [h']
+      exact List.perm_cons _ |>.mp (hp.trans $ List.perm_cons_erase hm)
+
+protected theorem deterministic 
+    (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
+    s₁ = s₂ := by
+  ext1 <;> try assumption
+  have hp := eq_context_processed_rcns_perm e₁ e₂ hp
+  exact rcns_perm_deterministic e₁ e₂ hp
 
 end InstExecution
 end Execution

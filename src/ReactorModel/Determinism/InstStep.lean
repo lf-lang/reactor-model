@@ -9,14 +9,20 @@ theorem equiv : (s₁ ⇓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
   | skip .. => .refl
   | exec .. => by simp [State.record_preserves_rtr, Equivalent.symm $ s₁.exec_equiv _]
 
-end InstStep
-
-theorem InstStep.deterministic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) (h : e₁.rcn = e₂.rcn) : s₁ = s₂ := by
+theorem deterministic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) (h : e₁.rcn = e₂.rcn) : s₁ = s₂ := by
   cases e₁ <;> cases e₂ <;> 
   all_goals 
     simp [rcn] at h
     subst h
     first | rfl | contradiction
+
+theorem acyclic (e : s₁ ⇓ᵢ s₂) : ¬(e.rcn <[s₁.rtr] e.rcn) :=
+  e.allows_rcn.acyclic
+
+theorem wellordered (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) : ¬(e₂.rcn <[s₁.rtr] e₁.rcn) :=
+  sorry
+
+end InstStep
 
 theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (e.rcn.id ∈ s₁.rtr[.rcn].ids) :=
   sorry -- s₁.operation_to_contains e.wfOp 
