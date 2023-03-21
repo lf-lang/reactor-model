@@ -16,13 +16,13 @@ theorem deterministic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) (h : e₁.rc
     subst h
     first | rfl | contradiction
 
-theorem acyclic (e : s₁ ⇓ᵢ s₂) : ¬(e.rcn <[s₁.rtr] e.rcn) :=
+theorem acyclic (e : s₁ ⇓ᵢ s₂) : e.rcn ≮[s₁.rtr] e.rcn :=
   e.allows_rcn.acyclic
 
-theorem wellordered (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) : ¬(e₂.rcn <[s₁.rtr] e₁.rcn) :=
+theorem wellordered (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) : e₂.rcn ≮[s₁.rtr] e₁.rcn :=
   sorry
 
-end InstStep
+end InstStep 
 
 theorem InstStep.rtr_contains_rcn (e : s₁ ⇓ᵢ s₂) : (e.rcn.id ∈ s₁.rtr[.rcn].ids) :=
   sorry -- s₁.operation_to_contains e.wfOp 
@@ -156,7 +156,7 @@ theorem InstStep.preserves_external_state :
     )
     exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
   -/
-
+ 
 theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn ≮[s₁.rtr]≯ e.rcn) :=
   sorry -- fun (mk ..) => State.Allows.requires_acyclic_deps ‹_› 
     

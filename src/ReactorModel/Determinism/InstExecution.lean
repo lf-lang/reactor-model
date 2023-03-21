@@ -1,5 +1,9 @@
 import ReactorModel.Determinism.InstStep
 
+-- TODO: Place `InstStep` and `InstExecution` and `ClosedExecution` in the `Instantaneous` namespace
+--       and rename them `Execution.Instantaneous`, `Execution.Instantaneous.Step`, 
+--       `Execution.Instantaneous.Complete`.
+
 open Classical
 
 namespace Execution
@@ -22,7 +26,7 @@ theorem mem_progress_iff (e : s₁ ⇓ᵢ* s₂) :
     case mp.inr h      => cases e.mem_progress_iff.mp h <;> simp [*]
     case mpr.inl.inl h => simp [e.rcn_mem_progress]
     case mpr.inr h     => simp [e.monotonic_progress h]
-
+ 
 -- Corollary of `InstExecution.mem_progress_iff`.
 theorem rcns_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₂.progress := 
   e.mem_progress_iff.mpr $ .inl h
@@ -72,10 +76,6 @@ theorem equiv : (s₁ ⇓ᵢ* s₂) → s₁.rtr ≈ s₂.rtr
   | refl => .refl
   | trans e e' => ReactorType.Equivalent.trans e.equiv e'.equiv
 
-theorem prepend_minimal (e : s₁ ⇓ᵢ* s₂) (hm : i ∈ e.rcns) (hi : e.rcns ≮[s₁.rtr] i) :
-    ∃ (e' : s₁ ⇓ᵢ* s₂), e'.rcns = i :: (e.rcns.erase i) := by
-  sorry
-
 theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn :: e'.rcns) ≮[s₁.rtr] e.rcn := by
   by_contra hc
   simp [Minimal] at hc
@@ -83,6 +83,47 @@ theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn ::
   replace hc := mt e.monotonic_progress $ e'.mem_rcns_not_mem_progress hm
   exact absurd (e.allows_rcn.deps h) hc
   
+theorem InstStep.prepend_indep (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
+    ∃ (s₂' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃), e₁'.rcn.id = e₂.rcn ∧ e₂'.rcn.id = e₁.rcn := by
+  sorry 
+
+theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (h : i ∈ e'.rcns) :
+    e.rcn.id ≠ i := by
+  intro hc
+  have := trans e e' |>.rcns_nodup
+  have := hc.symm ▸ List.not_nodup_cons_of_mem h
+  contradiction
+
+-- The core lemma for `prepend_minimal`.
+theorem cons_prepend_minimal 
+    (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (hm : i ∈ e'.rcns) (hr : (e.rcn :: e'.rcns) ≮[s₁.rtr] i) : 
+    ∃ f : s₁ ⇓ᵢ* s₃, f.rcns = i :: e.rcn :: (e'.rcns.erase i) := by
+  induction e' generalizing s₁ <;> simp [rcns] at *
+  case trans s₁ s₂ s₄ e' e'' hi =>
+    cases hm
+    case inl hm =>
+      simp [hm] at hr
+      have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := InstStep.prepend_indep e e' hr.cons_head
+      exists trans f $ trans f' e''
+      simp [hm, rcns, ←hf₁, ←hf₂]
+    case inr hm =>
+      have ⟨f, hf⟩ :=  hi e' hm $ hr.cons_tail.equiv e.equiv
+      cases f <;> simp [rcns] at hf
+      case trans f f'' =>
+        have ⟨h₁, h₂⟩ := hf
+        have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := InstStep.prepend_indep e f $ h₁.symm ▸ hr |>.cons_head
+        exists trans f $ trans f' f''
+        simp [rcns, hf₁, h₁, hf₂, h₂, e''.rcns.erase_cons_tail $ head_not_mem_tail e' e'' hm]
+
+theorem prepend_minimal (e : s₁ ⇓ᵢ* s₂) (hm : i ∈ e.rcns) (hr : e.rcns ≮[s₁.rtr] i) :
+    ∃ (e' : s₁ ⇓ᵢ* s₂), e'.rcns = i :: (e.rcns.erase i) := by
+  cases e <;> simp [rcns] at *; cases ‹_ ∨ _› 
+  case trans.inl e e' h =>
+    exists trans e e'
+    simp [rcns, h]
+  case trans.inr e e' h =>
+    exact e'.rcns.erase_cons_tail (head_not_mem_tail e e' h) ▸ cons_prepend_minimal e e' h hr
+        
 theorem rcns_perm_deterministic 
     (e₁ : s ⇓ᵢ* s₁) (e₂ : s ⇓ᵢ* s₂) (hp : e₁.rcns ~ e₂.rcns) : s₁.rtr = s₂.rtr := by
   induction e₁

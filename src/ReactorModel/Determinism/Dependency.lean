@@ -2,15 +2,31 @@ import ReactorModel.Execution
 
 open Classical
 
+-- TODO: Find a better name for this.
+abbrev CanSucceed (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
+  ¬(rcn₁ <[rtr] rcn₂)
+
+notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => CanSucceed rtr rcn₁ rcn₂
+
 -- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
 def Minimal (rtr : Reactor) (rcns : List ID) (rcn : ID) : Prop :=
-  ∀ i ∈ rcns, ¬(i <[rtr] rcn)
+  ∀ i ∈ rcns, i ≮[rtr] rcn
 
 notation:50 rcns " ≮[" rtr "] " rcn => Minimal rtr rcns rcn
 
-theorem Minimal.perm (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
+theorem Minimal.cons_head (m : (hd :: tl) ≮[rtr] rcn) : hd ≮[rtr] rcn :=
+  sorry
+
+theorem Minimal.cons_tail (m : (hd :: tl) ≮[rtr] rcn) : tl ≮[rtr] rcn :=
+  sorry
+
+theorem Minimal.perm {rcns : List ID} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
   (m · $ h.mem_iff.mpr ·)
 
+theorem Minimal.equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (h : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
+  sorry
+
+-- TODO: Do we even need this definition? If not, rename `CanSucceed` to `Independent`.
 structure Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop where
   source : ¬(rcn₁ <[rtr] rcn₂)
   effect : ¬(rcn₂ <[rtr] rcn₁)
