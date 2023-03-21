@@ -2,54 +2,21 @@ import ReactorModel.Execution
 
 open Classical
 
--- TODO: Find a better name for this.
-abbrev CanSucceed (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
+-- This proposition states that `rcn₂` does not depend on `rcn₁`.
+abbrev Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ <[rtr] rcn₂)
-
-notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => CanSucceed rtr rcn₁ rcn₂
-
--- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
-def Minimal (rtr : Reactor) (rcns : List ID) (rcn : ID) : Prop :=
-  ∀ i ∈ rcns, i ≮[rtr] rcn
-
-notation:50 rcns " ≮[" rtr "] " rcn => Minimal rtr rcns rcn
-
-theorem Minimal.cons_head (m : (hd :: tl) ≮[rtr] rcn) : hd ≮[rtr] rcn :=
-  sorry
-
-theorem Minimal.cons_tail (m : (hd :: tl) ≮[rtr] rcn) : tl ≮[rtr] rcn :=
-  sorry
-
-theorem Minimal.perm {rcns : List ID} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
-  (m · $ h.mem_iff.mpr ·)
-
-theorem Minimal.equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (h : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
-  sorry
-
--- TODO: Do we even need this definition? If not, rename `CanSucceed` to `Independent`.
-structure Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop where
-  source : ¬(rcn₁ <[rtr] rcn₂)
-  effect : ¬(rcn₂ <[rtr] rcn₁)
-
-notation rcn₁ " ≮[" rtr "]≯ " rcn₂ => Independent rtr rcn₁ rcn₂
 
 namespace Independent
 
-@[symm]
-protected theorem symm (h : rcn₁ ≮[rtr]≯ rcn₂) : rcn₂ ≮[rtr]≯ rcn₁ :=
-  ⟨h.effect, h.source⟩ 
-
--- TODO: Come up with better names for these theorems.
+notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => Independent rtr rcn₁ rcn₂
 
 theorem nonoverlapping_deps : 
-  (i₁ ≮[σ]≯ i₂) → (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
+  (i₁ ≮[σ] i₂) → (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
   (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
-  intro ⟨hi, _⟩ ho₁ ho₂
-  by_contra hc
   sorry -- exact absurd (ReactorType.Dependency.depOverlap ho₁ ho₂ $ Finset.nonempty_of_ne_empty hc) hi
  
 theorem ne_rtr_or_pure : 
-  (i₁ ≮[σ]≯ i₂) → (i₁ ≠ i₂) →
+  (i₁ ≮[σ] i₂) → (i₁ ≠ i₂) →
   (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
   (σ[.rcn][i₁]& = some c₁) → (σ[.rcn][i₂]& = some c₂) →
   (c₁.id ≠ c₂.id) ∨ rcn₁.Pure ∨ rcn₂.Pure := by
@@ -97,10 +64,29 @@ theorem ne_rtr_or_pure :
   
 end Independent
 
--- TODO: This begs the question: Should acyclicity be a requirement of a reactor? Or rather a result
---       of the execution semantics. I.e. if we have s₁ ⇓* s₂, we can conclude that s₁.rtr is acyclic.  
---       (Note: This doesn't quite work as Execution is reflexive).
-theorem Execution.State.Allows.acyclic {s : State} (a : s.Allows rcn) : (¬ rcn <[s.rtr] rcn) := by
+-- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
+def Minimal (rtr : Reactor) (rcns : List ID) (rcn : ID) : Prop :=
+  ∀ i ∈ rcns, i ≮[rtr] rcn
+
+namespace Minimal
+
+notation:50 rcns " ≮[" rtr "] " rcn => Minimal rtr rcns rcn
+
+theorem cons_head (m : (hd :: tl) ≮[rtr] rcn) : hd ≮[rtr] rcn :=
+  m hd $ List.mem_cons_self _ _
+
+theorem cons_tail (m : (hd :: tl) ≮[rtr] rcn) : tl ≮[rtr] rcn :=
+  (m · $ List.mem_cons_of_mem _ ·)
+
+theorem perm {rcns : List ID} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
+  (m · $ h.mem_iff.mpr ·)
+
+theorem equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (e : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
+  fun i h d => absurd (ReactorType.Dependency.equiv e d) (m i h)
+
+end Minimal
+
+theorem Execution.State.Allows.acyclic {s : State} (a : s.Allows rcn) : (rcn ≮[s.rtr] rcn) := by
   sorry
   /-intro ⟨hd, hu⟩
   by_contra h

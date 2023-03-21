@@ -157,9 +157,6 @@ theorem InstStep.preserves_external_state :
     exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
   -/
  
-theorem InstStep.acyclic_deps : (e : s₁ ⇓ᵢ s₂) → (e.rcn ≮[s₁.rtr]≯ e.rcn) :=
-  sorry -- fun (mk ..) => State.Allows.requires_acyclic_deps ‹_› 
-    
     /-
 theorem InstStep.indep_rcns_indep_output :
   (e : s ⇓ᵢ s') → (rcn' <[s.rtr]> e.rcn) → (rcn' ≠ e.rcn) → s.output rcn' = s'.rcnOutput rcn' := by
@@ -248,3 +245,7 @@ theorem InstStep.indep_rcns_indep_output :
   
 theorem InstStep.progress_eq (e : s₁ ⇓ᵢ s₂) : s₂.progress = s₁.progress.insert e.rcn.id := 
   sorry
+
+theorem InstStep.prepend_indep (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
+    ∃ (s₂' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃), e₁'.rcn.id = e₂.rcn ∧ e₂'.rcn.id = e₁.rcn := by
+  sorry 

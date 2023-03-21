@@ -82,10 +82,6 @@ theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn ::
   have ⟨_, hm, h⟩ := hc e.acyclic
   replace hc := mt e.monotonic_progress $ e'.mem_rcns_not_mem_progress hm
   exact absurd (e.allows_rcn.deps h) hc
-  
-theorem InstStep.prepend_indep (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
-    ∃ (s₂' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃), e₁'.rcn.id = e₂.rcn ∧ e₂'.rcn.id = e₁.rcn := by
-  sorry 
 
 theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (h : i ∈ e'.rcns) :
     e.rcn.id ≠ i := by
