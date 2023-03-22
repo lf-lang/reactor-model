@@ -31,7 +31,25 @@ def con {cmp} (i : Valid rtr cmp) : Identified Reactor :=
 theorem con?_id_eq_con {cmp} (i : Valid rtr cmp) : rtr[cmp][i]& = i.con :=
   obj?_to_con?_and_cmp? i.obj?_id_eq_obj |>.choose_spec.left
 
-end Valid
+def equiv {cmp} (i : Valid rtr₁ cmp) (e : rtr₁ ≈ rtr₂) : Valid rtr₂ cmp where
+  id := i.id
+  valid := Equivalent.obj?_some_iff e |>.mp i.valid
+
+theorem equiv_id_eq {cmp} (i : Valid rtr₁ cmp) : (i.equiv e).id = i.id :=
+  rfl
+
+end Valid 
+
+def dependencies (rtr : Reactor) (rcn : ID) : Set ID := 
+  { rcn' | rcn' <[rtr] rcn }
+
+theorem equiv_eq_dependencies {rtr₁ : Reactor} (e : rtr₁ ≈ rtr₂) : 
+    rtr₁.dependencies = rtr₂.dependencies := by
+  ext i j
+  exact ⟨.equiv $ .symm e, .equiv e⟩ 
+
+def scheduledTags (rtr : Reactor) : Set Time.Tag := 
+  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }
 
 def apply (rtr : Reactor) : Change → Reactor
   | .prt k i v => update rtr (.prt k) i (fun _ => v)

@@ -85,12 +85,3 @@ theorem equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (e : rtr₁ ≈ rtr₂
   fun i h d => absurd (ReactorType.Dependency.equiv e d) (m i h)
 
 end Minimal
-
-theorem Execution.State.Allows.acyclic {s : State} (a : s.Allows rcn) : (rcn ≮[s.rtr] rcn) := by
-  sorry
-  /-intro ⟨hd, hu⟩
-  by_contra h
-  simp [Set.subset_def, Reactor.dependencies] at hd
-  simp [Independent] at h
-  exact absurd (hd _ h) hu
-  -/
