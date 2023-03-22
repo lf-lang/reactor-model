@@ -24,6 +24,20 @@ instance reactorType : ReactorType Reactor.Core where
 instance : ReactorType.Extensional Reactor.Core where
   ext_iff := by intro (mk ..) (mk ..); open ReactorType in simp [ports, state, rcns, acts, nest]
 
+instance : ReactorType.WellFounded Reactor.Core where
+  wf := by
+    constructor
+    apply Reactor.Core.rec 
+      (motive_1 := fun rtr => Acc ReactorType.Nested rtr) 
+      (motive_2 := fun | none => True | some rtr => Acc ReactorType.Nested rtr)
+    all_goals simp
+    intro _ _ _ _ _ hi
+    constructor
+    intro n ⟨i, hn⟩
+    simp [ReactorType.nest] at hn 
+    have := hn ▸ hi i
+    simp_all
+    
 noncomputable section Update
 open ReactorType
 

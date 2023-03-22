@@ -2,6 +2,12 @@ import ReactorModel.Objects.Reactor.Raw
 import ReactorModel.Objects.Reactor.ReactorType.Wellformed
 import ReactorModel.Objects.Reactor.ReactorType.Updatable
 
+-- TODO: Would it be better to prove determinism over `ReactorType.Proper`?
+--       Then `Reactor.Core/Raw/_` would serve only as proofs that the classes are in fact 
+--       inhabited. In that case you could also rename the `ReactorType` namespace to `Reactor`.
+--       Note, all definitions and theorems higher up the stack would then work on 
+--      `[Reactor.Proper α] (rtr : α)`.
+
 structure Reactor where
   raw : Reactor.Raw
   wf  : ReactorType.Wellformed raw
@@ -21,7 +27,8 @@ instance : ReactorType Reactor where
       wf := rtr.wf.nested h.choose_spec 
     }
 
--- Note: From this we get `ReactorType.Extensional Reactor` and `ReactorType.Indexable Reactor`.
+-- Note: From this we get `ReactorType.Extensional`, `ReactorType.WellFounded` and 
+--       `ReactorType.Indexable`.
 instance : LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
 

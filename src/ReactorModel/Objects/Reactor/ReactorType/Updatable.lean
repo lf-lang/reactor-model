@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.ReactorType.Basic
+import ReactorModel.Objects.Reactor.ReactorType.WellFounded
 
 open Reactor (Component)
 
@@ -46,7 +46,7 @@ theorem Member.Equivalent.from_lawfulUpdate
 
 end
 
-class Updatable (α) extends Extensional α where
+class Updatable (α) extends ReactorType.WellFounded α where
   update : α → (cmp : Component.Valued) → ID → (cmp.type → cmp.type) → α  
     
 class LawfulUpdatable (α) extends Updatable α where 

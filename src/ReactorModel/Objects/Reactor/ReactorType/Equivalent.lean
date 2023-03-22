@@ -13,29 +13,17 @@ inductive Equivalent [ReactorType α] : α → α → Prop
  
 namespace Equivalent
 
-variable [ReactorType α] {rtr rtr₁ : α}
-
-instance : HasEquiv α where 
+instance [ReactorType α] : HasEquiv α where 
   Equiv := Equivalent
 
-theorem cmp?_ids_eq {cmp} : (rtr₁ ≈ rtr₂) → (cmp? cmp rtr₁).ids = (cmp? cmp rtr₂).ids 
-  | intro h .. => h _
-
-theorem rcns_some_eq : (rtr₁ ≈ rtr₂) → (rcns rtr₁ i = some r₁) → (rcns rtr₂ i = some r₂) → r₁ = r₂
-  | intro _ h .. => h
-
-theorem nest_equiv : (rtr₁ ≈ rtr₂) → (nest rtr₁ i = some n₁) → (nest rtr₂ i = some n₂) → n₁ ≈ n₂
-  | intro _ _ h => h
-
--- TODO: The cleanest way to handle this would be by the custom induction principle and then
---       induction on `rtr`. If this is too hard because it involves `ReactionType`, write this
---       theorem recursively and try to prove `decreasing_by`.
 @[refl]
-protected theorem refl : rtr ≈ rtr := 
-  intro
-    (fun _ => rfl)
-    (fun _ _ => by simp_all)
-    (fun _ _ => by simp_all; sorry) 
+protected theorem refl [ReactorType.WellFounded α] {rtr : α} : rtr ≈ rtr := by
+  induction rtr using ReactorType.WellFounded.induction
+  case nest hi =>
+    constructor <;> (intros; simp_all)
+    exact hi _ _ ‹_›  
+
+variable [ReactorType α] {rtr rtr₁ : α}
 
 @[symm]
 protected theorem symm (e : rtr₁ ≈ rtr₂) : rtr₂ ≈ rtr₁ := by
@@ -58,6 +46,15 @@ protected theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : 
     · intro _ _ _ h _
       have ⟨_, h⟩ := Partial.mem_ids_iff.mp <| h₁ .rtr ▸ Partial.mem_ids_iff.mpr ⟨_, h⟩ 
       exact hi ‹_› h (h₃' h ‹_›)
+
+theorem cmp?_ids_eq {cmp} : (rtr₁ ≈ rtr₂) → (cmp? cmp rtr₁).ids = (cmp? cmp rtr₂).ids 
+  | intro h .. => h _
+
+theorem rcns_some_eq : (rtr₁ ≈ rtr₂) → (rcns rtr₁ i = some r₁) → (rcns rtr₂ i = some r₂) → r₁ = r₂
+  | intro _ h .. => h
+
+theorem nest_equiv : (rtr₁ ≈ rtr₂) → (nest rtr₁ i = some n₁) → (nest rtr₂ i = some n₂) → n₁ ≈ n₂
+  | intro _ _ h => h
 
 theorem mem_cmp?_ids_iff {cmp} (e : rtr₁ ≈ rtr₂) : 
     (i ∈ (cmp? cmp rtr₁).ids) ↔ (i ∈ (cmp? cmp rtr₂).ids) := by
@@ -83,7 +80,7 @@ theorem cmp?_some_iff {cmp i} (e : rtr₁ ≈ rtr₂) :
 
 end Equivalent
 
-theorem LawfulMemUpdate.equiv [ReactorType α] {rtr₁ : α} {cmp f} 
+theorem LawfulMemUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f} 
     (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) : rtr₁ ≈ rtr₂ := by
   induction u <;> constructor
   case final.cmp?_ids_eq e h₁ h₂ =>
@@ -126,7 +123,7 @@ theorem LawfulMemUpdate.equiv [ReactorType α] {rtr₁ : α} {cmp f}
       simp_all [cmp?]
       exact .refl
 
-theorem LawfulUpdate.equiv [ReactorType α] {rtr₁ : α} {cmp f} :
+theorem LawfulUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f} :
     (LawfulUpdate cmp i f rtr₁ rtr₂) → rtr₁ ≈ rtr₂
   | notMem .. => .refl
   | update u  => u.equiv
