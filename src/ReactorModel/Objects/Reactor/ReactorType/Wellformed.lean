@@ -64,17 +64,17 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁]
     -- TODO: The next 2 lines are a common pattern in the `updated` proofs. Perhaps create a 
     --       (unidirectional) derivative of `Equivalent.obj?_some_iff` that includes equivalence.
     have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩
-    have e := Equivalent.nested e h₁' h₁
+    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     exact prio h₁' (rcns_eq e ▸ h₂) (rcns_eq e ▸ h₃) ‹_› ‹_›
   | mutNorm h₁ h₂ h₃ => 
     have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩  
-    have e := Equivalent.nested e h₁' h₁
+    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     exact mutNorm h₁' (rcns_eq e ▸ h₂) (rcns_eq e ▸ h₃) ‹_› ‹_›
   | depOverlap h₁ h₂ => 
     exact depOverlap (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_›
   | mutNest h₁ h₂ h₃ _ h₄ => 
     have ⟨_, h₁'⟩ := e.obj?_some_iff.mpr ⟨_, h₁⟩  
-    have e := Equivalent.nested e h₁' h₁
+    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     have ⟨_, h₂'⟩ := cmp?_some_iff e (cmp := .rtr) |>.mpr ⟨_, h₂⟩
     have h₄' := mem_cmp?_ids_iff (Equivalent.nest_equiv e h₂' h₂) (cmp := .rcn) |>.mpr h₄
     exact mutNest h₁' h₂' (rcns_eq e ▸ h₃) ‹_› h₄'
@@ -139,7 +139,7 @@ variable [Indexable α] [Indexable β] {rtr rtr₁ : α}
 set_option hygiene false in
 scoped macro "equiv_nested_proof " name:ident : term => `(
   fun hc hp => 
-    have e := Equivalent.nested ‹_› h₁ h₂
+    have e := Equivalent.obj?_rtr_equiv ‹_› h₁ h₂
     have ⟨_, hc'⟩ := Equivalent.cmp?_some_iff e (cmp := .rtr) |>.mp ⟨_, hc⟩ 
     have e := Equivalent.nest_equiv e hc hc'
     $(Lean.mkIdentFrom name $ `ValidDependency ++ name.getId) hc' 
@@ -150,8 +150,8 @@ open Equivalent in
 theorem ValidDependency.equiv 
     (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][j] = some con₁) (h₂ : rtr₂[.rtr][j] = some con₂) : 
     (ValidDependency con₁ rk dk d) → ValidDependency con₂ rk dk d
-  | act h           => act $ mem_cmp?_ids_iff (nested e h₁ h₂) (cmp := .act) |>.mp h
-  | prt h           => prt $ mem_cmp?_ids_iff (nested e h₁ h₂) (cmp := .prt _) |>.mp h
+  | act h           => act $ mem_cmp?_ids_iff (obj?_rtr_equiv e h₁ h₂) (cmp := .act) |>.mp h
+  | prt h           => prt $ mem_cmp?_ids_iff (obj?_rtr_equiv e h₁ h₂) (cmp := .prt _) |>.mp h
   | nestedIn hc hp  => (equiv_nested_proof nestedIn) hc hp
   | nestedOut hc hp => (equiv_nested_proof nestedOut) hc hp
 
@@ -210,7 +210,7 @@ set_option hygiene false in
 scoped macro "equiv_prio_proof " name:ident rtr₁:ident rtr₂:ident : term => `(
   fun h₁ h₂ h₃ => 
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff ‹$rtr₁ ≈ $rtr₂› |>.mpr ⟨_, h₁⟩ 
-    have e := Equivalent.nested ‹_› h₁' h₁
+    have e := Equivalent.obj?_rtr_equiv ‹_› h₁' h₁
     $(Lean.mkIdentFrom name $ `Wellformed ++ name.getId) 
       ‹_› h₁' (Equivalent.rcns_eq e ▸ h₂) (Equivalent.rcns_eq e ▸ h₃)
 )
@@ -222,7 +222,7 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr�
   acyclicDeps  := wf.acyclicDeps.equiv e
   validDeps h₁ h₂ h₃ := 
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
-    have e := Equivalent.nested e h₁' h₁
+    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     have h₂' := Equivalent.rcns_eq e ▸ h₂
     wf.validDeps h₁' h₂' h₃ |>.equiv ‹_› h₁' h₁
   uniqueInputs h₁ h₂ _ h₃ := 

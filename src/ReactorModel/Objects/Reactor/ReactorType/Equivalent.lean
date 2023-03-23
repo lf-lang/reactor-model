@@ -2,6 +2,9 @@ import ReactorModel.Objects.Reactor.ReactorType.Updatable
 
 -- TODO: Rename `cmp` to `cm` globally, so there's no clash with `Ord.cmp`.
 
+noncomputable section
+open Classical
+
 namespace ReactorType 
 
 inductive Equivalent [ReactorType α] : α → α → Prop
@@ -132,4 +135,48 @@ theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} {cmp f} :
     (Updatable.update rtr cmp i f) ≈ rtr := 
   Equivalent.symm (lawful rtr cmp i f).equiv
 
+namespace Member
+
+variable [ReactorType.WellFounded α]
+
+def fromLawfulMemUpdate {rtr₁ : α} {cmp i f} :
+    (Member c j rtr₂) → (LawfulMemUpdate cmp i f rtr₁ rtr₂) → Member c j rtr₁
+  | final h, u => final (Equivalent.mem_cmp?_ids_iff u.equiv |>.mpr h)
+  | nest h m (j := j), .final e _ _ => 
+    nest (m := m) $ by 
+      have h' := e (c := .rtr) (j := j) (.inl $ by simp)
+      simp [cmp?] at h'
+      exact h'.symm ▸ h
+  | nest h m (j := j₂), .nest e h₁ h₂ u (j := j₁) =>
+      if hj : j₂ = j₁ then
+        let m' := (hj ▸ h |>.symm.trans h₂ |> Option.some_inj.mp) ▸ m 
+        nest h₁ $ fromLawfulMemUpdate m' u
+      else
+        nest (m := m) $ by 
+          have h' := e (c := .rtr) (.inr hj)
+          simp [cmp?] at h'
+          exact h'.symm ▸ h
+
+variable {rtr₁ : α}
+
+def fromLawfulUpdate {cmp i f} (m : Member c j rtr₂) :
+    (LawfulUpdate cmp i f rtr₁ rtr₂) → Member c j rtr₁
+  | .notMem .. => m
+  | .update u => m.fromLawfulMemUpdate u
+
+theorem Equivalent.from_lawfulMemUpdate 
+    {cmp i f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
+    Equivalent m (m.fromLawfulMemUpdate u) := by
+  sorry
+
+theorem Equivalent.from_lawfulUpdate 
+    {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
+    Equivalent m (m.fromLawfulUpdate u) := by
+  cases u
+  case notMem => rfl
+  case update u => 
+    have := Equivalent.from_lawfulMemUpdate u m 
+    sorry
+
+end Member
 end ReactorType

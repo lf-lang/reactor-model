@@ -290,8 +290,8 @@ theorem mem_obj?_ids_iff {cmp i} (e : rtr₁ ≈ rtr₂) :
     (i ∈ rtr₁[cmp].ids) ↔ (i ∈ rtr₂[cmp].ids) := by
   sorry
 
-theorem nested (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
-    n₁ ≈ n₂ :=
+theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
+    n₁ ≈ n₂ := by
   sorry
 
 theorem obj?_some_iff {cmp i} (e : rtr₁ ≈ rtr₂) :

@@ -85,7 +85,7 @@ end LawfulCoe
 
 inductive Member [ReactorType α] (cmp : Component) (i : ID) : α → Type _ 
   | final : i ∈ (cmp? cmp rtr).ids → Member cmp i rtr
-  | nest : (nest rtr₁ j = some rtr₂) → (Member cmp i rtr₂) → Member cmp i rtr₁
+  | nest : (nest rtr₁ j = some rtr₂) → (m : Member cmp i rtr₂) → Member cmp i rtr₁
 
 namespace Member
 
@@ -106,6 +106,10 @@ inductive Equivalent : {rtr₁ : α} → {rtr₂ : β} → (Member cmp i rtr₁)
     (Equivalent m₁ m₂) → Equivalent (.nest h₁ m₁) (.nest h₂ m₂)
 
 namespace Equivalent
+
+@[refl]
+theorem refl {rtr : α} {cmp} {m : Member cmp i rtr} : (Equivalent m m) := by
+  sorry -- TODO: Do we need wellfoundedness for this again?
 
 theorem symm {rtr₁ : α} {rtr₂ : β} {cmp} {m₁ : Member cmp i rtr₁} {m₂ : Member cmp i rtr₂}
     (e : Equivalent m₁ m₂) : (Equivalent m₂ m₁) := by
