@@ -10,8 +10,9 @@ def RootEqualUpTo (cmp : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
   ∀ {c j}, (c ≠ cmp ∨ j ≠ i) → cmp? c rtr₁ j = cmp? c rtr₂ j
 
 theorem RootEqualUpTo.mem_ids_iff {cmp} {rtr₁ : α} (e : RootEqualUpTo cmp i rtr₁ rtr₂) 
-    (h : c ≠ cmp ∨ j ≠ i) : j ∈ (cmp? c rtr₁).ids ↔ j ∈ (cmp? c rtr₂).ids :=
-  sorry
+    (h : c ≠ cmp ∨ j ≠ i) : j ∈ (cmp? c rtr₁).ids ↔ j ∈ (cmp? c rtr₂).ids := by
+  simp [Partial.mem_ids_iff]
+  exact ⟨(e h ▸ ·), (e h ▸ ·)⟩   
 
 -- Note: Without ID-uniqueness this can be satisfied by updating exactly one of the occurrences of
 --       the target.
