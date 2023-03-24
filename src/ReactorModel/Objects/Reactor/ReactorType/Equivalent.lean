@@ -1,7 +1,5 @@
 import ReactorModel.Objects.Reactor.ReactorType.Updatable
 
--- TODO: Rename `cmp` to `cm` globally, so there's no clash with `Ord.cmp`.
-
 noncomputable section
 open Classical
 
@@ -9,7 +7,7 @@ namespace ReactorType
 
 inductive Equivalent [ReactorType α] : α → α → Prop
   | intro
-    (cmp?_ids_eq : ∀ cmp, (cmp? cmp rtr₁).ids = (cmp? cmp rtr₂).ids) 
+    (cpt?_ids_eq : ∀ cpt, (cpt? cpt rtr₁).ids = (cpt? cpt rtr₂).ids) 
     (rcns_some_eq : ∀ {i r₁ r₂}, (rcns rtr₁ i = some r₁) → (rcns rtr₂ i = some r₂) → r₁ = r₂) 
     (nest_equiv : ∀ {i n₁ n₂}, (nest rtr₁ i = some n₁) → (nest rtr₂ i = some n₂) → Equivalent n₁ n₂) 
     : Equivalent rtr₁ rtr₂
@@ -50,7 +48,7 @@ protected theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : 
       have ⟨_, h⟩ := Partial.mem_ids_iff.mp <| h₁ .rtr ▸ Partial.mem_ids_iff.mpr ⟨_, h⟩ 
       exact hi ‹_› h (h₃' h ‹_›)
 
-theorem cmp?_ids_eq {cmp} : (rtr₁ ≈ rtr₂) → (cmp? cmp rtr₁).ids = (cmp? cmp rtr₂).ids 
+theorem cpt?_ids_eq : (rtr₁ ≈ rtr₂) → (cpt? cpt rtr₁).ids = (cpt? cpt rtr₂).ids 
   | intro h .. => h _
 
 theorem rcns_some_eq : (rtr₁ ≈ rtr₂) → (rcns rtr₁ i = some r₁) → (rcns rtr₂ i = some r₂) → r₁ = r₂
@@ -59,14 +57,13 @@ theorem rcns_some_eq : (rtr₁ ≈ rtr₂) → (rcns rtr₁ i = some r₁) → (
 theorem nest_equiv : (rtr₁ ≈ rtr₂) → (nest rtr₁ i = some n₁) → (nest rtr₂ i = some n₂) → n₁ ≈ n₂
   | intro _ _ h => h
 
-theorem mem_cmp?_ids_iff {cmp} (e : rtr₁ ≈ rtr₂) : 
-    (i ∈ (cmp? cmp rtr₁).ids) ↔ (i ∈ (cmp? cmp rtr₂).ids) := by
-  rw [cmp?_ids_eq e]
+theorem mem_cpt?_ids_iff (e : rtr₁ ≈ rtr₂) : i ∈ (cpt? cpt rtr₁).ids ↔ i ∈ (cpt? cpt rtr₂).ids := by
+  rw [cpt?_ids_eq e]
 
 theorem rcns_eq (e : rtr₁ ≈ rtr₂) : rcns rtr₂ = rcns rtr₁ := by
   funext i
   by_cases h₁ : i ∈ (rcns rtr₁).ids 
-  all_goals have h₂ := cmp?_ids_eq e (cmp := .rcn) ▸ h₁
+  all_goals have h₂ := cpt?_ids_eq e (cpt := .rcn) ▸ h₁
   case pos =>
     have ⟨_, h₁⟩ := Partial.mem_ids_iff.mp h₁
     have ⟨_, h₂⟩ := Partial.mem_ids_iff.mp h₂
@@ -74,22 +71,22 @@ theorem rcns_eq (e : rtr₁ ≈ rtr₂) : rcns rtr₂ = rcns rtr₁ := by
   case neg =>
     have h₁ := Partial.mem_ids_iff.not.mp h₁
     have h₂ := Partial.mem_ids_iff.not.mp h₂
-    simp [cmp?] at h₁ h₂ 
+    simp [cpt?] at h₁ h₂ 
     simp [Option.eq_none_iff_forall_not_mem.mpr h₁, Option.eq_none_iff_forall_not_mem.mpr h₂]
 
-theorem cmp?_some_iff {cmp i} (e : rtr₁ ≈ rtr₂) :
-    (∃ o₁, cmp? cmp rtr₁ i = some o₁) ↔ (∃ o₂, cmp? cmp rtr₂ i = some o₂) := by
-  simp [←Partial.mem_ids_iff, mem_cmp?_ids_iff e]
+theorem cpt?_some_iff (e : rtr₁ ≈ rtr₂) :
+    (∃ o₁, cpt? cpt rtr₁ i = some o₁) ↔ (∃ o₂, cpt? cpt rtr₂ i = some o₂) := by
+  simp [←Partial.mem_ids_iff, mem_cpt?_ids_iff e]
 
 end Equivalent
 
-theorem LawfulMemUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f} 
-    (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) : rtr₁ ≈ rtr₂ := by
+theorem LawfulMemUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α}
+    (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : rtr₁ ≈ rtr₂ := by
   induction u <;> constructor
-  case final.cmp?_ids_eq e h₁ h₂ =>
+  case final.cpt?_ids_eq e h₁ h₂ =>
     intro c
     ext j
-    by_cases hc : c = cmp <;> try subst hc
+    by_cases hc : c = cpt <;> try subst hc
     case neg => exact e.mem_ids_iff (.inl hc)
     case pos =>
       by_cases hj : j = i <;> try subst hj
@@ -98,13 +95,13 @@ theorem LawfulMemUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f}
   case final.rcns_some_eq e _ _ =>
     intro j _ _ h₁ h₂
     have h := e (c := .rcn) (j := j) (.inl $ by simp)
-    simp_all [cmp?]
+    simp_all [cpt?]
   case final.nest_equiv e _ _ =>
     intro j _ _ h₁ h₂
     have h := e (c := .rtr) (j := j) (.inl $ by simp)
-    simp_all [cmp?]
+    simp_all [cpt?]
     exact .refl
-  case nest.cmp?_ids_eq j _ _ _ _ e h₁ h₂ _ _ =>
+  case nest.cpt?_ids_eq j _ _ _ _ e h₁ h₂ _ _ =>
     intro c
     ext j'
     by_cases hc : c = .rtr <;> try subst hc
@@ -116,36 +113,36 @@ theorem LawfulMemUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f}
   case nest.rcns_some_eq e h₁ h₂ _ _ =>
     intro j _ _ h₁ h₂
     have h := e (c := .rcn) (j := j) (.inl $ by simp)
-    simp_all [cmp?]
+    simp_all [cpt?]
   case nest.nest_equiv j _ _ _ _ e _ _ _ hi =>
     intro j' n₁' n₂' h₁' h₂'
     by_cases hj : j' = j <;> try subst hj
-    case pos => simp_all [cmp?]; assumption
+    case pos => simp_all [cpt?]; assumption
     case neg => 
       have := e (c := .rtr) (j := j') (.inr hj)
-      simp_all [cmp?]
+      simp_all [cpt?]
       exact .refl
 
-theorem LawfulUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f} :
-    (LawfulUpdate cmp i f rtr₁ rtr₂) → rtr₁ ≈ rtr₂
+theorem LawfulUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} :
+    (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₁ ≈ rtr₂
   | notMem _ h => h ▸ .refl
   | update u   => u.equiv
 
-theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} {cmp f} : 
-    (Updatable.update rtr cmp i f) ≈ rtr := 
-  Equivalent.symm (lawful rtr cmp i f).equiv
+theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} : 
+    (Updatable.update rtr cpt i f) ≈ rtr := 
+  Equivalent.symm (lawful rtr cpt i f).equiv
 
 namespace Member
 
-variable [ReactorType.WellFounded α]
+variable [ReactorType.WellFounded α] {rtr₁ : α}
 
-def fromLawfulMemUpdate {rtr₁ : α} {cmp i f} :
-    (Member c j rtr₂) → (LawfulMemUpdate cmp i f rtr₁ rtr₂) → Member c j rtr₁
-  | final h, u => final (Equivalent.mem_cmp?_ids_iff u.equiv |>.mpr h)
+def fromLawfulMemUpdate {rtr₁ : α} : 
+    (Member c j rtr₂) → (LawfulMemUpdate cpt i f rtr₁ rtr₂) → Member c j rtr₁
+  | final h, u => final (Equivalent.mem_cpt?_ids_iff u.equiv |>.mpr h)
   | nest h m (j := j), .final e _ _ => 
     nest (m := m) $ by 
       have h' := e (c := .rtr) (j := j) (.inl $ by simp)
-      simp [cmp?] at h'
+      simp [cpt?] at h'
       exact h'.symm ▸ h
   | nest h m (j := j₂), .nest e h₁ h₂ u (j := j₁) =>
       if hj : j₂ = j₁ then
@@ -154,23 +151,19 @@ def fromLawfulMemUpdate {rtr₁ : α} {cmp i f} :
       else
         nest (m := m) $ by 
           have h' := e (c := .rtr) (.inr hj)
-          simp [cmp?] at h'
+          simp [cpt?] at h'
           exact h'.symm ▸ h
 
-variable {rtr₁ : α}
-
-def fromLawfulUpdate {cmp i f} (m : Member c j rtr₂) :
-    (LawfulUpdate cmp i f rtr₁ rtr₂) → Member c j rtr₁
+def fromLawfulUpdate (m : Member c j rtr₂) : (LawfulUpdate cpt i f rtr₁ rtr₂) → Member c j rtr₁
   | .notMem _ h => h ▸ m
   | .update u   => m.fromLawfulMemUpdate u
 
-theorem Equivalent.from_lawfulMemUpdate 
-    {cmp i f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
-    Equivalent m (m.fromLawfulMemUpdate u) := by
+theorem Equivalent.from_lawfulMemUpdate (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) 
+    (m : Member c j rtr₂) : Equivalent m (m.fromLawfulMemUpdate u) := by
   induction u <;> cases m <;> (simp [fromLawfulMemUpdate]; try exact .final)
   case final.nest e _ _ j _ _ hn => 
     have h := e (c := .rtr) (j := j) (.inl $ by simp)
-    simp [cmp?] at h
+    simp [cpt?] at h
     exact .nest hn (h ▸ hn) .refl
   case nest.nest e h₁ h₂ _ hi _ _ m hn =>
     split
@@ -180,12 +173,11 @@ theorem Equivalent.from_lawfulMemUpdate
       exact .nest hn h₁ (hi m)
     case inr hj =>
       have h := e (c := .rtr) (.inr hj)
-      simp [cmp?] at h
+      simp [cpt?] at h
       exact .nest hn (h.symm ▸ hn) .refl
 
-theorem Equivalent.from_lawfulUpdate 
-    {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
-    Equivalent m (m.fromLawfulUpdate u) := by
+theorem Equivalent.from_lawfulUpdate (u : LawfulUpdate cpt i f rtr₁ rtr₂) 
+    (m : Member c j rtr₂) : Equivalent m (m.fromLawfulUpdate u) := by
   cases u
   case notMem _ h => cases h; rfl
   case update u   => exact Equivalent.from_lawfulMemUpdate u m 

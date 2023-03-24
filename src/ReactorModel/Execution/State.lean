@@ -107,7 +107,7 @@ theorem rcnInput_iff_obj? {s : State} :
     cases hc : s.rtr[.rcn][rcn] <;> simp [rcnInput, hc] at *
   case mpr =>
     sorry
-    -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? h
+    -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cpt? h
     -- simp [rcnInput, hc, h]
 
 -- NOTE: This is a helper lemma for the theorems below.
@@ -117,14 +117,14 @@ private theorem rcnInput_iff_rcnOutput {s : State} :
     intro h; simp [rcnInput, rcnOutput] at *
     cases ho : s.rtr[.rcn][j]
     case none => simp [ho] at h
-    case some => sorry -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho; simp [hc]
+    case some => sorry -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cpt? ho; simp [hc]
   )
 
 theorem rcnInput_ports_def {s : State} :
   (s.rcnInput j = some ⟨p, x, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (p = fun k => s.rtr[.prt k].restrict { i | Reaction.Dependency.port k i ∈ rcn.deps .in }) := by
   intro hi ho
   sorry
-  -- have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+  -- have ⟨c, hc, _⟩ := Reactor.obj?_to_con?_and_cpt? ho
   -- simp [rcnInput, hc, ho] at hi
   -- exact hi.left.symm
 
@@ -132,7 +132,7 @@ theorem rcnInput_actions_def {s : State} :
   (s.rcnInput j = some ⟨x, a, y, z⟩) → (s.rtr[.rcn][j] = some rcn) → (a = (s.rtr[.act].restrict { i | Reaction.Dependency.action i ∈ rcn.deps .in } |>.filterMap (·.lookup s.tag))) := by
   intro hi ho
   sorry
-  -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
+  -- have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cpt? ho
   -- simp [rcnInput, hc, ho] at hi
   -- exact hi.right.left.symm
 
@@ -140,7 +140,7 @@ theorem rcnInput_state_def {s : State} :
   (s.rcnInput j = some ⟨x, y, q, z⟩) → (s.rtr[.rcn][j]& = some c) → (q = c.obj.state) := by
   intro hi hc
   sorry
-  -- have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+  -- have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cpt? hc
   -- simp [rcnInput, hc, ho] at hi
   -- exact hi.right.right.left.symm
 
@@ -150,7 +150,7 @@ theorem rcnInput_time_def {s : State} : (s.rcnInput j = some ⟨x, y, z, t⟩) �
   cases hc : s.rtr[.rcn][j]&
   case none => simp [hc] at hi
   case some => sorry
-    -- have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+    -- have ⟨_, ho, _⟩ := Reactor.con?_to_obj?_and_cpt? hc
     -- simp [rcnInput, hc, ho] at hi
     -- exact hi.right.right.right.symm
     
@@ -203,7 +203,7 @@ theorem rcnOutput_state_local {s : State} (v) :
   (j ∉ c.obj.state.ids) → .state j v ∉ o := by
   intro h hc hs hm
   sorry
-  -- have ⟨rcn, ho, _⟩ := Reactor.con?_to_obj?_and_cmp? hc
+  -- have ⟨rcn, ho, _⟩ := Reactor.con?_to_obj?_and_cpt? hc
   -- simp [rcnOutput, rcnInput, hc, ho] at h
   -- rw [←h] at hm
   -- exact absurd (rcn.stateLocal hm) hs

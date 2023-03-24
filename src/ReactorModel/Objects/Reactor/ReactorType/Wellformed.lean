@@ -44,16 +44,16 @@ theorem nested (h : nest rtr₁ i = some rtr₂) (d : i₁ <[rtr₂] i₂) : i�
 theorem lower [c : LawfulCoe α β] (d : i₁ <[rtr] i₂) : i₁ <[(rtr : β)] i₂ := by
   induction d with
   | prio h₁ h₂ h₃ =>
-    exact prio (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂) (c.lower_cmp?_eq_some .rcn h₃) 
+    exact prio (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) (c.lower_cpt?_eq_some .rcn h₃) 
            ‹_› ‹_›
   | mutNorm h₁ h₂ h₃ => 
-    exact mutNorm (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂)
-          (c.lower_cmp?_eq_some .rcn h₃) ‹_› ‹_›
+    exact mutNorm (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂)
+          (c.lower_cpt?_eq_some .rcn h₃) ‹_› ‹_›
   | depOverlap h₁ h₂ => 
     exact depOverlap (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) ‹_›
   | mutNest h₁ h₂ h₃ _ h₄ => 
-    exact mutNest (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rtr h₂)
-          (c.lower_cmp?_eq_some .rcn h₃) ‹_› (c.lower_mem_cmp?_ids .rcn h₄) 
+    exact mutNest (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rtr h₂)
+          (c.lower_cpt?_eq_some .rcn h₃) ‹_› (c.lower_mem_cpt?_ids .rcn h₄) 
   | trans _ _ d₁ d₂ => 
     exact trans d₁ d₂
 
@@ -75,8 +75,8 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁]
   | mutNest h₁ h₂ h₃ _ h₄ => 
     have ⟨_, h₁'⟩ := e.obj?_some_iff.mpr ⟨_, h₁⟩  
     have e := Equivalent.obj?_rtr_equiv e h₁' h₁
-    have ⟨_, h₂'⟩ := cmp?_some_iff e (cmp := .rtr) |>.mpr ⟨_, h₂⟩
-    have h₄' := mem_cmp?_ids_iff (Equivalent.nest_equiv e h₂' h₂) (cmp := .rcn) |>.mpr h₄
+    have ⟨_, h₂'⟩ := cpt?_some_iff e (cpt := .rtr) |>.mpr ⟨_, h₂⟩
+    have h₄' := mem_cpt?_ids_iff (Equivalent.nest_equiv e h₂' h₂) (cpt := .rcn) |>.mpr h₄
     exact mutNest h₁' h₂' (rcns_eq e ▸ h₃) ‹_› h₄'
   | trans _ _ d₁ d₂ => 
     exact trans d₁ d₂
@@ -123,12 +123,12 @@ scoped macro "lift_nested_proof " name:ident : term => `(
     obtain ⟨_, _, h⟩ := h
     subst h
     exact $(Lean.mkIdentFrom name $ `ValidDependency ++ name.getId) 
-      (LawfulCoe.lift_cmp?_eq_some .rtr hc) (LawfulCoe.lift_mem_cmp?_ids (.prt _) hp)
+      (LawfulCoe.lift_cpt?_eq_some .rtr hc) (LawfulCoe.lift_mem_cpt?_ids (.prt _) hp)
 )
 
 theorem ValidDependency.lift : (ValidDependency (rtr : β) rk dk d) → ValidDependency rtr rk dk d 
-  | act h           => act $ LawfulCoe.lift_mem_cmp?_ids .act h
-  | prt h           => prt $ LawfulCoe.lift_mem_cmp?_ids (.prt _) h
+  | act h           => act $ LawfulCoe.lift_mem_cpt?_ids .act h
+  | prt h           => prt $ LawfulCoe.lift_mem_cpt?_ids (.prt _) h
   | nestedIn hc hp  => (lift_nested_proof nestedIn) hc hp
   | nestedOut hc hp => (lift_nested_proof nestedOut) hc hp
     
@@ -140,18 +140,18 @@ set_option hygiene false in
 scoped macro "equiv_nested_proof " name:ident : term => `(
   fun hc hp => 
     have e := Equivalent.obj?_rtr_equiv ‹_› h₁ h₂
-    have ⟨_, hc'⟩ := Equivalent.cmp?_some_iff e (cmp := .rtr) |>.mp ⟨_, hc⟩ 
+    have ⟨_, hc'⟩ := Equivalent.cpt?_some_iff e (cpt := .rtr) |>.mp ⟨_, hc⟩ 
     have e := Equivalent.nest_equiv e hc hc'
     $(Lean.mkIdentFrom name $ `ValidDependency ++ name.getId) hc' 
-    (Equivalent.mem_cmp?_ids_iff e (cmp := .prt _) |>.mp hp)
+    (Equivalent.mem_cpt?_ids_iff e (cpt := .prt _) |>.mp hp)
 )
 
 open Equivalent in
 theorem ValidDependency.equiv 
     (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][j] = some con₁) (h₂ : rtr₂[.rtr][j] = some con₂) : 
     (ValidDependency con₁ rk dk d) → ValidDependency con₂ rk dk d
-  | act h           => act $ mem_cmp?_ids_iff (obj?_rtr_equiv e h₁ h₂) (cmp := .act) |>.mp h
-  | prt h           => prt $ mem_cmp?_ids_iff (obj?_rtr_equiv e h₁ h₂) (cmp := .prt _) |>.mp h
+  | act h           => act $ mem_cpt?_ids_iff (obj?_rtr_equiv e h₁ h₂) (cpt := .act) |>.mp h
+  | prt h           => prt $ mem_cpt?_ids_iff (obj?_rtr_equiv e h₁ h₂) (cpt := .prt _) |>.mp h
   | nestedIn hc hp  => (equiv_nested_proof nestedIn) hc hp
   | nestedOut hc hp => (equiv_nested_proof nestedOut) hc hp
 
@@ -193,7 +193,7 @@ set_option hygiene false in
 scoped macro "lift_prio_proof " name:ident : term => `(
   fun h₁ h₂ h₃ => 
     $(Lean.mkIdentFrom name $ `Wellformed ++ name.getId) ‹_› (LawfulCoe.lower_obj?_some h₁) 
-    (LawfulCoe.lower_cmp?_eq_some .rcn h₂) (LawfulCoe.lower_cmp?_eq_some .rcn h₃)
+    (LawfulCoe.lower_cpt?_eq_some .rcn h₂) (LawfulCoe.lower_cpt?_eq_some .rcn h₃)
 )
 
 theorem lift [c : LawfulCoe α β] (wf : Wellformed (rtr : β)) : Wellformed rtr where
@@ -202,7 +202,7 @@ theorem lift [c : LawfulCoe α β] (wf : Wellformed (rtr : β)) : Wellformed rtr
   mutationPrio := lift_prio_proof mutationPrio
   acyclicDeps  := wf.acyclicDeps.lift (rtr := rtr)
   validDeps h₁ h₂ h₃ := 
-    wf.validDeps (c.lower_obj?_some h₁) (c.lower_cmp?_eq_some .rcn h₂) h₃ |>.lift
+    wf.validDeps (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ |>.lift
   uniqueInputs h₁ h₂ _ h₄ := 
     wf.uniqueInputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) ‹_› (c.lower_mem_obj?_ids h₄)
 

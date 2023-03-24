@@ -26,7 +26,7 @@ instance [Extensional α] [b : ReactorType.WellFounded β] [c : LawfulCoe α β]
 end WellFounded
 
 @[refl]
-theorem Member.Equivalent.refl [ReactorType.WellFounded α] {rtr : α} {cmp} {m : Member cmp i rtr} : 
+theorem Member.Equivalent.refl [ReactorType.WellFounded α] {rtr : α} {m : Member cpt i rtr} : 
     Equivalent m m := by
   induction rtr using ReactorType.WellFounded.induction
   case nest hi =>

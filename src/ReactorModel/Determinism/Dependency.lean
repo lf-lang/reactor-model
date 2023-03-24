@@ -27,8 +27,8 @@ theorem ne_rtr_or_pure :
   simp [not_or] at hp hc
   have he := Reactor.con?_eq_id_to_eq hc₁ hc₂ hc
   simp [he] at hc₁
-  have ⟨_, ho₁', hcm₁⟩ := Reactor.con?_to_obj?_and_cmp? hc₁
-  have ⟨_, ho₂', hcm₂⟩ := Reactor.con?_to_obj?_and_cmp? hc₂
+  have ⟨_, ho₁', hcm₁⟩ := Reactor.con?_to_obj?_and_cpt? hc₁
+  have ⟨_, ho₂', hcm₂⟩ := Reactor.con?_to_obj?_and_cpt? hc₂
   have ho₁'' := ho₁'.symm.trans ho₁
   have ho₂'' := ho₂'.symm.trans ho₂
   simp [ho₁'', ho₂''] at hcm₁ hcm₂

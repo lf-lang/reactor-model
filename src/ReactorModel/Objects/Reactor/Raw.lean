@@ -32,9 +32,9 @@ instance : LawfulCoe Reactor.Raw Reactor.Core where
 
 open Updatable LawfulUpdatable in
 instance : Updatable Reactor.Raw where
-  update rtr cmp i f := {
-    core := update rtr.core cmp i f
-    unique_ids := UniqueIDs.updated (lawful (α := Reactor.Core) rtr cmp i f) rtr.unique_ids
+  update rtr cpt i f := {
+    core := update rtr.core cpt i f
+    unique_ids := UniqueIDs.updated (lawful (α := Reactor.Core) rtr cpt i f) rtr.unique_ids
   }
 
 -- Note: From this we get `ReactorType.LawfulUpdatable Reactor.Raw`.

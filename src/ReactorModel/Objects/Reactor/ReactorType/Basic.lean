@@ -37,9 +37,9 @@ theorem LawfulCoe.coe_ext_iff [ReactorType α] [ReactorType β] [c : LawfulCoe �
 abbrev componentType [ReactorType α] : Component → Type
   | .rtr     => α 
   | .rcn     => Reaction
-  | .val cmp => cmp.type
+  | .val cpt => cpt.type
 
-abbrev cmp? [inst : ReactorType α] : (cmp : Component) → α → ID ⇀ inst.componentType cmp
+abbrev cpt? [inst : ReactorType α] : (cpt : Component) → α → ID ⇀ inst.componentType cpt
   | .rtr   => nest 
   | .rcn   => rcns
   | .prt k => (ports · k)
@@ -50,31 +50,31 @@ namespace LawfulCoe
 
 variable [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {rtr : α}
 
-instance {cmp} : Coe (a.componentType cmp) (b.componentType cmp) where
+instance : Coe (a.componentType cpt) (b.componentType cpt) where
   coe := 
-    match cmp with
+    match cpt with
     | .rcn | .prt _ | .act | .stv => id
     | .rtr => c.coe
 
-theorem lower_cmp?_eq_some (cmp) {o} (h : a.cmp? cmp rtr i = some o) : 
-    b.cmp? cmp rtr i = some ↑o := by
-  split <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
+theorem lower_cpt?_eq_some (cpt) {o} (h : a.cpt? cpt rtr i = some o) : 
+    b.cpt? cpt rtr i = some ↑o := by
+  split <;> simp_all [cpt?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
   simp [c.nest', Partial.map_val]
   exists o
 
-theorem lower_mem_cmp?_ids (cmp) (h : i ∈ (cmp? cmp rtr).ids) : i ∈ (cmp? cmp (rtr : β)).ids :=
-  ⟨h.choose, c.lower_cmp?_eq_some _ h.choose_spec⟩ 
+theorem lower_mem_cpt?_ids (cpt) (h : i ∈ (cpt? cpt rtr).ids) : i ∈ (cpt? cpt (rtr : β)).ids :=
+  ⟨h.choose, c.lower_cpt?_eq_some _ h.choose_spec⟩ 
 
-theorem lift_cmp?_eq_none (cmp) {i : ID} 
-    (h : b.cmp? cmp rtr i = none) : a.cmp? cmp rtr i = none := by
-  cases cmp <;> try cases ‹Component.Valued›
-  all_goals simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state] 
+theorem lift_cpt?_eq_none (cpt) {i : ID} 
+    (h : b.cpt? cpt rtr i = none) : a.cpt? cpt rtr i = none := by
+  cases cpt <;> try cases ‹Component.Valued›
+  all_goals simp_all [cpt?, ←c.rcns, ←c.ports, ←c.acts, ←c.state] 
   simp [c.nest', Partial.map_val] at h
   exact h
 
-theorem lift_cmp?_eq_some (cmp) {i : ID} {o : a.componentType cmp} 
-    (h : b.cmp? cmp rtr i = some ↑o) : a.cmp? cmp rtr i = some o := by
-  split at h <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
+theorem lift_cpt?_eq_some (cpt) {i : ID} {o : a.componentType cpt} 
+    (h : b.cpt? cpt rtr i = some ↑o) : a.cpt? cpt rtr i = some o := by
+  split at h <;> simp_all [cpt?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
   simp [c.nest', Partial.map_val] at h
   have ⟨_, _, h⟩ := h
   cases c.inj h
@@ -85,53 +85,53 @@ theorem lift_nest_eq_some {i : ID} (h : b.nest rtr i = some n₂) :
   simp [c.nest', Partial.map_val] at h
   exact h
 
--- Note: This theorem excludes `cmp = .rtr`, because that case is harder than the other cases and we
---       only ever use this theorem for `cmp = .act` anyway.
-theorem lift_mem_cmp?_ids (cmp) (h : i ∈ (b.cmp? cmp rtr).ids) (hc : cmp ≠ .rtr := by simp) : 
-    i ∈ (a.cmp? cmp rtr).ids := by
-  cases cmp <;> try cases ‹Component.Valued›  
+-- Note: This theorem excludes `cpt = .rtr`, because that case is harder than the other cases and we
+--       only ever use this theorem for `cpt = .act` anyway.
+theorem lift_mem_cpt?_ids (cpt) (h : i ∈ (b.cpt? cpt rtr).ids) (hc : cpt ≠ .rtr := by simp) : 
+    i ∈ (a.cpt? cpt rtr).ids := by
+  cases cpt <;> try cases ‹Component.Valued›  
   case rtr => contradiction
-  all_goals exact ⟨h.choose, c.lift_cmp?_eq_some _ h.choose_spec⟩ 
+  all_goals exact ⟨h.choose, c.lift_cpt?_eq_some _ h.choose_spec⟩ 
 
 end LawfulCoe
 
-inductive Member [ReactorType α] (cmp : Component) (i : ID) : α → Type _ 
-  | final : i ∈ (cmp? cmp rtr).ids → Member cmp i rtr
-  | nest : (nest rtr₁ j = some rtr₂) → (m : Member cmp i rtr₂) → Member cmp i rtr₁
+inductive Member [ReactorType α] (cpt : Component) (i : ID) : α → Type _ 
+  | final : i ∈ (cpt? cpt rtr).ids → Member cpt i rtr
+  | nest : (nest rtr₁ j = some rtr₂) → (m : Member cpt i rtr₂) → Member cpt i rtr₁
 
 namespace Member
 
-def fromLawfulCoe [ReactorType α] [ReactorType β] [c : LawfulCoe α β] 
-    {rtr : α} {cmp} : (Member cmp i rtr) → Member cmp i (rtr : β)
-  | final h  => final (c.lower_mem_cmp?_ids _ h)
-  | nest h m => nest (c.lower_cmp?_eq_some (cmp := .rtr) h) (fromLawfulCoe m)
+def fromLawfulCoe [ReactorType α] [ReactorType β] [c : LawfulCoe α β] {rtr : α} : 
+    (Member cpt i rtr) → Member cpt i (rtr : β)
+  | final h  => final (c.lower_mem_cpt?_ids _ h)
+  | nest h m => nest (c.lower_cpt?_eq_some (cpt := .rtr) h) (fromLawfulCoe m)
 
-variable [ReactorType α] [ReactorType β] {cmp : Component}
+variable [ReactorType α] [ReactorType β]
 
-instance [c : LawfulCoe α β] {rtr : α} : Coe (Member cmp i rtr) (Member cmp i (rtr : β)) where
+instance [c : LawfulCoe α β] {rtr : α} : Coe (Member cpt i rtr) (Member cpt i (rtr : β)) where
   coe := Member.fromLawfulCoe
 
-inductive Equivalent : {rtr₁ : α} → {rtr₂ : β} → (Member cmp i rtr₁) → (Member cmp i rtr₂) → Prop 
+inductive Equivalent : {rtr₁ : α} → {rtr₂ : β} → (Member cpt i rtr₁) → (Member cpt i rtr₂) → Prop 
   | final : Equivalent (.final h₁) (.final h₂)
-  | nest {n₁ : α} {n₂ : β} {m₁ : Member cmp i n₁} {m₂ : Member cmp i n₂} :
+  | nest {n₁ : α} {n₂ : β} {m₁ : Member cpt i n₁} {m₂ : Member cpt i n₂} :
     (h₁ : ReactorType.nest rtr₁ j = some n₁) → (h₂ : ReactorType.nest rtr₂ j = some n₂) → 
     (Equivalent m₁ m₂) → Equivalent (.nest h₁ m₁) (.nest h₂ m₂)
 
 namespace Equivalent
 
-theorem symm {rtr₁ : α} {rtr₂ : β} {cmp} {m₁ : Member cmp i rtr₁} {m₂ : Member cmp i rtr₂}
+theorem symm {rtr₁ : α} {rtr₂ : β} {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂}
     (e : Equivalent m₁ m₂) : (Equivalent m₂ m₁) := by
   induction e <;> constructor; assumption
 
 theorem trans 
     [ReactorType γ] {rtr₁ : α} {rtr₂ : β} {rtr₃ : γ}
-    {m₁ : Member cmp i rtr₁} {m₂ : Member cmp i rtr₂} {m₃ : Member cmp i rtr₃}
+    {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂} {m₃ : Member cpt i rtr₃}
     (e₁ : Equivalent m₁ m₂) (e₂ : Equivalent m₂ m₃) : (Equivalent m₁ m₃) := by
   induction e₁ generalizing m₃ rtr₃ <;> cases e₂ <;> constructor
   case nest.nest hi₁ _ _ _ _ hi₂ => exact hi₁ hi₂
 
 -- Lemma for `to_eq`.
-private theorem to_eq' {rtr₁ rtr₂ : α} {m₁ : Member cmp i rtr₁} {m₂ : Member cmp i rtr₂} 
+private theorem to_eq' {rtr₁ rtr₂ : α} {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂} 
     (h : rtr₁ = rtr₂) (e : Equivalent m₁ m₂) : m₁ = cast (by simp [h]) m₂ := by
   induction e <;> subst h
   case final => rfl
@@ -139,11 +139,11 @@ private theorem to_eq' {rtr₁ rtr₂ : α} {m₁ : Member cmp i rtr₁} {m₂ :
     injection h₁ ▸ h₂ with h
     simp [hi h, h]
 
-theorem to_eq {rtr : α} {m₁ m₂ : Member cmp i rtr} (e : Equivalent m₁ m₂) : m₁ = m₂ := 
+theorem to_eq {rtr : α} {m₁ m₂ : Member cpt i rtr} (e : Equivalent m₁ m₂) : m₁ = m₂ := 
   e.to_eq' rfl
     
-theorem from_lawfulCoe [LawfulCoe α β] {rtr : α} (m : Member cmp i rtr) : 
-    Equivalent m (m : Member cmp i (rtr : β)) := by
+theorem from_lawfulCoe [LawfulCoe α β] {rtr : α} (m : Member cpt i rtr) : 
+    Equivalent m (m : Member cpt i (rtr : β)) := by
   induction m
   case final => constructor
   case nest e => simp [fromLawfulCoe, Equivalent.nest _ _ e]

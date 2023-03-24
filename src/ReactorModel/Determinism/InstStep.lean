@@ -114,7 +114,7 @@ theorem InstStep.preserves_external_state :
   /-
   | skipReaction ..,        _,  _,   _,   _ => by simp_all
   | execReaction _ _ ho hs, hc, hc₁, hc₂, hi => by
-    apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cmp := .stv)
+    apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cpt := .stv)
     intro x hx
     have hm := Reactor.local_mem_exclusive hc₁ (Reactor.con?_to_rtr_obj? hc) hi.symm hx
     have hu := hs.preserves_unchanged_state (
@@ -172,11 +172,11 @@ theorem InstStep.indep_rcns_indep_output :
       simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.exec.preserves_tag]
     simp [H1, H2, H3] at hj
     have ⟨r, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
-    have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
-    have ⟨_, hr', _⟩ := Reactor.obj?_to_con?_and_cmp? hr
+    have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cpt? ho
+    have ⟨_, hr', _⟩ := Reactor.obj?_to_con?_and_cpt? hr
     cases hi.ne_rtr_or_pure hrne ho hr hc hr'
     case inl he => 
-      have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
+      have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cpt? ho'
       have hs := State.rcnInput_state_def hj hc
       have hs' := State.rcnInput_state_def hj' hc'
       have hq := h.exec.equiv
@@ -193,8 +193,8 @@ theorem InstStep.indep_rcns_indep_output :
         rw [ho'.symm.trans (h.exec.preserves_rcns ▸ ho)] at ho'
         exact State.rcnOutput_pure_congr hj hj' ho ho' hp'
       case inr hp' => 
-        have ⟨_, hco, _⟩ := Reactor.obj?_to_con?_and_cmp? ho
-        have ⟨_, hco', _⟩ := Reactor.obj?_to_con?_and_cmp? ho'
+        have ⟨_, hco, _⟩ := Reactor.obj?_to_con?_and_cpt? ho
+        have ⟨_, hco', _⟩ := Reactor.obj?_to_con?_and_cpt? ho'
         have hs := State.rcnInput_state_def hj hco
         have hs' := State.rcnInput_state_def hj' hco'
         suffices h : x = x' by 
@@ -202,7 +202,7 @@ theorem InstStep.indep_rcns_indep_output :
           exact State.rcnOutput_congr (hj.trans hj'.symm) hp
         rw [hs, hs']
         have he := h.exec.equiv
-        exact (he.con?_obj_equiv hco hco').obj?_ext (cmp := .stv) (by
+        exact (he.con?_obj_equiv hco hco').obj?_ext (cpt := .stv) (by
           intro j _
           have h := h.pure_preserves_state (j := j) hr hp'
           have hh := he.con?_id_eq hco hco'

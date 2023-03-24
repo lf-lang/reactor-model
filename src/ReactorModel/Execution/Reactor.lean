@@ -7,35 +7,33 @@ open ReactorType Updatable Indexable
 namespace Reactor
 
 -- TODO: Find a better name for this.
---       * ID rtr cmp
---       * Obj rtr cmp
 @[ext]
-structure Valid (rtr : Reactor) (cmp : Component) where
+structure Valid (rtr : Reactor) (cpt : Component) where
   id    : ID
-  valid : ∃ obj, rtr[cmp][id] = some obj
+  valid : ∃ obj, rtr[cpt][id] = some obj
 
 namespace Valid
 
-instance {cmp} : Coe (Valid rtr cmp) ID where
+instance : Coe (Valid rtr cpt) ID where
   coe := Valid.id
 
-def obj {cmp} (i : Valid rtr cmp) :=
+def obj (i : Valid rtr cpt) :=
   i.valid.choose
 
-theorem obj?_id_eq_obj {cmp} (i : Valid rtr cmp) : rtr[cmp][i] = i.obj :=
+theorem obj?_id_eq_obj (i : Valid rtr cpt) : rtr[cpt][i] = i.obj :=
   i.valid.choose_spec
 
-def con {cmp} (i : Valid rtr cmp) : Identified Reactor :=
-  obj?_to_con?_and_cmp? i.obj?_id_eq_obj |>.choose
+def con (i : Valid rtr cpt) : Identified Reactor :=
+  obj?_to_con?_and_cpt? i.obj?_id_eq_obj |>.choose
 
-theorem con?_id_eq_con {cmp} (i : Valid rtr cmp) : rtr[cmp][i]& = i.con :=
-  obj?_to_con?_and_cmp? i.obj?_id_eq_obj |>.choose_spec.left
+theorem con?_id_eq_con (i : Valid rtr cpt) : rtr[cpt][i]& = i.con :=
+  obj?_to_con?_and_cpt? i.obj?_id_eq_obj |>.choose_spec.left
 
-def equiv {cmp} (i : Valid rtr₁ cmp) (e : rtr₁ ≈ rtr₂) : Valid rtr₂ cmp where
+def equiv (i : Valid rtr₁ cpt) (e : rtr₁ ≈ rtr₂) : Valid rtr₂ cpt where
   id := i.id
   valid := Equivalent.obj?_some_iff e |>.mp i.valid
 
-theorem equiv_id_eq {cmp} (i : Valid rtr₁ cmp) : (i.equiv e).id = i.id :=
+theorem equiv_id_eq (i : Valid rtr₁ cpt) : (i.equiv e).id = i.id :=
   rfl
 
 end Valid 
@@ -67,8 +65,8 @@ scoped macro "change_cases " change:term : tactic =>
 theorem apply_equiv (rtr : Reactor) (c : Change) : rtr.apply c ≈ rtr := by
   change_cases c <;> first | rfl | apply LawfulUpdatable.equiv
 
-theorem apply_preserves_unchanged {cmp} (rtr : Reactor) (c : Change) (h : ¬c.Targets cmp i) :
-    (rtr.apply c)[cmp][i] = rtr[cmp][i] := by
+theorem apply_preserves_unchanged (rtr : Reactor) (c : Change) (h : ¬c.Targets cpt i) :
+    (rtr.apply c)[cpt][i] = rtr[cpt][i] := by
   change_cases c <;> first | rfl | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
 
 theorem apply_port_change {rtr : Reactor} {i : rtr.Valid $ .prt k} : 

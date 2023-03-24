@@ -31,9 +31,9 @@ abbrev idType : Component → Type
   | rtr => RootedID
   | _   => ID
 
-instance {cmp : Component} : Coe ID cmp.idType where
+instance {cpt : Component} : Coe ID cpt.idType where
   coe i :=
-    match cmp with
+    match cpt with
     | .rtr => .nest i
     | .rcn | .val _ => i
 

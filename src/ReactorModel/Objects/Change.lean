@@ -9,9 +9,9 @@ abbrev Reactor.Component.Valued.changeType : Component.Valued → Type
 namespace Change
 
 protected structure Normal where
-  cmp   : Component.Valued
+  cpt   : Component.Valued
   id    : ID
-  value : cmp.changeType
+  value : cpt.changeType
 
 opaque Reactor.Class : Type
 
@@ -37,20 +37,20 @@ instance : Coe Change.Mutation Change where
 
 @[match_pattern]
 abbrev prt (k : Kind) (i : ID) (v : Value) : Change :=
-  .norm $ { cmp := .prt k, id := i, value := v }
+  .norm $ { cpt := .prt k, id := i, value := v }
 
 @[match_pattern]
 abbrev stv (i : ID) (v : Value) : Change :=
-  .norm $ { cmp := .stv, id := i, value := v }
+  .norm $ { cpt := .stv, id := i, value := v }
 
 @[match_pattern]
 abbrev act (i : ID) (t : Time) (v : Value) : Change :=
-  .norm $ { cmp := .act, id := i, value := (t, v) }
+  .norm $ { cpt := .act, id := i, value := (t, v) }
 
 inductive Targets : Change → Component.Valued → ID → Prop
-  | intro {cmp v} : Targets (norm ⟨cmp, i, v⟩) cmp i
+  | intro : Targets (norm ⟨cpt, i, v⟩) cpt i
 
-theorem Targets.norm_not {cmp} (h : ¬Targets (norm ⟨c, j, v⟩) cmp i) : cmp ≠ c ∨ i ≠ j := by
+theorem Targets.norm_not (h : ¬Targets (norm ⟨c, j, v⟩) cpt i) : cpt ≠ c ∨ i ≠ j := by
   by_contra hc
   simp [not_or] at hc
   exact absurd .intro (hc.left ▸ hc.right ▸ h)
