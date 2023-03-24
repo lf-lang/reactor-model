@@ -24,4 +24,14 @@ instance [Extensional α] [b : ReactorType.WellFounded β] [c : LawfulCoe α β]
     exact ⟨fun ⟨_, ⟨_, hn, h⟩⟩ => ⟨_, c.inj h ▸ hn⟩, fun ⟨i, h⟩ => ⟨i, rtr₁, by simp [h]⟩⟩  
 
 end WellFounded
+
+@[refl]
+theorem Member.Equivalent.refl [ReactorType.WellFounded α] {rtr : α} {cmp} {m : Member cmp i rtr} : 
+    Equivalent m m := by
+  induction rtr using ReactorType.WellFounded.induction
+  case nest hi =>
+    cases m
+    case final  => exact .final
+    case nest h => exact .nest _ _ (hi _ ⟨_, h⟩)
+
 namespace ReactorType

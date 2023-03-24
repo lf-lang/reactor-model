@@ -161,22 +161,34 @@ variable {rtr₁ : α}
 
 def fromLawfulUpdate {cmp i f} (m : Member c j rtr₂) :
     (LawfulUpdate cmp i f rtr₁ rtr₂) → Member c j rtr₁
-  | .notMem .. => m
+  | .notMem _ => m
   | .update u => m.fromLawfulMemUpdate u
 
 theorem Equivalent.from_lawfulMemUpdate 
     {cmp i f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
     Equivalent m (m.fromLawfulMemUpdate u) := by
-  sorry
+  induction u <;> cases m <;> (simp [fromLawfulMemUpdate]; try exact .final)
+  case final.nest e _ _ j _ _ hn => 
+    have h := e (c := .rtr) (j := j) (.inl $ by simp)
+    simp [cmp?] at h
+    exact .nest hn (h ▸ hn) .refl
+  case nest.nest e h₁ h₂ _ hi _ _ m hn =>
+    split
+    case inl hj =>
+      subst hj
+      cases Option.some_inj.mp $ hn.symm.trans h₂
+      exact .nest hn h₁ (hi m)
+    case inr hj =>
+      have h := e (c := .rtr) (.inr hj)
+      simp [cmp?] at h
+      exact .nest hn (h.symm ▸ hn) .refl
 
 theorem Equivalent.from_lawfulUpdate 
     {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
     Equivalent m (m.fromLawfulUpdate u) := by
   cases u
-  case notMem => rfl
-  case update u => 
-    have := Equivalent.from_lawfulMemUpdate u m 
-    sorry
-
+  case notMem   => rfl
+  case update u => exact Equivalent.from_lawfulMemUpdate u m 
+    
 end Member
 end ReactorType
