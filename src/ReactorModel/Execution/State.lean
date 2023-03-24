@@ -31,24 +31,23 @@ structure Allows (s : State) (rcn : ID) : Prop where
 theorem Allows.acyclic {s : State} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   fun hc => absurd (a.deps hc) a.unprocessed
 
-def input (s : State) (rcn : s.rtr.Valid .rcn) : Reaction.Input where
+def input (s : State) (rcn : s.rtr.Valid .rcn) : Reaction.Input := 
+  { ports := (ports ·), acts := acts, state := state, tag := s.tag }
+where
+  state   := rcn.con.obj.state
   ports k := s.rtr[.prt k].restrict { i | .port k i ∈ rcn.obj.deps .in }
   acts    := s.rtr[.act].restrict { i | .action i ∈ rcn.obj.deps .in } |>.filterMap (·.lookup s.tag)
-  state   := rcn.con.obj.state
-  tag     := s.tag
   
 def Triggers (s : State) (rcn : s.rtr.Valid .rcn) : Prop :=
   rcn.obj.TriggersOn (s.input rcn)
 
 theorem Triggers.progress_agnostic 
-    (h : Triggers s₁ ⟨i, h₁⟩) (hr : s₁.rtr = s₂.rtr) (ht : s₁.tag = s₂.tag) : Triggers s₂ ⟨i, h₂⟩ :=
+    (h : Triggers s₁ ⟨i, h₁⟩) (hr : s₁.rtr = s₂.rtr) (ht : s₁.tag = s₂.tag) : 
+    ∃ h₂, Triggers s₂ ⟨i, h₂⟩ :=
   sorry
 
 def exec (s : State) (rcn : s.rtr.Valid .rcn) : State :=
   { s with rtr := s.rtr.apply' $ rcn.obj (s.input rcn) }  
-
-theorem exec_equiv (s : State) (rcn : s.rtr.Valid .rcn) : (s.exec rcn).rtr ≈ s.rtr := 
-  Reactor.apply'_equiv _ _
 
 def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
   { s with progress := s.progress.insert rcn }

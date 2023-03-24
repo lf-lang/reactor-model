@@ -29,7 +29,11 @@ def con (i : Valid rtr cpt) : Identified Reactor :=
 theorem con?_id_eq_con (i : Valid rtr cpt) : rtr[cpt][i]& = i.con :=
   obj?_to_con?_and_cpt? i.obj?_id_eq_obj |>.choose_spec.left
 
-def equiv (i : Valid rtr₁ cpt) (e : rtr₁ ≈ rtr₂) : Valid rtr₂ cpt where
+set_option hygiene false in
+scoped macro "equiv_default_proof" : tactic =>
+  `(tactic| exact Execution.State.exec_equiv)
+
+def equiv (i : Valid rtr₁ cpt) (e : rtr₁ ≈ rtr₂ := by equiv_default_proof) : Valid rtr₂ cpt where
   id := i.id
   valid := Equivalent.obj?_some_iff e |>.mp i.valid
 
@@ -85,7 +89,7 @@ theorem apply_action_change {rtr : Reactor} {i : rtr.Valid $ .act} :
   exact ⟨_, ⟨i.valid.choose_spec, rfl⟩⟩ 
 
 theorem apply'_equiv (rtr : Reactor) : (cs : List Change) → rtr.apply' cs ≈ rtr 
-  | .nil     => .refl
+  | .nil        => .refl
   | .cons hd tl => Equivalent.trans (rtr.apply hd |>.apply'_equiv tl) (apply_equiv rtr hd)
 
 /-

@@ -1,4 +1,4 @@
-import ReactorModel.Determinism.Dependency
+import ReactorModel.Determinism.State
 
 open Classical ReactorType
 
@@ -126,92 +126,6 @@ theorem InstStep.preserves_external_state :
     )
     exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
   -/
- 
-    /-
-theorem InstStep.indep_rcns_indep_output :
-  (e : s ⇓ᵢ s') → (rcn' <[s.rtr]> e.rcn) → (rcn' ≠ e.rcn) → s.output rcn' = s'.rcnOutput rcn' := by
-  intro h hi hrne
-  have hp := h.exec.preserves_rcns
-  cases ho : s.rtr[.rcn][rcn'] <;> cases ho' : s'.rtr[.rcn][rcn']
-  case none.none => simp [State.rcnOutput, ho, ho']
-  case' none.some, some.none => simp [hp, ho'] at ho
-  case some.some => 
-    have ⟨⟨p, a, x, t⟩, hj⟩ := State.rcnInput_iff_obj?.mpr ⟨_, ho⟩
-    have ⟨⟨p', a', x', t'⟩, hj'⟩ := State.rcnInput_iff_obj?.mpr ⟨_, ho'⟩
-    have H1 : p = p' := by 
-      simp [s.rcnInput_ports_def hj ho, s'.rcnInput_ports_def hj' ho']
-      rw [←hp] at ho'
-      have he := Option.some_inj.mp $ ho.symm.trans ho'
-      simp [he]
-      sorry
-    sorry
-      
-      refine congr_arg₂ _ ?_ rfl
-      apply Finmap.restrict_ext
-      intro p hp
-      have ⟨_, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
-      have hd := hi.symm.nonoverlapping_deps hr ho'
-      simp [Finset.eq_empty_iff_forall_not_mem, Finset.mem_inter] at hd
-      have hd := mt (hd p) $ not_not.mpr hp
-      simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_ports hr hd]
-    have H2 : a = a' := by
-      simp [s.rcnInput_actions_def hj ho, s'.rcnInput_actions_def hj' ho']
-      rw [←hp] at ho'
-      have he := Option.some_inj.mp $ ho.symm.trans ho'
-      simp [he]
-      apply Finmap.restrict_ext
-      intro a ha
-      simp [h.preserves_tag]
-      apply Finmap.filterMap_congr
-      have ⟨_, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
-      have hd := hi.symm.nonoverlapping_deps hr ho'
-      simp [Finset.eq_empty_iff_forall_not_mem, Finset.mem_inter] at hd
-      have hd := mt (hd a) $ not_not.mpr ha
-      simp [Reactor.obj?'_eq_obj?, h.preserves_nondep_actions hr hd]
-    have H3 : t = t' := by 
-      simp [s.rcnInput_time_def hj, s'.rcnInput_time_def hj', h.exec.preserves_tag]
-    simp [H1, H2, H3] at hj
-    have ⟨r, hr⟩ := Reactor.contains_iff_obj?.mp h.rtr_contains_rcn
-    have ⟨_, hc, _⟩ := Reactor.obj?_to_con?_and_cpt? ho
-    have ⟨_, hr', _⟩ := Reactor.obj?_to_con?_and_cpt? hr
-    cases hi.ne_rtr_or_pure hrne ho hr hc hr'
-    case inl he => 
-      have ⟨_, hc', _⟩ := Reactor.obj?_to_con?_and_cpt? ho'
-      have hs := State.rcnInput_state_def hj hc
-      have hs' := State.rcnInput_state_def hj' hc'
-      have hq := h.exec.equiv
-      have hh := hq.con?_id_eq hc hc'
-      have hc := Reactor.con?_to_rtr_obj? hc
-      have hc' := Reactor.con?_to_rtr_obj? hc'
-      rw [←hh] at hc'
-      rw [h.preserves_external_state hr' hc hc' he.symm] at hs
-      rw [hs.trans hs'.symm] at hj
-      exact State.rcnOutput_congr (hj.trans hj'.symm) hp
-    case inr hc =>
-      cases hc
-      case inl hp' => 
-        rw [ho'.symm.trans (h.exec.preserves_rcns ▸ ho)] at ho'
-        exact State.rcnOutput_pure_congr hj hj' ho ho' hp'
-      case inr hp' => 
-        have ⟨_, hco, _⟩ := Reactor.obj?_to_con?_and_cpt? ho
-        have ⟨_, hco', _⟩ := Reactor.obj?_to_con?_and_cpt? ho'
-        have hs := State.rcnInput_state_def hj hco
-        have hs' := State.rcnInput_state_def hj' hco'
-        suffices h : x = x' by 
-          rw [h] at hj
-          exact State.rcnOutput_congr (hj.trans hj'.symm) hp
-        rw [hs, hs']
-        have he := h.exec.equiv
-        exact (he.con?_obj_equiv hco hco').obj?_ext (cpt := .stv) (by
-          intro j _
-          have h := h.pure_preserves_state (j := j) hr hp'
-          have hh := he.con?_id_eq hco hco'
-          have hco := Reactor.con?_to_rtr_obj? hco
-          have hco' := Reactor.con?_to_rtr_obj? hco'
-          rw [←hh] at hco'
-          exact he.eq_obj?_nest h hco hco' 
-        )
-    -/
 
 namespace InstStep
 
@@ -231,7 +145,7 @@ theorem Skip.triggers_iff (e : s₁ ⇓ₛ s₂) : (s₁.Triggers ⟨i, h₁⟩)
     constructor
     all_goals
       intro h
-      exact h.progress_agnostic (s₁.record_preserves_rtr rcn) (s₁.record_preserves_tag rcn)
+      exact h.progress_agnostic (s₁.record_preserves_rtr rcn) (s₁.record_preserves_tag rcn) |>.choose_spec
 
 theorem Skip.mem_progress_iff (e : s₁ ⇓ₛ s₂) : 
     (rcn' ∈ s₂.progress) ↔ (rcn' = e.rcn ∨ rcn' ∈ s₁.progress) := by
@@ -272,7 +186,7 @@ theorem Skip.swap_indep (e₁ : s₁ ⇓ₛ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h :
     exists _, exec e₁', e₂'
 
 theorem Exec.equiv : (s₁ ⇓ₑ s₂) → s₁.rtr ≈ s₂.rtr
-  | mk .. => by simp [State.record_preserves_rtr, Equivalent.symm $ s₁.exec_equiv _]
+  | mk .. => by simp [State.record_preserves_rtr, s₁.exec_equiv]
 
 theorem Exec.progress_eq : (e : s₁ ⇓ₑ s₂) → s₂.progress = s₁.progress.insert e.rcn.id
   | mk .. => rfl

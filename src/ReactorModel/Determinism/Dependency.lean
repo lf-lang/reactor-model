@@ -15,11 +15,8 @@ theorem nonoverlapping_deps :
   (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
   sorry -- exact absurd (ReactorType.Dependency.depOverlap ho₁ ho₂ $ Finset.nonempty_of_ne_empty hc) hi
  
-theorem ne_rtr_or_pure : 
-  (i₁ ≮[σ] i₂) → (i₁ ≠ i₂) →
-  (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
-  (σ[.rcn][i₁]& = some c₁) → (σ[.rcn][i₂]& = some c₂) →
-  (c₁.id ≠ c₂.id) ∨ rcn₁.Pure ∨ rcn₂.Pure := by
+theorem ne_con_or_pure {rcn₁ rcn₂ : rtr.Valid .rcn} (hi : rcn₁ ≮[rtr] rcn₂) (hn : rcn₁ ≠ rcn₂) :
+    (rcn₁.con.id ≠ rcn₂.con.id) ∨ rcn₁.obj.Pure ∨ rcn₂.obj.Pure := by
   sorry
   /-intro h hn ho₁ ho₂ hc₁ hc₂ 
   by_contra hc
