@@ -9,16 +9,16 @@ def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
 
 theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
     (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
-  allEq l₁ l₂ :=
-    h.allEq (.fromLawfulCoe l₁) (.fromLawfulCoe l₂) ▸ Member.Equivalent.from_lawfulCoe l₁ 
-      |>.trans (Member.Equivalent.from_lawfulCoe l₂).symm 
+  allEq m₁ m₂ :=
+    h.allEq (.fromLawfulCoe m₁) (.fromLawfulCoe m₂) ▸ Member.Equivalent.from_lawfulCoe m₁ 
+      |>.trans (Member.Equivalent.from_lawfulCoe m₂).symm 
       |>.to_eq
 
-theorem UniqueIDs.updated [ReactorType α] {rtr₁ rtr₂ : α} {cmp i f} 
+theorem UniqueIDs.updated [ReactorType.WellFounded α] {rtr₁ rtr₂ : α} {cmp i f} 
     (u : LawfulUpdate cmp i f rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
-  allEq l₁ l₂ := open Member in
-    h.allEq (.fromLawfulUpdate u l₁) (.fromLawfulUpdate u l₂) ▸ Equivalent.from_lawfulUpdate u l₁ 
-      |>.trans (Equivalent.from_lawfulUpdate u l₂).symm 
+  allEq m₁ m₂ := open Member in
+    h.allEq (.fromLawfulUpdate m₁ u) (.fromLawfulUpdate m₂ u) ▸ Equivalent.from_lawfulUpdate u m₁ 
+      |>.trans (Equivalent.from_lawfulUpdate u m₂).symm 
       |>.to_eq
 
 class Indexable (α) extends LawfulUpdatable α where
@@ -251,12 +251,12 @@ variable [Indexable α] {rtr₁ : α}
 
 theorem obj?_preserved {cmp f} (h : c ≠ cmp ∨ j ≠ i) : 
     (LawfulUpdate cmp i f rtr₁ rtr₂) → rtr₂[c][j] = rtr₁[c][j]
-  | update u => u.obj?_preserved h
-  | notMem _ => rfl
+  | update u   => u.obj?_preserved h
+  | notMem _ h => h ▸ rfl
 
 theorem obj?_updated {cmp f} : (LawfulUpdate cmp i f rtr₁ rtr₂) → rtr₂[cmp][i] = f <$> rtr₁[cmp][i]
   | update u => u.obj?_updated
-  | notMem h => by have h := member_isEmpty_obj?_none h; simp at h; simp [h]
+  | notMem h e => by subst e; have h := member_isEmpty_obj?_none h; simp at h; simp [h]
 
 end LawfulUpdate
 
@@ -296,10 +296,6 @@ theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n�
 
 theorem obj?_some_iff {cmp i} (e : rtr₁ ≈ rtr₂) :
     (∃ o₁, rtr₁[cmp][i] = some o₁) ↔ (∃ o₂, rtr₂[cmp][i] = some o₂) := 
-  sorry
-
-theorem obj?_none_iff {cmp i} (e : rtr₁ ≈ rtr₂) : 
-    (rtr₁[cmp][i] = none) ↔ (rtr₂[cmp][i] = none) := by 
   sorry
 
 end Equivalent

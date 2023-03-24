@@ -36,7 +36,7 @@ protected theorem symm (e : rtr₁ ≈ rtr₂) : rtr₂ ≈ rtr₁ := by
     · exact h₁ ‹_› |>.symm
     · exact h₂ ‹_› ‹_› |>.symm
     · exact hi ‹_› ‹_›
-
+ 
 @[trans]
 protected theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : rtr₁ ≈ rtr₃ := by
   induction e₁ generalizing rtr₃; cases e₂
@@ -128,8 +128,8 @@ theorem LawfulMemUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f}
 
 theorem LawfulUpdate.equiv [ReactorType.WellFounded α] {rtr₁ : α} {cmp f} :
     (LawfulUpdate cmp i f rtr₁ rtr₂) → rtr₁ ≈ rtr₂
-  | notMem .. => .refl
-  | update u  => u.equiv
+  | notMem _ h => h ▸ .refl
+  | update u   => u.equiv
 
 theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} {cmp f} : 
     (Updatable.update rtr cmp i f) ≈ rtr := 
@@ -161,8 +161,8 @@ variable {rtr₁ : α}
 
 def fromLawfulUpdate {cmp i f} (m : Member c j rtr₂) :
     (LawfulUpdate cmp i f rtr₁ rtr₂) → Member c j rtr₁
-  | .notMem _ => m
-  | .update u => m.fromLawfulMemUpdate u
+  | .notMem _ h => h ▸ m
+  | .update u   => m.fromLawfulMemUpdate u
 
 theorem Equivalent.from_lawfulMemUpdate 
     {cmp i f} (u : LawfulMemUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
@@ -187,8 +187,8 @@ theorem Equivalent.from_lawfulUpdate
     {cmp i f} (u : LawfulUpdate cmp i f rtr₁ rtr₂) (m : Member c j rtr₂) : 
     Equivalent m (m.fromLawfulUpdate u) := by
   cases u
-  case notMem   => rfl
-  case update u => exact Equivalent.from_lawfulMemUpdate u m 
+  case notMem _ h => cases h; rfl
+  case update u   => exact Equivalent.from_lawfulMemUpdate u m 
     
 end Member
 end ReactorType

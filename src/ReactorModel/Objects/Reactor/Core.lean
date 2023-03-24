@@ -95,11 +95,10 @@ def update (rtr : Reactor.Core) (cmp : Component.Valued) (i : ID) (f : cmp.type 
 
 instance : ReactorType.LawfulUpdatable Reactor.Core where
   update := update
-  lawful rtr cmp i f := by
-    simp [update]
-    split
-    case inr h => simp at h; exact .notMem h
-    case inl h => exact .update $ updateMem_lawfulMemUpdate h.some f
+  lawful rtr cmp i f := 
+    if h : Nonempty (Member (Component.val cmp) i rtr) 
+    then .update $ by simp [update, h]; exact updateMem_lawfulMemUpdate h.some f
+    else .notMem (not_nonempty_iff.mp h) $ by simp [update, h]
 
 end Update
 end Core

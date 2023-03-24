@@ -65,6 +65,13 @@ theorem lower_cmp?_eq_some (cmp) {o} (h : a.cmp? cmp rtr i = some o) :
 theorem lower_mem_cmp?_ids (cmp) (h : i ∈ (cmp? cmp rtr).ids) : i ∈ (cmp? cmp (rtr : β)).ids :=
   ⟨h.choose, c.lower_cmp?_eq_some _ h.choose_spec⟩ 
 
+theorem lift_cmp?_eq_none (cmp) {i : ID} 
+    (h : b.cmp? cmp rtr i = none) : a.cmp? cmp rtr i = none := by
+  cases cmp <;> try cases ‹Component.Valued›
+  all_goals simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state] 
+  simp [c.nest', Partial.map_val] at h
+  exact h
+
 theorem lift_cmp?_eq_some (cmp) {i : ID} {o : a.componentType cmp} 
     (h : b.cmp? cmp rtr i = some ↑o) : a.cmp? cmp rtr i = some o := by
   split at h <;> simp_all [cmp?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
@@ -72,6 +79,11 @@ theorem lift_cmp?_eq_some (cmp) {i : ID} {o : a.componentType cmp}
   have ⟨_, _, h⟩ := h
   cases c.inj h
   assumption
+
+theorem lift_nest_eq_some {i : ID} (h : b.nest rtr i = some n₂) : 
+    ∃ n₁, (a.nest rtr i = some n₁) ∧ ((n₁ : β) = n₂) := by
+  simp [c.nest', Partial.map_val] at h
+  exact h
 
 -- Note: This theorem excludes `cmp = .rtr`, because that case is harder than the other cases and we
 --       only ever use this theorem for `cmp = .act` anyway.
