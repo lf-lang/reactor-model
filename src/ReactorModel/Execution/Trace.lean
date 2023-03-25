@@ -5,11 +5,11 @@ open Classical
 namespace Execution
 
 inductive InstStep.Skip : State → State → Type  
-  | mk : (s.Allows rcn.id) → (¬s.Triggers rcn) → Skip s (s.record rcn.id)
+  | mk : (s.Allows rcn) → (¬s.Triggers rcn) → Skip s (s.record rcn)
 
 notation s₁:max " ⇓ₛ " s₂:max => InstStep.Skip s₁ s₂
 
-def InstStep.Skip.rcn : (s₁ ⇓ₛ s₂) → s₁.rtr.Valid .rcn
+def InstStep.Skip.rcn : (s₁ ⇓ₛ s₂) → ID
   | mk (rcn := rcn) .. => rcn
 
 def InstStep.Skip.allows_rcn : (e : s₁ ⇓ₛ s₂) → s₁.Allows e.rcn
@@ -19,11 +19,11 @@ def InstStep.Skip.not_triggers : (e : s₁ ⇓ₛ s₂) → ¬s₁.Triggers e.rc
   | mk _ h => h
 
 inductive InstStep.Exec : State → State → Type  
-  | mk : (s.Allows rcn.id) → (s.Triggers rcn) → Exec s (s.exec rcn |>.record rcn.id)
+  | mk : (s.Allows rcn) → (s.Triggers rcn) → Exec s (s.exec rcn |>.record rcn)
 
 notation s₁:max " ⇓ₑ " s₂:max => InstStep.Exec s₁ s₂
 
-def InstStep.Exec.rcn : (s₁ ⇓ₑ s₂) → s₁.rtr.Valid .rcn
+def InstStep.Exec.rcn : (s₁ ⇓ₑ s₂) → ID
   | mk (rcn := rcn) .. => rcn
 
 def InstStep.Exec.allows_rcn : (e : s₁ ⇓ₑ s₂) → s₁.Allows e.rcn
@@ -35,7 +35,7 @@ inductive InstStep (s₁ s₂ : State)
 
 notation s₁:max " ⇓ᵢ " s₂:max => InstStep s₁ s₂
 
-def InstStep.rcn : (s₁ ⇓ᵢ s₂) → s₁.rtr.Valid .rcn
+def InstStep.rcn : (s₁ ⇓ᵢ s₂) → ID
   | skip e | exec e => e.rcn
 
 def InstStep.allows_rcn : (e : s₁ ⇓ᵢ s₂) → s₁.Allows e.rcn

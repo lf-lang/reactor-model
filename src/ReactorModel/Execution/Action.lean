@@ -1,4 +1,5 @@
 import ReactorModel.Primitives
+import Mathlib.Data.Finset.Lattice
 
 namespace Action
 

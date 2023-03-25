@@ -6,42 +6,6 @@ open ReactorType Updatable Indexable
 
 namespace Reactor
 
--- TODO: Find a better name for this.
-@[ext]
-structure Valid (rtr : Reactor) (cpt : Component) where
-  id    : ID
-  valid : ∃ obj, rtr[cpt][id] = some obj
-
-namespace Valid
-
-instance : Coe (Valid rtr cpt) ID where
-  coe := Valid.id
-
-def obj (i : Valid rtr cpt) :=
-  i.valid.choose
-
-theorem obj?_id_eq_obj (i : Valid rtr cpt) : rtr[cpt][i] = i.obj :=
-  i.valid.choose_spec
-
-def con (i : Valid rtr cpt) : Identified Reactor :=
-  obj?_to_con?_and_cpt? i.obj?_id_eq_obj |>.choose
-
-theorem con?_id_eq_con (i : Valid rtr cpt) : rtr[cpt][i]& = i.con :=
-  obj?_to_con?_and_cpt? i.obj?_id_eq_obj |>.choose_spec.left
-
-set_option hygiene false in
-scoped macro "equiv_default_proof" : tactic =>
-  `(tactic| exact Execution.State.exec_equiv)
-
-def equiv (i : Valid rtr₁ cpt) (e : rtr₁ ≈ rtr₂ := by equiv_default_proof) : Valid rtr₂ cpt where
-  id := i.id
-  valid := Equivalent.obj?_some_iff e |>.mp i.valid
-
-theorem equiv_id_eq (i : Valid rtr₁ cpt) : (i.equiv e).id = i.id :=
-  rfl
-
-end Valid 
-
 def dependencies (rtr : Reactor) (rcn : ID) : Set ID := 
   { rcn' | rcn' <[rtr] rcn }
 
@@ -69,28 +33,32 @@ scoped macro "change_cases " change:term : tactic =>
 theorem apply_equiv (rtr : Reactor) (c : Change) : rtr.apply c ≈ rtr := by
   change_cases c <;> first | rfl | apply LawfulUpdatable.equiv
 
-theorem apply_preserves_unchanged (rtr : Reactor) (c : Change) (h : ¬c.Targets cpt i) :
+theorem apply_preserves_unchanged {c : Change} (rtr : Reactor) (h : ¬c.Targets cpt i) :
     (rtr.apply c)[cpt][i] = rtr[cpt][i] := by
   change_cases c <;> first | rfl | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
 
-theorem apply_port_change {rtr : Reactor} {i : rtr.Valid $ .prt k} : 
+theorem apply_port_change {rtr : Reactor} (h : i ∈ rtr[.prt k]) : 
     (rtr.apply $ .prt k i v)[.prt k][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  exact i.valid
+  exact h
 
-theorem apply_state_change {rtr : Reactor} {i : rtr.Valid $ .stv} : 
+theorem apply_state_change {rtr : Reactor} (h : i ∈ rtr[.stv]) : 
     (rtr.apply $ .stv i v)[.stv][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  exact i.valid
+  exact h
 
-theorem apply_action_change {rtr : Reactor} {i : rtr.Valid $ .act} : 
-    (rtr.apply $ .act i t v)[.act][i] = some (i.obj.schedule t v) := by
+theorem apply_action_change {rtr : Reactor} (h : rtr[.act][i] = some a) : 
+    (rtr.apply $ .act i t v)[.act][i] = some (a.schedule t v) := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  exact ⟨_, ⟨i.valid.choose_spec, rfl⟩⟩ 
+  exact ⟨_, ⟨h, rfl⟩⟩ 
 
 theorem apply'_equiv (rtr : Reactor) : (cs : List Change) → rtr.apply' cs ≈ rtr 
   | .nil        => .refl
   | .cons hd tl => Equivalent.trans (rtr.apply hd |>.apply'_equiv tl) (apply_equiv rtr hd)
+
+theorem apply'_preserves_unchanged (rtr : Reactor) (cs : List Change) (cpt : Component.Valued) (i)
+    (h : cs.All₂ (¬·.Targets cpt i)) : (rtr.apply' cs)[cpt][i] = rtr[cpt][i] := by
+  sorry
 
 /-
 -- Note: `ho₁` and `e` imply that there exists some `a₂` such that `ho₂`.
@@ -124,7 +92,7 @@ theorem preserves_action_at_unchanged_times
     have ht := Change.IsActionₜ.not_to_ne_ids_or_ne_time hc
     exact e.action_preserves_action_at_unchanged_times ht ho₁ ho₂
   all_goals
-    injection ho₁ ▸ ho₂ ▸ e.preserves_unchanged_action with h
+    injection ho₁ ▸ ho₂ ▸ e.preserves_unchanged_action with h  
     simp [h]
 
 -- This theorem upgrades `preserves_action_at_unchanged_times`.

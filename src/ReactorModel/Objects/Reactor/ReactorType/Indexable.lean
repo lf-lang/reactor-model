@@ -1,5 +1,8 @@
 import ReactorModel.Objects.Reactor.ReactorType.Equivalent
+import Mathlib.Tactic.Set
 
+noncomputable section
+open Classical
 open Reactor (Component)
 
 namespace ReactorType
@@ -57,15 +60,15 @@ namespace Indexable
 instance [LawfulUpdatable α] [ind : Indexable β] [LawfulCoe α β] : Indexable α where
   unique_ids := UniqueIDs.lift ind.unique_ids 
 
-open Classical in
-noncomputable def con? [Indexable α] (rtr : α) (cpt : Component) : ID ⇀ Identified α := 
+variable [a : Indexable α]
+
+def con? (rtr : α) (cpt : Component) : ID ⇀ Identified α := 
   fun i => if m : Nonempty (Member cpt i rtr) then m.some.container else none
 
 notation rtr "[" cpt "]&"        => ReactorType.Indexable.con? rtr cpt
 notation rtr "[" cpt "][" i "]&" => ReactorType.Indexable.con? rtr cpt i
 
-noncomputable def obj? [a : Indexable α] (rtr : α) : 
-    (cpt : Component) → cpt.idType ⇀ a.componentType cpt
+def obj? (rtr : α) : (cpt : Component) → cpt.idType ⇀ a.componentType cpt
   | .val cpt, i       => rtr[.val cpt][i]& >>= (cpt? (.val cpt) ·.obj i)
   | .rcn,     i       => rtr[.rcn][i]&     >>= (cpt? .rcn       ·.obj i)
   | .rtr,     .nest i => rtr[.rtr][i]&     >>= (cpt? .rtr       ·.obj i)
@@ -74,7 +77,15 @@ noncomputable def obj? [a : Indexable α] (rtr : α) :
 notation (priority := 1001) rtr "[" cpt "]" => ReactorType.Indexable.obj? rtr cpt
 notation rtr "[" cpt "][" i "]"             => ReactorType.Indexable.obj? rtr cpt i
 
-variable [a : Indexable α] {rtr rtr₁ : α}
+variable {rtr rtr₁ : α}
+
+def obj' (rtr : α) {cpt : Component} {i : cpt.idType} (h : i ∈ rtr[cpt]) : a.componentType cpt :=
+  Partial.mem_ids_iff.mp h |>.choose
+
+notation rtr "⟦" h "⟧" => ReactorType.Indexable.obj' rtr h
+
+theorem obj'_eq_obj? {h : ↑i ∈ rtr[cpt]} : rtr⟦h⟧ = rtr[cpt][i] := by
+  rw [obj', ←(Partial.mem_ids_iff.mp h).choose_spec]
 
 theorem con?_eq_some (h : rtr[cpt][i]& = some con) : 
     ∃ m : Member cpt i rtr, m.container = con := by
@@ -89,6 +100,14 @@ theorem obj?_to_con?_and_cpt? {o} {i : ID} (h : rtr[cpt][i] = some o) :
   all_goals 
     simp [obj?, bind] at h
     assumption
+
+def con' (rtr : α) {cpt : Component} {i : ID} (h : ↑i ∈ rtr[cpt]) : Identified α :=
+  obj?_to_con?_and_cpt? (Partial.mem_ids_iff.mp h).choose_spec |>.choose
+
+notation rtr "⟦" h "⟧&" => ReactorType.Indexable.con' rtr h
+
+theorem con'_eq_con? {h : ↑i ∈ rtr[cpt]} : rtr⟦h⟧& = rtr[cpt][i]& := by
+  sorry
 
 theorem cpt?_to_con? {o} (h : cpt? cpt rtr i = some o) : rtr[cpt][i]& = some ⟨⊤, rtr⟩ := by
   let m := Member.final (Partial.mem_ids_iff.mpr ⟨_, h⟩)

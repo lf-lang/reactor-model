@@ -1,38 +1,11 @@
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Set.Finite
 import Mathlib.Data.Finmap
-import Mathlib.Data.List.Card
 
-open Classical
-
+-- TODO: Isn't this tactic part of Mathlib?
 syntax "case' " (Lean.binderIdent*),* " => " tacticSeq : tactic
 macro_rules
   | `(tactic| case' $[$xs*],* => $tac) => do
     let tacs ← xs.mapM fun xs => `(tactic| case $(xs[0]!) $(xs[1:])* => $tac)
     `(tactic| ($[$tacs]*))
-
-namespace List
-
-def Topo (l : List α) (r : α → α → Prop) : Prop :=
-  ∀ {i₁ i₂ : Nat} {a₁ a₂}, (l.get? i₁ = some a₁) → (l.get? i₂ = some a₂) → (r a₁ a₂) → i₁ < i₂ 
-
-namespace Topo
-
-theorem Topo.tail (t : Topo (hd :: tl) r) : Topo tl r :=
-  sorry
-
-theorem Topo.erase {l : List α} (t : Topo l r) (a : α) : Topo (l.remove a) r :=
-  sorry
-
-theorem Topo.head_indep (t : Topo (hd :: tl) r) : ∀ a ∈ tl, ¬(r a hd)  :=
-  sorry
-
-theorem Topo.move_indep {l : List α} (t : Topo l r) (ha : a ∈ l) (hi : ∀ b ∈ l, ¬(r b a)) : 
-    Topo (a :: l.erase a) r :=
-  sorry
-
-end Topo
-end List
 
 namespace Set 
 
@@ -53,12 +26,13 @@ namespace Partial
 instance {α β : Type _} : EmptyCollection (α ⇀ β) where
   emptyCollection := (fun _ => none) 
 
-def supp (f : α ⇀ β) := { a | ∃ b, f a = some b }
+def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
-abbrev ids (f : α ⇀ β) := f.supp
+instance : Membership α (α ⇀ β) where
+  mem a f := a ∈ f.ids 
 
 theorem mem_ids_iff {f : α ⇀ β} : (i ∈ f.ids) ↔ (∃ b, f i = some b) := by
-  simp [ids, supp]
+  rfl
 
 theorem ids_empty_iff {f : α ⇀ β} : (f.ids = ∅) ↔ (∀ i, f i = none) := by
   sorry

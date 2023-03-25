@@ -23,31 +23,34 @@ theorem Closed.progress_Nonempty [n : Nontrivial s] (h : Closed s) : s.progress.
   simp_all [Closed]
   exact Nontrivial.nontrivial
 
--- Note: If `rcn` isn't a valid reaction identifier, this relation is also satisfied.
 structure Allows (s : State) (rcn : ID) : Prop where
-  deps : s.rtr.dependencies rcn ⊆ s.progress
+  mem         : rcn ∈ s.rtr[.rcn] 
+  deps        : s.rtr.dependencies rcn ⊆ s.progress
   unprocessed : rcn ∉ s.progress
 
 theorem Allows.acyclic {s : State} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   fun hc => absurd (a.deps hc) a.unprocessed
 
-def input (s : State) (rcn : s.rtr.Valid .rcn) : Reaction.Input := 
-  { ports := (ports ·), acts := acts, state := state, tag := s.tag }
+def input (s : State) (i : ID) (mem : i ∈ s.rtr[.rcn]) : Reaction.Input := 
+  { ports, acts, state, tag := s.tag }
 where
-  state   := rcn.con.obj.state
-  ports k := s.rtr[.prt k].restrict { i | .port k i ∈ rcn.obj.deps .in }
-  acts    := s.rtr[.act].restrict { i | .action i ∈ rcn.obj.deps .in } |>.filterMap (·.lookup s.tag)
-  
-def Triggers (s : State) (rcn : s.rtr.Valid .rcn) : Prop :=
-  rcn.obj.TriggersOn (s.input rcn)
+  state := s.rtr⟦mem⟧&.obj.state
+  ports := fun k => s.rtr[.prt k].restrict { i | .port k i ∈ s.rtr⟦mem⟧.deps .in }
+  acts  := s.rtr[.act].restrict { i | .action i ∈ s.rtr⟦mem⟧.deps .in } |>.filterMap (·.lookup s.tag)
+
+def output (s : State) (rcn : ID) (mem : rcn ∈ s.rtr[.rcn]) : List Change := 
+  s.rtr⟦mem⟧ $ s.input rcn mem
+
+structure Triggers (s : State) (rcn : ID) : Prop where
+  mem      : rcn ∈ s.rtr[.rcn] 
+  triggers : s.rtr⟦mem⟧.TriggersOn (s.input rcn mem)
 
 theorem Triggers.progress_agnostic 
-    (h : Triggers s₁ ⟨i, h₁⟩) (hr : s₁.rtr = s₂.rtr) (ht : s₁.tag = s₂.tag) : 
-    ∃ h₂, Triggers s₂ ⟨i, h₂⟩ :=
+    (h : Triggers s₁ i) (hr : s₁.rtr = s₂.rtr) (ht : s₁.tag = s₂.tag) : Triggers s₂ i :=
   sorry
 
-def exec (s : State) (rcn : s.rtr.Valid .rcn) : State :=
-  { s with rtr := s.rtr.apply' $ rcn.obj (s.input rcn) }  
+def exec (s : State) (rcn : ID) : State :=
+  if mem : rcn ∈ s.rtr[.rcn] then { s with rtr := s.rtr.apply' $ s.output rcn mem } else s
 
 def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
   { s with progress := s.progress.insert rcn }

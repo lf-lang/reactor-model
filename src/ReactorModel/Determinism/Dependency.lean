@@ -10,13 +10,16 @@ namespace Independent
 
 notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => Independent rtr rcn₁ rcn₂
 
-theorem nonoverlapping_deps : 
-  (i₁ ≮[σ] i₂) → (σ[.rcn][i₁] = some rcn₁) → (σ[.rcn][i₂] = some rcn₂) →
-  (rcn₁.deps .out ∩ rcn₂.deps .in) = ∅ := by
+variable {rtr : Reactor} {rcn₁ rcn₂ : ID} 
+variable (m₁ : rcn₁ ∈ rtr[.rcn]) (m₂ : rcn₂ ∈ rtr[.rcn]) (hi : rcn₁ ≮[rtr] rcn₂)
+
+theorem nonoverlapping_deps : rtr⟦m₁⟧.deps .out ∩ rtr⟦m₂⟧.deps .in = ∅ := by
+  have := hi
   sorry -- exact absurd (ReactorType.Dependency.depOverlap ho₁ ho₂ $ Finset.nonempty_of_ne_empty hc) hi
  
-theorem ne_con_or_pure {rcn₁ rcn₂ : rtr.Valid .rcn} (hi : rcn₁ ≮[rtr] rcn₂) (hn : rcn₁ ≠ rcn₂) :
-    (rcn₁.con.id ≠ rcn₂.con.id) ∨ rcn₁.obj.Pure ∨ rcn₂.obj.Pure := by
+theorem ne_con_or_pure (hn : rcn₁ ≠ rcn₂) : 
+    (rtr⟦m₁⟧&.id ≠ rtr⟦m₂⟧&.id) ∨ rtr⟦m₁⟧.Pure ∨ rtr⟦m₂⟧.Pure := by
+  have := hi
   sorry
   /-intro h hn ho₁ ho₂ hc₁ hc₂ 
   by_contra hc
@@ -59,6 +62,16 @@ theorem ne_con_or_pure {rcn₁ rcn₂ : rtr.Valid .rcn} (hi : rcn₁ ≮[rtr] rc
         exact absurd hd h.left 
   -/
   
+theorem output_rcn₁_not_rcn₂_state 
+    (hn : rcn₁ ≠ rcn₂) (hs : .stv j v ∈ rtr⟦m₁⟧.body i) : j ∉ rtr⟦m₂⟧&.obj.state.ids := by
+  cases hi.ne_con_or_pure m₁ m₂ hn <;> try cases ‹_ ∨ _›  
+  case _ hc =>
+    sorry
+  case _ hc =>
+    sorry -- use Pure.output
+  case _ hc =>
+    sorry -- use Pure.input
+
 end Independent
 
 -- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
