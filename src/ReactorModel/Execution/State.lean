@@ -31,26 +31,37 @@ structure Allows (s : State) (rcn : ID) : Prop where
 theorem Allows.acyclic {s : State} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   fun hc => absurd (a.deps hc) a.unprocessed
 
-def input (s : State) (i : ID) (mem : i ∈ s.rtr[.rcn]) : Reaction.Input := 
+-- Note: We have check the `if m : rcn ∈ s.rtr[.rcn]` in for each component, so that the types of 
+--       `input.state`, `input.ports` and `input.acts` don't require the membership witness.
+def input (s : State) (rcn : ID) : Reaction.Input := 
   { ports, acts, state, tag := s.tag }
 where
-  state := s.rtr⟦mem⟧&.obj.state
-  ports := fun k => s.rtr[.prt k].restrict { i | .port k i ∈ s.rtr⟦mem⟧.deps .in }
-  acts  := s.rtr[.act].restrict { i | .action i ∈ s.rtr⟦mem⟧.deps .in } |>.filterMap (·.lookup s.tag)
+  state := 
+    if m : rcn ∈ s.rtr[.rcn]
+    then s.rtr⟦m⟧&.obj.state 
+    else ∅ 
+  ports := 
+    if m : rcn ∈ s.rtr[.rcn]
+    then fun k => s.rtr[.prt k].restrict { i | .port k i ∈ s.rtr⟦m⟧.deps .in }
+    else fun _ => ∅ 
+  acts := 
+    if m : rcn ∈ s.rtr[.rcn]
+    then s.rtr[.act].restrict { i | .action i ∈ s.rtr⟦m⟧.deps .in } |>.filterMap (·.lookup s.tag)
+    else ∅ 
 
-def output (s : State) (rcn : ID) (mem : rcn ∈ s.rtr[.rcn]) : List Change := 
-  s.rtr⟦mem⟧ $ s.input rcn mem
+def output (s : State) (rcn : ID) : List Change := 
+  if m : rcn ∈ s.rtr[.rcn] then s.rtr⟦m⟧ $ s.input rcn else []
 
 structure Triggers (s : State) (rcn : ID) : Prop where
   mem      : rcn ∈ s.rtr[.rcn] 
-  triggers : s.rtr⟦mem⟧.TriggersOn (s.input rcn mem)
+  triggers : s.rtr⟦mem⟧.TriggersOn (s.input rcn)
 
 theorem Triggers.progress_agnostic 
     (h : Triggers s₁ i) (hr : s₁.rtr = s₂.rtr) (ht : s₁.tag = s₂.tag) : Triggers s₂ i :=
   sorry
 
 def exec (s : State) (rcn : ID) : State :=
-  if mem : rcn ∈ s.rtr[.rcn] then { s with rtr := s.rtr.apply' $ s.output rcn mem } else s
+  { s with rtr := s.rtr.apply' (s.output rcn) }
 
 def record [DecidableEq ID] (s : State) (rcn : ID) : State := 
   { s with progress := s.progress.insert rcn }

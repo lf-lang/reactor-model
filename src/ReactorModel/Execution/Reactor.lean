@@ -37,6 +37,9 @@ theorem apply_preserves_unchanged {c : Change} (rtr : Reactor) (h : ¬c.Targets 
     (rtr.apply c)[cpt][i] = rtr[cpt][i] := by
   change_cases c <;> first | rfl | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
 
+-- TODO: It might be useful to restate these lemmas by using ⟦ ⟧, so that they're easier to use
+--       at call site.
+
 theorem apply_port_change {rtr : Reactor} (h : i ∈ rtr[.prt k]) : 
     (rtr.apply $ .prt k i v)[.prt k][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]

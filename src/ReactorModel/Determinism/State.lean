@@ -6,47 +6,33 @@ namespace Execution
 namespace State
 
 theorem exec_equiv (s : State) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
-  unfold exec
-  split <;> try rfl
+  simp [exec]
   exact Equivalent.symm $ Reactor.apply'_equiv _ _
 
-scoped macro "exec_indep_m₂'_default_proof" : tactic => 
-  `(tactic| sorry)
-
 -- set_option pp.proofs.withType false
-theorem exec_indep_input_state_eq 
-    {s : State} (m₂ : rcn₂ ∈ s.rtr[.rcn]) (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) 
-    (m₂' : rcn₂ ∈ (s.exec rcn₁).rtr[.rcn] := by exec_indep_m₂'_default_proof) : 
-    input.state (s.exec rcn₁) rcn₂ m₂' = input.state s rcn₂ m₂ := by 
+theorem exec_indep_input_state_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
+    input.state (s.exec rcn₁) rcn₂ = input.state s rcn₂ := by 
   simp [input.state, exec]
-  split
-  case inr => rfl
-  case inl h =>
-    simp
+  split <;> split <;> try rfl
+  case' inl.inr, inr.inl => sorry -- contradiction by "h" hypotheses 
+  case inl.inl =>
     sorry
       
-theorem exec_indep_input_ports_eq 
-    {s : State} (m₂ : rcn₂ ∈ s.rtr[.rcn]) (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) 
-    (m₂' : rcn₂ ∈ (s.exec rcn₁).rtr[.rcn] := by exec_indep_m₂'_default_proof) : 
-    input.ports (s.exec rcn₁) rcn₂ m₂' = input.ports s rcn₂ m₂ := by 
+theorem exec_indep_input_ports_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) :
+    input.ports (s.exec rcn₁) rcn₂ = input.ports s rcn₂ := by 
   sorry
   
-theorem exec_indep_input_acts_eq 
-    {s : State} (m₂ : rcn₂ ∈ s.rtr[.rcn]) (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) 
-    (m₂' : rcn₂ ∈ (s.exec rcn₁).rtr[.rcn] := by exec_indep_m₂'_default_proof) : 
-    input.acts (s.exec rcn₁) rcn₂ m₂' = input.acts s rcn₂ m₂ := by 
+theorem exec_indep_input_acts_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
+    input.acts (s.exec rcn₁) rcn₂ = input.acts s rcn₂ := by 
   sorry
 
-theorem exec_indep_input_eq 
-    {s : State} (m₂ : rcn₂ ∈ s.rtr[.rcn]) (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) 
-    (m₂' : rcn₂ ∈ (s.exec rcn₁).rtr[.rcn] := by exec_indep_m₂'_default_proof) : 
-    (s.exec rcn₁).input rcn₂ m₂' = s.input rcn₂ m₂ := by 
+theorem exec_indep_input_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
+    (s.exec rcn₁).input rcn₂ = s.input rcn₂ := by 
   simp [input]
-  refine ⟨?ports, ?acts, ?state, ?tag⟩
-  case state => exact exec_indep_input_state_eq m₂ hn hi
-  case ports => exact exec_indep_input_ports_eq m₂ hn hi
-  case acts  => exact exec_indep_input_acts_eq m₂ hn hi
-  case tag   => simp [exec]; split <;> rfl
+  refine ⟨?ports, ?acts, ?state, rfl⟩
+  case state => exact exec_indep_input_state_eq hn hi
+  case ports => exact exec_indep_input_ports_eq hn hi
+  case acts  => exact exec_indep_input_acts_eq hn hi
     
     /-
 theorem InstStep.indep_rcns_indep_output :

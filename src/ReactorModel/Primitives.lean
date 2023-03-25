@@ -122,11 +122,17 @@ abbrev Kind.opposite : Kind → Kind
 def Time := Nat
 deriving LinearOrder, Ord, DecidableEq, Inhabited
 
+instance : OfNat Time 0 where
+  ofNat := .zero
+
 -- A `Time.Tag` is used to represent a logical time tag.
 -- The order of these tags is lexicographical with the `time` taking priority.
 structure Time.Tag where 
   time : Time
   microstep : Nat
+
+instance : OfNat Time.Tag 0 where
+  ofNat := ⟨0, 0⟩ 
 
 -- TODO: Replace this with `deriving LinearOrder` once that feature is available again.
 instance : LinearOrder Time.Tag := sorry
