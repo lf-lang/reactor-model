@@ -27,15 +27,18 @@ abbrev Valued.type : Valued → Type
 instance : Coe Component.Valued Component where
   coe := val 
 
+-- The type of `WithTop ID`s extends the type of `ID`s with a `⊤` ID witch is used to refer to a/the
+-- top level reactor. We don't include the `⊤` ID in the normal `ID` type, as most contexts require
+-- that the `⊤` ID cannot not be used. For example, it should not be possible for a reaction to be
+-- identified by the `⊤` ID. 
 abbrev idType : Component → Type
-  | rtr => RootedID
+  | rtr => WithTop ID
   | _   => ID
 
 instance {cpt : Component} : Coe ID cpt.idType where
   coe i :=
-    match cpt with
-    | .rtr => .nest i
-    | .rcn | .val _ => i
+    match cpt with 
+    | .rtr | .rcn | .val _ => i
 
 end Component
 end Reactor

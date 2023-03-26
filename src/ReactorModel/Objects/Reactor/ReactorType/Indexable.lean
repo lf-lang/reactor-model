@@ -27,14 +27,21 @@ theorem UniqueIDs.updated [ReactorType.WellFounded α] {rtr₁ rtr₂ : α}
 class Indexable (α) extends LawfulUpdatable α where
   unique_ids : ∀ {rtr : α}, UniqueIDs rtr
 
+structure Container (α) where
+  id  : WithTop ID 
+  rtr : α 
+
+instance [Coe α β] : Coe (Container α) (Container β) where
+  coe i := { id := i.id, rtr := i.rtr }
+
 namespace Member
 
 variable [LawfulUpdatable α]
 
-def container {rtr : α} : Member cpt i rtr → Identified α
+def container {rtr : α} : (Member cpt i rtr) → Container α
   | .nest _ (.nest h l)             => container (.nest h l)
-  | .nest (rtr₂ := con) (j := j) .. => { id := j, obj := con }
-  | .final _                        => { id := ⊤, obj := rtr }
+  | .nest (rtr₂ := con) (j := j) .. => { id := j, rtr := con }
+  | .final _                        => { id := ⊤, rtr := rtr }
 
 theorem nest_container  {rtr₁ rtr₂ : α} 
     (h : ReactorType.nest rtr₁ i = some rtr₂) (m : Member cpt j rtr₂) : 
@@ -62,24 +69,24 @@ instance [LawfulUpdatable α] [ind : Indexable β] [LawfulCoe α β] : Indexable
 
 variable [a : Indexable α]
 
-def con? (rtr : α) (cpt : Component) : ID ⇀ Identified α := 
+def con? (rtr : α) (cpt : Component) : ID ⇀ Container α := 
   fun i => if m : Nonempty (Member cpt i rtr) then m.some.container else none
 
 notation rtr "[" cpt "]&"        => ReactorType.Indexable.con? rtr cpt
 notation rtr "[" cpt "][" i "]&" => ReactorType.Indexable.con? rtr cpt i
 
-def obj? (rtr : α) : (cpt : Component) → cpt.idType ⇀ a.componentType cpt
-  | .val cpt, i       => rtr[.val cpt][i]& >>= (cpt? (.val cpt) ·.obj i)
-  | .rcn,     i       => rtr[.rcn][i]&     >>= (cpt? .rcn       ·.obj i)
-  | .rtr,     .nest i => rtr[.rtr][i]&     >>= (cpt? .rtr       ·.obj i)
-  | .rtr,     ⊤       => rtr
+def obj? (rtr : α) : (cpt : Component) → cpt.idType ⇀ a.cptType cpt
+  | .val cpt, i        => rtr[.val cpt][i]& >>= fun con => cpt? (.val cpt) con.rtr i
+  | .rcn,     i        => rtr[.rcn][i]&     >>= fun con => cpt? .rcn       con.rtr i
+  | .rtr,     (i : ID) => rtr[.rtr][i]&     >>= fun con => cpt? .rtr       con.rtr i
+  | .rtr,     ⊤        => rtr
 
 notation (priority := 1001) rtr "[" cpt "]" => ReactorType.Indexable.obj? rtr cpt
 notation rtr "[" cpt "][" i "]"             => ReactorType.Indexable.obj? rtr cpt i
 
 variable {rtr rtr₁ : α}
 
-def obj' (rtr : α) {cpt : Component} {i : cpt.idType} (h : i ∈ rtr[cpt]) : a.componentType cpt :=
+def obj' (rtr : α) {cpt : Component} {i : cpt.idType} (h : i ∈ rtr[cpt]) : a.cptType cpt :=
   Partial.mem_ids_iff.mp h |>.choose
 
 notation rtr "⟦" h "⟧" => ReactorType.Indexable.obj' rtr h
@@ -95,13 +102,13 @@ theorem con?_eq_some (h : rtr[cpt][i]& = some con) :
   case inr => contradiction
 
 theorem obj?_to_con?_and_cpt? {o} {i : ID} (h : rtr[cpt][i] = some o) :
-    ∃ c, (rtr[cpt][i]& = some c) ∧ (cpt? cpt c.obj i = some o) := by
+    ∃ c, (rtr[cpt][i]& = some c) ∧ (cpt? cpt c.rtr i = some o) := by
   cases cpt
   all_goals 
     simp [obj?, bind] at h
     assumption
 
-def con' (rtr : α) {cpt : Component} {i : ID} (h : ↑i ∈ rtr[cpt]) : Identified α :=
+def con' (rtr : α) {cpt : Component} {i : ID} (h : ↑i ∈ rtr[cpt]) : Container α :=
   obj?_to_con?_and_cpt? (Partial.mem_ids_iff.mp h).choose_spec |>.choose
 
 notation rtr "⟦" h "⟧&" => ReactorType.Indexable.con' rtr h
@@ -144,10 +151,10 @@ theorem obj?_nested {o} {j : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[
     simp [obj?, bind]
     have ⟨⟨c, con⟩, hc, ho⟩ := obj?_to_con?_and_cpt? ho 
     cases c
-    case nest c => 
+    case some c => 
       have := con?_nested h hc
       exists ⟨c, con⟩
-    case root => 
+    case none => 
       replace hc := con?_eq_root hc
       simp at ho
       subst hc
@@ -166,7 +173,7 @@ theorem obj?_nested_root (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][�
 theorem obj?_nested' {o j} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cpt][j] = some o) : 
     ∃ j', rtr₁[cpt][j'] = some o := by
   cases cpt <;> try cases j
-  case rtr.root => exact obj?_nested_root h ho
+  case rtr.none => exact obj?_nested_root h ho
   all_goals exact ⟨_, obj?_nested h ho⟩
 
 theorem obj?_mem_ids_nested {cpt : Component.Valued} 
@@ -206,13 +213,14 @@ theorem lower_con?_some (h : rtr[cpt][i]& = some con) : (rtr : β)[cpt][i]& = so
   case inr => contradiction 
   case inl n =>
     injection h with h
+    simp [(⟨n.some⟩ : Nonempty (Member cpt i (rtr : β)))]
     simp [←c.lower_container_eq h, (⟨n.some⟩ : Nonempty (Member cpt i (rtr : β)))]
     congr
     apply b.unique_ids.allEq
 
 theorem lower_obj?_some {i o} (h : rtr[cpt][i] = some o) : (rtr : β)[cpt][i] = some ↑o := by
   cases cpt <;> try cases i
-  case rtr.root => simp_all [Indexable.obj?]
+  case rtr.none => simp_all [Indexable.obj?]
   all_goals
     have ⟨_, h₁, h₂⟩ := a.obj?_to_con?_and_cpt? h
     simp [Indexable.obj?, bind, c.lower_con?_some h₁, c.lower_cpt?_eq_some _ h₂]

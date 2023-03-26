@@ -63,7 +63,7 @@ theorem ne_con_or_pure (hn : rcn₁ ≠ rcn₂) :
   -/
   
 theorem output_rcn₁_not_rcn₂_state 
-    (hn : rcn₁ ≠ rcn₂) (hs : .stv j v ∈ rtr⟦m₁⟧.body i) : j ∉ rtr⟦m₂⟧&.obj.state.ids := by
+    (hn : rcn₁ ≠ rcn₂) (hs : .stv j v ∈ rtr⟦m₁⟧.body i) : j ∉ rtr⟦m₂⟧&.rtr.state.ids := by
   cases hi.ne_con_or_pure m₁ m₂ hn <;> try cases ‹_ ∨ _›  
   case _ hc =>
     sorry

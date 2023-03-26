@@ -38,7 +38,7 @@ def input (s : State) (rcn : ID) : Reaction.Input :=
 where
   state := 
     if m : rcn ∈ s.rtr[.rcn]
-    then s.rtr⟦m⟧&.obj.state 
+    then s.rtr⟦m⟧&.rtr.state 
     else ∅ 
   ports := 
     if m : rcn ∈ s.rtr[.rcn]

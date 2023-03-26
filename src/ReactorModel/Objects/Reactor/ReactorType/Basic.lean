@@ -34,12 +34,12 @@ theorem LawfulCoe.coe_ext_iff [ReactorType α] [ReactorType β] [c : LawfulCoe �
     {rtr₁ rtr₂ : α} : rtr₁ = rtr₂ ↔ (rtr₁ : β) = (rtr₂ : β) :=
   ⟨(congr_arg _ ·), (c.inj ·)⟩
 
-abbrev componentType [ReactorType α] : Component → Type
+abbrev cptType [ReactorType α] : Component → Type
   | .rtr     => α 
   | .rcn     => Reaction
   | .val cpt => cpt.type
 
-abbrev cpt? [inst : ReactorType α] : (cpt : Component) → α → ID ⇀ inst.componentType cpt
+abbrev cpt? [inst : ReactorType α] : (cpt : Component) → α → ID ⇀ inst.cptType cpt
   | .rtr   => nest 
   | .rcn   => rcns
   | .prt k => (ports · k)
@@ -50,7 +50,7 @@ namespace LawfulCoe
 
 variable [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {rtr : α}
 
-instance : Coe (a.componentType cpt) (b.componentType cpt) where
+instance : Coe (a.cptType cpt) (b.cptType cpt) where
   coe := 
     match cpt with
     | .rcn | .prt _ | .act | .stv => id
@@ -72,8 +72,8 @@ theorem lift_cpt?_eq_none (cpt) {i : ID}
   simp [c.nest', Partial.map_val] at h
   exact h
 
-theorem lift_cpt?_eq_some (cpt) {i : ID} {o : a.componentType cpt} 
-    (h : b.cpt? cpt rtr i = some ↑o) : a.cpt? cpt rtr i = some o := by
+theorem lift_cpt?_eq_some (cpt) {i : ID} {o : a.cptType cpt} (h : b.cpt? cpt rtr i = some ↑o) : 
+    a.cpt? cpt rtr i = some o := by
   split at h <;> simp_all [cpt?, ←c.rcns, ←c.ports, ←c.acts, ←c.state]
   simp [c.nest', Partial.map_val] at h
   have ⟨_, _, h⟩ := h

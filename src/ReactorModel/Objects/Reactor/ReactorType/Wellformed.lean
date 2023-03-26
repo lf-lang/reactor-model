@@ -176,8 +176,8 @@ structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
 set_option hygiene false in
 scoped macro "wf_nested_proof " name:ident : term => `(
   @fun
-  | .nest _ => ($name ‹_› $ obj?_nested h ·)
-  | .root   => ($name ‹_› <| obj?_nested_root h · |>.choose_spec)
+  | (_ : ID) => ($name ‹_› $ obj?_nested h ·)
+  | ⊤        => ($name ‹_› <| obj?_nested_root h · |>.choose_spec)
 )
 
 theorem nested (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where

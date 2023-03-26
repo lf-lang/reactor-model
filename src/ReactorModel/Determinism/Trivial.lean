@@ -33,8 +33,7 @@ theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
 theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial := by
   by_contra ht
   simp [State.Trivial, Partial.ids_empty_iff] at ht
-  have := e.rcn.obj?_id_eq_obj ▸ ht e.rcn
-  contradiction
+  cases (Partial.mem_ids_iff.mp e.allows_rcn.mem).choose_spec ▸ ht e.rcn  
 
 theorem InstExecution.trivial_eq : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
   | refl      => rfl

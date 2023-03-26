@@ -48,7 +48,7 @@ abbrev «with»
   Reactor.Core.mk ports acts state rcns nest
 
 def insert [inst : ReactorType Reactor.Core] 
-    (rtr : Reactor.Core) (cpt : Component) (i : ID) (v : inst.componentType cpt) :=
+    (rtr : Reactor.Core) (cpt : Component) (i : ID) (v : inst.cptType cpt) :=
   match cpt with
   | .prt k => rtr.with (ports := Function.update (ports rtr) k $ ports rtr k |>.insert i v)
   | .act   => rtr.with (acts  := acts  rtr |>.insert i v)

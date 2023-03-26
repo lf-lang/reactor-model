@@ -51,7 +51,7 @@ theorem preserves_tag : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
   | trans e e' => e.preserves_tag.trans e'.preserves_tag
 
 theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) : 
-    (trans e₁ e₂).rcns = e₁.rcn.id :: e₂.rcns := by
+    (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
   simp [rcns, InstStep.rcn]
 
 theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ { i | i ∈ e.rcns }
@@ -83,8 +83,7 @@ theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn ::
   replace hc := mt e.monotonic_progress $ e'.mem_rcns_not_mem_progress hm
   exact absurd (e.allows_rcn.deps h) hc
 
-theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (h : i ∈ e'.rcns) :
-    e.rcn.id ≠ i := by
+theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (h : i ∈ e'.rcns) : e.rcn ≠ i := by
   intro hc
   have := trans e e' |>.rcns_nodup
   have := hc.symm ▸ List.not_nodup_cons_of_mem h
@@ -131,7 +130,7 @@ theorem rcns_perm_deterministic
     cases e₂ <;> simp [rcns] at he₂
     case trans sₘ₂ e₂ e₂' =>
       have ⟨h, h'⟩ := he₂ 
-      cases e₁.deterministic e₂ (by ext; exact h.symm)
+      cases e₁.deterministic e₂ h.symm
       apply hi e₂'
       rw [h']
       exact List.perm_cons _ |>.mp (hp.trans $ List.perm_cons_erase hm)
