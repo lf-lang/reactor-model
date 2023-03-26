@@ -20,46 +20,14 @@ inductive Value.IsPresent : Value → Prop
 -- The precise nature of IDs is not relevant, which is why we define the type as `opaque`.
 opaque ID : Type
 
--- The `Priority` type is used to impose a (potentially partial) 
--- order on reactions. The order of priorities is given by the
--- order on `Nat` with the addition that a priority of `none` is
--- incomparable to all priorities.
-def Priority := Option Nat
+-- Note: This approach is also used in the implementation of Lean:
+--       https://github.com/leanprover/lean4/blob/b81cff/src/Lean/Environment.lean#L18
+opaque PrioritySpec : (p : Type) × (PartialOrder p) := ⟨Unit, inferInstance⟩ 
 
--- The order of priorities is given by the order on `Nat` with the
--- addition that a priority of `none` is incomparable to all priorities.
-instance : PartialOrder Priority where
-  le := λ p₁ p₂ => p₁ = p₂ ∨ ∃ v₁ v₂, p₁ = some v₁ ∧ p₂ = some v₂ ∧ v₁ ≤ v₂
-  le_refl := by simp [LE.le]
-  le_trans := by
-    intro p₁ p₂ p₃ h₁₂ h₂₃
-    simp only [LE.le] at *
-    cases h₁₂ <;> cases h₂₃
-    case inl.inl h₁₂ h₂₃ => simp [h₁₂, h₂₃]
-    case inl.inr h₁₂ h₂₃ => rw [h₁₂]; exact Or.inr h₂₃ 
-    case inr.inl h₁₂ h₂₃ => rw [←h₂₃]; exact Or.inr h₁₂
-    case inr.inr h₁₂ h₂₃ =>
-      have ⟨v₁, v₂, h₁₂⟩ := h₁₂
-      have ⟨v₂', v₃, h₂₃⟩ := h₂₃
-      have h₂ := h₁₂.right.left
-      rw [h₂₃.left] at h₂
-      rw [Option.some_inj.mp h₂] at h₂₃
-      have h := Nat.le_trans h₁₂.right.right h₂₃.right.right
-      exact Or.inr ⟨v₁, v₃, ⟨h₁₂.left, ⟨h₂₃.right.left, h⟩⟩⟩
-  lt_iff_le_not_le := by simp [LT.lt, LE.le]
-  le_antisymm := by
-    intro p₁ p₂ h₁₂ h₂₁
-    simp only [LE.le] at *
-    cases h₁₂ <;> cases h₂₁
-    case' inl.inl h, inl.inr h _, inr.inl h => simp only [h]
-    case inr.inr h₁₂ h₂₁ =>  
-      have ⟨v₁, v₂, h₁₂⟩ := h₁₂
-      have ⟨v₂', v₁', h₂₁⟩ := h₂₁
-      rw [h₁₂.left, h₁₂.right.left] at h₂₁ ⊢
-      have h₁ := Option.some_inj.mp h₂₁.left
-      have h₂ := Option.some_inj.mp h₂₁.right.left
-      rw [←h₁, ←h₂] at h₂₁
-      exact Option.some_inj.mpr $ Nat.le_antisymm h₁₂.right.right h₂₁.right.right
+-- The `Priority` type is used to impose a (potentially partial) order on reactions.
+def Priority := PrioritySpec.fst
+
+instance : PartialOrder Priority := PrioritySpec.snd
 
 -- The `Kind` type is used to generically distinguish between things which
 -- have an "input" and "output" variant. This is the case for ports as well
@@ -86,7 +54,7 @@ instance : OfNat Time 0 where
 structure Time.Tag where 
   time : Time
   microstep : Nat
-
+  
 instance : OfNat Time.Tag 0 where
   ofNat := ⟨0, 0⟩ 
 
