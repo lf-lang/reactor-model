@@ -77,7 +77,7 @@ theorem insert_cpt?_ne_cpt_or_id {rtr : Reactor.Core} (h : c ≠ cpt ∨ j ≠ i
 
 def updateMem {rtr : Reactor.Core} {cpt : Component.Valued} (f : cpt.type → cpt.type) : 
     Member cpt i rtr → Reactor.Core
-  | .final h           => rtr.insert cpt i $ f (Partial.mem_ids_iff.mp h).choose
+  | .final h           => rtr.insert cpt i $ f (Partial.mem_iff.mp h).choose
   | .nest (j := j) _ l => rtr.insert .rtr j (updateMem f l)
 
 theorem updateMem_lawfulMemUpdate 
@@ -85,7 +85,7 @@ theorem updateMem_lawfulMemUpdate
     (f : cpt.type → cpt.type) : LawfulMemUpdate cpt i f rtr (updateMem f l) := by
   induction l <;> simp [updateMem] 
   case final h =>
-    replace h := Partial.mem_ids_iff.mp h
+    replace h := Partial.mem_iff.mp h
     exact .final insert_cpt?_ne_cpt_or_id h.choose_spec (insert_cpt?_eq_self cpt)
   case nest h l hi =>
     exact .nest insert_cpt?_ne_cpt_or_id h (insert_cpt?_eq_self .rtr) hi

@@ -1,6 +1,6 @@
 import ReactorModel.Determinism.Dependency
 
-open ReactorType
+open Classical ReactorType
 
 namespace Execution
 namespace State
@@ -9,18 +9,47 @@ theorem exec_equiv (s : State) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
   simp [exec]
   exact Equivalent.symm $ Reactor.apply'_equiv _ _
 
--- set_option pp.proofs.withType false
+-- TODO: I think a cleaner way to state these lemmas might be to show that if `rcn₁ ≮[s.rtr] rcn₂`,
+--       then running `rcn₁` does not change the input dependencies of `rcn₂`.
+--       From this fact we can then prove that the input remains the same.
+
+set_option pp.proofs.withType false
 theorem exec_indep_input_state_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
     input.state (s.exec rcn₁) rcn₂ = input.state s rcn₂ := by 
   simp [input.state, exec]
   split <;> split <;> try rfl
-  case' inl.inr, inr.inl => sorry -- contradiction by "h" hypotheses 
+  case inl.inr h _ =>
+    have := Equivalent.mem_iff (Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
+    contradiction
+  case inr.inl h => 
+    have := Equivalent.mem_iff (Equivalent.symm $ Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
+    contradiction
   case inl.inl =>
+    ext1 i
+    -- TODO: `s.output rcn₁` does not contain any changes to a state variable in `s.rtr⟦h✝⟧&`.
+    --       And hence not to i.
+    have H : (s.output rcn₁).All₂ (¬·.Targets .stv i) := sorry 
+    have G := s.rtr.apply'_preserves_unchanged (s.output rcn₁) .stv i H
     sorry
       
 theorem exec_indep_input_ports_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) :
     input.ports (s.exec rcn₁) rcn₂ = input.ports s rcn₂ := by 
-  sorry
+  simp [input.ports, exec]
+  split <;> split <;> try rfl
+  case inl.inr h _ =>
+    have := Equivalent.mem_iff (Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
+    contradiction
+  case inr.inl h => 
+    have := Equivalent.mem_iff (Equivalent.symm $ Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
+    contradiction
+  case inl.inl h' h =>
+    ext1 k
+    have H1 : (s.rtr.apply' $ s.output rcn₁)⟦h'⟧ = s.rtr⟦h⟧ := sorry
+    rw [H1]
+    apply Partial.ext_restrict
+    intro i hi
+    have H : (s.output rcn₁).All₂ (¬·.Targets (.prt k) i) := sorry 
+    exact s.rtr.apply'_preserves_unchanged (s.output rcn₁) (.prt k) i H
   
 theorem exec_indep_input_acts_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
     input.acts (s.exec rcn₁) rcn₂ = input.acts s rcn₂ := by 

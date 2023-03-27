@@ -84,15 +84,19 @@ def obj? (rtr : α) : (cpt : Component) → cpt.idType ⇀ a.cptType cpt
 notation (priority := 1001) rtr "[" cpt "]" => ReactorType.Indexable.obj? rtr cpt
 notation rtr "[" cpt "][" i "]"             => ReactorType.Indexable.obj? rtr cpt i
 
-variable {rtr rtr₁ : α}
+variable {rtr rtr₁ rtr₂ : α}
 
-def obj' (rtr : α) {cpt : Component} {i : cpt.idType} (h : i ∈ rtr[cpt]) : a.cptType cpt :=
-  Partial.mem_ids_iff.mp h |>.choose
+def objₘ (rtr : α) {cpt : Component} {i : cpt.idType} (h : i ∈ rtr[cpt]) : a.cptType cpt :=
+  Partial.mem_iff.mp h |>.choose
 
-notation rtr "⟦" h "⟧" => ReactorType.Indexable.obj' rtr h
+notation rtr "⟦" h "⟧" => ReactorType.Indexable.objₘ rtr h
 
-theorem obj'_eq_obj? {h : ↑i ∈ rtr[cpt]} : rtr⟦h⟧ = rtr[cpt][i] := by
-  rw [obj', ←(Partial.mem_ids_iff.mp h).choose_spec]
+theorem objₘ_eq_obj? {h : ↑i ∈ rtr[cpt]} : rtr⟦h⟧ = rtr[cpt][i] := by
+  rw [objₘ, ←(Partial.mem_iff.mp h).choose_spec]
+
+theorem objₘ_eq_from_obj?_eq {i : cpt.idType} {h₁ : i ∈ rtr₁[cpt]} {h₂ : i ∈ rtr₂[cpt]} 
+    {h : rtr₁[cpt][i] = rtr₁[cpt][i]} : rtr₁⟦h₁⟧ = rtr₂⟦h₂⟧ :=
+  sorry
 
 theorem con?_eq_some (h : rtr[cpt][i]& = some con) : 
     ∃ m : Member cpt i rtr, m.container = con := by
@@ -108,16 +112,16 @@ theorem obj?_to_con?_and_cpt? {o} {i : ID} (h : rtr[cpt][i] = some o) :
     simp [obj?, bind] at h
     assumption
 
-def con' (rtr : α) {cpt : Component} {i : ID} (h : ↑i ∈ rtr[cpt]) : Container α :=
-  obj?_to_con?_and_cpt? (Partial.mem_ids_iff.mp h).choose_spec |>.choose
+def conₘ (rtr : α) {cpt : Component} {i : ID} (h : ↑i ∈ rtr[cpt]) : Container α :=
+  obj?_to_con?_and_cpt? (Partial.mem_iff.mp h).choose_spec |>.choose
 
-notation rtr "⟦" h "⟧&" => ReactorType.Indexable.con' rtr h
+notation rtr "⟦" h "⟧&" => ReactorType.Indexable.conₘ rtr h
 
-theorem con'_eq_con? {h : ↑i ∈ rtr[cpt]} : rtr⟦h⟧& = rtr[cpt][i]& := by
+theorem conₘ_eq_con? {h : ↑i ∈ rtr[cpt]} : rtr⟦h⟧& = rtr[cpt][i]& := by
   sorry
 
 theorem cpt?_to_con? {o} (h : cpt? cpt rtr i = some o) : rtr[cpt][i]& = some ⟨⊤, rtr⟩ := by
-  let m := Member.final (Partial.mem_ids_iff.mpr ⟨_, h⟩)
+  let m := Member.final (Partial.mem_iff.mpr ⟨_, h⟩)
   simp [con?, Nonempty.intro m, ←a.unique_ids.allEq m, Member.container]
 
 theorem cpt?_to_obj? {o} (h : cpt? cpt rtr i = some o) : rtr[cpt][i] = some o := by
@@ -159,7 +163,7 @@ theorem obj?_nested {o} {j : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[
       simp at ho
       subst hc
       exists ⟨i, rtr₂⟩
-      let m := Member.nest h (.final $ Partial.mem_ids_iff.mpr ⟨_, ho⟩)
+      let m := Member.nest h (.final $ Partial.mem_iff.mpr ⟨_, ho⟩)
       simp [ho, con?, Nonempty.intro m, ←a.unique_ids.allEq m, Member.container]
 
 -- Note: By `ho` we get `rtr₂ = rtr₃`.
@@ -176,9 +180,9 @@ theorem obj?_nested' {o j} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cpt][j
   case rtr.none => exact obj?_nested_root h ho
   all_goals exact ⟨_, obj?_nested h ho⟩
 
-theorem obj?_mem_ids_nested {cpt : Component.Valued} 
-    (h : nest rtr₁ i = some rtr₂) (hm : j ∈ rtr₂[cpt].ids) : j ∈ rtr₁[cpt].ids :=
-  Partial.mem_ids_iff.mpr ⟨_, obj?_nested h (Partial.mem_ids_iff.mp hm).choose_spec⟩  
+theorem obj?_mem_nested {cpt : Component.Valued} 
+    (h : nest rtr₁ i = some rtr₂) (hm : j ∈ rtr₂[cpt]) : j ∈ rtr₁[cpt] :=
+  Partial.mem_iff.mpr ⟨_, obj?_nested h (Partial.mem_iff.mp hm).choose_spec⟩  
 
 theorem member_isEmpty_con?_none (h : IsEmpty (Member cpt i rtr)) : rtr[cpt][i]& = none := by
   cases cpt <;> simp [con?, not_nonempty_iff.mpr h]
@@ -225,8 +229,8 @@ theorem lower_obj?_some {i o} (h : rtr[cpt][i] = some o) : (rtr : β)[cpt][i] = 
     have ⟨_, h₁, h₂⟩ := a.obj?_to_con?_and_cpt? h
     simp [Indexable.obj?, bind, c.lower_con?_some h₁, c.lower_cpt?_eq_some _ h₂]
 
-theorem lower_mem_obj?_ids {i} (h : i ∈ rtr[cpt].ids) : i ∈ (rtr : β)[cpt].ids :=
-  Partial.mem_ids_iff.mpr ⟨_, c.lower_obj?_some (Partial.mem_ids_iff.mp h).choose_spec⟩ 
+theorem lower_mem_obj? {i} (h : i ∈ rtr[cpt]) : i ∈ (rtr : β)[cpt] :=
+  Partial.mem_iff.mpr ⟨_, c.lower_obj?_some (Partial.mem_iff.mp h).choose_spec⟩ 
 
 end LawfulCoe
 
@@ -312,7 +316,7 @@ variable [Indexable α] {rtr₁ : α}
 theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
   sorry
 
-theorem mem_obj?_ids_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt].ids) ↔ (i ∈ rtr₂[cpt].ids) := by
+theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
   sorry
 
 theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 

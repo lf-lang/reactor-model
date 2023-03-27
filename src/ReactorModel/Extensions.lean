@@ -23,19 +23,35 @@ infixr:50 " ⇀ " => Partial
 
 namespace Partial
 
+def empty : α ⇀ β :=  
+  fun _ => none
+
 instance {α β : Type _} : EmptyCollection (α ⇀ β) where
-  emptyCollection := (fun _ => none) 
+  emptyCollection := empty
+
+theorem empty_iff {f : α ⇀ β} : (f = ∅) ↔ (∀ i, f i = none) where
+  mp h _ := h ▸ rfl
+  mpr h := funext h  
+  
+def Nonempty (f : α ⇀ β) : Prop :=
+  f ≠ ∅  
 
 def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
+
+theorem Nonempty.def {f : α ⇀ β} : f.Nonempty ↔ (f ≠ ∅) :=
+  sorry
+
+theorem Nonempty.iff_ids_nonempty {f : α ⇀ β} : f.Nonempty ↔ f.ids.Nonempty :=
+  sorry
 
 instance : Membership α (α ⇀ β) where
   mem a f := a ∈ f.ids 
 
-theorem mem_ids_iff {f : α ⇀ β} : (i ∈ f.ids) ↔ (∃ b, f i = some b) := by
+theorem mem_def {f : α ⇀ β} : (a ∈ f) ↔ (a ∈ f.ids) := by
   rfl
 
-theorem ids_empty_iff {f : α ⇀ β} : (f.ids = ∅) ↔ (∀ i, f i = none) := by
-  sorry
+theorem mem_iff {f : α ⇀ β} : (a ∈ f) ↔ (∃ b, f a = some b) := by
+  rfl
 
 def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
   fun a => 
@@ -63,6 +79,10 @@ theorem attach_map_val (f : α ⇀ β) : f.attach.map Subtype.val = f := by
 def restrict (f : α ⇀ β) (s : Set α) [DecidablePred (· ∈ s)] : α ⇀ β := 
   fun a => if a ∈ s then f a else none 
 
+theorem ext_restrict {f g : α ⇀ β} (h : ∀ a ∈ s, f a = g a) [DecidablePred (· ∈ s)] : 
+    (f.restrict s) = (g.restrict s) := 
+  sorry
+
 def filterMap (f : α ⇀ β) (g : β → Option γ) : α ⇀ γ := 
   fun a => f a >>= g
 
@@ -80,9 +100,7 @@ end Partial
 
 namespace Finmap
 
-infixr:50 " ⇉ " => (Finmap fun _ : · => ·)
-
-instance [DecidableEq α] : CoeFun (α ⇉ β) (fun _ => α → Option β) where
+instance [DecidableEq α] : CoeFun (Finmap fun _ : α => β) (fun _ => α → Option β) where
   coe f := f.lookup
 
 end Finmap

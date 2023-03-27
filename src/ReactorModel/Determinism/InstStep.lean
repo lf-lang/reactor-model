@@ -184,7 +184,7 @@ theorem Exec.progress_eq : (e : s₁ ⇓ₑ s₂) → s₂.progress = s₁.progr
 theorem not_Closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed := by
   intro c
   have h := c ▸ e.allows_rcn.unprocessed
-  simp [Partial.mem_ids_iff] at h 
+  simp [Partial.mem_iff] at h 
   sorry -- have := h e.allows.mem.choose
   -- contradiction 
 

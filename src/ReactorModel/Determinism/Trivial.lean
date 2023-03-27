@@ -1,17 +1,14 @@
 import ReactorModel.Determinism.ExecutionStep
 
-open ReactorType
+open ReactorType Classical
 
 namespace Execution
 
 abbrev State.Trivial (s : State) : Prop := 
-  s.rtr[.rcn].ids = ∅
+  s.rtr[.rcn] = ∅
 
-theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial := by
-  by_contra hc; exact h ⟨Set.nonempty_iff_ne_empty.mpr hc⟩
-
-theorem State.Nontrivial.not_Trivial (h : Nontrivial s) : ¬s.Trivial :=
-  h.nontrivial.ne_empty
+theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial :=
+  byContradiction (h ⟨·⟩)
 
 section
 
@@ -32,8 +29,8 @@ theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
 
 theorem InstStep.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial := by
   by_contra ht
-  simp [State.Trivial, Partial.ids_empty_iff] at ht
-  cases (Partial.mem_ids_iff.mp e.allows_rcn.mem).choose_spec ▸ ht e.rcn  
+  simp [State.Trivial, Partial.empty_iff] at ht
+  cases (Partial.mem_iff.mp e.allows_rcn.mem).choose_spec ▸ ht e.rcn  
 
 theorem InstExecution.trivial_eq : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
   | refl      => rfl

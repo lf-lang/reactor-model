@@ -12,9 +12,9 @@ variable [ReactorType α] [ReactorType β] in section
 def RootEqualUpTo (cpt : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
   ∀ {c j}, (c ≠ cpt ∨ j ≠ i) → cpt? c rtr₁ j = cpt? c rtr₂ j
 
-theorem RootEqualUpTo.mem_ids_iff {rtr₁ : α} (e : RootEqualUpTo cpt i rtr₁ rtr₂) 
-    (h : c ≠ cpt ∨ j ≠ i) : j ∈ (cpt? c rtr₁).ids ↔ j ∈ (cpt? c rtr₂).ids := by
-  simp [Partial.mem_ids_iff]
+theorem RootEqualUpTo.mem_iff {rtr₁ : α} (e : RootEqualUpTo cpt i rtr₁ rtr₂) 
+    (h : c ≠ cpt ∨ j ≠ i) : (j ∈ cpt? c rtr₁) ↔ (j ∈ cpt? c rtr₂) := by
+  simp [Partial.mem_iff]
   exact ⟨(e h ▸ ·), (e h ▸ ·)⟩   
 
 -- Note: Without ID-uniqueness this can be satisfied by updating exactly one of the occurrences of

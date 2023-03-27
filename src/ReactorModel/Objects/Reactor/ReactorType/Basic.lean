@@ -62,7 +62,7 @@ theorem lower_cpt?_eq_some (cpt) {o} (h : a.cpt? cpt rtr i = some o) :
   simp [c.nest', Partial.map_val]
   exists o
 
-theorem lower_mem_cpt?_ids (cpt) (h : i ∈ (cpt? cpt rtr).ids) : i ∈ (cpt? cpt (rtr : β)).ids :=
+theorem lower_mem_cpt? (cpt) (h : i ∈ a.cpt? cpt rtr) : i ∈ b.cpt? cpt rtr :=
   ⟨h.choose, c.lower_cpt?_eq_some _ h.choose_spec⟩ 
 
 theorem lift_cpt?_eq_none (cpt) {i : ID} 
@@ -87,8 +87,8 @@ theorem lift_nest_eq_some {i : ID} (h : b.nest rtr i = some n₂) :
 
 -- Note: This theorem excludes `cpt = .rtr`, because that case is harder than the other cases and we
 --       only ever use this theorem for `cpt = .act` anyway.
-theorem lift_mem_cpt?_ids (cpt) (h : i ∈ (b.cpt? cpt rtr).ids) (hc : cpt ≠ .rtr := by simp) : 
-    i ∈ (a.cpt? cpt rtr).ids := by
+theorem lift_mem_cpt? (cpt) (h : i ∈ b.cpt? cpt rtr) (hc : cpt ≠ .rtr := by simp) : 
+    i ∈ a.cpt? cpt rtr := by
   cases cpt <;> try cases ‹Component.Valued›  
   case rtr => contradiction
   all_goals exact ⟨h.choose, c.lift_cpt?_eq_some _ h.choose_spec⟩ 
@@ -96,14 +96,14 @@ theorem lift_mem_cpt?_ids (cpt) (h : i ∈ (b.cpt? cpt rtr).ids) (hc : cpt ≠ .
 end LawfulCoe
 
 inductive Member [ReactorType α] (cpt : Component) (i : ID) : α → Type _ 
-  | final : i ∈ (cpt? cpt rtr).ids → Member cpt i rtr
+  | final : (i ∈ cpt? cpt rtr) → Member cpt i rtr
   | nest : (nest rtr₁ j = some rtr₂) → (m : Member cpt i rtr₂) → Member cpt i rtr₁
 
 namespace Member
 
 def fromLawfulCoe [ReactorType α] [ReactorType β] [c : LawfulCoe α β] {rtr : α} : 
     (Member cpt i rtr) → Member cpt i (rtr : β)
-  | final h  => final (c.lower_mem_cpt?_ids _ h)
+  | final h  => final (c.lower_mem_cpt? _ h)
   | nest h m => nest (c.lower_cpt?_eq_some (cpt := .rtr) h) (fromLawfulCoe m)
 
 variable [ReactorType α] [ReactorType β]

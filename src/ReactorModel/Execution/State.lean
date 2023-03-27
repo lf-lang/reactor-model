@@ -14,13 +14,13 @@ structure State where
 namespace State
 
 class Nontrivial (s : State) : Prop where
-  nontrivial : s.rtr[.rcn].ids.Nonempty
+  nontrivial : s.rtr[.rcn].Nonempty
 
 def Closed (s : State) : Prop := 
   s.progress = s.rtr[.rcn].ids
 
 theorem Closed.progress_Nonempty [n : Nontrivial s] (h : Closed s) : s.progress.Nonempty := by
-  simp_all [Closed]
+  simp_all [Closed, ←Partial.Nonempty.iff_ids_nonempty]
   exact Nontrivial.nontrivial
 
 structure Allows (s : State) (rcn : ID) : Prop where

@@ -61,6 +61,6 @@ instance : OfNat Time.Tag 0 where
 -- TODO: Replace this with `deriving LinearOrder` once that feature is available again.
 instance : LinearOrder Time.Tag := sorry
 
-abbrev Action := Time.Tag ⇉ Value
+abbrev Action := Finmap fun _ : Time.Tag => Value
 
 def Action.tags (a : Action) : Finset Time.Tag := a.keys

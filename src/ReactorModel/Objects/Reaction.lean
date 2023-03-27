@@ -40,7 +40,7 @@ structure _root_.Reaction where
   prtOutDepOnly : (.prt k j v ∈ body i) → .port k j ∈ deps .out 
   actOutDepOnly : (.act j t v ∈ body i) → .action j ∈ deps .out
   actNotPast :    (.act j t v ∈ body i) → i.tag.time ≤ t
-  stateLocal :    (.stv j v   ∈ body i) → j ∈ i.state.ids
+  stateLocal :    (.stv j v   ∈ body i) → j ∈ i.state
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
@@ -74,33 +74,5 @@ theorem Mutates.not_Pure {rcn : Reaction} : rcn.Mutates → ¬rcn.Pure := by
 -- The condition under which a given reaction triggers on a given input.
 def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
   ∃ t v, (t ∈ rcn.triggers) ∧ (i.value t = some v) ∧ (v.IsPresent)
-  
--- Relay reactions are a specific kind of reaction that allow us to simplify what
--- it means for reactors' ports to be connected. We can formalize connections between
--- reactors' ports by creating a reaction that declares these ports and only these
--- ports as dependency and antidependency respectively, and does nothing but relay the
--- value from its input to its output.
-def relay (src dst : ID) : Reaction where
-  deps 
-    | .in => {.port .out src} 
-    | .out => {.port .in dst}
-  triggers := {.port .out src}
-  prio := none
-  body i := 
-    match i.ports .out src with 
-    | none => [] 
-    | some v => [.prt .in dst v]
-  tsSubInDeps   := by simp
-  prtOutDepOnly := by intros; simp at *; split at * <;> simp_all 
-  actOutDepOnly := by intros; simp at *; split at * <;> simp_all 
-  actNotPast    := by intros; simp at *; split at * <;> simp_all 
-  stateLocal    := by intros; simp at *; split at * <;> simp_all 
-
-theorem Pure.relay (src dst) : Pure (relay src dst) where
-  input := by intros; rw [relay]
-  output := by 
-    intro _ i h
-    cases hc : i.ports .out src <;> (rw [relay] at h; simp [hc] at h)
-    exact .inl $ h ▸ .intro
 
 end Reaction

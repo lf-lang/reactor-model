@@ -34,7 +34,8 @@ namespace ClosedExecution
 
 theorem not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := by
   simp [Closed]
-  exact e.fresh ▸ State.Nontrivial.nontrivial.ne_empty.symm 
+  have h := Partial.Nonempty.iff_ids_nonempty.mp $ State.Nontrivial.nontrivial (s := s₁)
+  exact e.fresh ▸ h.ne_empty.symm 
 
 theorem preserves_tag (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
   e.exec.preserves_tag
@@ -48,8 +49,8 @@ theorem rcns_Nodup (e : s₁ ⇓| s₂) : e.rcns.Nodup :=
 theorem progress_def (e : s₁ ⇓| s₂) : s₂.progress = s₁.rtr[.rcn].ids :=
   Equivalent.obj?_rcn_eq e.equiv ▸ e.closed
 
-theorem mem_rcns_iff (e : s₁ ⇓| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr[.rcn].ids ∧ rcn ∉ s₁.progress) :=
-  e.progress_def ▸ e.exec.mem_rcns_iff
+theorem mem_rcns_iff (e : s₁ ⇓| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr[.rcn] ∧ rcn ∉ s₁.progress) := by
+  simp [Partial.mem_def, e.progress_def ▸ e.exec.mem_rcns_iff (rcn := rcn)]
 
 theorem rcns_perm (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : e₁.rcns ~ e₂.rcns := by
   simp [List.perm_ext e₁.rcns_Nodup e₂.rcns_Nodup, e₁.mem_rcns_iff, e₂.mem_rcns_iff]
