@@ -59,7 +59,7 @@ theorem apply'_equiv (rtr : Reactor) : (cs : List Change) → rtr.apply' cs ≈ 
   | .nil        => .refl
   | .cons hd tl => Equivalent.trans (rtr.apply hd |>.apply'_equiv tl) (apply_equiv rtr hd)
 
-theorem apply'_preserves_unchanged (rtr : Reactor) (cs : List Change) (cpt : Component.Valued) (i)
+theorem apply'_preserves_unchanged {rtr : Reactor} {cs : List Change} {cpt : Component.Valued} {i}
     (h : cs.All₂ (¬·.Targets cpt i)) : (rtr.apply' cs)[cpt][i] = rtr[cpt][i] := by
   sorry
 

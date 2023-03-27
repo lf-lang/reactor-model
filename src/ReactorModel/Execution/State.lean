@@ -31,23 +31,17 @@ structure Allows (s : State) (rcn : ID) : Prop where
 theorem Allows.acyclic {s : State} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   fun hc => absurd (a.deps hc) a.unprocessed
 
--- Note: We have check the `if m : rcn ∈ s.rtr[.rcn]` in for each component, so that the types of 
---       `input.state`, `input.ports` and `input.acts` don't require the membership witness.
-def input (s : State) (rcn : ID) : Reaction.Input := 
-  { ports, acts, state, tag := s.tag }
+def input (s : State) (rcn : ID) : Reaction.Input :=
+  if m : rcn ∈ s.rtr[.rcn] 
+  then { state := state m, ports := ports m, acts := acts m, tag := s.tag } 
+  else { state := ∅, ports := fun _ => ∅, acts := ∅, tag := s.tag } 
 where
-  state := 
-    if m : rcn ∈ s.rtr[.rcn]
-    then s.rtr⟦m⟧&.rtr.state 
-    else ∅ 
-  ports := 
-    if m : rcn ∈ s.rtr[.rcn]
-    then fun k => s.rtr[.prt k].restrict { i | .port k i ∈ s.rtr⟦m⟧.deps .in }
-    else fun _ => ∅ 
-  acts := 
-    if m : rcn ∈ s.rtr[.rcn]
-    then s.rtr[.act].restrict { i | .action i ∈ s.rtr⟦m⟧.deps .in } |>.filterMap (·.lookup s.tag)
-    else ∅ 
+  state (m : rcn ∈ s.rtr[.rcn]) := 
+    s.rtr⟦m⟧&.rtr.state 
+  ports (m : rcn ∈ s.rtr[.rcn]) := 
+    fun k => s.rtr[.prt k].restrict { i | .port k i ∈ s.rtr⟦m⟧.deps .in }
+  acts (m : rcn ∈ s.rtr[.rcn]) := 
+    s.rtr[.act].restrict { i | .action i ∈ s.rtr⟦m⟧.deps .in } |>.filterMap (·.lookup s.tag)
 
 def output (s : State) (rcn : ID) : List Change := 
   if m : rcn ∈ s.rtr[.rcn] then s.rtr⟦m⟧ $ s.input rcn else []

@@ -9,59 +9,72 @@ theorem exec_equiv (s : State) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
   simp [exec]
   exact Equivalent.symm $ Reactor.apply'_equiv _ _
 
--- TODO: I think a cleaner way to state these lemmas might be to show that if `rcn₁ ≮[s.rtr] rcn₂`,
---       then running `rcn₁` does not change the input dependencies of `rcn₂`.
---       From this fact we can then prove that the input remains the same.
+-- Note: We could also restate this theorem such that the `m₂` is part of the return value.
+theorem exec_objₘ_rcn_eq {s : State} (m₁ : rcn ∈ s.rtr[.rcn]) (m₂ : rcn ∈ (s.exec rcn').rtr[.rcn]) : 
+    s.rtr⟦m₁⟧ = (s.exec rcn').rtr⟦m₂⟧ :=
+  Equivalent.objₘ_rcn_eq (s.exec_equiv rcn') m₁ |>.choose_spec
+
+
+
+
+
+theorem port_not_mem_indep_output {s : State} {k i} {rcn₁ rcn₂ : ID}
+    (hi : rcn₁ ≮[s.rtr] rcn₂) (m₂ : rcn₂ ∈ s.rtr[.rcn]) (hd : .port k i ∈ s.rtr⟦m₂⟧.deps .in) : 
+    (s.output rcn₁).All₂ (¬·.Targets (.prt k) i) := by
+  apply List.all₂_iff_forall.mpr
+  intro c hc ht
+  cases ht
+  simp [output] at hc
+  split at hc
+  case inr => contradiction
+  case inl m₁ =>
+    have := hi.deps_disjoint m₁ m₂
+    have := s.rtr⟦m₁⟧.prtOutDepOnly hc
+    exact Ne.irrefl $ Set.disjoint_iff_forall_ne.mp ‹_› ‹_› hd
+
+theorem exec_indep_input_ports_eq {s : State} {rcn₁ rcn₂ : ID} (hi : rcn₁ ≮[s.rtr] rcn₂) (m₁ m₂) :
+    input.ports (s.exec rcn₁) rcn₂ m₂ = input.ports s rcn₂ m₁ := by 
+  simp [input.ports]
+  ext1 k
+  rw [←exec_objₘ_rcn_eq m₁ m₂]
+  exact Partial.ext_restrict 
+    fun _ hd => Reactor.apply'_preserves_unchanged $ port_not_mem_indep_output hi m₁ hd 
+  
+
+
 
 set_option pp.proofs.withType false
-theorem exec_indep_input_state_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
-    input.state (s.exec rcn₁) rcn₂ = input.state s rcn₂ := by 
+theorem exec_indep_input_state_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) (m₁ m₂) : 
+    input.state (s.exec rcn₁) rcn₂ m₂ = input.state s rcn₂ m₁ := by 
   simp [input.state, exec]
-  split <;> split <;> try rfl
-  case inl.inr h _ =>
-    have := Equivalent.mem_iff (Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
-    contradiction
-  case inr.inl h => 
-    have := Equivalent.mem_iff (Equivalent.symm $ Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
-    contradiction
-  case inl.inl =>
-    ext1 i
-    -- TODO: `s.output rcn₁` does not contain any changes to a state variable in `s.rtr⟦h✝⟧&`.
-    --       And hence not to i.
-    have H : (s.output rcn₁).All₂ (¬·.Targets .stv i) := sorry 
-    have G := s.rtr.apply'_preserves_unchanged (s.output rcn₁) .stv i H
-    sorry
-      
-theorem exec_indep_input_ports_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) :
-    input.ports (s.exec rcn₁) rcn₂ = input.ports s rcn₂ := by 
-  simp [input.ports, exec]
-  split <;> split <;> try rfl
-  case inl.inr h _ =>
-    have := Equivalent.mem_iff (Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
-    contradiction
-  case inr.inl h => 
-    have := Equivalent.mem_iff (Equivalent.symm $ Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
-    contradiction
-  case inl.inl h' h =>
-    ext1 k
-    have H1 : (s.rtr.apply' $ s.output rcn₁)⟦h'⟧ = s.rtr⟦h⟧ := sorry
-    rw [H1]
-    apply Partial.ext_restrict
-    intro i hi
-    have H : (s.output rcn₁).All₂ (¬·.Targets (.prt k) i) := sorry 
-    exact s.rtr.apply'_preserves_unchanged (s.output rcn₁) (.prt k) i H
-  
-theorem exec_indep_input_acts_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
-    input.acts (s.exec rcn₁) rcn₂ = input.acts s rcn₂ := by 
+  ext1 i
+  -- TODO: `s.output rcn₁` does not contain any changes to a state variable in `s.rtr⟦h✝⟧&`.
+  --       And hence not to i.
+  have H : (s.output rcn₁).All₂ (¬·.Targets .stv i) := sorry 
+  have G := s.rtr.apply'_preserves_unchanged H
+  sorry
+
+theorem exec_indep_input_acts_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) (m₁ m₂) : 
+    input.acts (s.exec rcn₁) rcn₂ m₂ = input.acts s rcn₂ m₁ := by 
   sorry
 
 theorem exec_indep_input_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) : 
     (s.exec rcn₁).input rcn₂ = s.input rcn₂ := by 
   simp [input]
-  refine ⟨?ports, ?acts, ?state, rfl⟩
-  case state => exact exec_indep_input_state_eq hn hi
-  case ports => exact exec_indep_input_ports_eq hn hi
-  case acts  => exact exec_indep_input_acts_eq hn hi
+  split <;> split 
+  case inr.inr => rfl
+  case inr.inl h => 
+    have := Equivalent.mem_iff (Equivalent.symm $ Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
+    contradiction
+  case inl.inr h _ =>
+    have := Equivalent.mem_iff (Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
+    contradiction
+  case inl.inl m₂ m₁ =>
+    simp 
+    refine ⟨?ports, ?acts, ?state, rfl⟩
+    case state => apply exec_indep_input_state_eq ‹_› ‹_›   
+    case ports => apply exec_indep_input_ports_eq ‹_› ‹_›
+    case acts  => apply exec_indep_input_acts_eq ‹_› ‹_›
     
     /-
 theorem InstStep.indep_rcns_indep_output :

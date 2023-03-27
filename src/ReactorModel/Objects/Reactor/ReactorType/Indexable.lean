@@ -86,16 +86,21 @@ notation rtr "[" cpt "][" i "]"             => ReactorType.Indexable.obj? rtr cp
 
 variable {rtr rtr₁ rtr₂ : α}
 
-def objₘ (rtr : α) {cpt : Component} {i : cpt.idType} (h : i ∈ rtr[cpt]) : a.cptType cpt :=
-  Partial.mem_iff.mp h |>.choose
+def objₘ (rtr : α) {cpt : Component} {i : cpt.idType} (m : i ∈ rtr[cpt]) : a.cptType cpt :=
+  Partial.mem_iff.mp m |>.choose
 
-notation rtr "⟦" h "⟧" => ReactorType.Indexable.objₘ rtr h
+notation rtr "⟦" m "⟧" => ReactorType.Indexable.objₘ rtr m
 
-theorem objₘ_eq_obj? {h : ↑i ∈ rtr[cpt]} : rtr⟦h⟧ = rtr[cpt][i] := by
-  rw [objₘ, ←(Partial.mem_iff.mp h).choose_spec]
+theorem objₘ_eq_obj? {m : ↑i ∈ rtr[cpt]} : rtr⟦m⟧ = rtr[cpt][i] := by
+  rw [objₘ, ←(Partial.mem_iff.mp m).choose_spec]
 
-theorem objₘ_eq_from_obj?_eq {i : cpt.idType} {h₁ : i ∈ rtr₁[cpt]} {h₂ : i ∈ rtr₂[cpt]} 
-    {h : rtr₁[cpt][i] = rtr₁[cpt][i]} : rtr₁⟦h₁⟧ = rtr₂⟦h₂⟧ :=
+-- TODO: Is this being used?
+theorem objₘ_eq_iff_obj?_eq_some {i} {m : i ∈ rtr[cpt]} : (rtr⟦m⟧ = o) ↔ (rtr[cpt][i] = some o) :=
+  sorry
+
+-- TODO: Is this being used?
+theorem objₘ_eq_from_obj?_eq {i} {m₁ : i ∈ rtr₁[cpt]} {m₂ : i ∈ rtr₂[cpt]} 
+    {h : rtr₁[cpt][i] = rtr₂[cpt][i]} : rtr₁⟦m₁⟧ = rtr₂⟦m₂⟧ :=
   sorry
 
 theorem con?_eq_some (h : rtr[cpt][i]& = some con) : 
@@ -180,9 +185,17 @@ theorem obj?_nested' {o j} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cpt][j
   case rtr.none => exact obj?_nested_root h ho
   all_goals exact ⟨_, obj?_nested h ho⟩
 
-theorem obj?_mem_nested {cpt : Component.Valued} 
-    (h : nest rtr₁ i = some rtr₂) (hm : j ∈ rtr₂[cpt]) : j ∈ rtr₁[cpt] :=
+theorem obj?_mem_nested {j : ID} (h : nest rtr₁ i = some rtr₂) (hm : ↑j ∈ rtr₂[cpt]) : 
+    ↑j ∈ rtr₁[cpt] :=
   Partial.mem_iff.mpr ⟨_, obj?_nested h (Partial.mem_iff.mp hm).choose_spec⟩  
+
+-- TODO: Is this being used?
+theorem objₘ_nested {j : ID} (h : nest rtr₁ i = some rtr₂) (m₂ : ↑j ∈ rtr₂[cpt]) : 
+    ∃ (m₁ : ↑j ∈ rtr₁[cpt]), rtr₁⟦m₁⟧ = rtr₂⟦m₂⟧ := by
+  exists obj?_mem_nested h m₂
+  apply objₘ_eq_from_obj?_eq
+  have ⟨_, h'⟩ := Partial.mem_iff.mp m₂
+  exact h' ▸ obj?_nested h h'
 
 theorem member_isEmpty_con?_none (h : IsEmpty (Member cpt i rtr)) : rtr[cpt][i]& = none := by
   cases cpt <;> simp [con?, not_nonempty_iff.mpr h]
@@ -231,6 +244,24 @@ theorem lower_obj?_some {i o} (h : rtr[cpt][i] = some o) : (rtr : β)[cpt][i] = 
 
 theorem lower_mem_obj? {i} (h : i ∈ rtr[cpt]) : i ∈ (rtr : β)[cpt] :=
   Partial.mem_iff.mpr ⟨_, c.lower_obj?_some (Partial.mem_iff.mp h).choose_spec⟩ 
+
+-- TODO: Is this being used?
+theorem lower_objₘ {i} (m₁ : i ∈ rtr[cpt]) : ∃ (m₂ : i ∈ (rtr : β)[cpt]), ↑(rtr⟦m₁⟧) = ↑rtr⟦m₂⟧ := by
+  exists lower_mem_obj? m₁
+  cases cpt <;> try cases ‹Component.Valued›  
+  case rtr =>
+    simp
+    have ⟨_, h'⟩ := Partial.mem_iff.mp m₁
+    have := lower_obj?_some h' (c := c)
+    simp at this
+    rw [←Indexable.objₘ_eq_iff_obj?_eq_some (m := m₁)] at h'
+    rw [←h'] at this
+    sorry
+  all_goals 
+    simp [Indexable.objₘ_eq_iff_obj?_eq_some, Indexable.objₘ_eq_obj?]
+    have ⟨_, h'⟩ := Partial.mem_iff.mp m₁
+    rw [lower_obj?_some h', h']
+    rfl
 
 end LawfulCoe
 
@@ -317,6 +348,10 @@ theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
   sorry
 
 theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
+  sorry
+
+theorem objₘ_rcn_eq (e : rtr₁ ≈ rtr₂) (m₁ : rcn ∈ rtr₁[.rcn]) : 
+    ∃ (m₂ : rcn ∈ rtr₂[.rcn]), rtr₁⟦m₁⟧ = rtr₂⟦m₂⟧ :=
   sorry
 
 theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
