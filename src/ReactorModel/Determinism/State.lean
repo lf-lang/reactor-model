@@ -22,10 +22,12 @@ theorem target_not_mem_indep_output {s : State} {i} {rcn₁ rcn₂ : ID}
   simp [output] at hc
   split at hc <;> try contradiction
   case inl m₁ =>
-    intro ⟨⟩ 
-    have := hi.deps_disjoint m₁ m₂
-    have := s.rtr⟦m₁⟧.targetMemDeps hc
-    exact Ne.irrefl $ Set.disjoint_iff_forall_ne.mp ‹_› ‹_› hd
+    cases cpt
+    case' prt, act => 
+      intro ⟨⟩ 
+      exact absurd hd $ hi.deps_disjoint m₁ m₂ (by simp) (s.rtr⟦m₁⟧.targetMemDeps hc)
+    case stv =>
+      sorry
 
 theorem exec_indep_restriction_eq {s : State} (hn : rcn₁ ≠ rcn₂) (hi : rcn₁ ≮[s.rtr] rcn₂) (m₁ m₂) : 
     input.restriction (s.exec rcn₁) rcn₂ m₂ cpt = input.restriction s rcn₂ m₁ cpt := by 

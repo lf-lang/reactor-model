@@ -1,6 +1,6 @@
 import ReactorModel.Execution
 
-open Classical
+open Classical ReactorType
 
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
 abbrev Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
@@ -13,8 +13,8 @@ notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => Independent rtr rcn₁ rcn₂
 variable {rtr : Reactor} {rcn₁ rcn₂ : ID} 
 variable (m₁ : rcn₁ ∈ rtr[.rcn]) (m₂ : rcn₂ ∈ rtr[.rcn]) (hi : rcn₁ ≮[rtr] rcn₂)
 
-theorem deps_disjoint : Disjoint (rtr⟦m₁⟧.deps .out) (rtr⟦m₂⟧.deps .in) := 
-  byContradiction fun hd => absurd (ReactorType.Dependency.depOverlap m₁ m₂ hd) hi
+theorem deps_disjoint {d} (hs : d.cpt ≠ .stv) (h : d ∈ rtr⟦m₁⟧.deps .out) : d ∉ rtr⟦m₂⟧.deps .in := 
+  byContradiction fun hd => absurd (Dependency.depOverlap m₁ m₂ hs h $ not_not.mp hd) hi
 
 theorem ne_con_or_pure (hn : rcn₁ ≠ rcn₂) : 
     (rtr⟦m₁⟧&.id ≠ rtr⟦m₂⟧&.id) ∨ rtr⟦m₁⟧.Pure ∨ rtr⟦m₂⟧.Pure := by
