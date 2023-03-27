@@ -1,23 +1,26 @@
 import ReactorModel.Objects.Change
 
-open Classical
+open Classical Reactor
 
 namespace Reaction 
 
-protected inductive Dependency
-  | port (k : Kind) (i : ID)
-  | action (i : ID)
+protected structure Dependency where
+  cpt : Component.Valued
+  id  : ID
+
+def _root_.Change.Normal.target (c : Change.Normal) : Reaction.Dependency where
+  cpt := c.cpt
+  id  := c.id
 
 @[ext]
 structure Input where
-  ports : Kind → ID ⇀ Value
-  acts  : ID ⇀ Value
-  state : ID ⇀ Value
-  tag   : Time.Tag
+  val : (cpt : Component.Valued) → ID ⇀ cpt.type 
+  tag : Time.Tag
 
-def Input.value (i : Input) : Reaction.Dependency → Option Value
-  | .port k j => i.ports k j
-  | .action j => i.acts j
+inductive Input.IsPresent (i : Input) : (Reaction.Dependency) → Prop
+  | prt : (i.val (.prt k) j = some (.present v))           → IsPresent i ⟨.prt k, j⟩  
+  | stv : (i.val .stv j = some (.present v))               → IsPresent i ⟨.stv, j⟩ 
+  | act : (i.val .act j >>= (· i.tag) = some (.present v)) → IsPresent i ⟨.act, j⟩ 
 
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
@@ -32,15 +35,15 @@ def Input.value (i : Input) : Reaction.Dependency → Option Value
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
 structure _root_.Reaction where
-  deps :          Kind → Set Reaction.Dependency
-  triggers :      Set Reaction.Dependency
-  prio :          Priority
-  body :          Input → List Change
-  tsSubInDeps :   triggers ⊆ deps .in
-  prtOutDepOnly : (.prt k j v ∈ body i) → .port k j ∈ deps .out 
-  actOutDepOnly : (.act j t v ∈ body i) → .action j ∈ deps .out
-  actNotPast :    (.act j t v ∈ body i) → i.tag.time ≤ t
-  stateLocal :    (.stv j v   ∈ body i) → j ∈ i.state
+  deps          : Kind → Set Reaction.Dependency
+  triggers      : Set Reaction.Dependency
+  prio          : Priority
+  body          : Input → List Change
+  tsSubInDeps   : triggers ⊆ deps .in
+  targetMemDeps : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
+  -- NOTE: We don't need the following condictions for determinism.
+  actNotPast    : (.act j t v ∈ body i) → i.tag.time ≤ t
+  actLocal      : True -- TODO: `body` outputs the same even if we change all actions' past and future values.
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
@@ -64,7 +67,7 @@ noncomputable def kind (rcn : Reaction) : Reaction.Kind :=
 
 -- A reaction is pure if it does not interact with its container's state.
 structure Pure (rcn : Reaction) : Prop where
-  input : ∀ i s, rcn i = rcn { i with state := s }
+  input : ∀ i s, rcn i = rcn { i with val := fun | .stv => s | cpt => i.val cpt }
   output : (c ∈ rcn.body i) → c.IsPort ∨ c.IsAction
 
 theorem Mutates.not_Pure {rcn : Reaction} : rcn.Mutates → ¬rcn.Pure := by
@@ -73,6 +76,6 @@ theorem Mutates.not_Pure {rcn : Reaction} : rcn.Mutates → ¬rcn.Pure := by
   
 -- The condition under which a given reaction triggers on a given input.
 def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
-  ∃ t v, (t ∈ rcn.triggers) ∧ (i.value t = some v) ∧ (v.IsPresent)
+  ∃ t, (t ∈ rcn.triggers) ∧ (i.IsPresent t)
 
 end Reaction
