@@ -65,11 +65,6 @@ protected inductive Kind
 noncomputable def kind (rcn : Reaction) : Reaction.Kind :=
   if rcn.Normal then .norm else .mut
 
--- A reaction is pure if it is normal and does not interact with its container's state.
-structure Pure (rcn : Reaction) : Prop where
-  normal    : rcn.Normal
-  stateless : ⟨.stv, i⟩ ∉ rcn.deps k
-  
 -- The condition under which a given reaction triggers on a given input.
 def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
   ∃ t, (t ∈ rcn.triggers) ∧ (i.IsPresent t)

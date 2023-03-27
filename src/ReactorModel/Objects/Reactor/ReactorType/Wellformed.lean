@@ -172,9 +172,9 @@ structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
   overlapPrio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
                  (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → 
                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
-  impurePrio   : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
-                 (i₁ ≠ i₂) → (¬rcn₁.Pure) → (¬rcn₂.Pure) → 
-                 (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
+  hazardsPrio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
+                 (i₁ ≠ i₂) → (⟨.stv, s⟩ ∈ rcn₁.deps k₁) → (⟨.stv, s⟩ ∈ rcn₂.deps k₂) → 
+                 (k₁ = .out ∨ k₂ = .out) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
   mutationPrio : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
                  (i₁ ≠ i₂) → (rcn₁.Mutates) → (rcn₂.Mutates) →
                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
@@ -192,7 +192,7 @@ scoped macro "wf_nested_proof " name:ident : term => `(
 theorem nested (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where
   stateLocal   := wf_nested_proof stateLocal
   overlapPrio  := wf_nested_proof overlapPrio
-  impurePrio   := wf_nested_proof impurePrio
+  hazardsPrio  := wf_nested_proof hazardsPrio
   mutationPrio := wf_nested_proof mutationPrio
   validDeps    := wf_nested_proof validDeps
   acyclicDeps  := wf.acyclicDeps.nested h
@@ -208,7 +208,7 @@ scoped macro "lift_prio_proof " name:ident : term => `(
 
 theorem lift [c : LawfulCoe α β] (wf : Wellformed (rtr : β)) : Wellformed rtr where
   overlapPrio  := lift_prio_proof overlapPrio
-  impurePrio   := lift_prio_proof impurePrio
+  hazardsPrio  := lift_prio_proof hazardsPrio
   mutationPrio := lift_prio_proof mutationPrio
   acyclicDeps  := wf.acyclicDeps.lift (rtr := rtr)
   stateLocal h₁ h₂ h₃ := 
@@ -229,7 +229,7 @@ scoped macro "equiv_prio_proof " name:ident rtr₁:ident rtr₂:ident : term => 
 
 theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ where
   overlapPrio  := equiv_prio_proof overlapPrio rtr₁ rtr₂
-  impurePrio   := equiv_prio_proof impurePrio rtr₁ rtr₂
+  hazardsPrio  := equiv_prio_proof hazardsPrio rtr₁ rtr₂
   mutationPrio := equiv_prio_proof mutationPrio rtr₁ rtr₂
   acyclicDeps  := wf.acyclicDeps.equiv e
   stateLocal h₁ h₂ h₃ :=
