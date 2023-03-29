@@ -15,8 +15,9 @@ inductive Dependency [Indexable α] (rtr : α) : ID → ID → Prop
   | prio : 
     (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
     (rcn₁.Mutates ↔ rcn₂.Mutates) → (rcn₁.prio > rcn₂.prio) → Dependency rtr i₁ i₂
-  | depOverlap (m₁ : rcn₁ ∈ rtr[.rcn]) (m₂ : rcn₂ ∈ rtr[.rcn]) {d : Reaction.Dependency} :
-    (d.cpt ≠ .stv) → (d ∈ rtr⟦m₁⟧.deps .out) → (d ∈ rtr⟦m₂⟧.deps .in) → Dependency rtr rcn₁ rcn₂
+  | depOverlap {d : Reaction.Dependency} :
+    (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (d ∈ rcn₁.deps .out) → 
+    (d ∈ rcn₂.deps .in) → (d.cpt ≠ .stv) → Dependency rtr i₁ i₂
   | mutNorm : 
     (rtr[.rtr][i] = some con) → (rcns con iₘ = some m) → (rcns con iₙ = some n) → (m.Mutates) → 
     (n.Normal) → Dependency rtr iₘ iₙ
@@ -36,10 +37,7 @@ theorem nested (h : nest rtr₁ i = some rtr₂) (d : i₁ <[rtr₂] i₂) : i�
   induction d with
   | prio h₁          => exact prio (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
   | mutNorm h₁       => exact mutNorm (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
-  | depOverlap m₁ m₂ _ h₁ h₂ => 
-    have ⟨m₁, h₁'⟩ := objₘ_nested h m₁ 
-    have ⟨m₂, h₂'⟩ := objₘ_nested h m₂
-    exact depOverlap m₁ m₂ ‹_› (h₁'.symm ▸ h₁) (h₂' ▸ h₂)
+  | depOverlap h₁ h₂ => exact depOverlap (obj?_nested h h₁) (obj?_nested h h₂) ‹_› ‹_› ‹_›
   | mutNest h₁       => exact mutNest (obj?_nested' h h₁).choose_spec ‹_› ‹_› ‹_› ‹_›
   | trans _ _ d₁ d₂  => exact trans d₁ d₂
 
@@ -51,11 +49,8 @@ theorem lower [c : LawfulCoe α β] (d : i₁ <[rtr] i₂) : i₁ <[(rtr : β)] 
   | mutNorm h₁ h₂ h₃ => 
     exact mutNorm (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂)
           (c.lower_cpt?_eq_some .rcn h₃) ‹_› ‹_›
-  | depOverlap m₁ m₂ _ h₁ h₂ => 
-    have ⟨m₁, h₁'⟩ := c.lower_objₘ m₁
-    have ⟨m₂, h₂'⟩ := c.lower_objₘ m₂
-    simp at h₁' h₂'
-    exact depOverlap m₁ m₂ ‹_› (h₁' ▸ h₁) (h₂' ▸ h₂)
+  | depOverlap h₁ h₂ => 
+    exact depOverlap (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) ‹_› ‹_› ‹_›
   | mutNest h₁ h₂ h₃ _ h₄ => 
     exact mutNest (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rtr h₂)
           (c.lower_cpt?_eq_some .rcn h₃) ‹_› (c.lower_mem_cpt? .rcn h₄) 
@@ -75,10 +70,8 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁]
     have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩  
     have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     exact mutNorm h₁' (rcns_eq e ▸ h₂) (rcns_eq e ▸ h₃) ‹_› ‹_›
-  | depOverlap m₁ m₂ _ h₁ h₂ => 
-    have ⟨m₁, h₁'⟩ := Equivalent.objₘ_rcn_eq (Equivalent.symm e) m₁
-    have ⟨m₂, h₂'⟩ := Equivalent.objₘ_rcn_eq (Equivalent.symm e) m₂
-    exact depOverlap m₁ m₂ ‹_› (h₁' ▸ h₁) (h₂' ▸ h₂)
+  | depOverlap h₁ h₂ => 
+    exact depOverlap (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› ‹_› ‹_›
   | mutNest h₁ h₂ h₃ _ h₄ => 
     have ⟨_, h₁'⟩ := e.obj?_some_iff.mpr ⟨_, h₁⟩  
     have e := Equivalent.obj?_rtr_equiv e h₁' h₁

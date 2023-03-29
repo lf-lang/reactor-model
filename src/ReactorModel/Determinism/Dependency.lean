@@ -2,76 +2,71 @@ import ReactorModel.Execution
 
 open Classical ReactorType
 
+theorem ReactorType.Wellformed.rcn_state_deps_local {rtr : Reactor}
+    (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂) 
+    (hr₁ : con₁.rcns i₁ = some rcn₁) (hr₂ : con₂.rcns i₂ = some rcn₂)
+    (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : c₁ = c₂ :=
+  have h₁ := rtr.wellformed.stateLocal hc₁ hr₁ hd₁
+  have h₂ := rtr.wellformed.stateLocal hc₂ hr₂ hd₂
+  Indexable.mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) h₁ h₂
+
+-- TODO: Do we use ⟦ ⟧ sensibly, or could we just write everything with `[][] = some _`?
+
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
-abbrev Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
+abbrev NotDependent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ <[rtr] rcn₂)
 
-namespace Independent
+notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => NotDependent rtr rcn₁ rcn₂
 
-notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => Independent rtr rcn₁ rcn₂
+variable {rtr : Reactor}
 
-variable {rtr : Reactor} {rcn₁ rcn₂ : ID} 
-variable (m₁ : rcn₁ ∈ rtr[.rcn]) (m₂ : rcn₂ ∈ rtr[.rcn]) (hi : rcn₁ ≮[rtr] rcn₂)
+open Indexable Dependency in
+theorem NotDependent.deps_disjoint {d} {m₁ : rcn₁ ∈ rtr[.rcn]} (hi : rcn₁ ≮[rtr] rcn₂) 
+    (hs : d.cpt ≠ .stv) (h : d ∈ rtr⟦m₁⟧.deps .out) (m₂ : rcn₂ ∈ rtr[.rcn]) : d ∉ rtr⟦m₂⟧.deps .in :=
+  byContradiction 
+    fun hd => absurd (depOverlap (objₘ_eq_obj? m₁) (objₘ_eq_obj? m₂) h (not_not.mp hd) hs) hi
 
-theorem deps_disjoint {d} (hs : d.cpt ≠ .stv) (h : d ∈ rtr⟦m₁⟧.deps .out) : d ∉ rtr⟦m₂⟧.deps .in := 
-  byContradiction fun hd => absurd (Dependency.depOverlap m₁ m₂ hs h $ not_not.mp hd) hi
+structure Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop where
+  left  : rcn₁ ≮[rtr] rcn₂
+  right : rcn₂ ≮[rtr] rcn₁
 
-theorem ne_con_or_pure (hn : rcn₁ ≠ rcn₂) : 
-    (rtr⟦m₁⟧&.id ≠ rtr⟦m₂⟧&.id) ∨ rtr⟦m₁⟧.Pure ∨ rtr⟦m₂⟧.Pure := by
-  have := hi
-  sorry
-  /-intro h hn ho₁ ho₂ hc₁ hc₂ 
-  by_contra hc
-  have ⟨hc, hp⟩ := (not_or ..).mp hc
-  simp [not_or] at hp hc
-  have he := Reactor.con?_eq_id_to_eq hc₁ hc₂ hc
-  simp [he] at hc₁
-  have ⟨_, ho₁', hcm₁⟩ := Reactor.con?_to_obj?_and_cpt? hc₁
-  have ⟨_, ho₂', hcm₂⟩ := Reactor.con?_to_obj?_and_cpt? hc₂
-  have ho₁'' := ho₁'.symm.trans ho₁
-  have ho₂'' := ho₂'.symm.trans ho₂
-  simp [ho₁'', ho₂''] at hcm₁ hcm₂
-  have hre := hc₂.trans hc₁.symm
-  by_cases hm₁ : rcn₁.isMut 
-  case pos =>
-    by_cases hm₂ : rcn₂.isMut
-    case pos =>
-      cases c₂.obj.orderability (.muts hcm₁ hcm₂ hn hm₁ hm₂)
-      case inl hpr =>
-        have hd := Dependency.prio hre ho₂ ho₁ (by simp [hm₁, hm₂]) hpr
-        exact absurd hd h.right 
-      case inr hpr =>
-        have hd := Dependency.prio hre.symm ho₁ ho₂ (by simp [hm₁, hm₂]) hpr
-        exact absurd hd h.left 
-    case neg => 
-      have hd := Dependency.mutNorm hre.symm ho₁ ho₂ hm₁ (by simp_all [Reaction.isMut])
-      exact absurd hd h.left 
-  case neg =>
-    by_cases hm₂ : rcn₂.isMut
-    case pos =>
-      have hd := Dependency.mutNorm hre ho₂ ho₁ hm₂ (by simp_all [Reaction.isMut])
-      exact absurd hd h.right 
-    case neg =>
-      cases c₂.obj.orderability (.impure hcm₁ hcm₂ hn hp.left hp.right)
-      case inl hpr =>
-        have hd := Dependency.prio hre ho₂ ho₁ (by simp [hm₁, hm₂]) hpr
-        exact absurd hd h.right 
-      case inr hpr =>
-        have hd := Dependency.prio hre.symm ho₁ ho₂ (by simp [hm₁, hm₂]) hpr
-        exact absurd hd h.left 
-  -/
-  
-theorem output_rcn₁_not_rcn₂_state 
-    (hn : rcn₁ ≠ rcn₂) (hs : .stv j v ∈ rtr⟦m₁⟧.body i) : j ∉ rtr⟦m₂⟧&.rtr.state := by
-  cases hi.ne_con_or_pure m₁ m₂ hn <;> try cases ‹_ ∨ _›  
-  case _ hc =>
-    sorry
-  case _ hc =>
-    sorry -- use Pure.output
-  case _ hc =>
-    sorry -- use Pure.input
+notation:50 rcn₁ " ≮[" rtr "]≯ " rcn₂ => Independent rtr rcn₁ rcn₂
 
-end Independent
+theorem Independent.output_rcn₁_not_rcn₂_state'
+    (hc : rtr[.rtr][c] = some con) (hr₁ : con.rcns i₁ = some rcn₁) (hr₂ : con.rcns i₂ = some rcn₂) 
+    (hd : ⟨.stv, j⟩ ∈ rcn₁.deps .out) (hn : i₁ ≠ i₂) (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁ i) : 
+    ⟨.stv, j⟩ ∉ rcn₂.deps k := by
+  by_contra hd'
+  have ⟨_, _⟩ := hi 
+  -- TODO: https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/by_cases.20tags.20bug/near/345415921
+  by_cases hm₁ : rcn₁.Mutates <;> by_cases hm₂ : rcn₂.Mutates
+  rotate_left
+  case _ => 
+    have := Dependency.mutNorm hc ‹_› ‹_› hm₁ (by simp_all [Reaction.Mutates])
+    contradiction
+  case _ => 
+    have := Dependency.mutNorm hc ‹_› hr₁ hm₂ (by simp_all [Reaction.Mutates])
+    contradiction
+  all_goals
+    cases rtr.wellformed.hazardsPrio hc hr₁ hr₂ hn hd hd' (.inl rfl)
+    all_goals
+      case _ hp =>
+      have := Dependency.prio hc ‹_› ‹_› (by simp [*]) hp   
+      contradiction
+    
+theorem Independent.output_rcn₁_not_rcn₂_state
+    (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂)
+    (hr₁ : con₁.rcns i₁ = some rcn₁) (hr₂ : con₂.rcns i₂ = some rcn₂) (hn : i₁ ≠ i₂) 
+    (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁ i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
+  have hd₁ := rcn₁.targetMemDeps hs
+  simp [Change.Normal.target] at hd₁
+  by_cases hc : c₁ = c₂
+  case neg => 
+    by_contra hd₂
+    exact absurd (ReactorType.Wellformed.rcn_state_deps_local hc₁ hc₂ hr₁ hr₂ hd₁ hd₂) hc
+  case pos => 
+    injection hc₂ ▸ hc ▸ hc₁ with h
+    exact output_rcn₁_not_rcn₂_state' hc₁ hr₁ (h ▸ hr₂) hd₁ hn hi hs
 
 -- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
 def Minimal (rtr : Reactor) (rcns : List ID) (rcn : ID) : Prop :=

@@ -101,12 +101,11 @@ inductive Member [ReactorType α] (cpt : Component) (i : ID) : α → Type _
 
 namespace Member
 
-def fromLawfulCoe [ReactorType α] [ReactorType β] [c : LawfulCoe α β] {rtr : α} : 
-    (Member cpt i rtr) → Member cpt i (rtr : β)
+variable [ReactorType α] [ReactorType β]
+
+def fromLawfulCoe [c : LawfulCoe α β] {rtr : α} : (Member cpt i rtr) → Member cpt i (rtr : β)
   | final h  => final (c.lower_mem_cpt? _ h)
   | nest h m => nest (c.lower_cpt?_eq_some (cpt := .rtr) h) (fromLawfulCoe m)
-
-variable [ReactorType α] [ReactorType β]
 
 instance [c : LawfulCoe α β] {rtr : α} : Coe (Member cpt i rtr) (Member cpt i (rtr : β)) where
   coe := Member.fromLawfulCoe

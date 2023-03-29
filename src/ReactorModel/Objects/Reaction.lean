@@ -56,7 +56,7 @@ def Normal (rcn : Reaction) : Prop :=
 
 -- A reaction is a mutation if its body can produce mutating changes.
 def Mutates (rcn : Reaction) : Prop := 
-  ∃ i c, (c ∈ rcn i) ∧ c.IsMutation 
+  ¬rcn.Normal
 
 protected inductive Kind 
   | «mut»
