@@ -1,4 +1,4 @@
-import ReactorModel.Determinism.InstStep
+import ReactorModel.Determinism.InstantaneousStep
 
 -- TODO: Place `InstStep` and `InstExecution` and `ClosedExecution` in the `Instantaneous` namespace
 --       and rename them `Execution.Instantaneous`, `Execution.Instantaneous.Step`, 
@@ -7,7 +7,8 @@ import ReactorModel.Determinism.InstStep
 open Classical
 
 namespace Execution
-namespace InstExecution
+namespace Instantaneous
+namespace Execution
  
 theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns, not_or]
@@ -52,7 +53,7 @@ theorem preserves_tag : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
 
 theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) : 
     (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
-  simp [rcns, InstStep.rcn]
+  simp [rcns, Step.rcn]
 
 theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ { i | i ∈ e.rcns }
   | refl => by simp [rcns]
@@ -98,7 +99,7 @@ theorem cons_prepend_minimal
     cases hm
     case inl hm =>
       simp [hm] at hr
-      have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := InstStep.prepend_indep e e' hr.cons_head
+      have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' hr.cons_head
       exists trans f $ trans f' e''
       simp [hm, rcns, ←hf₁, ←hf₂]
     case inr hm =>
@@ -106,7 +107,7 @@ theorem cons_prepend_minimal
       cases f <;> simp [rcns] at hf
       case trans f f'' =>
         have ⟨h₁, h₂⟩ := hf
-        have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := InstStep.prepend_indep e f $ h₁.symm ▸ hr |>.cons_head
+        have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep f $ h₁.symm ▸ hr |>.cons_head
         exists trans f $ trans f' f''
         simp [rcns, hf₁, h₁, hf₂, h₂, e''.rcns.erase_cons_tail $ head_not_mem_tail e' e'' hm]
 
@@ -141,5 +142,6 @@ protected theorem deterministic
   ext1 <;> try assumption
   exact rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
 
-end InstExecution
+end Execution
+end Instantaneous
 end Execution

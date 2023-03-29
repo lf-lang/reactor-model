@@ -101,7 +101,6 @@ theorem con?_eq_some (h : rtr[cpt][i]& = some con) :
   case inl n => exists n.some; injection h
   case inr => contradiction
 
--- TODO: Is this being used?
 theorem con?_to_obj?_and_cpt? (h : rtr[cpt][i]& = some con) :
     (rtr[.rtr][con.id] = con.rtr) ∧ ∃ o, (cpt? cpt con.rtr i = some o) := by
   sorry

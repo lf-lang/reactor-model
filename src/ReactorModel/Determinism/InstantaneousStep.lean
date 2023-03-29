@@ -3,14 +3,16 @@ import ReactorModel.Determinism.State
 open Classical ReactorType
 
 namespace Execution
+namespace Instantaneous
+namespace Step
 
-theorem InstStep.rcn_not_mem_progress (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
+theorem rcn_not_mem_progress (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
   sorry -- e.allows.unprocessed
 
-theorem InstStep.preserves_tag (e : s₁ ⇓ᵢ s₂) : s₁.tag = s₂.tag := 
+theorem preserves_tag (e : s₁ ⇓ᵢ s₂) : s₁.tag = s₂.tag := 
   sorry -- e.exec.preserves_tag
   
-theorem InstStep.mem_progress_iff :
+theorem mem_progress_iff :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress) := by
   intro h
   constructor
@@ -33,90 +35,17 @@ theorem InstStep.mem_progress_iff :
       -- simp [State.progress, h.exec.ctx_adds_rcn, Context.mem_record_progress_iff _ _ _ |>.mpr (.inr $ ho.resolve_left hc)]
 
 -- Corollary of `InstStep.mem_progress_iff`.
-theorem InstStep.not_mem_progress :
+theorem not_mem_progress :
   (e : s₁ ⇓ᵢ s₂) → (rcn' ≠ e.rcn) → rcn' ∉ s₁.progress → rcn' ∉ s₂.progress := 
   sorry -- λ h hn hm => (mt h.mem_progress.mp) $ not_or.mpr ⟨hn, hm⟩
 
 -- Corollary of `InstStep.mem_progress`.
-theorem InstStep.monotonic_progress : (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.progress → rcn' ∈ s₂.progress := 
+theorem monotonic_progress : (s₁ ⇓ᵢ s₂) → rcn' ∈ s₁.progress → rcn' ∈ s₂.progress := 
   sorry -- (·.mem_progress_iff.mpr $ .inr ·)
 
 -- Corollary of `InstStep.mem_progress`.
-theorem InstStep.rcn_mem_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.progress := 
+theorem rcn_mem_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.progress := 
   (·.mem_progress_iff.mpr $ .inl rfl)
-
--- If a port is not in the output-dependencies of a given reaction,
--- then any instantaneous step of the reaction will keep that port
--- unchanged.
-theorem InstStep.preserves_nondep_ports : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (⟨.prt k, p⟩ ∉ r.deps .out) → (s₁.rtr[.prt k][p] = s₂.rtr[.prt k][p])
-  := sorry
-  /-
-  | skipReaction ..,         _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => 
-    hs.preserves_unchanged_ports (
-      s₁.rcnOutput_port_dep_only · (by
-        simp [State.rcnOutput'] at ho
-        have ⟨_, hcs, ho⟩ := ho
-        simp [rcn, hcs, identified_changes_equiv_changes ho]
-      ) hr hd
-    )
-  -/
-
-theorem InstStep.preserves_nondep_actions : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (⟨.act, a⟩ ∉ r.deps .out) → (s₁.rtr[.act][a] = s₂.rtr[.act][a])
-  := sorry
-  /-
-  | skipReaction ..,        _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hd => 
-    hs.preserves_unchanged_actions (
-      s₁.rcnOutput_action_dep_only · · (by
-        simp [State.rcnOutput'] at ho
-        have ⟨_, hcs, ho⟩ := ho
-        simp [rcn, hcs, identified_changes_equiv_changes ho]
-      ) hr hd
-    )
-  -/
-
-theorem InstStep.pure_preserves_state {j : ID} : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn] = some r) → (r.Pure) → (s₁.rtr[.stv][j] = s₂.rtr[.stv][j])
-  := sorry
-  /-
-  | skipReaction ..,    _,  _ => rfl
-  | execReaction _ _ ho hs, hr, hp =>
-    hs.preserves_unchanged_state (
-      s₁.rcnOutput_pure · (by
-        simp [State.rcnOutput'] at ho
-        have ⟨_, hcs, ho⟩ := ho
-        simp [rcn, hcs, identified_changes_equiv_changes ho]
-      ) hr hp
-    )
-  -/
-
--- Note: We can't express the result as `∀ x, c₁.obj? .stv x = c₂.obj? .stv x`,
---       as `c₁`/`c₂` might contain `c` as a (transitively) nested reactor. 
-theorem InstStep.preserves_external_state : 
-  (e : s₁ ⇓ᵢ s₂) → (s₁.rtr[.rcn][e.rcn]& = some c) → 
-  (s₁.rtr[.rtr][j] = some c₁) → (s₂.rtr[.rtr][j] = some c₂) → (c.id ≠ j) →
-  (c₁.state = c₂.state)
-  := sorry
-  /-
-  | skipReaction ..,        _,  _,   _,   _ => by simp_all
-  | execReaction _ _ ho hs, hc, hc₁, hc₂, hi => by
-    apply hs.preserves_Equiv.nest' hc₁ hc₂ |>.obj?_ext (cpt := .stv)
-    intro x hx
-    have hm := Reactor.local_mem_exclusive hc₁ (Reactor.con?_to_rtr_obj? hc) hi.symm hx
-    have hu := hs.preserves_unchanged_state (
-      s₁.rcnOutput_state_local · (by
-        simp [State.rcnOutput'] at ho
-        have ⟨_, hcs, ho⟩ := ho
-        simp [rcn, hcs, identified_changes_equiv_changes ho]
-      ) hc hm
-    )
-    exact hs.preserves_Equiv.eq_obj?_nest hu hc₁ hc₂
-  -/
-
-namespace InstStep
 
 theorem Skip.equiv : (s₁ ⇓ₛ s₂) → s₁.rtr ≈ s₂.rtr
   | mk .. => .refl
@@ -227,5 +156,6 @@ theorem prepend_indep (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e
   case exec e₁ =>
     sorry 
 
-end InstStep 
+end Step
+end Instantaneous 
 end Execution

@@ -1,4 +1,4 @@
-import ReactorModel.Determinism.InstExecution
+import ReactorModel.Determinism.InstantaneousExecution
 
 namespace Execution
 
@@ -30,6 +30,7 @@ instance preserves_Nontrivial [State.Nontrivial s₁] {e : s₁ ⇓- s₂} : Sta
 
 end AdvanceTag
 
+namespace Instantaneous
 namespace ClosedExecution
 
 theorem not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := by
@@ -80,6 +81,7 @@ theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress 
   exact e.closed.progress_Nonempty.empty_ssubset
 
 end ClosedExecution
+end Instantaneous
 
 namespace Step
 

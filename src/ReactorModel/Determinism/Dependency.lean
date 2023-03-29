@@ -71,10 +71,15 @@ theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps'
     injection hc₂ ▸ hc ▸ hc₁ with h
     exact ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps hc₁ hr₁ (h ▸ hr₂) hd₁ hi hs
 
+open Indexable in
 theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps {m₁ : rcn₁ ∈ rtr[.rcn]} 
     (m₂ : rcn₂ ∈ rtr[.rcn]) (hi : rcn₁ ≮[rtr]≯ rcn₂) (hs : .stv j v ∈ rtr⟦m₁⟧.body i) : 
-    ⟨.stv, j⟩ ∉ rtr⟦m₂⟧.deps k :=
-  sorry
+    ⟨.stv, j⟩ ∉ rtr⟦m₂⟧.deps k := by
+  have ⟨_, ho₁, hc₁⟩ := objₘ_eq_obj? m₁ |> obj?_to_con?_and_cpt?
+  have ⟨_, ho₂, hc₂⟩ := objₘ_eq_obj? m₂ |> obj?_to_con?_and_cpt?
+  have ⟨ho₁, _, _⟩ := con?_to_obj?_and_cpt? ho₁
+  have ⟨ho₂, _, _⟩ := con?_to_obj?_and_cpt? ho₂
+  exact state_mem_rcn₁_deps_not_mem_rcn₂_deps' ho₁ ho₂ hc₁ hc₂ hi hs
 
 end Independent
 
