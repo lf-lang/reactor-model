@@ -1,5 +1,7 @@
 import ReactorModel.Execution.Reactor
 
+-- TODO: Eliminate the use of `objₘ` by using `s.rtr[.rcn] |>.elim _ _` instead.
+
 noncomputable section
 open Classical
 
