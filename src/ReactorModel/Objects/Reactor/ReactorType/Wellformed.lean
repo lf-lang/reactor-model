@@ -157,23 +157,25 @@ theorem ValidDependency.equiv
 
 -- TODO: Refactor the `prio` conditions into one.
 structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
-  uniqueInputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
-                 (i ∈ rtr[.prt .in]) → (⟨.prt .in, i⟩ ∈ rcn₁.deps .out) → 
-                 (⟨.prt .in, i⟩ ∉ rcn₂.deps .out)  
-  stateLocal   : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → 
-                 (⟨.stv, s⟩ ∈ rcn.deps k) → (s ∈ state con)
-  overlapPrio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
-                 (i₁ ≠ i₂) → (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → 
-                 (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
-  hazardsPrio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
-                 (i₁ ≠ i₂) → (⟨.stv, s⟩ ∈ rcn₁.deps k₁) → (⟨.stv, s⟩ ∈ rcn₂.deps k₂) → 
-                 (k₁ = .out ∨ k₂ = .out) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
-  mutationPrio : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → (rcns con i₂ = some rcn₂) → 
-                 (i₁ ≠ i₂) → (rcn₁.Mutates) → (rcn₂.Mutates) →
-                 (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
-  validDeps    : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → (d ∈ rcn.deps k) → 
-                 (ValidDependency con rcn.kind k d) 
-  acyclicDeps  : Dependency.Acyclic rtr
+  unique_inputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
+                  (i ∈ rtr[.prt .in]) → (⟨.prt .in, i⟩ ∈ rcn₁.deps .out) → 
+                  (⟨.prt .in, i⟩ ∉ rcn₂.deps .out)  
+  state_local   : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → 
+                  (⟨.stv, s⟩ ∈ rcn.deps k) → (s ∈ state con)
+  overlap_prio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → 
+                  (rcns con i₂ = some rcn₂) → (i₁ ≠ i₂) → 
+                  (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → 
+                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
+  hazards_prio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → 
+                  (rcns con i₂ = some rcn₂) → (i₁ ≠ i₂) → (⟨.stv, s⟩ ∈ rcn₁.deps k₁) → 
+                  (⟨.stv, s⟩ ∈ rcn₂.deps k₂) → (k₁ = .out ∨ k₂ = .out) → 
+                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
+  mutation_prio : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → 
+                  (rcns con i₂ = some rcn₂) → (i₁ ≠ i₂) → (rcn₁.Mutates) → (rcn₂.Mutates) →
+                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
+  valid_deps    : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → (d ∈ rcn.deps k) → 
+                  (ValidDependency con rcn.kind k d) 
+  acyclic_deps  : Dependency.Acyclic rtr
 
 set_option hygiene false in
 scoped macro "wf_nested_proof " name:ident : term => `(
@@ -183,14 +185,14 @@ scoped macro "wf_nested_proof " name:ident : term => `(
 )
 
 theorem nested (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where
-  stateLocal   := wf_nested_proof stateLocal
-  overlapPrio  := wf_nested_proof overlapPrio
-  hazardsPrio  := wf_nested_proof hazardsPrio
-  mutationPrio := wf_nested_proof mutationPrio
-  validDeps    := wf_nested_proof validDeps
-  acyclicDeps  := wf.acyclicDeps.nested h
-  uniqueInputs h₁ h₂ _ h₄ := 
-    wf.uniqueInputs (obj?_nested h h₁) (obj?_nested h h₂) ‹_› (obj?_mem_nested h h₄)
+  state_local   := wf_nested_proof state_local
+  overlap_prio  := wf_nested_proof overlap_prio
+  hazards_prio  := wf_nested_proof hazards_prio
+  mutation_prio := wf_nested_proof mutation_prio
+  valid_deps    := wf_nested_proof valid_deps
+  acyclic_deps  := wf.acyclic_deps.nested h
+  unique_inputs h₁ h₂ _ h₄ := 
+    wf.unique_inputs (obj?_nested h h₁) (obj?_nested h h₂) ‹_› (obj?_mem_nested h h₄)
 
 set_option hygiene false in 
 scoped macro "lift_prio_proof " name:ident : term => `(
@@ -200,16 +202,16 @@ scoped macro "lift_prio_proof " name:ident : term => `(
 )
 
 theorem lift [c : LawfulCoe α β] (wf : Wellformed (rtr : β)) : Wellformed rtr where
-  overlapPrio  := lift_prio_proof overlapPrio
-  hazardsPrio  := lift_prio_proof hazardsPrio
-  mutationPrio := lift_prio_proof mutationPrio
-  acyclicDeps  := wf.acyclicDeps.lift (rtr := rtr)
-  stateLocal h₁ h₂ h₃ := 
-    c.lift_mem_cpt? .stv $ wf.stateLocal (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ 
-  validDeps h₁ h₂ h₃ := 
-    wf.validDeps (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ |>.lift
-  uniqueInputs h₁ h₂ _ h₃ := 
-    wf.uniqueInputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) ‹_› (c.lower_mem_obj? h₃)
+  overlap_prio  := lift_prio_proof overlap_prio
+  hazards_prio  := lift_prio_proof hazards_prio
+  mutation_prio := lift_prio_proof mutation_prio
+  acyclic_deps  := wf.acyclic_deps.lift (rtr := rtr)
+  state_local h₁ h₂ h₃ := 
+    c.lift_mem_cpt? .stv $ wf.state_local (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ 
+  valid_deps h₁ h₂ h₃ := 
+    wf.valid_deps (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ |>.lift
+  unique_inputs h₁ h₂ _ h₃ := 
+    wf.unique_inputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) ‹_› (c.lower_mem_obj? h₃)
 
 set_option hygiene false in
 scoped macro "equiv_prio_proof " name:ident rtr₁:ident rtr₂:ident : term => `(
@@ -221,23 +223,23 @@ scoped macro "equiv_prio_proof " name:ident rtr₁:ident rtr₂:ident : term => 
 )
 
 theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ where
-  overlapPrio  := equiv_prio_proof overlapPrio rtr₁ rtr₂
-  hazardsPrio  := equiv_prio_proof hazardsPrio rtr₁ rtr₂
-  mutationPrio := equiv_prio_proof mutationPrio rtr₁ rtr₂
-  acyclicDeps  := wf.acyclicDeps.equiv e
-  stateLocal h₁ h₂ h₃ :=
+  overlap_prio  := equiv_prio_proof overlap_prio rtr₁ rtr₂
+  hazards_prio  := equiv_prio_proof hazards_prio rtr₁ rtr₂
+  mutation_prio := equiv_prio_proof mutation_prio rtr₁ rtr₂
+  acyclic_deps  := wf.acyclic_deps.equiv e
+  state_local h₁ h₂ h₃ :=
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
     have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     have h₂' := Equivalent.rcns_eq e ▸ h₂
-    Equivalent.mem_cpt?_iff e (cpt := .stv) |>.mp $ wf.stateLocal h₁' h₂' h₃
-  validDeps h₁ h₂ h₃ := 
+    Equivalent.mem_cpt?_iff e (cpt := .stv) |>.mp $ wf.state_local h₁' h₂' h₃
+  valid_deps h₁ h₂ h₃ := 
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
     have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     have h₂' := Equivalent.rcns_eq e ▸ h₂
-    wf.validDeps h₁' h₂' h₃ |>.equiv ‹_› h₁' h₁
-  uniqueInputs h₁ h₂ _ h₃ := 
+    wf.valid_deps h₁' h₂' h₃ |>.equiv ‹_› h₁' h₁
+  unique_inputs h₁ h₂ _ h₃ := 
     have h₃' := Equivalent.mem_iff e |>.mpr h₃
-    wf.uniqueInputs (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› h₃'
+    wf.unique_inputs (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› h₃'
 
 end Wellformed
 end ReactorType

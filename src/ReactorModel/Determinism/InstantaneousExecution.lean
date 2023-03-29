@@ -1,8 +1,5 @@
 import ReactorModel.Determinism.InstantaneousStep
 
--- TODO: Place `InstStep` and `InstExecution` and `ClosedExecution` in the `Instantaneous` namespace
---       and rename them `Execution.Instantaneous`, `Execution.Instantaneous.Step`, 
---       `Execution.Instantaneous.Complete`.
 
 open Classical
 

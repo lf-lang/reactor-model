@@ -1,5 +1,6 @@
 import ReactorModel.Objects.Change
 
+noncomputable section
 open Classical Reactor
 
 namespace Reaction 
@@ -29,21 +30,21 @@ inductive Input.IsPresent (i : Input) : (Reaction.Dependency) → Prop
 -- The `deps` field defines both dependencies and antidependencies by referring to
 -- the ports' IDs and separating these IDs by the role of the port they refer to.
 --
--- A reaction's `triggers` are a subset of its input ports (by `tsSubInDeps`).
+-- A reaction's `triggers` are a subset of its input ports (by `triggers_sub_in_deps`).
 -- This field is used to define when a reaction triggers (cf. `triggersOn`).
 --
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
 structure _root_.Reaction where
-  deps          : Kind → Set Reaction.Dependency
-  triggers      : Set Reaction.Dependency
-  prio          : Priority
-  body          : Input → List Change
-  tsSubInDeps   : triggers ⊆ deps .in
-  targetMemDeps : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
-  -- NOTE: We don't need the following condictions for determinism.
-  actNotPast    : (.act j t v ∈ body i) → i.tag.time ≤ t
-  actLocal      : True -- TODO: `body` outputs the same even if we change all actions' past and future values.
+  deps      : Kind → Set Reaction.Dependency
+  triggers  : Set Reaction.Dependency
+  prio      : Priority
+  body      : Input → List Change
+  triggers_sub_in_deps : triggers ⊆ deps .in
+  target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
+  -- TODO: We don't need the following condictions for determinism. Should we remove them?
+  act_not_past         : (.act j t v ∈ body i) → i.tag.time ≤ t
+  act_local            : True -- `body` outputs the same even if we change all actions' past and future values.
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
@@ -62,7 +63,7 @@ protected inductive Kind
   | «mut»
   | norm
 
-noncomputable def kind (rcn : Reaction) : Reaction.Kind :=
+def kind (rcn : Reaction) : Reaction.Kind :=
   if rcn.Normal then .norm else .mut
 
 -- The condition under which a given reaction triggers on a given input.

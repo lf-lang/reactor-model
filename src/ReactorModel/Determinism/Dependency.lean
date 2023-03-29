@@ -6,8 +6,8 @@ theorem ReactorType.Wellformed.rcn_state_deps_local {rtr : Reactor}
     (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂) 
     (hr₁ : con₁.rcns i₁ = some rcn₁) (hr₂ : con₂.rcns i₂ = some rcn₂)
     (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : c₁ = c₂ :=
-  have h₁ := rtr.wellformed.stateLocal hc₁ hr₁ hd₁
-  have h₂ := rtr.wellformed.stateLocal hc₂ hr₂ hd₂
+  have h₁ := rtr.wellformed.state_local hc₁ hr₁ hd₁
+  have h₂ := rtr.wellformed.state_local hc₂ hr₂ hd₂
   Indexable.mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) h₁ h₂
 
 -- TODO: Do we use ⟦ ⟧ sensibly, or could we just write everything with `[][] = some _`?
@@ -51,7 +51,7 @@ theorem ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps
     have := Dependency.mutNorm hc ‹_› hr₁ hm₂ (by simp_all [Reaction.Mutates])
     contradiction
   all_goals
-    cases rtr.wellformed.hazardsPrio hc hr₁ hr₂ hn hd hd' (.inl rfl)
+    cases rtr.wellformed.hazards_prio hc hr₁ hr₂ hn hd hd' (.inl rfl)
     all_goals
       case _ hp =>
       have := Dependency.prio hc ‹_› ‹_› (by simp [*]) hp   
@@ -61,7 +61,7 @@ theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps'
     (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂)
     (hr₁ : con₁.rcns i₁ = some rcn₁) (hr₂ : con₂.rcns i₂ = some rcn₂)
     (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁ i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
-  have hd₁ := rcn₁.targetMemDeps hs
+  have hd₁ := rcn₁.target_mem_deps hs
   simp [Change.Normal.target] at hd₁
   by_cases hc : c₁ = c₂
   case neg => 

@@ -28,7 +28,7 @@ theorem target_not_mem_indep_output {s : State} {i} {rcn₁ rcn₂ : ID} {m₂ :
       apply absurd hd
     case stv => exact hi.state_mem_rcn₁_deps_not_mem_rcn₂_deps m₂ hc
     all_goals 
-      have h := s.rtr⟦m₁⟧.targetMemDeps hc
+      have h := s.rtr⟦m₁⟧.target_mem_deps hc
       exact NotDependent.deps_disjoint hi.left h (by simp [Change.Normal.target]) m₂
     
 theorem exec_indep_restriction_eq {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) (m₁ m₂) : 
