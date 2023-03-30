@@ -1,8 +1,13 @@
 import ReactorModel.Objects
-import ReactorModel.Execution.Action
+import Mathlib.Data.Finset.Lattice
 
 noncomputable section
 open ReactorType Updatable Indexable
+
+def Action.schedule (a : Action) (t : Time) (v : Value) : Action :=
+  match a.tags.filter (·.time = t) |>.max with
+  | ⊥           => a.insert ⟨t, 0⟩ v
+  | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
 
 namespace Reactor
 
@@ -62,5 +67,9 @@ theorem apply'_preserves_unchanged {rtr : Reactor} {cs : List Change} {cpt : Com
   case cons hd tl hi => 
     have ⟨hh, ht⟩ := List.all₂_cons _ _ _ |>.mp h
     exact rtr.apply_preserves_unchanged hh ▸ hi ht 
+
+theorem apply'_disjoint_comm {rtr : Reactor} (h : List.Disjoint cs₁ cs₂) : 
+    (rtr.apply' cs₁).apply' cs₂ = (rtr.apply' cs₂).apply' cs₁ :=
+  sorry
 
 end Reactor

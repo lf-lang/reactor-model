@@ -40,7 +40,7 @@ structure _root_.Reaction where
   triggers  : Set Reaction.Dependency
   prio      : Priority
   body      : Input → List Change
-  triggers_sub_in_deps : triggers ⊆ deps .in
+  triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv } 
   target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
   -- TODO: We don't need the following condictions for determinism. Should we remove them?
   act_not_past         : (.act j t v ∈ body i) → i.tag.time ≤ t

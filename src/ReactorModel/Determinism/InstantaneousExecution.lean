@@ -1,6 +1,5 @@
 import ReactorModel.Determinism.InstantaneousStep
 
-
 open Classical
 
 namespace Execution

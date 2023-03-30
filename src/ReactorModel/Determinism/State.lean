@@ -5,6 +5,12 @@ open Classical ReactorType
 namespace Execution
 namespace State
 
+theorem exec_preserves_tag (s : State) (rcn : ID) : (s.exec rcn).tag = s.tag :=
+  rfl
+
+theorem exec_preserves_progress (s : State) (rcn : ID) : (s.exec rcn).progress = s.progress :=
+  rfl
+
 theorem exec_equiv (s : State) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
   simp [exec]
   exact Equivalent.symm $ Reactor.apply'_equiv _ _
@@ -60,5 +66,40 @@ theorem exec_indep_output_eq {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) :
     have := Equivalent.mem_iff (Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
     contradiction
 
+theorem indep_output_disjoint {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
+    List.Disjoint (s.output rcn₁) (s.output rcn₂) := by
+  cases h₁ : s.rtr[.rcn][rcn₁] <;> cases h₂ : s.rtr[.rcn][rcn₂]
+  case' none.none, none.some =>
+    have h₁ : rcn₁ ∉ s.rtr[.rcn] := Partial.mem_iff.not.mpr $ by simp_all
+    simp [output, h₁]
+  case some.none =>
+    have h₂ : rcn₂ ∉ s.rtr[.rcn] := Partial.mem_iff.not.mpr $ by simp_all
+    simp [output, h₂]
+  case some.some =>
+    have h₁ : rcn₁ ∈ s.rtr[.rcn] := Partial.mem_iff.mpr ⟨_, h₁⟩
+    have h₂ : rcn₂ ∈ s.rtr[.rcn] := Partial.mem_iff.mpr ⟨_, h₂⟩
+    simp [output, h₁, h₂]
+    
+    -- generalize ho₁ : s.output rcn₁ = o₁
+    -- generalize ho₂ : s.output rcn₂ = o₂
+    -- induction o₁ generalizing o₂ <;> cases o₂ <;> simp
+    -- case cons.cons hd₁ tl₁ hi hd₂ tl₂ =>
+    --   simp [not_or]
+    --   split_ands
+    --   · sorry 
+    --   · sorry 
+    --   · sorry 
+    --   · sorry 
+
+theorem exec_indep_swap {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
+    (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
+  ext1
+  case tag => apply exec_preserves_tag
+  case progress => apply exec_preserves_progress
+  case rtr =>
+    conv => lhs; rw [exec, exec_indep_output_eq hi]
+    conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
+    exact Reactor.apply'_disjoint_comm $ indep_output_disjoint hi
+  
 namespace State
 namespace Execution

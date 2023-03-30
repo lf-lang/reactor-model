@@ -35,6 +35,15 @@ namespace Independent
 
 notation:50 rcn₁ " ≮[" rtr "]≯ " rcn₂ => Independent rtr rcn₁ rcn₂
 
+theorem symm (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[rtr]≯ i₁ where
+  not_eq := hi.not_eq.symm
+  left   := hi.right
+  right  := hi.left
+
+-- TODO: Is this provable?
+theorem not_Mutates (hi : i₁ ≮[rtr]≯ i₂) (h : rtr[.rcn][i₁] = some rcn) : ¬rcn.Mutates :=
+  sorry
+
 theorem ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps
     (hc : rtr[.rtr][c] = some con) (hr₁ : con.rcns i₁ = some rcn₁) (hr₂ : con.rcns i₂ = some rcn₂) 
     (hd : ⟨.stv, j⟩ ∈ rcn₁.deps .out) (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁ i) : 
