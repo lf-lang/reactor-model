@@ -1,7 +1,5 @@
 import ReactorModel.Execution.Reactor
 
--- TODO: Eliminate the use of `objₘ` by using `s.rtr[.rcn] |>.elim _ _` instead.
-
 noncomputable section
 open Classical
 
@@ -34,18 +32,17 @@ theorem Allows.acyclic {s : State} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   fun hc => absurd (a.deps hc) a.unprocessed
 
 def input (s : State) (rcn : ID) : Reaction.Input where
-  val cpt := if m : rcn ∈ s.rtr[.rcn] then restriction m cpt else ∅ 
+  val cpt := s.rtr[.rcn][rcn] |>.elim ∅ (restriction · cpt)
   tag := s.tag
 where 
-  restriction (m : rcn ∈ s.rtr[.rcn]) (cpt : Reactor.Component.Valued) := 
-    s.rtr[cpt].restrict { i | ⟨cpt, i⟩ ∈ s.rtr⟦m⟧.deps .in }
+  restriction (rcn : Reaction) (cpt : Reactor.Component.Valued) := 
+    s.rtr[cpt].restrict { i | ⟨cpt, i⟩ ∈ rcn.deps .in }
 
 def output (s : State) (rcn : ID) : List Change := 
-  if m : rcn ∈ s.rtr[.rcn] then s.rtr⟦m⟧ $ s.input rcn else []
+  s.rtr[.rcn][rcn] |>.elim [] (· $ s.input rcn)
 
-structure Triggers (s : State) (rcn : ID) : Prop where
-  mem      : rcn ∈ s.rtr[.rcn] 
-  triggers : s.rtr⟦mem⟧.TriggersOn (s.input rcn)
+inductive Triggers (s : State) (i : ID) : Prop
+  | intro (mem : s.rtr[.rcn][i] = some rcn) (triggers : rcn.TriggersOn (s.input i))
 
 -- TODO: Is this being used?
 theorem Triggers.progress_agnostic 

@@ -86,14 +86,6 @@ notation rtr "[" cpt "][" i "]"             => ReactorType.Indexable.obj? rtr cp
 
 variable {rtr rtr₁ rtr₂ : α}
 
-def objₘ (rtr : α) {cpt : Component} {i : cpt.idType} (m : i ∈ rtr[cpt]) : a.cptType cpt :=
-  Partial.mem_iff.mp m |>.choose
-
-notation rtr "⟦" m "⟧" => ReactorType.Indexable.objₘ rtr m
-
-theorem objₘ_eq_obj? (m : ↑i ∈ rtr[cpt]) : rtr[cpt][i] = rtr⟦m⟧ := by
-  rw [objₘ, ←(Partial.mem_iff.mp m).choose_spec]
-
 theorem con?_eq_some (h : rtr[cpt][i]& = some con) : 
     ∃ m : Member cpt i rtr, m.container = con := by
   simp [con?] at h
@@ -322,11 +314,6 @@ theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
   sorry
 
 theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
-  sorry
-
--- Is this being used?
-theorem objₘ_rcn_eq (e : rtr₁ ≈ rtr₂) (m₁ : rcn ∈ rtr₁[.rcn]) : 
-    ∃ (m₂ : rcn ∈ rtr₂[.rcn]), rtr₁⟦m₁⟧ = rtr₂⟦m₂⟧ :=
   sorry
 
 theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 

@@ -15,71 +15,51 @@ theorem exec_equiv (s : State) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
   simp [exec]
   exact Equivalent.symm $ Reactor.apply'_equiv _ _
 
--- Note: We could also restate this theorem such that the `m₂` is part of the return value.
-theorem exec_objₘ_rcn_eq {s : State} (m₁ : rcn ∈ s.rtr[.rcn]) (m₂ : rcn ∈ (s.exec rcn').rtr[.rcn]) : 
-    s.rtr⟦m₁⟧ = (s.exec rcn').rtr⟦m₂⟧ :=
-  Equivalent.objₘ_rcn_eq (s.exec_equiv rcn') m₁ |>.choose_spec
-
-theorem target_not_mem_indep_output {s : State} {i} {rcn₁ rcn₂ : ID} {m₂ : rcn₂ ∈ s.rtr[.rcn]}
-    (hi : rcn₁ ≮[s.rtr]≯ rcn₂) (hd : ⟨cpt, i⟩ ∈ s.rtr⟦m₂⟧.deps .in) : 
-    (s.output rcn₁).All₂ (¬·.Targets cpt i) := by
+theorem target_not_mem_indep_output {s : State} {i} {i₁ i₂ : ID} (h₂ : s.rtr[.rcn][i₂] = some rcn₂) 
+    (hi : i₁ ≮[s.rtr]≯ i₂) (hd : ⟨cpt, i⟩ ∈ rcn₂.deps .in) : 
+    (s.output i₁).All₂ (¬·.Targets cpt i) := by
   apply List.all₂_iff_forall.mpr
   intro c hc
   simp [output] at hc
   split at hc <;> try contradiction
-  case inl m₁ =>
+  case _ rcn₁ h₁ =>
     cases cpt
     all_goals
       intro ⟨⟩
       apply absurd hd
-    case stv => exact hi.state_mem_rcn₁_deps_not_mem_rcn₂_deps m₂ hc
+    case stv => 
+      exact hi.state_mem_rcn₁_deps_not_mem_rcn₂_deps h₁ h₂ hc
     all_goals 
-      have h := s.rtr⟦m₁⟧.target_mem_deps hc
-      exact NotDependent.deps_disjoint hi.left h (by simp [Change.Normal.target]) m₂
+      exact hi.left.deps_disjoint h₁ h₂ (rcn₁.target_mem_deps hc) $ by simp [Change.Normal.target]
     
-theorem exec_indep_restriction_eq {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) (m₁ m₂) : 
-    input.restriction (s.exec rcn₁) rcn₂ m₂ cpt = input.restriction s rcn₂ m₁ cpt := by 
+theorem exec_indep_restriction_eq {s : State} (hi : i₁ ≮[s.rtr]≯ i₂) 
+    (h₂ : s.rtr[.rcn][i₂] = some rcn₂) : 
+    input.restriction (s.exec i₁) rcn₂ cpt = input.restriction s rcn₂ cpt := by 
   simp [input.restriction]
-  rw [←exec_objₘ_rcn_eq m₁ m₂]
   apply Partial.ext_restrict 
   intro _ hd
-  exact Reactor.apply'_preserves_unchanged $ target_not_mem_indep_output hi hd  
+  exact Reactor.apply'_preserves_unchanged $ target_not_mem_indep_output h₂ hi hd  
   
-theorem exec_indep_input_eq {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) (m₁ : rcn₂ ∈ s.rtr[.rcn]) 
-    (m₂ : rcn₂ ∈ (s.exec rcn₁).rtr[.rcn]) : (s.exec rcn₁).input rcn₂ = s.input rcn₂ := by 
-  simp [input]
-  split <;> try contradiction
+theorem exec_indep_input_eq {s : State} (hi : i₁ ≮[s.rtr]≯ i₂) (h : s.rtr[.rcn][i₂] = some rcn₂)
+    (h' : (s.exec i₁).rtr[.rcn][i₂] = some rcn₂) : (s.exec i₁).input i₂ = s.input i₂ := by 
+  simp [input, h, h']
   refine ⟨?_, by simp [exec]⟩
   ext1
-  exact exec_indep_restriction_eq hi m₁ m₂
+  injection h' ▸ Equivalent.obj?_rcn_eq (s.exec_equiv i₁) ▸ h with h'
+  exact h'.symm ▸ exec_indep_restriction_eq hi h 
     
-theorem exec_indep_output_eq {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
-    (s.exec rcn₁).output rcn₂ = s.output rcn₂ := by 
+theorem exec_indep_output_eq {s : State} (hi : i₁ ≮[s.rtr]≯ i₂) : 
+    (s.exec i₁).output i₂ = s.output i₂ := by 
   simp [output]
-  split <;> split 
-  case inl.inl m₂ m₁ => simp [exec_indep_input_eq hi m₁ m₂, exec_objₘ_rcn_eq m₁ m₂]
-  case inr.inr => rfl
-  case inr.inl h => 
-    have := Equivalent.mem_iff (Equivalent.symm $ Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
-    contradiction
-  case inl.inr h _ =>
-    have := Equivalent.mem_iff (Reactor.apply'_equiv _ $ s.output rcn₁) |>.mp h
-    contradiction
+  have e := Equivalent.obj?_rcn_eq $ s.exec_equiv i₁
+  cases h : s.rtr[.rcn][i₂] <;> simp [e ▸ h]
+  simp [exec_indep_input_eq hi h $ e ▸ h]
 
 theorem indep_output_disjoint {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     List.Disjoint (s.output rcn₁) (s.output rcn₂) := by
-  cases h₁ : s.rtr[.rcn][rcn₁] <;> cases h₂ : s.rtr[.rcn][rcn₂]
-  case' none.none, none.some =>
-    have h₁ : rcn₁ ∉ s.rtr[.rcn] := Partial.mem_iff.not.mpr $ by simp_all
-    simp [output, h₁]
-  case some.none =>
-    have h₂ : rcn₂ ∉ s.rtr[.rcn] := Partial.mem_iff.not.mpr $ by simp_all
-    simp [output, h₂]
+  cases h₁ : s.rtr[.rcn][rcn₁] <;> cases h₂ : s.rtr[.rcn][rcn₂] <;> simp [output, *]
   case some.some =>
-    have h₁ : rcn₁ ∈ s.rtr[.rcn] := Partial.mem_iff.mpr ⟨_, h₁⟩
-    have h₂ : rcn₂ ∈ s.rtr[.rcn] := Partial.mem_iff.mpr ⟨_, h₂⟩
-    simp [output, h₁, h₂]
-    
+    sorry
     -- generalize ho₁ : s.output rcn₁ = o₁
     -- generalize ho₂ : s.output rcn₂ = o₂
     -- induction o₁ generalizing o₂ <;> cases o₂ <;> simp

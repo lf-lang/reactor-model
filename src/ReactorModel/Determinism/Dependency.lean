@@ -10,8 +10,6 @@ theorem ReactorType.Wellformed.rcn_state_deps_local {rtr : Reactor}
   have h₂ := rtr.wellformed.state_local hc₂ hr₂ hd₂
   Indexable.mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) h₁ h₂
 
--- TODO: Do we use ⟦ ⟧ sensibly, or could we just write everything with `[][] = some _`?
-
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
 abbrev NotDependent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ <[rtr] rcn₂)
@@ -20,11 +18,10 @@ notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => NotDependent rtr rcn₁ rcn₂
 
 variable {rtr : Reactor}
 
-open Indexable Dependency in
-theorem NotDependent.deps_disjoint {d} {m₁ : rcn₁ ∈ rtr[.rcn]} (hi : rcn₁ ≮[rtr] rcn₂) 
-    (h : d ∈ rtr⟦m₁⟧.deps .out) (hs : d.cpt ≠ .stv) (m₂ : rcn₂ ∈ rtr[.rcn]) : d ∉ rtr⟦m₂⟧.deps .in :=
-  byContradiction 
-    fun hd => absurd (depOverlap (objₘ_eq_obj? m₁) (objₘ_eq_obj? m₂) h (not_not.mp hd) hs) hi
+theorem NotDependent.deps_disjoint {d} (hi : i₁ ≮[rtr] i₂) (h₁ : rtr[.rcn][i₁] = some rcn₁)
+    (h₂ : rtr[.rcn][i₂] = some rcn₂) (h : d ∈ rcn₁.deps .out) (hs : d.cpt ≠ .stv) : 
+    d ∉ rcn₂.deps .in :=
+  byContradiction fun hd => absurd (Dependency.depOverlap h₁ h₂ h (not_not.mp hd) hs) hi
 
 structure Independent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop where
   not_eq : rcn₁ ≠ rcn₂  
@@ -81,11 +78,11 @@ theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps'
     exact ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps hc₁ hr₁ (h ▸ hr₂) hd₁ hi hs
 
 open Indexable in
-theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps {m₁ : rcn₁ ∈ rtr[.rcn]} 
-    (m₂ : rcn₂ ∈ rtr[.rcn]) (hi : rcn₁ ≮[rtr]≯ rcn₂) (hs : .stv j v ∈ rtr⟦m₁⟧.body i) : 
-    ⟨.stv, j⟩ ∉ rtr⟦m₂⟧.deps k := by
-  have ⟨_, ho₁, hc₁⟩ := objₘ_eq_obj? m₁ |> obj?_to_con?_and_cpt?
-  have ⟨_, ho₂, hc₂⟩ := objₘ_eq_obj? m₂ |> obj?_to_con?_and_cpt?
+theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps 
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
+    (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁.body i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
+  have ⟨_, ho₁, hc₁⟩ := obj?_to_con?_and_cpt? h₁ 
+  have ⟨_, ho₂, hc₂⟩ := obj?_to_con?_and_cpt? h₂ 
   have ⟨ho₁, _, _⟩ := con?_to_obj?_and_cpt? ho₁
   have ⟨ho₂, _, _⟩ := con?_to_obj?_and_cpt? ho₂
   exact state_mem_rcn₁_deps_not_mem_rcn₂_deps' ho₁ ho₂ hc₁ hc₂ hi hs
