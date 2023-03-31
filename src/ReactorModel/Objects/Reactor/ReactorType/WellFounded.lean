@@ -6,7 +6,7 @@ namespace ReactorType
 abbrev Nested [ReactorType α] (rtr₁ rtr₂ : α) : Prop :=
   ∃ i, nest rtr₂ i = some rtr₁
 
-protected class WellFounded (α) extends ReactorType α where
+protected class WellFounded (α) extends Extensional α where
   wf : WellFounded $ Nested (α := α)
 
 namespace WellFounded
@@ -15,7 +15,7 @@ theorem induction [ReactorType.WellFounded α] {motive : α → Prop}
     (nest : ∀ rtr, (∀ n, (∃ i, nest rtr i = some n) → motive n) → motive rtr) : ∀ rtr, motive rtr := 
   (wf.induction · nest)
 
-instance [ReactorType α] [b : ReactorType.WellFounded β] [c : LawfulCoe α β] : 
+instance [Extensional α] [b : ReactorType.WellFounded β] [c : LawfulCoe α β] : 
     ReactorType.WellFounded α where
   wf := by
     suffices h : InvImage Nested c.coe = Nested from h ▸ InvImage.wf c.coe b.wf

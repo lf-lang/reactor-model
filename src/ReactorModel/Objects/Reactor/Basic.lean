@@ -27,7 +27,8 @@ instance : ReactorType Reactor where
       wf := rtr.wf.nested h.choose_spec 
     }
 
--- Note: From this we get `ReactorType.WellFounded` and `ReactorType.Indexable`.
+-- Note: From this we get `ReactorType.Extensional`, `ReactorType.WellFounded` and 
+--       `ReactorType.Indexable`.
 instance : LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
 

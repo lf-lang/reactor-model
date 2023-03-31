@@ -13,12 +13,6 @@ theorem ReactorType.Wellformed.rcn_state_deps_local {rtr : Reactor}
     cases hv₁; cases hv₂
     exact Indexable.mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) ‹_› ‹_› 
 
-theorem Dependency.shared_out_dep [Indexable α] {rtr : α}
-    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hn : i₁ ≠ i₂)
-    (hd₁: d ∈ Reaction.deps rcn₁ .out) (hd₂: d ∈ Reaction.deps rcn₂ .out) :
-    (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) :=
-  sorry
-
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
 abbrev NotDependent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ <[rtr] rcn₂)

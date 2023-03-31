@@ -26,7 +26,7 @@ instance : ReactorType Reactor.Raw where
         injection rtr.unique_ids.allEq (.nest h.choose_spec l₁) (.nest h.choose_spec l₂)
     }
 
--- Note: From this we get `ReactorType.WellFounded`.
+-- Note: From this we get `ReactorType.Extensional` and `ReactorType.WellFounded`.
 instance : LawfulCoe Reactor.Raw Reactor.Core where
   coe := Reactor.Raw.core
 

@@ -66,9 +66,19 @@ theorem indep_normal_output_disjoint {s : State} (hi : i₁ ≮[s.rtr]≯ i₂) 
       intro hc₂ _
       replace hc₁ := rcn₁.target_mem_deps hc₁
       replace hc₂ := rcn₂.target_mem_deps hc₂
-      simp [Change.Normal.target] at hc₁ hc₂  
-      cases Dependency.shared_out_dep h₁ h₂ hi.not_eq hc₁ hc₂
-      all_goals have ⟨_, _, _⟩ := hi; contradiction
+      simp [Change.Normal.target] at hc₁ hc₂
+      cases hc : c.cpt <;> try cases ‹Kind›
+      case stv =>
+        by_cases h : 
+        have ⟨_, _, h₁, ho₁⟩ := Indexable.obj?_split h₁
+        have ⟨_, _, h₂, ho₂⟩ := Indexable.obj?_split h₂
+        
+        have := s.rtr.wellformed.overlap_prio h₁ ho₁ (hc ▸ hc₁)
+        have := s.rtr.wellformed.state_local h₂ ho₂ (hc ▸ hc₂)
+        sorry -- You've trying to construct a dependency between 
+      case act => sorry
+      case prt.in => sorry
+      case prt.out => sorry
 
 theorem exec_indep_swap {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
