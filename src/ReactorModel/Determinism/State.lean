@@ -55,21 +55,30 @@ theorem exec_indep_output_eq {s : State} (hi : i₁ ≮[s.rtr]≯ i₂) :
   cases h : s.rtr[.rcn][i₂] <;> simp [e ▸ h]
   simp [exec_indep_input_eq hi h $ e ▸ h]
 
-theorem indep_output_disjoint {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
-    List.Disjoint (s.output rcn₁) (s.output rcn₂) := by
-  cases h₁ : s.rtr[.rcn][rcn₁] <;> cases h₂ : s.rtr[.rcn][rcn₂] <;> simp [output, *]
-  case some.some =>
-    sorry
-    -- generalize ho₁ : s.output rcn₁ = o₁
-    -- generalize ho₂ : s.output rcn₂ = o₂
-    -- induction o₁ generalizing o₂ <;> cases o₂ <;> simp
-    -- case cons.cons hd₁ tl₁ hi hd₂ tl₂ =>
-    --   simp [not_or]
-    --   split_ands
-    --   · sorry 
-    --   · sorry 
-    --   · sorry 
-    --   · sorry 
+theorem indep_normal_output_disjoint {s : State} (hi : i₁ ≮[s.rtr]≯ i₂) :
+    List.Disjoint (s.output i₁ |>.filter (·.IsNormal)) (s.output i₂ |>.filter (·.IsNormal)) := by
+  cases h₁ : s.rtr[.rcn][i₁] <;> cases h₂ : s.rtr[.rcn][i₂] <;> simp [output, *]
+  case some.some rcn₁ rcn₂ =>
+    simp [List.Disjoint, List.mem_filter]
+    intro _ hc₁ hn
+    cases hn
+    case intro c =>
+      intro hc₂ _
+      replace hc₁ := rcn₁.target_mem_deps hc₁
+      replace hc₂ := rcn₂.target_mem_deps hc₂
+      simp [Change.Normal.target] at hc₁ hc₂
+      cases hc : c.cpt <;> try cases ‹Kind›
+      case stv =>
+        by_cases h : 
+        have ⟨_, _, h₁, ho₁⟩ := Indexable.obj?_split h₁
+        have ⟨_, _, h₂, ho₂⟩ := Indexable.obj?_split h₂
+        
+        have := s.rtr.wellformed.overlap_prio h₁ ho₁ (hc ▸ hc₁)
+        have := s.rtr.wellformed.state_local h₂ ho₂ (hc ▸ hc₂)
+        sorry -- You've trying to construct a dependency between 
+      case act => sorry
+      case prt.in => sorry
+      case prt.out => sorry
 
 theorem exec_indep_swap {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
@@ -79,7 +88,7 @@ theorem exec_indep_swap {s : State} (hi : rcn₁ ≮[s.rtr]≯ rcn₂) :
   case rtr =>
     conv => lhs; rw [exec, exec_indep_output_eq hi]
     conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
-    exact Reactor.apply'_disjoint_comm $ indep_output_disjoint hi
+    apply Reactor.apply'_normal_disjoint_comm $ indep_normal_output_disjoint hi
   
 namespace State
 namespace Execution

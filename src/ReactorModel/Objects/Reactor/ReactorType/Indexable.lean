@@ -104,6 +104,12 @@ theorem obj?_to_con?_and_cpt? {o} {i : ID} (h : rtr[cpt][i] = some o) :
     simp [obj?, bind] at h
     assumption
 
+theorem obj?_split {o} {i : ID} (h : rtr[cpt][i] = some o) :
+    ∃ c con, (rtr[.rtr][c] = some con) ∧ (cpt? cpt con i = some o) := by
+  have ⟨⟨c, con⟩, ho, _⟩ := obj?_to_con?_and_cpt? h 
+  have ⟨_, _, _⟩ := con?_to_obj?_and_cpt? ho
+  exists c, con
+
 theorem cpt?_to_con? {o} (h : cpt? cpt rtr i = some o) : rtr[cpt][i]& = some ⟨⊤, rtr⟩ := by
   let m := Member.final (Partial.mem_iff.mpr ⟨_, h⟩)
   simp [con?, Nonempty.intro m, ←a.unique_ids.allEq m, Member.container]

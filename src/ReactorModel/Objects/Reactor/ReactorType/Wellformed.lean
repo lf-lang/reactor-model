@@ -108,6 +108,7 @@ variable [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} in secti
 -- `ValidDependency rtr .norm .in (.action i)` states that normal reactions can specify the action 
 -- identified by `i` as source.
 inductive ValidDependency (rtr : α) : Reaction.Kind → Kind → Reaction.Dependency → Prop
+  | stv       : (i ∈ state rtr) → ValidDependency rtr _ _ ⟨.stv, i⟩  
   | act       : (i ∈ acts rtr) → ValidDependency rtr _ _ ⟨.act, i⟩ 
   | prt       : (i ∈ ports rtr dk) → ValidDependency rtr _ dk ⟨.prt k, i⟩  
   | nestedIn  : (nest rtr j = some con) → (i ∈ ports con .in) → 
@@ -127,6 +128,7 @@ scoped macro "lift_nested_proof " name:ident : term => `(
 )
 
 theorem ValidDependency.lift : (ValidDependency (rtr : β) rk dk d) → ValidDependency rtr rk dk d 
+  | stv h           => stv $ LawfulCoe.lift_mem_cpt? .stv h
   | act h           => act $ LawfulCoe.lift_mem_cpt? .act h
   | prt h           => prt $ LawfulCoe.lift_mem_cpt? (.prt _) h
   | nestedIn hc hp  => (lift_nested_proof nestedIn) hc hp
@@ -150,6 +152,7 @@ open Equivalent in
 theorem ValidDependency.equiv 
     (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][j] = some con₁) (h₂ : rtr₂[.rtr][j] = some con₂) : 
     (ValidDependency con₁ rk dk d) → ValidDependency con₂ rk dk d
+  | stv h           => stv $ mem_cpt?_iff (obj?_rtr_equiv e h₁ h₂) (cpt := .stv) |>.mp h
   | act h           => act $ mem_cpt?_iff (obj?_rtr_equiv e h₁ h₂) (cpt := .act) |>.mp h
   | prt h           => prt $ mem_cpt?_iff (obj?_rtr_equiv e h₁ h₂) (cpt := .prt _) |>.mp h
   | nestedIn hc hp  => (equiv_nested_proof nestedIn) hc hp
@@ -160,8 +163,6 @@ structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
   unique_inputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
                   (i ∈ rtr[.prt .in]) → (⟨.prt .in, i⟩ ∈ rcn₁.deps .out) → 
                   (⟨.prt .in, i⟩ ∉ rcn₂.deps .out)  
-  state_local   : (rtr[.rtr][i] = some con) → (rcns con j = some rcn) → 
-                  (⟨.stv, s⟩ ∈ rcn.deps k) → (s ∈ state con)
   overlap_prio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → 
                   (rcns con i₂ = some rcn₂) → (i₁ ≠ i₂) → 
                   (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → 
@@ -185,7 +186,6 @@ scoped macro "wf_nested_proof " name:ident : term => `(
 )
 
 theorem nested (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where
-  state_local   := wf_nested_proof state_local
   overlap_prio  := wf_nested_proof overlap_prio
   hazards_prio  := wf_nested_proof hazards_prio
   mutation_prio := wf_nested_proof mutation_prio
@@ -206,8 +206,6 @@ theorem lift [c : LawfulCoe α β] (wf : Wellformed (rtr : β)) : Wellformed rtr
   hazards_prio  := lift_prio_proof hazards_prio
   mutation_prio := lift_prio_proof mutation_prio
   acyclic_deps  := wf.acyclic_deps.lift (rtr := rtr)
-  state_local h₁ h₂ h₃ := 
-    c.lift_mem_cpt? .stv $ wf.state_local (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ 
   valid_deps h₁ h₂ h₃ := 
     wf.valid_deps (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ |>.lift
   unique_inputs h₁ h₂ _ h₃ := 
@@ -227,11 +225,6 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr�
   hazards_prio  := equiv_prio_proof hazards_prio rtr₁ rtr₂
   mutation_prio := equiv_prio_proof mutation_prio rtr₁ rtr₂
   acyclic_deps  := wf.acyclic_deps.equiv e
-  state_local h₁ h₂ h₃ :=
-    have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
-    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
-    have h₂' := Equivalent.rcns_eq e ▸ h₂
-    Equivalent.mem_cpt?_iff e (cpt := .stv) |>.mp $ wf.state_local h₁' h₂' h₃
   valid_deps h₁ h₂ h₃ := 
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
     have e := Equivalent.obj?_rtr_equiv e h₁' h₁

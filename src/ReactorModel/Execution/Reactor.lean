@@ -2,6 +2,7 @@ import ReactorModel.Objects
 import Mathlib.Data.Finset.Lattice
 
 noncomputable section
+open Classical
 open ReactorType Updatable Indexable
 
 def Action.schedule (a : Action) (t : Time) (v : Value) : Action :=
@@ -68,7 +69,8 @@ theorem apply'_preserves_unchanged {rtr : Reactor} {cs : List Change} {cpt : Com
     have ⟨hh, ht⟩ := List.all₂_cons _ _ _ |>.mp h
     exact rtr.apply_preserves_unchanged hh ▸ hi ht 
 
-theorem apply'_disjoint_comm {rtr : Reactor} (h : List.Disjoint cs₁ cs₂) : 
+theorem apply'_normal_disjoint_comm {rtr : Reactor} 
+    (h : List.Disjoint (cs₁.filter (·.IsNormal)) (cs₂.filter (·.IsNormal))) : 
     (rtr.apply' cs₁).apply' cs₂ = (rtr.apply' cs₂).apply' cs₁ :=
   sorry
 

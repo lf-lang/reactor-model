@@ -5,10 +5,13 @@ open Classical ReactorType
 theorem ReactorType.Wellformed.rcn_state_deps_local {rtr : Reactor}
     (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂) 
     (hr₁ : con₁.rcns i₁ = some rcn₁) (hr₂ : con₂.rcns i₂ = some rcn₂)
-    (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : c₁ = c₂ :=
-  have h₁ := rtr.wellformed.state_local hc₁ hr₁ hd₁
-  have h₂ := rtr.wellformed.state_local hc₂ hr₂ hd₂
-  Indexable.mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) h₁ h₂
+    (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : c₁ = c₂ := by
+  have hv₁ := rtr.wellformed.valid_deps hc₁ hr₁ hd₁
+  have hv₂ := rtr.wellformed.valid_deps hc₂ hr₂ hd₂
+  cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> simp [hk₁, hk₂] at hv₁ hv₂
+  all_goals 
+    cases hv₁; cases hv₂
+    exact Indexable.mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) ‹_› ‹_› 
 
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
 abbrev NotDependent (rtr : Reactor) (rcn₁ rcn₂ : ID) : Prop :=
@@ -37,10 +40,6 @@ theorem symm (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[rtr]≯ i₁ where
   left   := hi.right
   right  := hi.left
 
--- TODO: Is this provable?
-theorem not_Mutates (hi : i₁ ≮[rtr]≯ i₂) (h : rtr[.rcn][i₁] = some rcn) : ¬rcn.Mutates :=
-  sorry
-
 theorem ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps
     (hc : rtr[.rtr][c] = some con) (hr₁ : con.rcns i₁ = some rcn₁) (hr₂ : con.rcns i₂ = some rcn₂) 
     (hd : ⟨.stv, j⟩ ∈ rcn₁.deps .out) (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁ i) : 
@@ -63,10 +62,12 @@ theorem ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps
       have := Dependency.prio hc ‹_› ‹_› (by simp [*]) hp   
       contradiction
     
-theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps'
-    (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂)
-    (hr₁ : con₁.rcns i₁ = some rcn₁) (hr₂ : con₂.rcns i₂ = some rcn₂)
-    (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁ i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
+open Indexable in
+theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps 
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
+    (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁.body i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
+  have ⟨c₁, _, hc₁, hr₁⟩ := obj?_split h₁ 
+  have ⟨c₂, _, hc₂, hr₂⟩ := obj?_split h₂ 
   have hd₁ := rcn₁.target_mem_deps hs
   simp [Change.Normal.target] at hd₁
   by_cases hc : c₁ = c₂
@@ -76,16 +77,6 @@ theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps'
   case pos => 
     injection hc₂ ▸ hc ▸ hc₁ with h
     exact ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps hc₁ hr₁ (h ▸ hr₂) hd₁ hi hs
-
-open Indexable in
-theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps 
-    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
-    (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁.body i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
-  have ⟨_, ho₁, hc₁⟩ := obj?_to_con?_and_cpt? h₁ 
-  have ⟨_, ho₂, hc₂⟩ := obj?_to_con?_and_cpt? h₂ 
-  have ⟨ho₁, _, _⟩ := con?_to_obj?_and_cpt? ho₁
-  have ⟨ho₂, _, _⟩ := con?_to_obj?_and_cpt? ho₂
-  exact state_mem_rcn₁_deps_not_mem_rcn₂_deps' ho₁ ho₂ hc₁ hc₂ hi hs
 
 end Independent
 
