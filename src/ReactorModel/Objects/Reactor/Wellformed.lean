@@ -72,4 +72,8 @@ structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
   acyclic_deps  : Dependency.Acyclic rtr
 
 end Wellformed
+
+class Proper (α) extends Indexable α where
+  wellformed : ∀ rtr : α, Wellformed rtr
+
 end ReactorType

@@ -1,10 +1,12 @@
 import ReactorModel.Determinism.State
 
-open Classical ReactorType
+open Classical ReactorType Indexable
 
 namespace Execution
 namespace Instantaneous
 namespace Step
+
+variable [Indexable α] {s₁ s₂ : State α}
 
 theorem rcn_not_mem_progress (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
   sorry -- e.allows.unprocessed
@@ -75,7 +77,7 @@ theorem Skip.preserves_allows_indep (e₁ : s₁ ⇓ₛ s₂) (e₂ : s₂ ⇓�
   unprocessed := Set.not_mem_subset e₁.progress_mono $ e₂.allows_rcn.unprocessed
   deps := by
     intro i hi
-    have h' := Reactor.equiv_eq_dependencies e₁.equiv |>.symm ▸ e₂.allows_rcn.deps
+    have h' := equiv_eq_dependencies e₁.equiv |>.symm ▸ e₂.allows_rcn.deps
     refine e₁.mem_progress_iff.mp (h' hi) |>.resolve_left ?_
     intro hc; subst hc; contradiction
 

@@ -10,68 +10,78 @@ def Action.schedule (a : Action) (t : Time) (v : Value) : Action :=
   | ⊥           => a.insert ⟨t, 0⟩ v
   | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
 
-namespace Reactor
+namespace ReactorType
+namespace Updatable
 
-def dependencies (rtr : Reactor) (rcn : ID) : Set ID := 
-  { rcn' | rcn' <[rtr] rcn }
+variable [Updatable α] 
 
-theorem equiv_eq_dependencies {rtr₁ : Reactor} (e : rtr₁ ≈ rtr₂) : 
-    rtr₁.dependencies = rtr₂.dependencies := by
-  ext i j
-  exact ⟨.equiv $ .symm e, .equiv e⟩ 
-
-def scheduledTags (rtr : Reactor) : Set Time.Tag := 
-  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }
-
-def apply (rtr : Reactor) : Change → Reactor
+def apply (rtr : α) : Change → α 
   | .prt k i v => update rtr (.prt k) i (fun _ => v)
   | .stv i v   => update rtr .stv     i (fun _ => v)
   | .act i t v => update rtr .act     i (·.schedule t v)
   | .mut ..    => rtr -- Mutations are currently no-ops.
 
-def apply' (rtr : Reactor) (cs : List Change) : Reactor :=
+def apply' (rtr : α) (cs : List Change) : α :=
   cs.foldl apply rtr
+
+end Updatable
+
+namespace Indexable
+
+variable [Indexable α] 
+
+def dependencies (rtr : α) (rcn : ID) : Set ID := 
+  { rcn' | rcn' <[rtr] rcn }
+
+theorem equiv_eq_dependencies {rtr₁ : α} (e : rtr₁ ≈ rtr₂) : 
+  dependencies rtr₁ = dependencies rtr₂ := by
+  ext i j
+  exact ⟨.equiv $ .symm e, .equiv e⟩ 
+
+def scheduledTags (rtr : α) : Set Time.Tag := 
+  { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }
 
 -- TODO?: Make this handle tag names better.
 scoped macro "change_cases " change:term : tactic => 
-  `(tactic| cases $change:term <;> try cases ‹Change.Normal›; cases ‹Component.Valued›)
+  `(tactic| cases $change:term <;> try cases ‹Change.Normal›; cases ‹Reactor.Component.Valued›)
 
-theorem apply_equiv (rtr : Reactor) (c : Change) : rtr.apply c ≈ rtr := by
+theorem apply_equiv (rtr : α) (c : Change) : (apply rtr c) ≈ rtr := by
   change_cases c <;> first | rfl | apply LawfulUpdatable.equiv
 
-theorem apply_preserves_unchanged {c : Change} (rtr : Reactor) (h : ¬c.Targets cpt i) :
-    (rtr.apply c)[cpt][i] = rtr[cpt][i] := by
+theorem apply_preserves_unchanged {c : Change} (rtr : α) (h : ¬c.Targets cpt i) :
+    (apply rtr c)[cpt][i] = rtr[cpt][i] := by
   change_cases c <;> first | rfl | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
 
-theorem apply_port_change {rtr : Reactor} (h : i ∈ rtr[.prt k]) : 
-    (rtr.apply $ .prt k i v)[.prt k][i] = some v := by
+variable {rtr : α}
+
+theorem apply_port_change (h : i ∈ rtr[.prt k]) : (apply rtr $ .prt k i v)[.prt k][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
   exact h
 
-theorem apply_state_change {rtr : Reactor} (h : i ∈ rtr[.stv]) : 
-    (rtr.apply $ .stv i v)[.stv][i] = some v := by
+theorem apply_state_change (h : i ∈ rtr[.stv]) : (apply rtr $ .stv i v)[.stv][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
   exact h
 
-theorem apply_action_change {rtr : Reactor} (h : rtr[.act][i] = some a) : 
-    (rtr.apply $ .act i t v)[.act][i] = some (a.schedule t v) := by
+theorem apply_action_change (h : rtr[.act][i] = some a) : 
+    (apply rtr $ .act i t v)[.act][i] = some (a.schedule t v) := by
   simp [apply, LawfulUpdatable.obj?_updated]
   exact ⟨_, ⟨h, rfl⟩⟩ 
 
-theorem apply'_equiv (rtr : Reactor) : (cs : List Change) → rtr.apply' cs ≈ rtr 
+theorem apply'_equiv (rtr : α) : (cs : List Change) → (apply' rtr cs) ≈ rtr 
   | .nil        => .refl
-  | .cons hd tl => Equivalent.trans (rtr.apply hd |>.apply'_equiv tl) (apply_equiv rtr hd)
+  | .cons hd tl => Equivalent.trans (apply'_equiv (apply rtr hd) tl) (apply_equiv rtr hd)
 
-theorem apply'_preserves_unchanged {rtr : Reactor} {cs : List Change} {cpt : Component.Valued} {i}
-    (h : cs.All₂ (¬·.Targets cpt i)) : (rtr.apply' cs)[cpt][i] = rtr[cpt][i] := by
+theorem apply'_preserves_unchanged {cs : List Change} {cpt : Reactor.Component.Valued} {i}
+    (h : cs.All₂ (¬·.Targets cpt i)) : (apply' rtr cs)[cpt][i] = rtr[cpt][i] := by
   induction cs generalizing rtr <;> try rfl
   case cons hd tl hi => 
     have ⟨hh, ht⟩ := List.all₂_cons _ _ _ |>.mp h
-    exact rtr.apply_preserves_unchanged hh ▸ hi ht 
+    exact apply_preserves_unchanged rtr hh ▸ hi ht 
 
-theorem apply'_normal_disjoint_comm {rtr : Reactor} 
+theorem apply'_normal_disjoint_comm 
     (h : List.Disjoint (cs₁.filter (·.IsNormal)) (cs₂.filter (·.IsNormal))) : 
-    (rtr.apply' cs₁).apply' cs₂ = (rtr.apply' cs₂).apply' cs₁ :=
+    apply' (apply' rtr cs₁) cs₂ = apply' (apply' rtr cs₂) cs₁ :=
   sorry
 
-end Reactor
+end Indexable
+end ReactorType

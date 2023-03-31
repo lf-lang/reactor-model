@@ -1,5 +1,7 @@
 import ReactorModel.Objects.Reactor.Instances.Raw
 
+noncomputable section
+
 structure Reactor where
   raw : Reactor.Raw
   wf  : ReactorType.Wellformed raw
@@ -24,7 +26,7 @@ instance : ReactorType Reactor where
 instance : LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
 
-noncomputable instance : Updatable Reactor where
+instance : Updatable Reactor where
   update rtr cpt i f := {
     raw := Updatable.update rtr.raw cpt i f
     wf  := Wellformed.equiv (LawfulUpdatable.lawful (α := Reactor.Raw) rtr cpt i f).equiv rtr.wf
@@ -33,15 +35,7 @@ noncomputable instance : Updatable Reactor where
 -- Note: From this we get `ReactorType.LawfulUpdatable Reactor`.
 instance : LawfulUpdatableCoe Reactor Reactor.Raw where
 
-theorem wellformed (rtr : Reactor) : Wellformed rtr :=
-  rtr.wf.lift (rtr := rtr)
-
--- We add these definitions so that we can use dot-notation on `Reactor`s later. Type classes don't
--- support this notation yet.
-abbrev ports (rtr : Reactor) := ReactorType.ports rtr
-abbrev acts  (rtr : Reactor) := ReactorType.acts rtr
-abbrev state (rtr : Reactor) := ReactorType.state rtr
-abbrev rcns  (rtr : Reactor) := ReactorType.rcns rtr
-abbrev nest  (rtr : Reactor) := ReactorType.nest rtr
+instance : Proper Reactor where
+  wellformed rtr := rtr.wf.lift (rtr := rtr)
 
 end Reactor

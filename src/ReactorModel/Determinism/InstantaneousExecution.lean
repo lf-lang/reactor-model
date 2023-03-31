@@ -6,6 +6,8 @@ namespace Execution
 namespace Instantaneous
 namespace Execution
  
+variable [ReactorType.Indexable α] {s₁ s₂ : State α}
+
 theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns, not_or]
   case trans e e' hi =>
@@ -28,7 +30,7 @@ theorem mem_progress_iff (e : s₁ ⇓ᵢ* s₂) :
 theorem rcns_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₂.progress := 
   e.mem_progress_iff.mpr $ .inl h
 
-theorem rcns_nodup : (e : s₁ ⇓ᵢ* s₂) → e.rcns.Nodup
+theorem rcns_nodup {s₁ s₂ : State α} : (e : s₁ ⇓ᵢ* s₂) → e.rcns.Nodup
   | refl       => List.nodup_nil
   | trans e e' => List.nodup_cons.mpr ⟨e'.progress_not_mem_rcns e.rcn_mem_progress, e'.rcns_nodup⟩
 
@@ -43,7 +45,7 @@ theorem progress_eq_rcns_perm
     case mp  => exact e₂.mem_progress_iff.mp (hp ▸ e₁.rcns_mem_progress hm) |>.resolve_right hc
     case mpr => exact e₁.mem_progress_iff.mp (hp ▸ e₂.rcns_mem_progress hm) |>.resolve_right hc
 
-theorem preserves_tag : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
+theorem preserves_tag {s₁ s₂ : State α} : (s₁ ⇓ᵢ* s₂) → s₁.tag = s₂.tag
   | refl => rfl
   | trans e e' => e.preserves_tag.trans e'.preserves_tag
 
@@ -51,7 +53,8 @@ theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ* s₂) :
     (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
   simp [rcns, Step.rcn]
 
-theorem progress_eq : (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ { i | i ∈ e.rcns }
+theorem progress_eq {s₁ s₂ : State α} : 
+    (e : s₁ ⇓ᵢ* s₂) → s₂.progress = s₁.progress ∪ { i | i ∈ e.rcns }
   | refl => by simp [rcns]
   | trans e e' => by 
     simp [e.progress_eq ▸ e'.progress_eq, rcns_trans_eq_cons]
@@ -69,7 +72,7 @@ theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
   simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
-theorem equiv : (s₁ ⇓ᵢ* s₂) → s₁.rtr ≈ s₂.rtr
+theorem equiv {s₁ s₂ : State α} : (s₁ ⇓ᵢ* s₂) → s₁.rtr ≈ s₂.rtr
   | refl => .refl
   | trans e e' => ReactorType.Equivalent.trans e.equiv e'.equiv
 

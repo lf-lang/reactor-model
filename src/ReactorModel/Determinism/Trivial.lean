@@ -2,17 +2,19 @@ import ReactorModel.Determinism.ExecutionStep
 
 open ReactorType Classical
 
+variable [Indexable α]
+
 namespace Execution
 
-abbrev State.Trivial (s : State) : Prop := 
+variable {s s₁ : State α} in section
+
+abbrev State.Trivial (s : State α) : Prop := 
   s.rtr[.rcn] = ∅
 
 theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial :=
   byContradiction (h ⟨·⟩)
 
-section
-
-variable {s₁ : State} (triv : s₁.Trivial)
+variable (triv : s₁.Trivial) in section
 
 namespace Instantaneous
 
@@ -44,19 +46,20 @@ theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
   | advance a => a.preserves_Trivial triv
 
 end
+end
 
 namespace AdvanceTag 
 
-inductive RTC : State → State → Type
+inductive RTC : State α → State α → Type
   | refl : RTC s s
   | trans : (s₁ ⇓- s₂) → (RTC s₂ s₃) → RTC s₁ s₃   
 
-theorem RTC.tag_le : (AdvanceTag.RTC s₁ s₂) → s₁.tag ≤ s₂.tag
+theorem RTC.tag_le {s₁ s₂ : State α} : (AdvanceTag.RTC s₁ s₂) → s₁.tag ≤ s₂.tag
   | refl       => le_refl _
   | trans a a' => le_trans (le_of_lt a.tag_lt) a'.tag_le
 
-theorem RTC.deterministic (ht : s₁.tag = s₂.tag) : 
-  (AdvanceTag.RTC s s₁) → (AdvanceTag.RTC s s₂) → s₁ = s₂
+theorem RTC.deterministic {s s₁ s₂ : State α} (ht : s₁.tag = s₂.tag) : 
+    (AdvanceTag.RTC s s₁) → (AdvanceTag.RTC s s₂) → s₁ = s₂
   | refl,         refl         => rfl
   | refl,         trans a a'   => absurd ht      (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
   | trans a a',   refl         => absurd ht.symm (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
@@ -64,12 +67,12 @@ theorem RTC.deterministic (ht : s₁.tag = s₂.tag) :
 
 end AdvanceTag
 
-def to_AdvanceTagRTC (triv : s₁.Trivial) : (s₁ ⇓* s₂) → AdvanceTag.RTC s₁ s₂
+def to_AdvanceTagRTC {s₁ s₂ : State α} (triv : s₁.Trivial) : (s₁ ⇓* s₂) → AdvanceTag.RTC s₁ s₂
   | refl                 => .refl
   | step (.advance a) e' => .trans a (e'.to_AdvanceTagRTC $ a.preserves_Trivial triv)
   | step (.close e) e'   => e.trivial_eq triv ▸ (e'.to_AdvanceTagRTC $ e.preserves_Trivial triv)
 
-theorem trivial_deterministic 
+theorem trivial_deterministic {s : State α}
     (triv : ¬s.Nontrivial) (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
   AdvanceTag.RTC.deterministic ht
     (e₁.to_AdvanceTagRTC $ .of_not_Nontrivial triv) 

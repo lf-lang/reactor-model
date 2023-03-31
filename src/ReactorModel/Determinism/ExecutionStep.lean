@@ -2,10 +2,10 @@ import ReactorModel.Determinism.InstantaneousExecution
 
 namespace Execution
 
-open ReactorType 
+open ReactorType
 open State (Closed)
 
-variable [State.Nontrivial s] [State.Nontrivial s₁]
+variable [Indexable α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁]
 
 namespace AdvanceTag
 

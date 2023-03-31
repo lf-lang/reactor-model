@@ -1,11 +1,13 @@
 import ReactorModel.Determinism.ExecutionStep
 import ReactorModel.Determinism.Trivial
 
-open Classical 
+open Classical ReactorType
+
+variable [Indexable α] {s s₁ s₂ : State α}
 
 namespace Execution
 
-theorem tag_le : (s₁ ⇓* s₂) → s₁.tag ≤ s₂.tag
+theorem tag_le {s₁ s₂ : State α} : (s₁ ⇓* s₂) → s₁.tag ≤ s₂.tag
   | refl      => le_refl _
   | step e e' => le_trans e.tag_le e'.tag_le
 
@@ -15,7 +17,7 @@ theorem seq_progress_ssubset_or_tag_lt [State.Nontrivial s₁] :
   | .close e,   .refl      => .inl $ e.progress_ssubset
   | .advance a, .refl      => .inr $ a.tag_lt
 
-theorem nontrivial_deterministic [State.Nontrivial s] :
+theorem nontrivial_deterministic {s s₁ s₂ : State α} [State.Nontrivial s] :
     (s ⇓* s₁) → (s ⇓* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂
   | refl, refl, _, _ => rfl
   | step e₁ e₁', step e₂ e₂', ht, hp => 
