@@ -1,5 +1,5 @@
-import ReactorModel.Objects.Reactor.Core
-import ReactorModel.Objects.Reactor.ReactorType.Indexable
+import ReactorModel.Objects.Reactor.Instances.Core
+import ReactorModel.Objects.Reactor.Theorems
 
 noncomputable section
 open Classical

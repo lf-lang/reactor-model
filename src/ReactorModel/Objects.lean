@@ -1,13 +1,12 @@
--- This files exists so that you can simply `import ReactorModel.Objects`, 
--- instead of listing the specific imports required.
-
-import ReactorModel.Objects.Reactor.ReactorType.Basic
-import ReactorModel.Objects.Reactor.ReactorType.Indexable
-import ReactorModel.Objects.Reactor.ReactorType.Equivalent
-import ReactorModel.Objects.Reactor.ReactorType.Wellformed
 import ReactorModel.Objects.Reactor.Basic
-import ReactorModel.Objects.Reactor.Core
-import ReactorModel.Objects.Reactor.Raw
+import ReactorModel.Objects.Reactor.Indexable
+import ReactorModel.Objects.Reactor.Updatable
+import ReactorModel.Objects.Reactor.Wellformed
+import ReactorModel.Objects.Reactor.WellFounded
+import ReactorModel.Objects.Reactor.Theorems
+import ReactorModel.Objects.Reactor.Instances.Basic
+import ReactorModel.Objects.Reactor.Instances.Core
+import ReactorModel.Objects.Reactor.Instances.Raw
 import ReactorModel.Objects.Change
 import ReactorModel.Objects.Component
 import ReactorModel.Objects.Reaction

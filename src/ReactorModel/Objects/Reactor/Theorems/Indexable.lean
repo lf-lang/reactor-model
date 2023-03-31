@@ -1,88 +1,9 @@
-import ReactorModel.Objects.Reactor.ReactorType.Equivalent
-import Mathlib.Tactic.Set
-
-noncomputable section
-open Classical
-open Reactor (Component)
+import ReactorModel.Objects.Reactor.Indexable
 
 namespace ReactorType
-
-def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
-  ∀ {cpt i}, Subsingleton (Member cpt i rtr)
-
-theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
-    (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
-  allEq m₁ m₂ :=
-    h.allEq (.fromLawfulCoe m₁) (.fromLawfulCoe m₂) ▸ Member.Equivalent.from_lawfulCoe m₁ 
-      |>.trans (Member.Equivalent.from_lawfulCoe m₂).symm 
-      |>.to_eq
-
-theorem UniqueIDs.updated [ReactorType.WellFounded α] {rtr₁ rtr₂ : α}
-    (u : LawfulUpdate cpt i f rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
-  allEq m₁ m₂ := open Member in
-    h.allEq (.fromLawfulUpdate m₁ u) (.fromLawfulUpdate m₂ u) ▸ Equivalent.from_lawfulUpdate u m₁ 
-      |>.trans (Equivalent.from_lawfulUpdate u m₂).symm 
-      |>.to_eq
-
-class Indexable (α) extends LawfulUpdatable α where
-  unique_ids : ∀ {rtr : α}, UniqueIDs rtr
-
-structure Container (α) where
-  id  : WithTop ID 
-  rtr : α 
-
-instance [Coe α β] : Coe (Container α) (Container β) where
-  coe i := { id := i.id, rtr := i.rtr }
-
-namespace Member
-
-variable [LawfulUpdatable α] 
-
-def container {rtr : α} : (Member cpt i rtr) → Container α
-  | .nest _ (.nest h l)             => container (.nest h l)
-  | .nest (rtr₂ := con) (j := j) .. => { id := j, rtr := con }
-  | .final _                        => { id := ⊤, rtr := rtr }
-
-theorem nest_container  {rtr₁ rtr₂ : α} 
-    (h : ReactorType.nest rtr₁ i = some rtr₂) (m : Member cpt j rtr₂) : 
-    ∃ (k : ID) (con : α), (Member.nest h m).container = ⟨k, con⟩ := by
-  induction m generalizing i rtr₁
-  case final => simp [container]
-  case nest hn _ hi => simp [container, hi hn]
-
-theorem container_eq_root {rtr : α} {m : Member cpt i rtr} (h : m.container = ⟨⊤, con⟩) : 
-    rtr = con := by
-  induction m generalizing con
-  case final => 
-    simp [container] at h
-    assumption
-  case nest hn m _ =>
-    have ⟨_, _, _⟩ := nest_container hn m
-    simp_all
-
-end Member
-
 namespace Indexable
 
-instance [LawfulUpdatable α] [ind : Indexable β] [LawfulCoe α β] : Indexable α where
-  unique_ids := UniqueIDs.lift ind.unique_ids 
-
 variable [a : Indexable α]
-
-def con? (rtr : α) (cpt : Component) : ID ⇀ Container α := 
-  fun i => if m : Nonempty (Member cpt i rtr) then m.some.container else none
-
-notation rtr "[" cpt "]&"        => ReactorType.Indexable.con? rtr cpt
-notation rtr "[" cpt "][" i "]&" => ReactorType.Indexable.con? rtr cpt i
-
-def obj? (rtr : α) : (cpt : Component) → cpt.idType ⇀ a.cptType cpt
-  | .val cpt, i        => rtr[.val cpt][i]& >>= fun con => cpt? (.val cpt) con.rtr i
-  | .rcn,     i        => rtr[.rcn][i]&     >>= fun con => cpt? .rcn       con.rtr i
-  | .rtr,     (i : ID) => rtr[.rtr][i]&     >>= fun con => cpt? .rtr       con.rtr i
-  | .rtr,     ⊤        => rtr
-
-notation (priority := 1001) rtr "[" cpt "]" => ReactorType.Indexable.obj? rtr cpt
-notation rtr "[" cpt "][" i "]"             => ReactorType.Indexable.obj? rtr cpt i
 
 variable {rtr rtr₁ rtr₂ : α}
 
@@ -195,48 +116,6 @@ theorem member_isEmpty_obj?_none (h : IsEmpty (Member cpt i rtr)) : rtr[cpt][i] 
 
 end Indexable
 
-namespace LawfulCoe
-
-variable [a : Indexable α] [b : Indexable β] [c : LawfulCoe α β] {rtr : α}
-
-theorem lower_container_eq {m : Member cpt i rtr} (h : m.container = con) : 
-    (m : Member cpt i (rtr : β)).container = ↑con := by
-  induction m
-  case final =>
-    simp [Member.container] at h ⊢
-    simp [←h]
-  case nest m hi => 
-    cases m 
-    case final => 
-      simp [Member.fromLawfulCoe, Member.container] at h ⊢
-      simp [← h] 
-    case nest hi =>
-      simp [Member.container] at h
-      simp [←hi h, Member.fromLawfulCoe, Member.container]
-
-theorem lower_con?_some (h : rtr[cpt][i]& = some con) : (rtr : β)[cpt][i]& = some ↑con := by
-  simp [Indexable.con?] at h ⊢
-  split at h
-  case inr => contradiction 
-  case inl n =>
-    injection h with h
-    simp [(⟨n.some⟩ : Nonempty (Member cpt i (rtr : β)))]
-    simp [←c.lower_container_eq h, (⟨n.some⟩ : Nonempty (Member cpt i (rtr : β)))]
-    congr
-    apply b.unique_ids.allEq
-
-theorem lower_obj?_some {i o} (h : rtr[cpt][i] = some o) : (rtr : β)[cpt][i] = some ↑o := by
-  cases cpt <;> try cases i
-  case rtr.none => simp_all [Indexable.obj?]
-  all_goals
-    have ⟨_, h₁, h₂⟩ := a.obj?_to_con?_and_cpt? h
-    simp [Indexable.obj?, bind, c.lower_con?_some h₁, c.lower_cpt?_eq_some _ h₂]
-
-theorem lower_mem_obj? {i} (h : i ∈ rtr[cpt]) : i ∈ (rtr : β)[cpt] :=
-  Partial.mem_iff.mpr ⟨_, c.lower_obj?_some (Partial.mem_iff.mp h).choose_spec⟩ 
-
-end LawfulCoe
-
 open Indexable Updatable
 
 namespace LawfulMemUpdate
@@ -303,7 +182,7 @@ theorem obj?_preserved_cpt (h : c ≠ cpt := by exact (nomatch ·)) :
     (update rtr cpt i f)[c][j] = rtr[c][j] :=
   obj?_preserved $ .inl h
 
-theorem obj?_preserved_id {c : Component.Valued} (h : j ≠ i) : 
+theorem obj?_preserved_id {c : Reactor.Component.Valued} (h : j ≠ i) : 
     (update rtr cpt i f)[c][j] = rtr[c][j] :=
   obj?_preserved $ .inr h
 
@@ -311,24 +190,4 @@ theorem obj?_updated {rtr : α} : (update rtr cpt i f)[cpt][i] = f <$> rtr[cpt][
   lawful rtr cpt i f |>.obj?_updated
 
 end LawfulUpdatable
-
-namespace Equivalent
-
-variable [Indexable α] {rtr₁ : α}
-
-theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
-  sorry
-
-theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
-  sorry
-
-theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
-    n₁ ≈ n₂ := by
-  sorry
-
-theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
-    (∃ o₁, rtr₁[cpt][i] = some o₁) ↔ (∃ o₂, rtr₂[cpt][i] = some o₂) := 
-  sorry
-
-end Equivalent
 end ReactorType

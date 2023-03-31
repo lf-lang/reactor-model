@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.ReactorType.Updatable
+import ReactorModel.Objects.Reactor.Updatable
 
 open Classical
 
