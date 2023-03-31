@@ -150,29 +150,4 @@ theorem from_lawfulCoe [LawfulCoe α β] {rtr : α} (m : Member cpt i rtr) :
 end Equivalent
 end Member
 
-class Extensional (α) extends ReactorType α where
-  ext_iff : 
-    rtr₁ = rtr₂ ↔ 
-    (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
-    (rcns rtr₁ = rcns rtr₂) ∧ (nest rtr₁ = nest rtr₂)
-
-namespace Extensional
-
-@[ext]
-theorem ext [inst : Extensional α] {rtr₁ rtr₂ : α} : 
-    (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
-    (rcns rtr₁ = rcns rtr₂) ∧ (nest rtr₁ = nest rtr₂) → rtr₁ = rtr₂ 
-  := inst.ext_iff.mpr
-
-instance [ReactorType α] [e : Extensional β] [c : LawfulCoe α β] : Extensional α where
-  ext_iff := by
-    intro rtr₁ rtr₂ 
-    simp [c.coe_ext_iff, e.ext_iff, ←c.ports, ←c.acts, ←c.rcns, ←c.state, c.nest']
-    intros
-    exact {
-      mp := Partial.map_inj (by simp [Function.Injective, c.coe_ext_iff])
-      mpr := by simp_all
-    }
-
-end Extensional
 end ReactorType
