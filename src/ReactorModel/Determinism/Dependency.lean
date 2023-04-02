@@ -1,17 +1,124 @@
 import ReactorModel.Execution
 
-open Classical ReactorType
+open Classical ReactorType Indexable
 
-theorem ReactorType.Proper.rcn_state_deps_local [Proper α] {rtr : α}
-    (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂) 
-    (hr₁ : rcns con₁ i₁ = some rcn₁) (hr₂ : rcns con₂ i₂ = some rcn₂)
-    (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : c₁ = c₂ := by
-  have hv₁ := wellformed rtr |>.valid_deps hc₁ hr₁ hd₁
-  have hv₂ := wellformed rtr |>.valid_deps hc₂ hr₂ hd₂
-  cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> simp [hk₁, hk₂] at hv₁ hv₂
-  all_goals 
-    cases hv₁; cases hv₂
-    exact Indexable.mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) ‹_› ‹_› 
+-- TODO: Move this into `Objects.Reactor.Theorems`.
+namespace ReactorType
+namespace Wellformed
+
+variable [Indexable α] {rtr : α} (wf : Wellformed rtr)
+
+theorem shared_dep_local 
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hd₁ : ⟨cpt, j⟩ ∈ rcn₁.deps k)
+    (hd₂ : ⟨cpt, j⟩ ∈ rcn₂.deps k) : rtr[.rcn][i₁]& = rtr[.rcn][i₂]& := by
+  by_cases hi : i₁ = i₂
+  case pos => simp_all
+  case neg =>
+    apply con?_eq_ext h₁ h₂
+    intro _ _ hc₁ hc₂ hr₁ hr₂
+    have hv₁ := wf.valid_deps hc₁ hr₁ hd₁
+    have hv₂ := wf.valid_deps hc₂ hr₂ hd₂
+    cases k <;> cases cpt <;> try cases ‹Kind› 
+    case out.prt.in => exact absurd hd₂ $ wf.unique_inputs h₁ h₂ hi hd₁
+    case in.prt.out =>
+      cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
+      case _ hn₁ hj₁ _ _ hn₂ hj₂ =>
+        have hc₁' := obj?_rtr_and_cpt?_to_obj? hc₁ (cpt := .rtr) hn₁
+        have hc₂' := obj?_rtr_and_cpt?_to_obj? hc₂ (cpt := .rtr) hn₂
+        have hj := mem_cpt?_rtr_eq hc₁' hc₂' (cpt := .prt .out) hj₁ hj₂
+        have hn₁ := Partial.mem_iff.mpr ⟨_, hn₁⟩ 
+        have hn₂ := Partial.mem_iff.mpr ⟨_, hn₂⟩ 
+        injection hj with hj
+        exact mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .rtr) hn₁ (hj ▸ hn₂)
+    all_goals 
+      cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
+      all_goals first 
+        | exact mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) ‹_› ‹_› 
+        | exact mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .act) ‹_› ‹_›
+        | exact mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .prt .out) ‹_› ‹_›
+        | exact mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .prt .in) ‹_› ‹_›
+
+theorem shared_state_local
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) 
+    (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : 
+    rtr[.rcn][i₁]& = rtr[.rcn][i₂]& := by
+  apply con?_eq_ext h₁ h₂
+  intro _ _ hc₁ hc₂ hr₁ hr₂
+  have hv₁ := wf.valid_deps hc₁ hr₁ hd₁
+  have hv₂ := wf.valid_deps hc₂ hr₂ hd₂
+  cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
+  all_goals exact mem_cpt?_rtr_eq hc₁ hc₂ (cpt := .stv) ‹_› ‹_› 
+
+theorem hazards_prio' 
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hn : i₁ ≠ i₂)
+    (hc : rtr[.rcn][i₁]& = rtr[.rcn][i₂]&) (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) 
+    (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) (hk : k₁ = .out ∨ k₂ = .out) :
+    rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio :=
+  have ⟨_, _, hc, hr₁, hr₂⟩ := obj?_con?_eq h₁ h₂ hc 
+  wf.hazards_prio hc hr₁ hr₂ hn hd₁ hd₂ hk
+
+theorem overlap_prio' 
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hn : i₁ ≠ i₂)
+    (hc : rtr[.rcn][i₁]& = rtr[.rcn][i₂]&) (hd₁ : d ∈ rcn₁.deps .out) (hd₂ : d ∈ rcn₂.deps .out) :
+    rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio :=
+  have ⟨_, _, hc, hr₁, hr₂⟩ := obj?_con?_eq h₁ h₂ hc 
+  wf.overlap_prio hc hr₁ hr₂ hn hd₁ hd₂
+
+end Wellformed
+end ReactorType
+
+namespace Dependency
+
+theorem prio' [Indexable α] {rtr : α}
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) 
+    (hc : rtr[.rcn][i₁]& = rtr[.rcn][i₂]&) (hm : rcn₁.Mutates ↔ rcn₂.Mutates) 
+    (hp : rcn₁.prio > rcn₂.prio) : i₁ <[rtr] i₂ :=
+  have ⟨_, _, hc, hr₁, hr₂⟩ := obj?_con?_eq h₁ h₂ hc 
+  Dependency.prio hc hr₁ hr₂ hm hp
+
+theorem mutNorm' [Indexable α] {rtr : α}
+    (h₁ : rtr[.rcn][iₘ] = some m) (h₂ : rtr[.rcn][iₙ] = some n) (hm : m.Mutates) (hn : n.Normal)
+    (hc : rtr[.rcn][iₘ]& = rtr[.rcn][iₙ]&) : iₘ <[rtr] iₙ :=
+  have ⟨_, _, hc, hr₁, hr₂⟩ := obj?_con?_eq h₁ h₂ hc 
+  Dependency.mutNorm hc hr₁ hr₂ hm hn
+
+variable [Proper α] {rtr : α}
+
+theorem same_con_shared_out_dep
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
+    (hc : rtr[.rcn][i₁]& = rtr[.rcn][i₂]&) (hn : i₁ ≠ i₂) (hd₁ : ⟨cpt, i⟩ ∈ Reaction.deps rcn₁ .out) 
+    (hd₂ : ⟨cpt, i⟩ ∈ Reaction.deps rcn₂ .out) : (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) := by
+  by_cases hm₁ : rcn₁.Mutates <;> by_cases hm₂ : rcn₂.Mutates
+  rotate_left
+  · exact .inl $ Dependency.mutNorm' h₁ h₂ hm₁ (by simp_all [Reaction.Mutates]) hc
+  · exact .inr $ Dependency.mutNorm' h₂ h₁ hm₂ (by simp_all [Reaction.Mutates]) hc.symm
+  all_goals
+    cases Proper.wellformed rtr |>.overlap_prio' h₁ h₂ hn hc hd₁ hd₂
+    · exact .inr $ Dependency.prio' h₂ h₁ hc.symm (by simp_all) ‹_›
+    · exact .inl $ Dependency.prio' h₁ h₂ hc (by simp_all) ‹_›
+
+theorem shared_out_dep
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hn : i₁ ≠ i₂)
+    (hd₁ : ⟨cpt, i⟩ ∈ Reaction.deps rcn₁ .out) (hd₂ : ⟨cpt, i⟩ ∈ Reaction.deps rcn₂ .out) :
+    (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) := by  
+  have hc := Proper.wellformed rtr |>.shared_dep_local h₁ h₂ hd₁ hd₂
+  exact same_con_shared_out_dep h₁ h₂ hc hn hd₁ hd₂
+
+theorem hazard 
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hn : i₁ ≠ i₂)
+    (hc : rtr[.rcn][i₁]& = rtr[.rcn][i₂]&) (hd₁ : ⟨.stv, i⟩ ∈ Reaction.deps rcn₁ k₁) 
+    (hd₂ : ⟨.stv, i⟩ ∈ Reaction.deps rcn₂ k₂) (hk : k₁ = .out ∨ k₂ = .out) : 
+    (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) := by  
+  by_cases hm₁ : rcn₁.Mutates <;> by_cases hm₂ : rcn₂.Mutates
+  rotate_left
+  · exact .inl $ Dependency.mutNorm' ‹_› ‹_› hm₁ (by simp_all [Reaction.Mutates]) hc
+  · exact .inr $ Dependency.mutNorm' ‹_› ‹_› hm₂ (by simp_all [Reaction.Mutates]) hc.symm
+  all_goals
+    cases Proper.wellformed rtr |>.hazards_prio' h₁ h₂ hn hc hd₁ hd₂ hk
+    · exact .inr $ Dependency.prio' h₂ h₁ hc.symm (by simp_all) ‹_›
+    · exact .inl $ Dependency.prio' h₁ h₂ hc (by simp_all) ‹_›
+
+end Dependency
 
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
 abbrev NotDependent [Indexable α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop :=
@@ -38,43 +145,14 @@ theorem symm [Indexable α] {rtr : α} (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[r
   left   := hi.right
   right  := hi.left
 
-theorem ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps [Proper α] {rtr : α}
-    (hc : rtr[.rtr][c] = some con) (hr₁ : rcns con i₁ = some rcn₁) (hr₂ : rcns con i₂ = some rcn₂) 
-    (hd : ⟨.stv, j⟩ ∈ rcn₁.deps .out) (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁ i) : 
-    ⟨.stv, j⟩ ∉ rcn₂.deps k := by
-  by_contra hd'
-  have ⟨hn, _, _⟩ := hi 
-  -- TODO: https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/by_cases.20tags.20bug/near/345415921
-  by_cases hm₁ : rcn₁.Mutates <;> by_cases hm₂ : rcn₂.Mutates
-  rotate_left
-  case _ => 
-    have := Dependency.mutNorm hc ‹_› ‹_› hm₁ (by simp_all [Reaction.Mutates])
-    contradiction
-  case _ => 
-    have := Dependency.mutNorm hc ‹_› hr₁ hm₂ (by simp_all [Reaction.Mutates])
-    contradiction
-  all_goals
-    cases Proper.wellformed rtr |>.hazards_prio hc hr₁ hr₂ hn hd hd' (.inl rfl)
-    all_goals
-      case _ hp =>
-      have := Dependency.prio hc ‹_› ‹_› (by simp [*]) hp   
-      contradiction
-    
-open Indexable in
-theorem state_mem_rcn₁_deps_not_mem_rcn₂_deps [Proper α] {rtr : α}
+theorem no_shared_state_deps [Proper α] {rtr : α}
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
     (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁.body i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
-  have ⟨c₁, _, hc₁, hr₁⟩ := obj?_split h₁ 
-  have ⟨c₂, _, hc₂, hr₂⟩ := obj?_split h₂ 
   have hd₁ := rcn₁.target_mem_deps hs
   simp [Change.Normal.target] at hd₁
-  by_cases hc : c₁ = c₂
-  case neg => 
-    by_contra hd₂
-    exact absurd (ReactorType.Proper.rcn_state_deps_local hc₁ hc₂ hr₁ hr₂ hd₁ hd₂) hc
-  case pos => 
-    injection hc₂ ▸ hc ▸ hc₁ with h
-    exact ne_con_state_mem_rcn₁_deps_not_mem_rcn₂_deps hc₁ hr₁ (h ▸ hr₂) hd₁ hi hs
+  by_contra hd₂
+  have hc := Proper.wellformed rtr |>.shared_state_local h₁ h₂ hd₁ hd₂
+  cases Dependency.hazard h₁ h₂ hi.not_eq hc hd₁ hd₂ (.inl rfl) <;> simp [hi.left, hi.right] at *
 
 end Independent
 

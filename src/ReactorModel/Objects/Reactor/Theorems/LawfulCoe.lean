@@ -259,16 +259,15 @@ scoped macro "lift_prio_proof " name:ident : term => `(
       (LawfulCoe.lower_cpt?_eq_some .rcn h₃)
 )
 
-theorem lift [Indexable α] [Indexable β] [c : LawfulCoe α β] {rtr : α} (wf : Wellformed (rtr : β)) : 
+open LawfulCoe in
+theorem lift [Indexable α] [Indexable β] [LawfulCoe α β] {rtr : α} (wf : Wellformed (rtr : β)) : 
     Wellformed rtr where
-  overlap_prio  := lift_prio_proof overlap_prio
-  hazards_prio  := lift_prio_proof hazards_prio
-  mutation_prio := lift_prio_proof mutation_prio
-  acyclic_deps  := wf.acyclic_deps.lift (rtr := rtr)
-  valid_deps h₁ h₂ h₃ := 
-    wf.valid_deps (c.lower_obj?_some h₁) (c.lower_cpt?_eq_some .rcn h₂) h₃ |>.lift
-  unique_inputs h₁ h₂ _ h₃ := 
-    wf.unique_inputs (c.lower_obj?_some h₁) (c.lower_obj?_some h₂) ‹_› (c.lower_mem_obj? h₃)
+  overlap_prio        := lift_prio_proof overlap_prio
+  hazards_prio        := lift_prio_proof hazards_prio
+  mutation_prio       := lift_prio_proof mutation_prio
+  acyclic_deps        := wf.acyclic_deps.lift
+  valid_deps h₁ h₂ h₃ := wf.valid_deps (lower_obj?_some h₁) (lower_cpt?_eq_some .rcn h₂) h₃ |>.lift
+  unique_inputs h₁ h₂ := wf.unique_inputs (lower_obj?_some h₁) (lower_obj?_some h₂)
 
 end Wellformed
 end ReactorType

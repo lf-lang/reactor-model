@@ -31,7 +31,7 @@ theorem target_not_mem_indep_output
       intro ⟨⟩
       apply absurd hd
     case stv => 
-      exact hi.state_mem_rcn₁_deps_not_mem_rcn₂_deps h₁ h₂ hc
+      exact hi.no_shared_state_deps h₁ h₂ hc
     all_goals 
       exact hi.left.deps_disjoint h₁ h₂ (rcn₁.target_mem_deps hc) $ by simp [Change.Normal.target]
     
@@ -68,19 +68,9 @@ theorem indep_normal_output_disjoint (hi : i₁ ≮[s.rtr]≯ i₂) :
       intro hc₂ _
       replace hc₁ := rcn₁.target_mem_deps hc₁
       replace hc₂ := rcn₂.target_mem_deps hc₂
-      simp [Change.Normal.target] at hc₁ hc₂
-      cases hc : c.cpt <;> try cases ‹Kind›
-      case stv =>
-        -- by_cases h : 
-        -- have ⟨_, _, h₁, ho₁⟩ := Indexable.obj?_split h₁
-        -- have ⟨_, _, h₂, ho₂⟩ := Indexable.obj?_split h₂
-        -- 
-        -- have := s.rtr.wellformed.overlap_prio h₁ ho₁ (hc ▸ hc₁)
-        -- have := s.rtr.wellformed.state_local h₂ ho₂ (hc ▸ hc₂)
-        sorry -- You've trying to construct a dependency between 
-      case act => sorry
-      case prt.in => sorry
-      case prt.out => sorry
+      simp [Change.Normal.target] at hc₁ hc₂  
+      cases Dependency.shared_out_dep h₁ h₂ hi.not_eq hc₁ hc₂
+      all_goals have ⟨_, _, _⟩ := hi; contradiction
 
 theorem exec_indep_swap (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 

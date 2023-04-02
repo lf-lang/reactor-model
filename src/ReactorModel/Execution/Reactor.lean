@@ -78,6 +78,7 @@ theorem apply'_preserves_unchanged {cs : List Change} {cpt : Reactor.Component.V
     have ⟨hh, ht⟩ := List.all₂_cons _ _ _ |>.mp h
     exact apply_preserves_unchanged rtr hh ▸ hi ht 
 
+-- TODO: This theorem is false. What we need in the changes' underlying cpts to be disjoint. 
 theorem apply'_normal_disjoint_comm 
     (h : List.Disjoint (cs₁.filter (·.IsNormal)) (cs₂.filter (·.IsNormal))) : 
     apply' (apply' rtr cs₁) cs₂ = apply' (apply' rtr cs₂) cs₁ :=

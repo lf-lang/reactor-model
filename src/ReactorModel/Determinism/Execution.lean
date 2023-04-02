@@ -1,9 +1,9 @@
 import ReactorModel.Determinism.ExecutionStep
 import ReactorModel.Determinism.Trivial
 
-open Classical ReactorType
+open Classical
 
-variable [Indexable α] {s s₁ s₂ : State α}
+variable [ReactorType.Indexable α] {s s₁ s₂ : State α}
 
 namespace Execution
 

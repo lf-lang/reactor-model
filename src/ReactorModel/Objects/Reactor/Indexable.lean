@@ -13,6 +13,7 @@ def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
 class Indexable (α) extends LawfulUpdatable α where
   unique_ids : ∀ {rtr : α}, UniqueIDs rtr
 
+@[ext]
 structure Container (α) where
   id  : WithTop ID 
   rtr : α 

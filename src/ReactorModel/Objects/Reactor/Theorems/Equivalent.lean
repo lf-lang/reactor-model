@@ -323,14 +323,12 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr�
   hazards_prio  := equiv_prio_proof hazards_prio rtr₁ rtr₂
   mutation_prio := equiv_prio_proof mutation_prio rtr₁ rtr₂
   acyclic_deps  := wf.acyclic_deps.equiv e
+  unique_inputs h₁ h₂ := wf.unique_inputs (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂)
   valid_deps h₁ h₂ h₃ := 
     have ⟨_, h₁'⟩ := Equivalent.obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
     have e := Equivalent.obj?_rtr_equiv e h₁' h₁
     have h₂' := Equivalent.rcns_eq e ▸ h₂
     wf.valid_deps h₁' h₂' h₃ |>.equiv ‹_› h₁' h₁
-  unique_inputs h₁ h₂ _ h₃ := 
-    have h₃' := Equivalent.mem_iff e |>.mpr h₃
-    wf.unique_inputs (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› h₃'
-
+  
 end Wellformed
 end ReactorType

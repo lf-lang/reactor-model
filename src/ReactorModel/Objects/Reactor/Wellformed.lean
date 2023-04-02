@@ -43,23 +43,21 @@ inductive ValidDependency [ReactorType α] (rtr : α) :
     Reaction.Kind → Kind → Reaction.Dependency → Prop
   | stv       : (i ∈ state rtr) → ValidDependency rtr _ _ ⟨.stv, i⟩  
   | act       : (i ∈ acts rtr) → ValidDependency rtr _ _ ⟨.act, i⟩ 
-  | prt       : (i ∈ ports rtr dk) → ValidDependency rtr _ dk ⟨.prt k, i⟩  
+  | prt       : (i ∈ ports rtr dk) → ValidDependency rtr _ dk ⟨.prt dk, i⟩  
   | nestedIn  : (nest rtr j = some con) → (i ∈ ports con .in) → 
                 ValidDependency rtr _ .out ⟨.prt .in, i⟩
   | nestedOut : (nest rtr j = some con) → (i ∈ ports con .out) → 
-                ValidDependency rtr .norm .in ⟨.prt .in, i⟩ 
+                ValidDependency rtr .norm .in ⟨.prt .out, i⟩ 
 
 variable [Indexable α] [Indexable β] {rtr rtr₁ : α}
 
 -- TODO: Refactor the `prio` conditions into one.
 structure _root_.ReactorType.Wellformed (rtr : α) : Prop where
   unique_inputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
-                  (i ∈ rtr[.prt .in]) → (⟨.prt .in, i⟩ ∈ rcn₁.deps .out) → 
-                  (⟨.prt .in, i⟩ ∉ rcn₂.deps .out)  
+                  (⟨.prt .in, i⟩ ∈ rcn₁.deps .out) → (⟨.prt .in, i⟩ ∉ rcn₂.deps .out)  
   overlap_prio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → 
-                  (rcns con i₂ = some rcn₂) → (i₁ ≠ i₂) → 
-                  (rcn₁.deps .out ∩ rcn₂.deps .out).Nonempty → 
-                  (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
+                  (rcns con i₂ = some rcn₂) → (i₁ ≠ i₂) → (d ∈ rcn₁.deps .out) → 
+                  (d ∈ rcn₂.deps .out) → (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
   hazards_prio  : (rtr[.rtr][i] = some con) → (rcns con i₁ = some rcn₁) → 
                   (rcns con i₂ = some rcn₂) → (i₁ ≠ i₂) → (⟨.stv, s⟩ ∈ rcn₁.deps k₁) → 
                   (⟨.stv, s⟩ ∈ rcn₂.deps k₂) → (k₁ = .out ∨ k₂ = .out) → 

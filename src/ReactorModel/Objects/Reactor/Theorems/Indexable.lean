@@ -3,9 +3,7 @@ import ReactorModel.Objects.Reactor.Indexable
 namespace ReactorType
 namespace Indexable
 
-variable [a : Indexable α]
-
-variable {rtr rtr₁ rtr₂ : α}
+variable [a : Indexable α] {rtr rtr₁ rtr₂ : α}
 
 theorem con?_eq_some (h : rtr[cpt][i]& = some con) : 
     ∃ m : Member cpt i rtr, m.container = con := by
@@ -25,11 +23,32 @@ theorem obj?_to_con?_and_cpt? {o} {i : ID} (h : rtr[cpt][i] = some o) :
     simp [obj?, bind] at h
     assumption
 
-theorem obj?_split {o} {i : ID} (h : rtr[cpt][i] = some o) :
-    ∃ c con, (rtr[.rtr][c] = some con) ∧ (cpt? cpt con i = some o) := by
-  have ⟨⟨c, con⟩, ho, _⟩ := obj?_to_con?_and_cpt? h 
-  have ⟨_, _, _⟩ := con?_to_obj?_and_cpt? ho
-  exists c, con
+theorem obj?_con?_eq {i₁ i₂ : ID}
+    (h₁ : rtr[cpt][i₁] = some rcn₁) (h₂ : rtr[cpt][i₂] = some rcn₂) 
+    (hc : rtr[cpt][i₁]& = rtr[cpt][i₂]&) :
+    ∃ c con, (rtr[.rtr][c] = some con) ∧ (cpt? cpt con i₁ = some rcn₁) ∧ (cpt? cpt con i₂ = some rcn₂) := by
+  have ⟨con₁, hc₁, hr₁⟩ := obj?_to_con?_and_cpt? h₁
+  have ⟨con₂, hc₂, hr₂⟩ := obj?_to_con?_and_cpt? h₂
+  exists con₁.id, con₁.rtr
+  have ⟨ho₁, _, _⟩ := con?_to_obj?_and_cpt? hc₁
+  exact ⟨ho₁, hr₁, (Option.some_inj.mp $ hc₂ ▸ hc ▸ hc₁) ▸ hr₂⟩ 
+
+theorem con?_eq_ext 
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
+    (hc : {c₁ c₂ : Container α} → (rtr[.rtr][c₁.id] = c₁.rtr) → (rtr[.rtr][c₂.id] = c₂.rtr) → 
+          (rcns c₁.rtr i₁ = some rcn₁) → (rcns c₂.rtr i₂ = some rcn₂) → c₁.id = c₂.id) : 
+    rtr[.rcn][i₁]& = rtr[.rcn][i₂]& := by
+  have ⟨c₁, hc₁, hr₁⟩ := obj?_to_con?_and_cpt? h₁
+  have ⟨c₂, hc₂, hr₂⟩ := obj?_to_con?_and_cpt? h₂
+  simp [hc₁, hc₂]
+  have ⟨hc₁, _⟩ := con?_to_obj?_and_cpt? hc₁
+  have ⟨hc₂, _⟩ := con?_to_obj?_and_cpt? hc₂
+  have hc := hc hc₁ hc₂ hr₁ hr₂
+  exact Container.ext _ _ hc $ Option.some_inj.mp (hc₂ ▸ hc ▸ hc₁.symm)
+
+theorem obj?_rtr_and_cpt?_to_obj? (ho : rtr[.rtr][c] = some con) (hc : cpt? cpt con i = some o) :
+    rtr[cpt][i] = some o := by
+  sorry
 
 theorem cpt?_to_con? {o} (h : cpt? cpt rtr i = some o) : rtr[cpt][i]& = some ⟨⊤, rtr⟩ := by
   let m := Member.final (Partial.mem_iff.mpr ⟨_, h⟩)

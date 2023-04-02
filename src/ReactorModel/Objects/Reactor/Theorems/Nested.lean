@@ -31,13 +31,12 @@ scoped macro "wf_nested_proof " name:ident : term => `(
 )
 
 theorem nested (wf : Wellformed rtr₁) (h : nest rtr₁ i = some rtr₂) : Wellformed rtr₂ where
-  overlap_prio  := wf_nested_proof overlap_prio
-  hazards_prio  := wf_nested_proof hazards_prio
-  mutation_prio := wf_nested_proof mutation_prio
-  valid_deps    := wf_nested_proof valid_deps
-  acyclic_deps  := wf.acyclic_deps.nested h
-  unique_inputs h₁ h₂ _ h₄ := 
-    wf.unique_inputs (obj?_nested h h₁) (obj?_nested h h₂) ‹_› (obj?_mem_nested h h₄)
+  overlap_prio        := wf_nested_proof overlap_prio
+  hazards_prio        := wf_nested_proof hazards_prio
+  mutation_prio       := wf_nested_proof mutation_prio
+  valid_deps          := wf_nested_proof valid_deps
+  acyclic_deps        := wf.acyclic_deps.nested h
+  unique_inputs h₁ h₂ := wf.unique_inputs (obj?_nested h h₁) (obj?_nested h h₂)
 
 end Wellformed
 end ReactorType
