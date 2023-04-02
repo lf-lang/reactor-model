@@ -5,18 +5,19 @@ open Classical ReactorType Indexable
 namespace Execution
 namespace State
 
-theorem exec_preserves_tag [Indexable α] (s : State α) (rcn : ID) : (s.exec rcn).tag = s.tag :=
+variable [Indexable α] {s s₁ s₂ : State α} in section
+
+theorem exec_preserves_tag (rcn : ID) : (s.exec rcn).tag = s.tag :=
   rfl
 
-theorem exec_preserves_progress [Indexable α] (s : State α) (rcn : ID) : 
-    (s.exec rcn).progress = s.progress :=
+theorem exec_preserves_progress (s : State α) (rcn : ID) : (s.exec rcn).progress = s.progress :=
   rfl
 
-theorem exec_equiv [Indexable α] (s : State α) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
+theorem exec_equiv (s : State α) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
   simp [exec]
   exact Equivalent.symm $ apply'_equiv _ _
 
-theorem exec_preserves_dependencies [Indexable α] (s : State α) (j) : 
+theorem exec_preserves_dependencies (s : State α) (j) : 
     dependencies s.rtr i = dependencies (s.exec j).rtr i := by
   simp [dependencies, Set.ext_iff]
   intro i
@@ -25,6 +26,33 @@ theorem exec_preserves_dependencies [Indexable α] (s : State α) (j) :
     intro d
     refine Dependency.equiv ?_ d
     simp [Equivalent.symm, exec_equiv s j]
+
+theorem exec_allows_iff : s.Allows i₂ ↔ (s.exec i₁).Allows i₂ := by
+  simp [Allows.def]
+  rw [←Equivalent.mem_iff (cpt := .rcn) (exec_equiv s i₁)]
+  simp [←exec_preserves_progress s i₁, exec_preserves_dependencies s i₁]
+
+theorem record_triggers_iff : s.Triggers i₂ ↔ (s.record i₁).Triggers i₂ :=
+  Triggers.progress_agnostic
+
+theorem record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ ↔ (s.record i₁).Allows i₂ := by
+  simp [record, Allows.def]
+  intro _
+  constructor <;> intro ⟨hd, hp⟩ 
+  case mp =>
+    constructor
+    · exact hd.trans $ Set.subset_insert i₁ s.progress
+    · exact Set.mem_insert_iff.not.mpr $ not_or.mpr ⟨hi.not_eq.symm, hp⟩ 
+  case mpr =>
+    constructor
+    · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left fun h => absurd (h ▸ d) hi.left
+    · exact not_or.mp (Set.mem_insert_iff.not.mp hp) |>.right
+  
+theorem exec_record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
+    s.Allows i₁ ↔ (s.exec i₂ |>.record i₂).Allows i₁ := 
+  exec_allows_iff.trans $ record_indep_allows_iff (hi.equiv $ s.exec_equiv i₂).symm
+
+end
 
 variable [Proper α] {s s₁ s₂ : State α}
 
@@ -61,23 +89,6 @@ theorem exec_indep_input_eq
   injection h' ▸ Equivalent.obj?_rcn_eq (s.exec_equiv i₁) ▸ h with h'
   exact h'.symm ▸ exec_indep_restriction_eq hi h 
 
-theorem exec_allows_iff : s.Allows i₂ ↔ (s.exec i₁).Allows i₂ := by
-  simp [Allows.def]
-  rw [←Equivalent.mem_iff (cpt := .rcn) (exec_equiv s i₁)]
-  simp [←exec_preserves_progress s i₁, exec_preserves_dependencies s i₁]
-
-theorem exec_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
-    s.Triggers i₂ ↔ (s.exec i₁).Triggers i₂ := by
-  constructor <;> intro ⟨ho, ht⟩  
-  case mp =>
-    have ho' := Equivalent.obj?_rcn_eq (exec_equiv s i₁) ▸ ho
-    have ht' := exec_indep_input_eq hi ‹_› ‹_› |>.symm ▸ ht
-    exact .intro ho' ht'
-  case mpr =>
-    have ho' := Equivalent.obj?_rcn_eq (exec_equiv s i₁) |>.symm ▸ ho
-    have ht' := exec_indep_input_eq hi ‹_› ‹_› ▸ ht
-    exact .intro ho' ht'
-
 theorem exec_indep_output_eq (hi : i₁ ≮[s.rtr]≯ i₂) : (s.exec i₁).output i₂ = s.output i₂ := by 
   simp [output]
   have e := Equivalent.obj?_rcn_eq $ s.exec_equiv i₁
@@ -99,7 +110,7 @@ theorem indep_normal_output_disjoint (hi : i₁ ≮[s.rtr]≯ i₂) :
       cases Dependency.shared_out_dep h₁ h₂ hi.not_eq hc₁ hc₂
       all_goals have ⟨_, _, _⟩ := hi; contradiction
 
-theorem exec_indep_swap (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
+theorem exec_indep_comm (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
   ext1
   case tag => apply exec_preserves_tag
@@ -109,31 +120,21 @@ theorem exec_indep_swap (hi : rcn₁ ≮[s.rtr]≯ rcn₂) :
     conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
     apply apply'_normal_disjoint_comm $ indep_normal_output_disjoint hi
 
-theorem input_progress_agnostic 
-    (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
-  s₁.input i = s₂.input i := by
-  simp [input, input.restriction, hr, ht]
-
-theorem Triggers.progress_agnostic 
-    (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
-    Triggers s₁ i ↔ Triggers s₂ i := by
-  simp [Triggers.def, hr, input_progress_agnostic hr ht]    
-
-theorem record_triggers_iff : s.Triggers i₂ ↔ (s.record i₁).Triggers i₂ :=
-  Triggers.progress_agnostic
-
-theorem record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ ↔ (s.record i₁).Allows i₂ := by
-  simp [record, Allows.def]
-  intro _
-  constructor <;> intro ⟨hd, hp⟩ 
+theorem exec_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
+    s.Triggers i₂ ↔ (s.exec i₁).Triggers i₂ := by
+  constructor <;> intro ⟨ho, ht⟩  
   case mp =>
-    constructor
-    · exact hd.trans $ Set.subset_insert i₁ s.progress
-    · exact Set.mem_insert_iff.not.mpr $ not_or.mpr ⟨hi.not_eq.symm, hp⟩ 
+    have ho' := Equivalent.obj?_rcn_eq (exec_equiv s i₁) ▸ ho
+    have ht' := exec_indep_input_eq hi ‹_› ‹_› |>.symm ▸ ht
+    exact .intro ho' ht'
   case mpr =>
-    constructor
-    · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left fun h => absurd (h ▸ d) hi.left
-    · exact not_or.mp (Set.mem_insert_iff.not.mp hp) |>.right
-  
+    have ho' := Equivalent.obj?_rcn_eq (exec_equiv s i₁) |>.symm ▸ ho
+    have ht' := exec_indep_input_eq hi ‹_› ‹_› ▸ ht
+    exact .intro ho' ht'
+
+theorem exec_record_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
+    s.Triggers i₁ ↔ (s.exec i₂ |>.record i₂).Triggers i₁ :=
+  exec_indep_triggers_iff hi.symm |>.trans record_triggers_iff
+
 namespace State
 namespace Execution

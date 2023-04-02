@@ -46,8 +46,18 @@ where
   restriction (rcn : Reaction) (cpt : Reactor.Component.Valued) := 
     s.rtr[cpt].restrict { i | ⟨cpt, i⟩ ∈ rcn.deps .in }
 
+theorem input_progress_agnostic {s₁ s₂ : State α}
+    (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
+    s₁.input i = s₂.input i := by
+  simp [input, input.restriction, hr, ht]
+
 def output (s : State α) (rcn : ID) : List Change := 
   s.rtr[.rcn][rcn] |>.elim [] (· $ s.input rcn)
+
+theorem output_progress_agnostic {s₁ s₂ : State α}
+    (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
+    s₁.output i = s₂.output i := by
+  sorry
 
 inductive Triggers (s : State α) (i : ID) : Prop
   | intro (mem : s.rtr[.rcn][i] = some rcn) (triggers : rcn.TriggersOn (s.input i))
@@ -57,11 +67,21 @@ theorem Triggers.def {s : State α} :
   mp  := fun ⟨mem, triggers⟩ => ⟨_, mem, triggers⟩   
   mpr := fun ⟨_, mem, triggers⟩ => .intro mem triggers
 
+theorem Triggers.progress_agnostic {s₁ s₂ : State α}
+    (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
+    Triggers s₁ i ↔ Triggers s₂ i := by
+  simp [Triggers.def, hr, input_progress_agnostic hr ht]    
+
 def exec (s : State α) (rcn : ID) : State α :=
   { s with rtr := apply' s.rtr (s.output rcn) }
 
 def record [DecidableEq ID] (s : State α) (rcn : ID) : State α := 
   { s with progress := s.progress.insert rcn }
+
+theorem record_comm {s : State α} {rcn₁ rcn₂ : ID} : 
+    (s.record rcn₁).record rcn₂ = (s.record rcn₂).record rcn₁ := by
+  simp [record]
+  apply Set.insert_comm 
 
 theorem record_preserves_rtr (s : State α) (rcn : ID) : (s.record rcn).rtr = s.rtr := 
   rfl
@@ -72,6 +92,11 @@ theorem record_preserves_tag (s : State α) (rcn : ID) : (s.record rcn).tag = s.
 theorem mem_record_progress_iff (s : State α) (rcn₁ rcn₂ : ID) : 
     rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
   simp [record, Set.insert]
+
+theorem record_exec_comm {s : State α} {rcn₁ rcn₂ : ID} : 
+    (s.record rcn₁).exec rcn₂ = (s.exec rcn₂).record rcn₁ := by
+  simp [exec, output_progress_agnostic]
+  rfl
 
 def record' [DecidableEq ID] (s : State α) (rcns : List ID) : State α := 
   { s with progress := s.progress ∪ { i | i ∈ rcns } }

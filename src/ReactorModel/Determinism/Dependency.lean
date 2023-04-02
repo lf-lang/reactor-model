@@ -126,6 +126,10 @@ abbrev NotDependent [Indexable α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop :=
 
 notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => NotDependent rtr rcn₁ rcn₂
 
+theorem NotDependent.equiv [Indexable α] {rtr₁ rtr₂ : α} (h : i₁ ≮[rtr₁] i₂) (e : rtr₁ ≈ rtr₂) : 
+    i₁ ≮[rtr₂] i₂ :=
+  fun d => absurd (d.equiv e) h
+
 theorem NotDependent.deps_disjoint [Indexable α] {rtr : α} {d} (hi : i₁ ≮[rtr] i₂) 
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (h : d ∈ rcn₁.deps .out) 
     (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
@@ -144,6 +148,12 @@ theorem symm [Indexable α] {rtr : α} (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[r
   not_eq := hi.not_eq.symm
   left   := hi.right
   right  := hi.left
+
+theorem equiv [Indexable α] {rtr₁ rtr₂ : α} (hi : i₁ ≮[rtr₁]≯ i₂) (e : rtr₁ ≈ rtr₂) : 
+    i₁ ≮[rtr₂]≯ i₂ where
+  not_eq := hi.not_eq
+  left   := hi.left.equiv e
+  right  := hi.right.equiv e
 
 theorem no_shared_state_deps [Proper α] {rtr : α}
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
