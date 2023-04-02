@@ -137,26 +137,37 @@ theorem acyclic (e : s₁ ⇓ᵢ s₂) : e.rcn ≮[s₁.rtr] e.rcn :=
 theorem progress_eq : (e : s₁ ⇓ᵢ s₂) → s₂.progress = s₁.progress.insert e.rcn
   | skip e | exec e => e.progress_eq  
 
-/-
-By cases on e₁ and e₂:
-(1) skip.skip:
-    then both didn't trigger and nothing about the reactors changed, so it is easy to show that
-    switching the order preserves non-triggering.
+theorem seq_wellordered (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) : e₂.rcn ≮[s₁.rtr] e₁.rcn := by
+  by_contra d
+  exact e₂.allows_rcn.unprocessed $ e₁.monotonic_progress $ e₁.allows_rcn.deps d
 
-(2)&(3) exec.skip and skip.exec:
-        using `preserves_triggers` it should be easy
+theorem seq_rcn_ne (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) : e₁.rcn ≠ e₂.rcn := by
+  by_contra he
+  exact e₂.allows_rcn.unprocessed (he ▸ e₁.rcn_mem_progress)
 
-(4) exec.exec: 
-    reduces to a theorem on State.exec?
--/
+theorem prepend_indep' (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
+    ∃ (s₂' : _) (s₃' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃'), 
+      (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) ∧ (s₃' = s₃) := by
+  have hi : _ ≮[_]≯ _ := { not_eq := e₁.seq_rcn_ne e₂, left := h, right := e₁.seq_wellordered e₂ }
+  cases e₁ <;> cases e₂ 
+  case skip.skip e₁ e₂ => sorry
+  case skip.exec e₁ e₂ => sorry
+  case exec.skip e₁ e₂ => sorry
+  case exec.exec e₁ e₂ =>
+    
+    cases e₁; cases e₂; case _ rcn₁ ha₁ ht₁ rcn₂ ha₂ ht₂ =>
+      have ha₁' : (s₁.exec rcn₂ |>.record rcn₂).Allows rcn₁ := sorry
+      have ht₁' : (s₁.exec rcn₂ |>.record rcn₂).Triggers rcn₁ := sorry
+      have ha₂' : s₁.Allows rcn₂ := sorry
+      have ht₂' : s₁.Triggers rcn₂ := sorry
+      refine ⟨_, _, Step.exec (Exec.mk ha₂' ht₂'), Step.exec (Exec.mk ha₁' ht₁'), rfl, rfl, ?_⟩
+      
+
 theorem prepend_indep (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
-    ∃ (s₂' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃), e₁'.rcn = e₂.rcn ∧ e₂'.rcn = e₁.rcn := by
-  cases e₁ 
-  case skip e₁ => 
-    have ⟨_, e₁', e₂', _⟩ := e₁.swap_indep e₂ h
-    exists _, e₁', skip e₂'
-  case exec e₁ =>
-    sorry 
+    ∃ (s₂' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃), (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) := by
+  have ⟨s₂', _, e₁', e₂', h₁, h₂, h⟩ := prepend_indep' e₁ e₂ h
+  subst h
+  exists s₂', e₁', e₂'
 
 end Step
 end Instantaneous 

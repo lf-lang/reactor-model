@@ -31,6 +31,11 @@ structure Allows (s : State α) (rcn : ID) : Prop where
   deps        : dependencies s.rtr rcn ⊆ s.progress
   unprocessed : rcn ∉ s.progress
 
+theorem Allows.def {s : State α} : 
+    (s.Allows i) ↔ (i ∈ s.rtr[.rcn]) ∧ (dependencies s.rtr i ⊆ s.progress) ∧ (i ∉ s.progress) where
+  mp  := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
+  mpr := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
+
 theorem Allows.acyclic {s : State α} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   fun hc => absurd (a.deps hc) a.unprocessed
 
@@ -47,10 +52,10 @@ def output (s : State α) (rcn : ID) : List Change :=
 inductive Triggers (s : State α) (i : ID) : Prop
   | intro (mem : s.rtr[.rcn][i] = some rcn) (triggers : rcn.TriggersOn (s.input i))
 
--- TODO: Is this being used?
-theorem Triggers.progress_agnostic {s₁ s₂ : State α}
-    (h : Triggers s₁ i) (hr : s₁.rtr = s₂.rtr) (ht : s₁.tag = s₂.tag) : Triggers s₂ i :=
-  sorry
+theorem Triggers.def {s : State α} : 
+    (s.Triggers i) ↔ (∃ rcn, (s.rtr[.rcn][i] = some rcn) ∧ rcn.TriggersOn (s.input i)) where
+  mp  := fun ⟨mem, triggers⟩ => ⟨_, mem, triggers⟩   
+  mpr := fun ⟨_, mem, triggers⟩ => .intro mem triggers
 
 def exec (s : State α) (rcn : ID) : State α :=
   { s with rtr := apply' s.rtr (s.output rcn) }
