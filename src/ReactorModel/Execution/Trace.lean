@@ -10,42 +10,17 @@ namespace Step
 
 variable {s₁ s₂ : State α}
 
-inductive Skip : State α → State α → Type  
-  | mk : (s.Allows rcn) → (¬s.Triggers rcn) → Skip s (s.record rcn)
-
-notation s₁:max " ⇓ₛ " s₂:max => Skip s₁ s₂
-
-def Skip.rcn : (s₁ ⇓ₛ s₂) → ID
-  | mk (rcn := rcn) .. => rcn
-
-def Skip.allows_rcn : (e : s₁ ⇓ₛ s₂) → s₁.Allows e.rcn
-  | mk h .. => h
-
-def Skip.not_triggers : (e : s₁ ⇓ₛ s₂) → ¬s₁.Triggers e.rcn
-  | mk _ h => h
-
-inductive Exec : State α → State α → Type  
-  | mk : (s.Allows rcn) → (s.Triggers rcn) → Exec s (s.exec rcn |>.record rcn)
-
-notation s₁:max " ⇓ₑ " s₂:max => Exec s₁ s₂
-
-def Exec.rcn : (s₁ ⇓ₑ s₂) → ID
-  | mk (rcn := rcn) .. => rcn
-
-def Exec.allows_rcn : (e : s₁ ⇓ₑ s₂) → s₁.Allows e.rcn
-  | mk h .. => h
-
-inductive _root_.Execution.Instantaneous.Step (s₁ s₂ : State α)
-  | skip (e : Skip s₁ s₂)
-  | exec (e : Exec s₁ s₂)
+inductive _root_.Execution.Instantaneous.Step : State α → State α → Type  
+  | skip : (s.Allows rcn) → (¬s.Triggers rcn) → Step s (s.record rcn)
+  | exec : (s.Allows rcn) → (s.Triggers rcn) → Step s (s.exec rcn |>.record rcn)
 
 notation s₁:max " ⇓ᵢ " s₂:max => Step s₁ s₂
 
 def rcn : (s₁ ⇓ᵢ s₂) → ID
-  | skip e | exec e => e.rcn
+  | skip (rcn := rcn) .. | exec (rcn := rcn) .. => rcn
 
 def allows_rcn : (e : s₁ ⇓ᵢ s₂) → s₁.Allows e.rcn
-  | skip e | exec e => e.allows_rcn
+  | skip h .. | exec h .. => h
 
 end Step
 
