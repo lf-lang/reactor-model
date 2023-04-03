@@ -6,13 +6,14 @@ variable [ReactorType.Indexable α]
 
 namespace Execution
 namespace Instantaneous
+
+inductive Step : State α → State α → Type  
+  | skip : (s.Allows rcn) → (¬s.Triggers rcn) → Step s (s.record rcn)
+  | exec : (s.Allows rcn) → (s.Triggers rcn) → Step s (s.exec rcn |>.record rcn)
+
 namespace Step
 
 variable {s₁ s₂ : State α}
-
-inductive _root_.Execution.Instantaneous.Step : State α → State α → Type  
-  | skip : (s.Allows rcn) → (¬s.Triggers rcn) → Step s (s.record rcn)
-  | exec : (s.Allows rcn) → (s.Triggers rcn) → Step s (s.exec rcn |>.record rcn)
 
 notation s₁:max " ⇓ᵢ " s₂:max => Step s₁ s₂
 

@@ -6,12 +6,12 @@ namespace Execution
 namespace Instantaneous
 namespace Execution
  
-variable [ReactorType.Indexable α] {s₁ s₂ : State α}
+variable [ReactorType.Indexable α] {s₁ s₂ : State α} in section
 
 theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns, not_or]
   case trans e e' hi =>
-    simp [hi $ e.monotonic_progress h]
+    simp [hi $ e.progress_monotonic h]
     intro hc
     exact absurd (hc ▸ h) e.rcn_not_mem_progress
 
@@ -24,7 +24,7 @@ theorem mem_progress_iff (e : s₁ ⇓ᵢ* s₂) :
     all_goals repeat cases ‹_ ∨ _› <;> simp [*]
     case mp.inr h      => cases e.mem_progress_iff.mp h <;> simp [*]
     case mpr.inl.inl h => simp [e.rcn_mem_progress]
-    case mpr.inr h     => simp [e.monotonic_progress h]
+    case mpr.inr h     => simp [e.progress_monotonic h]
  
 -- Corollary of `InstExecution.mem_progress_iff`.
 theorem rcns_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₂.progress := 
@@ -66,7 +66,7 @@ theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ e.rcns) :
   case trans e e' hi =>
     cases e'.rcns_trans_eq_cons e ▸ h
     case head   => exact e.rcn_not_mem_progress
-    case tail h => exact mt e.monotonic_progress (hi h)
+    case tail h => exact mt e.progress_monotonic (hi h)
 
 theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
   simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
@@ -80,7 +80,7 @@ theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn ::
   by_contra hc
   simp [Minimal] at hc
   have ⟨_, hm, h⟩ := hc e.acyclic
-  replace hc := mt e.monotonic_progress $ e'.mem_rcns_not_mem_progress hm
+  replace hc := mt e.progress_monotonic $ e'.mem_rcns_not_mem_progress hm
   exact absurd (e.allows_rcn.deps h) hc
 
 theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (h : i ∈ e'.rcns) : e.rcn ≠ i := by
@@ -88,6 +88,10 @@ theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (h : i
   have := trans e e' |>.rcns_nodup
   have := hc.symm ▸ List.not_nodup_cons_of_mem h
   contradiction
+
+end
+
+variable [ReactorType.Proper α] {s₁ s₂ : State α}
 
 -- The core lemma for `prepend_minimal`.
 theorem cons_prepend_minimal 

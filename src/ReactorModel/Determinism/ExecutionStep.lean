@@ -5,7 +5,7 @@ namespace Execution
 open ReactorType
 open State (Closed)
 
-variable [Indexable α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁]
+variable [Indexable α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁] in section
 
 namespace AdvanceTag
 
@@ -62,9 +62,6 @@ theorem tag_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.tag = s₂.tag :
 theorem progress_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.progress = s₂.progress := by
   simp [e₁.progress_def, e₂.progress_def]
 
-theorem deterministic (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁ = s₂ :=
-  e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)
-
 theorem step_determined (e : s ⇓| s₁) (a : s ⇓- s₂) : False :=
   absurd a.closed e.not_Closed
 
@@ -89,11 +86,6 @@ theorem tag_le : (s₁ ⇓ s₂) → s₁.tag ≤ s₂.tag
   | close e   => le_of_eq e.preserves_tag
   | advance a => le_of_lt a.tag_lt
 
-theorem deterministic : (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂
-  | close e₁, close e₂                      => e₁.deterministic e₂
-  | advance a₁, advance a₂                  => a₁.determinisic a₂
-  | close e, advance a | advance a, close e => e.step_determined a |>.elim
-
 theorem seq_tag_lt : (s₁ ⇓ s₂) → (s₂ ⇓ s₃) → s₁.tag < s₃.tag
   | close e₁,   close e₂   => e₁.nonrepeatable e₂ |>.elim
   | advance a₁, advance a₂ => a₁.nonrepeatable a₂ |>.elim
@@ -105,5 +97,17 @@ instance preserves_Nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → Stat
   | advance a => a.preserves_Nontrivial
 
 end Step
+
+end
+
+variable [Proper α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁]
+
+theorem Instantaneous.ClosedExecution.deterministic (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁ = s₂ :=
+  e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)
+
+theorem Step.deterministic : (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂
+  | close e₁, close e₂                      => e₁.deterministic e₂
+  | advance a₁, advance a₂                  => a₁.determinisic a₂
+  | close e, advance a | advance a, close e => e.step_determined a |>.elim
 
 end Execution
