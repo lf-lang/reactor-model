@@ -228,7 +228,7 @@ theorem Dependency.lower [c : LawfulCoe α β] (d : i₁ <[rtr] i₂) : i₁ <[(
     exact trans d₁ d₂
 
 theorem Dependency.Acyclic.lift [LawfulCoe α β] (a : Acyclic (rtr : β)) : Acyclic rtr :=
-  fun i d => absurd d.lower (a i) 
+  (a · $ ·.lower)
   
 namespace Wellformed
 

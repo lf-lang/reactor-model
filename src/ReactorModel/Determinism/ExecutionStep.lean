@@ -11,10 +11,10 @@ namespace AdvanceTag
 
 theorem not_Closed (a : s₁ ⇓- s₂) : ¬(Closed s₂) :=
   have := a.advance.preserves_Nontrivial -- TODO: Make this work via type class inference.
-  (absurd a.advance.progress_empty ·.progress_Nonempty.ne_empty)
+  (·.progress_Nonempty.ne_empty a.advance.progress_empty)
 
 theorem nonrepeatable (a₁ : s₁ ⇓- s₂) (a₂ : s₂ ⇓- s₃) : False :=
-  absurd a₂.closed a₁.not_Closed
+  a₁.not_Closed a₂.closed
 
 theorem tag_lt (a : s₁ ⇓- s₂) : s₁.tag < s₂.tag :=
   a.advance.tag_lt
@@ -63,14 +63,14 @@ theorem progress_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.progress = 
   simp [e₁.progress_def, e₂.progress_def]
 
 theorem step_determined (e : s ⇓| s₁) (a : s ⇓- s₂) : False :=
-  absurd a.closed e.not_Closed
+  e.not_Closed a.closed
 
 instance preserves_Nontrivial [h : State.Nontrivial s₁] {e : s₁ ⇓| s₂} : State.Nontrivial s₂ where
   nontrivial := Equivalent.obj?_rcn_eq e.equiv ▸ h.nontrivial
 
 theorem nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| s₃) : False :=
   have := e₁.preserves_Nontrivial -- TODO: Make this work via type class inference.
-  absurd e₁.closed $ e₂.not_Closed
+  e₂.not_Closed e₁.closed
 
 theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress := by
   have := e.preserves_Nontrivial -- TODO: Make this work via type class inference.

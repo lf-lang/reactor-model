@@ -1,12 +1,5 @@
 import Mathlib.Data.Finmap
 
--- TODO: Isn't this tactic part of Mathlib?
-syntax "case' " (Lean.binderIdent*),* " => " tacticSeq : tactic
-macro_rules
-  | `(tactic| case' $[$xs*],* => $tac) => do
-    let tacs ← xs.mapM fun xs => `(tactic| case $(xs[0]!) $(xs[1:])* => $tac)
-    `(tactic| ($[$tacs]*))
-
 namespace Set 
 
 theorem insert_union' (s₁ s₂ : Set α) (a : α) : (insert a s₁) ∪ s₂ = s₁ ∪ (insert a s₂) := by

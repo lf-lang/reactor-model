@@ -53,7 +53,11 @@ inductive Targets : Change → Component.Valued → ID → Prop
 theorem Targets.norm_not (h : ¬Targets (norm ⟨c, j, v⟩) cpt i) : cpt ≠ c ∨ i ≠ j := by
   by_contra hc
   simp [not_or] at hc
-  exact absurd .intro (hc.left ▸ hc.right ▸ h)
+  exact hc.left ▸ hc.right ▸ h $ .intro 
+
+def target : Change → Option (Component.Valued × ID)
+  | norm ⟨cpt, i, _⟩ => (cpt, i)
+  | «mut» ..         => none
 
 inductive IsNormal : Change → Prop
   | intro : IsNormal (norm _)

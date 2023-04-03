@@ -17,7 +17,7 @@ theorem nested (h : nest rtr₁ i = some rtr₂) (d : i₁ <[rtr₂] i₂) : i�
   | trans _ _ d₁ d₂  => exact trans d₁ d₂
 
 theorem Acyclic.nested (a : Acyclic rtr₁) (h : nest rtr₁ i = some rtr₂) : Acyclic rtr₂ :=
-  fun i d => absurd (d.nested h) (a i)
+  (a · $ ·.nested h)
 
 end Dependency
 

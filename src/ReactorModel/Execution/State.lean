@@ -37,7 +37,7 @@ theorem Allows.def {s : State α} :
   mpr := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
 
 theorem Allows.acyclic {s : State α} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
-  fun hc => absurd (a.deps hc) a.unprocessed
+  (a.unprocessed $ a.deps ·)
 
 def input (s : State α) (rcn : ID) : Reaction.Input where
   val cpt := s.rtr[.rcn][rcn] |>.elim ∅ (restriction · cpt)

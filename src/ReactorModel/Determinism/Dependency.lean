@@ -128,12 +128,12 @@ notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => NotDependent rtr rcn₁ rcn₂
 
 theorem NotDependent.equiv [Indexable α] {rtr₁ rtr₂ : α} (h : i₁ ≮[rtr₁] i₂) (e : rtr₁ ≈ rtr₂) : 
     i₁ ≮[rtr₂] i₂ :=
-  fun d => absurd (d.equiv e) h
+  (h $ ·.equiv e)
 
 theorem NotDependent.deps_disjoint [Indexable α] {rtr : α} {d} (hi : i₁ ≮[rtr] i₂) 
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (h : d ∈ rcn₁.deps .out) 
     (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
-  byContradiction fun hd => absurd (Dependency.depOverlap h₁ h₂ h (not_not.mp hd) hs) hi
+  byContradiction fun hd => hi $ Dependency.depOverlap h₁ h₂ h (not_not.mp hd) hs
 
 structure Independent [Indexable α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop where
   not_eq : rcn₁ ≠ rcn₂  

@@ -45,7 +45,7 @@ theorem record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ �
     · exact Set.mem_insert_iff.not.mpr $ not_or.mpr ⟨hi.not_eq.symm, hp⟩ 
   case mpr =>
     constructor
-    · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left fun h => absurd (h ▸ d) hi.left
+    · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left (hi.left $ · ▸ d)
     · exact not_or.mp (Set.mem_insert_iff.not.mp hp) |>.right
   
 theorem exec_record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 

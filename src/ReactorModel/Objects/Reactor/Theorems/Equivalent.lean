@@ -284,7 +284,7 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁]
     exact trans d₁ d₂
 
 theorem Acyclic.equiv (e : rtr₁ ≈ rtr₂) (a : Acyclic rtr₁) : Acyclic rtr₂ :=
-  fun i d => absurd (d.equiv e) (a i) 
+  (a · $ ·.equiv e)
 
 end Dependency
 

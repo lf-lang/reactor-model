@@ -9,4 +9,9 @@ theorem UniqueIDs.updated [ReactorType.WellFounded α] {rtr₁ rtr₂ : α}
       |>.trans (Equivalent.from_lawfulUpdate u m₂).symm 
       |>.to_eq
 
+open Updatable in
+theorem LawfulUpdatable.update_ne_comm [LawfulUpdatable α] {rtr : α} (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂):
+    update (update rtr cpt₁ i₁ f₁) cpt₂ i₂ f₂ = update (update rtr cpt₂ i₂ f₂) cpt₁ i₁ f₁ :=
+  sorry
+
 end ReactorType

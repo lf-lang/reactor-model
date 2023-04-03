@@ -13,7 +13,7 @@ theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ s₁.progress
   case trans e e' hi =>
     simp [hi $ e.progress_monotonic h]
     intro hc
-    exact absurd (hc ▸ h) e.rcn_not_mem_progress
+    exact e.rcn_not_mem_progress $ hc ▸ h
 
 theorem mem_progress_iff (e : s₁ ⇓ᵢ* s₂) : 
     (rcn ∈ s₂.progress) ↔ (rcn ∈ e.rcns ∨ rcn ∈ s₁.progress) := by
@@ -81,7 +81,7 @@ theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn ::
   simp [Minimal] at hc
   have ⟨_, hm, h⟩ := hc e.acyclic
   replace hc := mt e.progress_monotonic $ e'.mem_rcns_not_mem_progress hm
-  exact absurd (e.allows_rcn.deps h) hc
+  exact hc $ e.allows_rcn.deps h
 
 theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) (h : i ∈ e'.rcns) : e.rcn ≠ i := by
   intro hc
