@@ -113,25 +113,33 @@ structure NextTag (s : State α) (next : Time.Tag) : Prop where
   bound : s.tag < next
   least : ∀ g ∈ scheduledTags s.rtr, (s.tag < g) → (next ≤ g)    
 
+theorem NextTag.isLeast {s : State α} (n : NextTag s g) : 
+    IsLeast { g' ∈ scheduledTags s.rtr | s.tag < g' } g where
+  left := ⟨n.mem, n.bound⟩
+  right := by simp [lowerBounds]; exact n.least
+  
 theorem NextTag.deterministic {s : State α} (n₁ : NextTag s g₁) (n₂ : NextTag s g₂) : g₁ = g₂ :=
-  sorry
+  n₁.isLeast.unique n₂.isLeast
 
 inductive Advance : State α → State α → Prop 
   | mk : (NextTag s next) → Advance s { s with tag := next, progress := ∅ }
 
+namespace Advance
+
 variable {s₁ s₂ : State α} 
 
-theorem Advance.progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
+theorem progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
   | mk .. => rfl
 
-instance Advance.preserves_Nontrivial [inst : Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
+instance preserves_Nontrivial [inst : Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
   | mk .. => ⟨inst.nontrivial⟩
 
-theorem Advance.determinisic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
+theorem determinisic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
   | mk h₁, mk h₂ => by ext1 <;> simp [h₁.deterministic h₂]
   
-theorem Advance.tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
+theorem tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
   | mk h => h.bound
 
+end Advance
 end State
 end Execution 

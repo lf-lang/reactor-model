@@ -30,7 +30,7 @@ def container {rtr : α} : (Member cpt i rtr) → Container α
   | .nest (rtr₂ := con) (j := j) .. => { id := j, rtr := con }
   | .final _                        => { id := ⊤, rtr := rtr }
 
-theorem nest_container  {rtr₁ rtr₂ : α} 
+theorem nest_container {rtr₁ rtr₂ : α} 
     (h : ReactorType.nest rtr₁ i = some rtr₂) (m : Member cpt j rtr₂) : 
     ∃ (k : ID) (con : α), (Member.nest h m).container = ⟨k, con⟩ := by
   induction m generalizing i rtr₁
@@ -44,8 +44,13 @@ theorem container_eq_root {rtr : α} {m : Member cpt i rtr} (h : m.container = �
     simp [container] at h
     assumption
   case nest hn m _ =>
-    have ⟨_, _, _⟩ := nest_container hn m
+    have ⟨_, _, _⟩ := nest_container hn m 
     simp_all
+
+-- TODO: This doesn't just apply to root.
+theorem container_eq_root_to_cpt? {rtr : α} {m : Member cpt i rtr} (h : m.container = ⟨⊤, con⟩) : 
+    ∃ o, cpt? cpt con i = some o :=
+  sorry
 
 end Member
 

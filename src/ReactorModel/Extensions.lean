@@ -22,7 +22,7 @@ def empty : α ⇀ β :=
 instance {α β : Type _} : EmptyCollection (α ⇀ β) where
   emptyCollection := empty
 
-theorem empty_iff {f : α ⇀ β} : (f = ∅) ↔ (∀ i, f i = none) where
+theorem empty_iff {f : α ⇀ β} : (f = ∅) ↔ (∀ a, f a = none) where
   mp h _ := h ▸ rfl
   mpr h := funext h  
   
@@ -31,11 +31,14 @@ def Nonempty (f : α ⇀ β) : Prop :=
 
 def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
+theorem empty_iff_ids_empty {f : α ⇀ β} : (f = ∅) ↔ (f.ids = ∅) := by
+  simp [ids, empty_iff, Set.eq_empty_iff_forall_not_mem, Option.eq_none_iff_forall_not_mem]
+
 theorem Nonempty.def {f : α ⇀ β} : f.Nonempty ↔ (f ≠ ∅) :=
   Iff.refl _ 
 
-theorem Nonempty.iff_ids_nonempty {f : α ⇀ β} : f.Nonempty ↔ f.ids.Nonempty :=
-  sorry
+theorem Nonempty.iff_ids_nonempty {f : α ⇀ β} : f.Nonempty ↔ f.ids.Nonempty := by
+  simp [Nonempty, Set.nonempty_iff_ne_empty, empty_iff_ids_empty]
 
 instance : Membership α (α ⇀ β) where
   mem a f := a ∈ f.ids 
@@ -67,14 +70,19 @@ theorem map_inj {f₁ f₂ : α ⇀ β} (hi : g.Injective) (h : f₁.map g = f�
   exact Option.map_injective hi h
 
 theorem attach_map_val (f : α ⇀ β) : f.attach.map Subtype.val = f := by
-  sorry
+  funext a
+  simp [map, Option.map, attach]
+  split <;> split at * <;> simp_all
+  case _ h => simp [←h]
 
 def restrict (f : α ⇀ β) (s : Set α) [DecidablePred (· ∈ s)] : α ⇀ β := 
   fun a => if a ∈ s then f a else none 
 
 theorem ext_restrict {f g : α ⇀ β} (h : ∀ a ∈ s, f a = g a) [DecidablePred (· ∈ s)] : 
-    (f.restrict s) = (g.restrict s) := 
-  sorry
+    (f.restrict s) = (g.restrict s) := by
+  simp [restrict]
+  funext
+  split <;> simp_all
 
 def insert [DecidableEq α] (f : α ⇀ β) (a : α) (b : β) : α ⇀ β :=
   fun a' => if a' = a then b else f a'

@@ -12,10 +12,6 @@ inductive Value
   | absent 
   | present (val : PresentValue)
 
--- A value is considered "present" if it is not the absent value.
-inductive Value.IsPresent : Value → Prop 
-  | intro : IsPresent (present _)
-
 -- We use IDs to reference various kinds of components like ports, reactions, actions, etc.
 -- The precise nature of IDs is not relevant, which is why we define the type as `opaque`.
 opaque ID : Type
@@ -44,7 +40,7 @@ abbrev Kind.opposite : Kind → Kind
   | .out => .in
 
 def Time := Nat
-deriving LinearOrder, Ord, DecidableEq, Inhabited
+deriving LinearOrder
 
 instance : OfNat Time 0 where
   ofNat := .zero
@@ -58,7 +54,7 @@ structure Time.Tag where
 instance : OfNat Time.Tag 0 where
   ofNat := ⟨0, 0⟩ 
 
--- TODO: Replace this with `deriving LinearOrder` once that feature is available again.
+-- TODO: https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Lexicographical.20LinearOrder
 instance : LinearOrder Time.Tag := sorry
 
 abbrev Action := Finmap fun _ : Time.Tag => Value

@@ -12,9 +12,12 @@ theorem con?_eq_some (h : rtr[cpt][i]& = some con) :
   case inl n => exists n.some; injection h
   case inr => contradiction
 
-theorem con?_to_obj?_and_cpt? (h : rtr[cpt][i]& = some con) :
-    (rtr[.rtr][con.id] = con.rtr) ∧ ∃ o, (cpt? cpt con.rtr i = some o) := by
-  sorry
+theorem con?_to_obj?_and_cpt? (h : rtr[cpt][i]& = some ⟨c, con⟩) :
+    (rtr[.rtr][c] = con) ∧ ∃ o, (cpt? cpt con i = some o) := by
+  have ⟨m, hm⟩ := con?_eq_some h
+  cases c
+  case none => simp [obj?, Member.container_eq_root hm, Member.container_eq_root_to_cpt? hm]
+  case some => sorry
 
 theorem obj?_to_con?_and_cpt? {o} {i : ID} (h : rtr[cpt][i] = some o) :
     ∃ c, (rtr[cpt][i]& = some c) ∧ (cpt? cpt c.rtr i = some o) := by

@@ -5,19 +5,28 @@ noncomputable section
 open Classical
 open ReactorType Updatable Indexable
 
+namespace List
+
+def targets (cs : List Change) :=
+  { t : Reactor.Component.Valued × ID | ∃ c ∈ cs, c.Targets t.fst t.snd }
+
+theorem mem_targets_cons (h : t ∈ tl.targets) : t ∈ (hd :: tl).targets := by
+  have ⟨c, hm, _⟩ := h 
+  exists c, by simp [hm]
+
+theorem target_mem_targets {cs : List Change} (hc : c ∈ cs) (ht : c.target = some t) : 
+    t ∈ cs.targets := by
+  exists c, hc
+  cases c <;> simp [Change.target] at *
+  subst ht
+  constructor
+
+end List
+
 def Action.schedule (a : Action) (t : Time) (v : Value) : Action :=
   match a.tags.filter (·.time = t) |>.max with
   | ⊥           => a.insert ⟨t, 0⟩ v
   | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
-
-def List.targets (cs : List Change) :=
-  { t : Reactor.Component.Valued × ID | ∃ c ∈ cs, c.Targets t.fst t.snd }
-
-theorem List.mem_targets_cons (h : c ∈ tl.targets) : c ∈ (hd :: tl).targets := by
-  sorry
-
-theorem List.target_mem_targets {cs : List Change} (hc : c ∈ cs) (ht : c.target = some t) : t ∈ cs.targets := by
-  sorry
 
 namespace ReactorType
 namespace Updatable
