@@ -57,7 +57,7 @@ def output (s : State α) (rcn : ID) : List Change :=
 theorem output_progress_agnostic {s₁ s₂ : State α}
     (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
     s₁.output i = s₂.output i := by
-  sorry
+  simp [output, input_progress_agnostic hr ht, hr]
 
 inductive Triggers (s : State α) (i : ID) : Prop
   | intro (mem : s.rtr[.rcn][i] = some rcn) (triggers : rcn.TriggersOn (s.input i))

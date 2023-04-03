@@ -10,6 +10,9 @@ def Action.schedule (a : Action) (t : Time) (v : Value) : Action :=
   | ⊥           => a.insert ⟨t, 0⟩ v
   | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
 
+def List.targets (cs : List Change) :=
+  { t : Reactor.Component.Valued × ID | ∃ c ∈ cs, c.Targets t.fst t.snd }
+
 namespace ReactorType
 namespace Updatable
 
@@ -78,9 +81,7 @@ theorem apply'_preserves_unchanged {cs : List Change} {cpt : Reactor.Component.V
     have ⟨hh, ht⟩ := List.all₂_cons _ _ _ |>.mp h
     exact apply_preserves_unchanged rtr hh ▸ hi ht 
 
--- TODO: This theorem is false. What we need in the changes' underlying cpts to be disjoint. 
-theorem apply'_normal_disjoint_comm 
-    (h : List.Disjoint (cs₁.filter (·.IsNormal)) (cs₂.filter (·.IsNormal))) : 
+theorem apply'_disjoint_targets_comm (hd : Disjoint cs₁.targets cs₂.targets) : 
     apply' (apply' rtr cs₁) cs₂ = apply' (apply' rtr cs₂) cs₁ :=
   sorry
 

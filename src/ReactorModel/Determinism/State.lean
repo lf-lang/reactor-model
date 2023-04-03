@@ -95,20 +95,17 @@ theorem exec_indep_output_eq (hi : i₁ ≮[s.rtr]≯ i₂) : (s.exec i₁).outp
   cases h : s.rtr[.rcn][i₂] <;> simp [e ▸ h]
   simp [exec_indep_input_eq hi h $ e ▸ h]
 
-theorem indep_normal_output_disjoint (hi : i₁ ≮[s.rtr]≯ i₂) :
-    List.Disjoint (s.output i₁ |>.filter (·.IsNormal)) (s.output i₂ |>.filter (·.IsNormal)) := by
-  cases h₁ : s.rtr[.rcn][i₁] <;> cases h₂ : s.rtr[.rcn][i₂] <;> simp [output, *]
-  case some.some rcn₁ rcn₂ =>
-    simp [List.Disjoint, List.mem_filter]
-    intro _ hc₁ hn
-    cases hn
-    case intro c =>
-      intro hc₂ _
-      replace hc₁ := rcn₁.target_mem_deps hc₁
-      replace hc₂ := rcn₂.target_mem_deps hc₂
-      simp [Change.Normal.target] at hc₁ hc₂  
-      cases Dependency.shared_out_dep h₁ h₂ hi.not_eq hc₁ hc₂
-      all_goals have ⟨_, _, _⟩ := hi; contradiction
+theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
+    Disjoint (s.output i₁).targets (s.output i₂).targets := by
+  cases h₁ : s.rtr[.rcn][i₁] <;> cases h₂ : s.rtr[.rcn][i₂] <;> simp [output, h₁, h₂]
+  case some.some rcn₁ rcn₂ => 
+    simp [Set.disjoint_iff_forall_ne]
+    intro _ _ ⟨_, hc₁, ht₁⟩ _ _ ⟨_, hc₂, ht₂⟩ hc hj
+    cases hc; cases hj; cases ht₁; cases ht₂
+    replace hc₁ := rcn₁.target_mem_deps hc₁
+    replace hc₂ := rcn₂.target_mem_deps hc₂
+    cases Dependency.shared_out_dep h₁ h₂ hi.not_eq hc₁ hc₂ <;> simp [hi.left, hi.right] at *
+  all_goals simp [List.targets]
 
 theorem exec_indep_comm (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
@@ -118,7 +115,7 @@ theorem exec_indep_comm (hi : rcn₁ ≮[s.rtr]≯ rcn₂) :
   case rtr =>
     conv => lhs; rw [exec, exec_indep_output_eq hi]
     conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
-    apply apply'_normal_disjoint_comm $ indep_normal_output_disjoint hi
+    apply apply'_disjoint_targets_comm $ indep_output_disjoint_targets hi
 
 theorem exec_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
     s.Triggers i₂ ↔ (s.exec i₁).Triggers i₂ := by

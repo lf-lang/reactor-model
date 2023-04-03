@@ -39,7 +39,7 @@ def Nonempty (f : α ⇀ β) : Prop :=
 def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
 theorem Nonempty.def {f : α ⇀ β} : f.Nonempty ↔ (f ≠ ∅) :=
-  sorry
+  Iff.refl _ 
 
 theorem Nonempty.iff_ids_nonempty {f : α ⇀ β} : f.Nonempty ↔ f.ids.Nonempty :=
   sorry
@@ -82,9 +82,6 @@ def restrict (f : α ⇀ β) (s : Set α) [DecidablePred (· ∈ s)] : α ⇀ β
 theorem ext_restrict {f g : α ⇀ β} (h : ∀ a ∈ s, f a = g a) [DecidablePred (· ∈ s)] : 
     (f.restrict s) = (g.restrict s) := 
   sorry
-
-def filterMap (f : α ⇀ β) (g : β → Option γ) : α ⇀ γ := 
-  fun a => f a >>= g
 
 def insert [DecidableEq α] (f : α ⇀ β) (a : α) (b : β) : α ⇀ β :=
   fun a' => if a' = a then b else f a'
