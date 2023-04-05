@@ -2,6 +2,7 @@ import ReactorModel.Objects.Reaction
 
 open Reactor (Component)
 
+-- TODO: Split `ports` into `ins` and `outs`.
 class ReactorType (α : Type) where
   ports : α → Kind → ID ⇀ Value             
   acts  : α → ID ⇀ Action

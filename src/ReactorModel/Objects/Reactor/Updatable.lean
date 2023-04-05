@@ -4,16 +4,74 @@ open Reactor (Component)
 
 namespace ReactorType
 
-variable [ReactorType α] [ReactorType β]
-
 -- TODO: Find a better name for this.
-def RootEqualUpTo (cpt : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
+def RootEqualUpTo [ReactorType α] (cpt : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
   ∀ {c j}, (c ≠ cpt ∨ j ≠ i) → cpt? c rtr₁ j = cpt? c rtr₂ j
 
-theorem RootEqualUpTo.mem_iff {rtr₁ : α} (e : RootEqualUpTo cpt i rtr₁ rtr₂) 
+-- TODO: Move this to the Theorems folder.
+namespace RootEqualUpTo
+
+variable [ReactorType α] in section 
+
+theorem mem_iff {rtr₁ : α} (e : RootEqualUpTo cpt i rtr₁ rtr₂) 
     (h : c ≠ cpt ∨ j ≠ i) : (j ∈ cpt? c rtr₁) ↔ (j ∈ cpt? c rtr₂) := by
   simp [Partial.mem_iff]
   exact ⟨(e h ▸ ·), (e h ▸ ·)⟩   
+
+theorem symm {rtr₁ : α} (e : RootEqualUpTo cpt i rtr₁ rtr₂) :
+    RootEqualUpTo cpt i rtr₂ rtr₁ :=
+  (e · |>.symm)
+
+theorem trans {rtr₁ : α} (e₁ : RootEqualUpTo cpt i rtr₁ rtr₂)
+    (e₂ : RootEqualUpTo cpt i rtr₂ rtr₃) : RootEqualUpTo cpt i rtr₁ rtr₃ :=
+  fun h => (e₁ h).trans (e₂ h)
+
+end
+
+set_option hygiene false in
+scoped macro "ext_cpt_proof " cpt:ident : tactic => `(tactic|
+  (
+    let i : ID := ‹_› 
+    ext1 j
+    cases cpt <;> try cases ‹Component.Valued›
+    case $cpt:ident => 
+      by_cases hi : j = i 
+      case pos => exact hi ▸ ‹cpt? _ _ _ = cpt? _ _ _›  
+      case neg => exact e (c := .$cpt) (.inr hi) 
+    all_goals exact e (c := .$cpt) (.inl $ by simp) 
+  )
+)
+
+protected theorem ext [Extensional α] {rtr₁ : α} (e : RootEqualUpTo cpt i rtr₁ rtr₂)
+    (h : cpt? cpt rtr₁ i = cpt? cpt rtr₂ i) : rtr₁ = rtr₂ := by
+  ext
+  case _ =>
+    split_ands
+    rotate_left
+    · ext_cpt_proof act 
+    · ext_cpt_proof stv
+    · ext_cpt_proof rcn
+    · ext_cpt_proof rtr
+    · funext k j
+      cases k
+      case «in» =>
+        cases cpt <;> try cases ‹Component.Valued› <;> try cases ‹Kind›
+        case prt.in => 
+          by_cases hi : j = i 
+          case pos => exact hi ▸ ‹cpt? _ _ _ = cpt? _ _ _›  
+          case neg => exact e (c := .prt .in) (.inr hi) 
+        all_goals exact e (c := .prt .in) (.inl $ by simp) 
+      case «out» =>
+        cases cpt <;> try cases ‹Component.Valued› <;> try cases ‹Kind›
+        case prt.out => 
+          by_cases hi : j = i 
+          case pos => exact hi ▸ ‹cpt? _ _ _ = cpt? _ _ _›  
+          case neg => exact e (c := .prt .out) (.inr hi) 
+        all_goals exact e (c := .prt .out) (.inl $ by simp) 
+
+end RootEqualUpTo
+
+variable [ReactorType α]
 
 -- Note: Without ID-uniqueness this can be satisfied by updating exactly one of the occurrences of
 --       the target. Since we have a choice of which target we update, this type isn't a `Prop`. 

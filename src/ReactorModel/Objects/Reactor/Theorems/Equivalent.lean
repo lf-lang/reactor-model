@@ -144,10 +144,12 @@ theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} :
 
 namespace Member
 
-def fromEquiv [ReactorType α] {rtr₁ rtr₂ : α} (e : rtr₁ ≈ rtr₂) : 
+def fromEquiv [a : ReactorType α] {rtr₁ rtr₂ : α} (e : rtr₁ ≈ rtr₂) : 
     (Member cpt i rtr₁) → Member cpt i rtr₂
-  | final .. => sorry
-  | nest .. => sorry
+  | final h  => .final $ e.mem_cpt?_iff.mp h
+  | nest h m => 
+    have h' := Equivalent.cpt?_some_iff e (cpt := .rtr) |>.mp ⟨_, h⟩ 
+    .nest h'.choose_spec $ fromEquiv (Equivalent.nest_equiv e h h'.choose_spec) m
 
 inductive Equivalent [ReactorType α] [ReactorType β] : 
     {rtr₁ : α} → {rtr₂ : β} → (Member cpt i rtr₁) → (Member cpt i rtr₂) → Prop 
