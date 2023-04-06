@@ -28,6 +28,9 @@ inductive Member [ReactorType α] (cpt : Component) (i : ID) : α → Type _
   | final : (i ∈ cpt? cpt rtr) → Member cpt i rtr
   | nest : (nest rtr₁ j = some rtr₂) → (m : Member cpt i rtr₂) → Member cpt i rtr₁
 
+def Member.final' [ReactorType α] {rtr : α} (h : cpt? cpt rtr i = some o) : Member cpt i rtr :=
+  .final $ Partial.mem_iff.mpr ⟨_, h⟩   
+
 class Extensional (α) extends ReactorType α where
   ext_iff : 
     rtr₁ = rtr₂ ↔ 

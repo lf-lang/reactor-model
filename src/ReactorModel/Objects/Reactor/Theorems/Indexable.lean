@@ -121,7 +121,14 @@ theorem mem_cpt?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rt
     (hc₁ : j ∈ cpt? cpt con₁) (hc₂ : j ∈ cpt? cpt con₂) : c₁ = c₂ := by
   cases c₁ <;> cases c₂
   case none.none => rfl
-  case none.some => sorry
+  case none.some c₂ => 
+    simp [obj?] at ho₁
+    subst ho₁
+    let m₁ := Member.final hc₁
+    have ⟨con₂', h, h'⟩ := obj?_to_con?_and_cpt? ho₂
+    have ⟨m, _⟩ := con?_eq_some h
+    -- let m₂ := Member.nest h' m
+    sorry
   case some.none => sorry
   case some.some =>
     -- TODO: We can build two `Member` instances here.
@@ -142,18 +149,7 @@ open Indexable Updatable
 
 namespace LawfulMemUpdate
 
-variable [Indexable α] {rtr₁ : α}
-
-theorem obj?_preserved (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) : 
-    rtr₂[c][j] = rtr₁[c][j] := by
-  -- TODO: We need to somehow distinguish whether [c][j] even identifies a component, and if so, 
-  --       whether it lives in the same reactor as [cpt][i].
-  induction u
-  case final e _ _ =>
-    have := e (c := c) (j := j) (by simp [h])
-    sorry
-  case nest =>
-    sorry
+variable [a : Indexable α] {rtr₁ : α}
 
 theorem obj?_some₁ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₁[cpt][i] = some o := by
   induction u 
@@ -164,6 +160,59 @@ theorem obj?_some₂ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₂
   induction u 
   case final       => exact ⟨_, cpt?_to_obj? ‹_›⟩
   case nest h _ hi => exact ⟨_, obj?_nested h hi.choose_spec⟩
+
+-- TODO: You get this theorem for free it you move these lemmas into/after Theorems/Equivalent.lean.
+theorem obj?_some_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
+    (∃ o, rtr₁[c][j] = some o) ↔ (∃ o, rtr₂[c][j] = some o) := by
+  sorry
+
+theorem obj?_none_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
+    (rtr₁[c][j] = none) ↔ (rtr₂[c][j] = none) := by
+  sorry
+
+-- TODO: This is a general (perhaps very important) theorem about obj?.
+theorem obj?_some_elim {rtr : α} {i : ID} (h : rtr[cpt][i] = some o) : (a.cpt? cpt rtr i = some o) ∨ (∃ j con, a.nest rtr j = some con ∧ con[cpt][i] = some o) :=
+  sorry
+  -- This should be derivable directly from obj?_to_con?_and_cpt?
+
+-- TODO: It feels like basing obj? on an Object predicate instead of con? would make everything so much
+--       nicer. In fact, Object would be so similar to Member, that perhaps we can merge the two.
+
+theorem obj?_preserved (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) : 
+    rtr₂[c][j] = rtr₁[c][j] := by
+  cases ho₁ : rtr₁[c][j]
+  case none => simp [u.obj?_none_iff.mp ho₁]
+  case some =>
+    have ⟨_, ho₂⟩ := u.obj?_some_iff.mp ⟨_, ho₁⟩ 
+    simp [ho₂]
+
+    -- TODO: We need to somehow distinguish whether [c][j] lives in the same reactor as [cpt][i].
+    induction u
+    case final e _ _ =>
+      cases obj?_some_elim ho₁ <;> cases obj?_some_elim ho₂
+      case inl.inl h₁ h₂ =>
+        injection h₁ ▸ h₂ ▸ e (c := c) (j := j) (by simp [h]) with h
+        exact h.symm
+      case inr.inr h₁ h₂ =>
+        obtain ⟨j₁, con₁, hn₁, hc₁⟩ := h₁
+        obtain ⟨j₂, con₂, hn₂, hc₂⟩ := h₂
+        simp at hc₁ hc₂
+        have hj : j₁ = j₂ := sorry 
+        subst hj
+        have hn := e (c := .rtr) (j := j₁) (by simp [h])
+        simp [cpt?] at hn
+        injection hn₂ ▸ hn ▸ hn₁ with h
+        subst h
+        injection hc₁ ▸ hc₂ with h
+        exact h.symm
+      case inl.inr =>
+        simp at * -- contra
+        sorry
+      case inr.inl =>
+        simp at * -- contra
+        sorry
+    case nest =>
+      sorry
 
 theorem obj?_updated (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
     rtr₂[cpt][i] = f <$> rtr₁[cpt][i] := by

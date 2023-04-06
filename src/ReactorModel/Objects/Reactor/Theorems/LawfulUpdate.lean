@@ -16,7 +16,8 @@ def LawfulMemUpdate.member [ReactorType α] {rtr₁ rtr₂ : α} :
 
 open Indexable in
 theorem LawfulMemUpdate.unique [Indexable α] {rtr rtr₁ rtr₂ : α}
-    (u₁ : LawfulMemUpdate cpt i f rtr rtr₁) (u₂ : LawfulMemUpdate cpt i f rtr rtr₂) : rtr₁ = rtr₂ := by
+    (u₁ : LawfulMemUpdate cpt i f rtr rtr₁) (u₂ : LawfulMemUpdate cpt i f rtr rtr₂) : 
+    rtr₁ = rtr₂ := by
   induction u₁ generalizing rtr₂ <;> cases u₂
   case final.final e₁ h₁ h₁' _ h₂ h₂' e₂ =>
     injection h₁ ▸ h₂ with h
@@ -26,15 +27,31 @@ theorem LawfulMemUpdate.unique [Indexable α] {rtr rtr₁ rtr₂ : α}
     subst h; cases h₁ ▸ h₂; cases hi u₂
     exact RootEqualUpTo.ext (RootEqualUpTo.trans e₁.symm e₂) $ h₁' ▸ h₂'.symm
   case final.nest h₁ _ _ _ _ u h₂ _ _ =>
-    exact nomatch unique_ids.allEq (Member.final $ Partial.mem_iff.mpr ⟨_, h₁⟩) (u.member.nest h₂)
+    injection unique_ids.allEq (Member.final' h₁) (u.member.nest h₂)
   case nest.final h₁ _ u _ _ h₂ _ _ =>
-    exact nomatch unique_ids.allEq (Member.final $ Partial.mem_iff.mpr ⟨_, h₂⟩) (u.member.nest h₁)
+    injection unique_ids.allEq (Member.final' h₂) (u.member.nest h₁)
 
+-- TODO: Alternative approach to this theorem:
+--       Use `obj?_preserved` and `obj?_updated`, as well as an extensionality theorem for `obj?`.
+--       That could be more useful in general, too.
+open Indexable in
 theorem LawfulMemUpdate.ne_comm [Indexable α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} 
     (u₁ : LawfulMemUpdate cpt₁ i₁ f₁ rtr rtr₁) (u₂ : LawfulMemUpdate cpt₂ i₂ f₂ rtr₁ rtr₂) 
     (u₁' : LawfulMemUpdate cpt₂ i₂ f₂ rtr rtr₁') (u₂' : LawfulMemUpdate cpt₁ i₁ f₁ rtr₁' rtr₂') 
     (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂) : rtr₂ = rtr₂' := by
-  sorry
+  cases u₁ <;> cases u₂' <;> cases u₁' <;> cases u₂
+  case final.final.final.final =>
+    sorry
+  case final.final.nest.nest =>
+    sorry
+  case nest.nest.final.final =>
+    sorry
+  case nest.nest.nest.nest =>
+    sorry
+  case final.nest h₁ _ _ _ _ _ u₂ h₂ _ _ =>
+    sorry -- contradiction by unique_ids.allEq m₁ m₂
+  case nest.final h₁ _ _ _ _ _ u₂ h₂ _ _ =>
+    sorry -- contradiction by unique_ids.allEq m₁ m₂
 
 theorem LawfulUpdate.ne_comm [Indexable α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} 
     (u₁ : LawfulUpdate cpt₁ i₁ f₁ rtr rtr₁) (u₂ : LawfulUpdate cpt₂ i₂ f₂ rtr₁ rtr₂) 
