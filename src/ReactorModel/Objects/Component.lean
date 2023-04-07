@@ -1,11 +1,11 @@
 import ReactorModel.Primitives
 
-namespace Reactor
-
 inductive Component.Valued
-  | prt (k : Kind) -- Ports
-  | act            -- Actions
-  | stv            -- State variables 
+  | inp -- Input port
+  | out -- Output port
+  | stv -- State variable
+  | act -- Action
+  
 
 -- An enumeration of the different *kinds* of components that are addressable by ids in a reactor.
 inductive Component
@@ -16,13 +16,15 @@ inductive Component
 namespace Component
 
 abbrev Valued.type : Valued → Type
-  | prt _ => Value
-  | act   => Action
-  | stv   => Value 
+  | inp => Value
+  | out => Value
+  | stv => Value 
+  | act => Action
 
-@[match_pattern] abbrev prt (k) := Component.val (.prt k)
-@[match_pattern] abbrev act     := Component.val .act
-@[match_pattern] abbrev stv     := Component.val .stv
+@[match_pattern] abbrev inp := Component.val .inp
+@[match_pattern] abbrev out := Component.val .out
+@[match_pattern] abbrev act := Component.val .act
+@[match_pattern] abbrev stv := Component.val .stv
 
 instance : Coe Component.Valued Component where
   coe := val 
@@ -41,4 +43,3 @@ instance {cpt : Component} : Coe ID cpt.idType where
     | .rtr | .rcn | .val _ => i
 
 end Component
-end Reactor

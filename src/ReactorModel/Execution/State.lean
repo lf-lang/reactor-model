@@ -1,17 +1,17 @@
 import ReactorModel.Execution.Reactor
 
 noncomputable section
-open Classical ReactorType Updatable Indexable
+open Classical ReactorType Proper
 
 namespace Execution
 
 @[ext]
-structure State (α) [ReactorType.Indexable α] where
+structure State (α) [Proper α] where
   rtr : α 
   tag : Time.Tag
   progress : Set ID
 
-variable [ReactorType.Indexable α]
+variable [Proper α]
 
 namespace State
 
@@ -43,7 +43,7 @@ def input (s : State α) (rcn : ID) : Reaction.Input where
   val cpt := s.rtr[.rcn][rcn] |>.elim ∅ (restriction · cpt)
   tag := s.tag
 where 
-  restriction (rcn : Reaction) (cpt : Reactor.Component.Valued) := 
+  restriction (rcn : Reaction) (cpt : Component.Valued) := 
     s.rtr[cpt].restrict { i | ⟨cpt, i⟩ ∈ rcn.deps .in }
 
 theorem input_progress_agnostic {s₁ s₂ : State α}

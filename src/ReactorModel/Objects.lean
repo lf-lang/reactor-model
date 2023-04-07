@@ -1,12 +1,4 @@
-import ReactorModel.Objects.Reactor.Basic
-import ReactorModel.Objects.Reactor.Indexable
-import ReactorModel.Objects.Reactor.Updatable
-import ReactorModel.Objects.Reactor.Wellformed
-import ReactorModel.Objects.Reactor.WellFounded
-import ReactorModel.Objects.Reactor.Theorems
-import ReactorModel.Objects.Reactor.Instances.Basic
-import ReactorModel.Objects.Reactor.Instances.Core
-import ReactorModel.Objects.Reactor.Instances.Raw
 import ReactorModel.Objects.Change
 import ReactorModel.Objects.Component
 import ReactorModel.Objects.Reaction
+import ReactorModel.Objects.Reactor

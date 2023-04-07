@@ -1,7 +1,7 @@
 import ReactorModel.Objects.Change
 
 noncomputable section
-open Classical Reactor
+open Classical
 
 namespace Reaction 
 
@@ -19,7 +19,8 @@ structure Input where
   tag : Time.Tag
 
 inductive Input.IsPresent (i : Input) : (Reaction.Dependency) → Prop
-  | prt : (i.val (.prt k) j = some (.present v))           → IsPresent i ⟨.prt k, j⟩  
+  | inp : (i.val .inp j = some (.present v))               → IsPresent i ⟨.inp, j⟩  
+  | out : (i.val .out j = some (.present v))               → IsPresent i ⟨.out, j⟩  
   | stv : (i.val .stv j = some (.present v))               → IsPresent i ⟨.stv, j⟩ 
   | act : (i.val .act j >>= (· i.tag) = some (.present v)) → IsPresent i ⟨.act, j⟩ 
 

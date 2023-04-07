@@ -1,9 +1,7 @@
 import ReactorModel.Objects.Component
 
-open Reactor
-
-abbrev Reactor.Component.Valued.changeType : Component.Valued → Type
-  | prt _ | stv  => Value
+abbrev Component.Valued.changeType : Component.Valued → Type
+  | inp | out | stv  => Value
   | act => Time × Value 
 
 namespace Change
@@ -36,8 +34,12 @@ instance : Coe Change.Mutation Change where
   coe := «mut»
 
 @[match_pattern]
-abbrev prt (k : Kind) (i : ID) (v : Value) : Change :=
-  .norm $ { cpt := .prt k, id := i, value := v }
+abbrev inp (i : ID) (v : Value) : Change :=
+  .norm $ { cpt := .inp, id := i, value := v }
+
+@[match_pattern]
+abbrev out (i : ID) (v : Value) : Change :=
+  .norm $ { cpt := .out, id := i, value := v }
 
 @[match_pattern]
 abbrev stv (i : ID) (v : Value) : Change :=

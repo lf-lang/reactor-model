@@ -1,45 +1,53 @@
+import ReactorModel.Objects.Reactor.Extensional
+import ReactorModel.Objects.Reactor.WellFounded
 import ReactorModel.Objects.Reactor.Updatable
 
+noncomputable section
 open Classical
+
+open ReactorType
 
 namespace Reactor
 
-protected inductive Core 
+inductive Core 
   | mk 
-    (ports : Kind → ID ⇀ Value)
-    (acts :  ID ⇀ Action)
+    (ins   : ID ⇀ Value)
+    (outs  : ID ⇀ Value)
     (state : ID ⇀ Value)
-    (rcns :  ID ⇀ Reaction)
-    (nest :  ID → Option Reactor.Core)
+    (acts  : ID ⇀ Action)
+    (rcns  : ID ⇀ Reaction)
+    (nest  : ID → Option Reactor.Core)
 
 namespace Core
 
 instance reactorType : ReactorType Reactor.Core where
-  ports | mk p _ _ _ _ => p
-  acts  | mk _ a _ _ _ => a
-  state | mk _ _ s _ _ => s 
-  rcns  | mk _ _ _ r _ => r
-  nest  | mk _ _ _ _ n => n
+  get?
+    | mk i _ _ _ _ _, .inp => i
+    | mk _ o _ _ _ _, .out => o
+    | mk _ _ s _ _ _, .stv => s
+    | mk _ _ _ a _ _, .act => a
+    | mk _ _ _ _ r _, .rcn => r
+    | mk _ _ _ _ _ n, .rtr => n
+    
 
-instance : ReactorType.Extensional Reactor.Core where
-  ext_iff := by intro (mk ..) (mk ..); open ReactorType in simp [ports, state, rcns, acts, nest]
+instance : Extensional Core where
+  ext_iff := by 
+    intro (mk ..) (mk ..)
+    sorry
 
-instance : ReactorType.WellFounded Reactor.Core where
+instance : WellFounded Core where
   wf := by
     constructor
     apply Reactor.Core.rec 
-      (motive_1 := fun rtr => Acc ReactorType.Nested rtr) 
-      (motive_2 := fun | none => True | some rtr => Acc ReactorType.Nested rtr)
+      (motive_1 := fun rtr => Acc Nested rtr) 
+      (motive_2 := fun | none => True | some rtr => Acc Nested rtr)
     all_goals simp
-    intro _ _ _ _ _ hi
+    intro _ _ _ _ _ _ hi
     constructor
     intro n ⟨i, hn⟩
-    simp [ReactorType.nest] at hn 
+    simp [get?] at hn 
     have := hn ▸ hi i
     simp_all
-    
-noncomputable section Update
-open ReactorType
 
 abbrev «with» 
     (rtr : Reactor.Core) (ports : Kind → ID ⇀ Value := ports rtr) (acts : ID ⇀ Action := acts rtr) 

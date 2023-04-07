@@ -1,46 +1,101 @@
 import ReactorModel.Objects.Reaction
 
-open Reactor (Component)
+noncomputable section
 
--- TODO: Split `ports` into `ins` and `outs`.
-class ReactorType (α : Type) where
-  ports : α → Kind → ID ⇀ Value             
-  acts  : α → ID ⇀ Action
-  state : α → ID ⇀ Value            
-  rcns  : α → ID ⇀ Reaction         
-  nest  : α → ID ⇀ α      
- 
-namespace ReactorType
-
-abbrev cptType [ReactorType α] : Component → Type
-  | .rtr     => α 
+abbrev Component.type (rtrType : Type) : Component → Type
+  | .rtr     => rtrType 
   | .rcn     => Reaction
   | .val cpt => cpt.type
 
-abbrev cpt? [inst : ReactorType α] : (cpt : Component) → α → ID ⇀ inst.cptType cpt
-  | .rtr   => nest 
-  | .rcn   => rcns
-  | .prt k => (ports · k)
-  | .act   => acts
-  | .stv   => state
+-- TODO: Generalize this over the `Component` type, so you can easily add things like connections.
+--       In that case you whould have a type class for what constitutes a component type, which e.g.
+--       would include requiring a mapping like `Reactor.Component.type` above.
+--       How does this notion relate to the notion of functors?
+--
+-- Note: This approach is analogous to how algebras are defined in category theory, where the 
+--       `Component` parameter plays the role of the functor over which the algrabra is defined.
+--
+-- TODO: Ask Andrès about how to proceed with this algebra based approach. E.g. if there are certain
+--       kinds of mappings between algebras over different functors (which would correspond to 
+--       reactor types over different kinds of components) which could be useful here.
+class ReactorType (α : Type) where
+  get? : α → (cpt : Component) → (ID ⇀ cpt.type α)   
+ 
+-- TODO: Introduce notation for `get?` - e.g. `rtr<cpt><i>` or `rtr{cpt}{i}`.
 
-inductive Member [ReactorType α] (cpt : Component) (i : ID) : α → Type _ 
-  | final : (i ∈ cpt? cpt rtr) → Member cpt i rtr
-  | nest : (nest rtr₁ j = some rtr₂) → (m : Member cpt i rtr₂) → Member cpt i rtr₁
+namespace ReactorType
 
-def Member.final' [ReactorType α] {rtr : α} (h : cpt? cpt rtr i = some o) : Member cpt i rtr :=
-  .final $ Partial.mem_iff.mpr ⟨_, h⟩   
+inductive StrictMember [ReactorType α] (cpt : Component) (i : ID) : α → Type
+  | final  : (get? rtr cpt i = some o) → StrictMember cpt i rtr
+  | nested : (get? rtr₁ .rtr j = some rtr₂) → (StrictMember cpt i rtr₂) → StrictMember cpt i rtr₁
 
-class Extensional (α) extends ReactorType α where
-  ext_iff : 
-    rtr₁ = rtr₂ ↔ 
-    (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
-    (rcns rtr₁ = rcns rtr₂) ∧ (nest rtr₁ = nest rtr₂)
+namespace StrictMember
+
+abbrev final' [ReactorType α] {rtr : α} (h : i ∈ get? rtr cpt) : StrictMember cpt i rtr := 
+  .final (Partial.mem_iff.mp h).choose_spec
+
+abbrev nested' [ReactorType α] {rtr₁ : α} (h : ∃ rtr₂, get? rtr₁ .rtr j = some rtr₂) 
+    (s : StrictMember cpt i h.choose) : StrictMember cpt i rtr₁ := 
+  .nested h.choose_spec s
+
+def object [ReactorType α] {rtr : α} : (StrictMember cpt i rtr) → cpt.type α
+  | final (o := o) _ => o
+  | nested _ m       => m.object
 
 @[ext]
-theorem Extensional.ext [inst : Extensional α] {rtr₁ rtr₂ : α} : 
-    (ports rtr₁ = ports rtr₂) ∧ (acts rtr₁ = acts rtr₂) ∧ (state rtr₁ = state rtr₂) ∧ 
-    (rcns rtr₁ = rcns rtr₂) ∧ (nest rtr₁ = nest rtr₂) → rtr₁ = rtr₂ 
-  := inst.ext_iff.mpr
+structure _root_.ReactorType.Container (α) where
+  id  : WithTop ID 
+  rtr : α 
+
+def container [ReactorType α] {rtr : α} : (StrictMember cpt i rtr) → Container α
+  | nested _ (.nested h l)           => container (.nested h l)
+  | nested (rtr₂ := con) (j := j) .. => { id := j, rtr := con }
+  | final _                          => { id := ⊤, rtr := rtr }
+
+end StrictMember
+
+inductive Member [ReactorType α] : (cpt : Component) → (i : cpt.idType) → α → Type 
+  | root   :  Member .rtr ⊤ rtr
+  | strict : (StrictMember cpt i rtr) → Member cpt i rtr 
+
+namespace Member
+
+variable [ReactorType α] {rtr rtr₁ : α}
+
+instance : Coe (StrictMember cpt i rtr) (Member cpt i rtr) where
+  coe := .strict
+
+abbrev final' (h : i ∈ get? rtr cpt) : Member cpt i rtr := 
+  StrictMember.final' h
+
+abbrev nested' (h : ∃ rtr₂, get? rtr₁ .rtr j = some rtr₂) (s : StrictMember cpt i h.choose) : 
+    Member cpt i rtr₁ := 
+  StrictMember.nested' h s
+
+@[match_pattern]
+abbrev final (h : get? rtr cpt i = some o) : Member cpt i rtr := 
+  StrictMember.final h
+
+@[match_pattern]
+abbrev nested (h : get? rtr .rtr j = some rtr') (s : StrictMember cpt i rtr') : Member cpt i rtr := 
+  StrictMember.nested h s
+
+def object {rtr : α} : (Member cpt i rtr) → cpt.type α
+  | root     => rtr
+  | strict s => s.object
+
+end Member
+
+-- The relation lifts the notion of a member having an objects to the notion of an identified 
+-- component having an object. When `α` is `Indexable` there exists at most one objects for any 
+-- given identified component. 
+inductive Object [ReactorType α] (rtr : α) (cpt : Component) (i : cpt.idType) : cpt.type α → Prop
+  | intro (m : Member cpt i rtr) : Object rtr cpt i m.object
+
+-- TODO: Find a better name for this.
+def RootEqualUpTo [ReactorType α] (cpt : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
+  ∀ {c j}, (c ≠ cpt ∨ j ≠ i) → get? rtr₁ c j = get? rtr₂ c j
+
+notation rtr₁ " ≃[" cpt "][" i "] " rtr₂ => RootEqualUpTo cpt i rtr₁ rtr₂
 
 end ReactorType

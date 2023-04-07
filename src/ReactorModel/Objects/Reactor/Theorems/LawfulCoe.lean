@@ -1,5 +1,37 @@
 import ReactorModel.Objects.Reactor.Theorems.Indexable
-import ReactorModel.Objects.Reactor.Wellformed
+import ReactorModel.Objects.Reactor.Proper
+
+
+
+
+
+theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
+    (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
+  allEq m₁ m₂ :=
+    h.allEq (.fromLawfulCoe m₁) (.fromLawfulCoe m₂) ▸ Member.Equivalent.from_lawfulCoe m₁ 
+      |>.trans (Member.Equivalent.from_lawfulCoe m₂).symm 
+      |>.to_eq
+
+instance [LawfulUpdatable α] [ind : Indexable β] [LawfulCoe α β] : Indexable α where
+  unique_ids := UniqueIDs.lift ind.unique_ids 
+
+
+
+
+
+
+class LawfulCoe (α β) [ReactorType α] [ReactorType β] extends Coe α β where
+  inj          : coe.Injective := by lawfulCoe_inj_proof
+  get?_val_coe : get? (coe rtr) (cpt : Component.Valued) = get? rtr cpt
+  get?_rcn_coe : get? (coe rtr) .rcn = get? rtr .rcn
+  get?_rtr_coe : get? (coe rtr) .rtr = (get? rtr .rtr).map coe := by lawfulCoe_nest_proof
+
+
+
+
+
+
+
 
 noncomputable section
 open Classical Reactor

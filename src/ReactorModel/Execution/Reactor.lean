@@ -1,14 +1,10 @@
-import ReactorModel.Objects
+import ReactorModel.Execution.Dependency
 import Mathlib.Data.Finset.Lattice
-
-noncomputable section
-open Classical
-open ReactorType Updatable Indexable
 
 namespace List
 
 def targets (cs : List Change) :=
-  { t : Reactor.Component.Valued × ID | ∃ c ∈ cs, c.Targets t.fst t.snd }
+  { t : Component.Valued × ID | ∃ c ∈ cs, c.Targets t.fst t.snd }
 
 theorem mem_targets_cons (h : t ∈ tl.targets) : t ∈ (hd :: tl).targets := by
   have ⟨c, hm, _⟩ := h 
@@ -28,25 +24,21 @@ def Action.schedule (a : Action) (t : Time) (v : Value) : Action :=
   | ⊥           => a.insert ⟨t, 0⟩ v
   | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
 
+-- TODO: Split up the following definitions into appropriate namespaces.
 namespace ReactorType
-namespace Updatable
+namespace Proper
 
-variable [Updatable α] 
+variable [Proper α] 
 
 def apply (rtr : α) : Change → α 
-  | .prt k i v => update rtr (.prt k) i (fun _ => v)
+  | .inp i v   => update rtr .inp     i (fun _ => v)
+  | .out i v   => update rtr .out     i (fun _ => v)
   | .stv i v   => update rtr .stv     i (fun _ => v)
   | .act i t v => update rtr .act     i (·.schedule t v)
   | .mut ..    => rtr -- Mutations are currently no-ops.
 
 def apply' (rtr : α) (cs : List Change) : α :=
   cs.foldl apply rtr
-
-end Updatable
-
-namespace Indexable
-
-variable [Indexable α] 
 
 def dependencies (rtr : α) (rcn : ID) : Set ID := 
   { rcn' | rcn' <[rtr] rcn }
@@ -60,41 +52,45 @@ def scheduledTags (rtr : α) : Set Time.Tag :=
   { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }
 
 scoped macro "cases_change " change:term : tactic => `(tactic| 
-  cases $change:term <;> try cases ‹Change.Normal›; cases ‹Reactor.Component.Valued›; cases ‹Kind›
+  cases $change:term <;> try cases ‹Change.Normal›; cases ‹Reactor.Component.Valued›
 )
 
 theorem apply_equiv (rtr : α) (c : Change) : (apply rtr c) ≈ rtr := by
-  cases_change c <;> first | rfl | apply LawfulUpdatable.equiv
+  cases_change c <;> first | rfl | sorry -- apply LawfulUpdatable.equiv
 
 theorem apply_preserves_unchanged {c : Change} (rtr : α) (h : ¬c.Targets cpt i) :
     (apply rtr c)[cpt][i] = rtr[cpt][i] := by
-  cases_change c <;> first | rfl | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
+  cases_change c <;> first | rfl | exact sorry --LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
 
 variable {rtr : α}
 
-theorem apply_port_change (h : i ∈ rtr[.prt k]) : (apply rtr $ .prt k i v)[.prt k][i] = some v := by
+theorem apply_input_change (h : i ∈ rtr[.inp]) : (apply rtr $ .inp i v)[.inp][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  exact h
+  sorry -- exact h
+
+theorem apply_output_change (h : i ∈ rtr[.out]) : (apply rtr $ .out i v)[.out][i] = some v := by
+  simp [apply, LawfulUpdatable.obj?_updated]
+  sorry -- exact h
 
 theorem apply_state_change (h : i ∈ rtr[.stv]) : (apply rtr $ .stv i v)[.stv][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  exact h
+  sorry -- exact h
 
 theorem apply_action_change (h : rtr[.act][i] = some a) : 
     (apply rtr $ .act i t v)[.act][i] = some (a.schedule t v) := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  exact ⟨_, ⟨h, rfl⟩⟩ 
+  sorry -- exact ⟨_, ⟨h, rfl⟩⟩ 
 
 theorem apply_ne_target_comm (ht : c₁.target ≠ c₂.target ∨ c₁.target = none) : 
     apply (apply rtr c₁) c₂ = apply (apply rtr c₂) c₁ := by
   cases_change c₁ <;> cases_change c₂ <;> simp [apply, Change.target] at *
-  all_goals exact LawfulUpdatable.update_ne_comm $ by simp_all
+  all_goals exact sorry -- LawfulUpdatable.update_ne_comm $ by simp_all
     
 theorem apply'_equiv (rtr : α) : (cs : List Change) → (apply' rtr cs) ≈ rtr 
-  | .nil        => .refl
+  | .nil        => .refl _
   | .cons hd tl => Equivalent.trans (apply'_equiv (apply rtr hd) tl) (apply_equiv rtr hd)
 
-theorem apply'_preserves_unchanged {cs : List Change} {cpt : Reactor.Component.Valued} {i}
+theorem apply'_preserves_unchanged {cs : List Change} {cpt : Component.Valued} {i}
     (h : cs.All₂ (¬·.Targets cpt i)) : (apply' rtr cs)[cpt][i] = rtr[cpt][i] := by
   induction cs generalizing rtr <;> try rfl
   case cons hd tl hi => 
@@ -135,5 +131,5 @@ theorem apply'_disjoint_targets_comm (ht : Disjoint cs₁.targets cs₂.targets)
     rw [hi h₁, apply_ne_target_comm h₂, ←apply', ←apply', ←apply'_apply_ne_targets_comm h₃]
     rfl
     
-end Indexable
+end Proper
 end ReactorType

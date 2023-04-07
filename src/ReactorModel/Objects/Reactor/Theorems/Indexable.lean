@@ -1,4 +1,94 @@
 import ReactorModel.Objects.Reactor.Indexable
+import ReactorModel.Objects.Reactor.Updatable
+import ReactorModel.Objects.Reactor.Theorems.Basic
+
+namespace ReactorType
+namespace Object
+
+open Indexable
+variable [Indexable α] {rtr : α}
+
+theorem unique : (Object rtr cpt i o₁) → (Object rtr cpt i o₂) → o₁ = o₂
+  | intro m₁, intro m₂ => unique_ids.allEq m₁ m₂ ▸ rfl
+
+theorem iff_obj?_some : (Object rtr cpt i o) ↔ (rtr[cpt][i] = some o) where
+  mp := by 
+    intro ⟨m⟩
+    simp [obj?]
+    split
+    case inl h =>
+      have ⟨m', h'⟩ := Object.def.mp h.choose_spec
+      simp [←h', unique_ids.allEq m m']
+    case inr h =>
+      push_neg at h
+      specialize h m.object
+      simp [Object.def] at h
+  mpr h := by
+    simp [obj?] at h
+    split at h
+    case inr => contradiction
+    case inl h h' => 
+      have ⟨m', h'⟩ := Object.def.mp h'.choose_spec
+      exact Option.some_inj.mp h ▸ h' ▸ intro m'
+
+theorem not_iff_obj?_none : (∀ o, ¬Object rtr cpt i o) ↔ (rtr[cpt][i] = none) := by
+  simp [Option.eq_none_iff_forall_not_mem, iff_obj?_some]
+
+end Object
+
+namespace Indexable
+
+variable [Indexable α] {rtr : α}
+
+theorem get?_some_to_obj?_some (h : get? rtr cpt i = some o) : rtr[cpt][i] = some o :=
+  Object.iff_obj?_some.mp (.intro $ .final h)
+
+theorem obj?_root_some (ho : rtr[.rtr][⊤] = some o) : o = rtr := by
+  sorry
+
+-- Note: This theorem does not hold for `i' = ⊤`. For a version that supports this case see 
+--       `obj?_some_nested'`.
+theorem obj?_some_nested {i' : ID} (h : get? rtr .rtr i = some rtr') (ho : rtr'[cpt][i'] = some o) : 
+    rtr[cpt][i'] = some o := by
+  have ⟨s, h'⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
+  exact Object.iff_obj?_some.mp $ h' ▸ .intro (.nested h s)
+
+theorem obj?_some_nested' (h : get? rtr .rtr i = some rtr') (ho : rtr'[cpt][i'] = some o) : 
+    ∃ j, rtr[cpt][j] = some o := by
+  cases cpt <;> try cases i'
+  case rtr.none =>
+    exists i
+    exact Object.iff_obj?_some.mp $ obj?_root_some ho ▸ (.intro $ .final h)
+  all_goals 
+    exact ⟨_, obj?_some_nested h ho⟩ 
+
+theorem member_isEmpty_obj?_none (h : IsEmpty $ Member cpt i rtr) : rtr[cpt][i] = none :=
+  Object.not_iff_obj?_none.mp (Object.not_of_member_isEmpty h ·)
+
+end Indexable
+
+/-
+theorem nest_container {rtr₁ rtr₂ : α} 
+    (h : cpt? rtr₁ .rtr i = some rtr₂) (m : Member cpt j rtr₂) : 
+    ∃ (k : ID) (con : α), (Member.nested h m).container = ⟨k, con⟩ := by
+  induction m generalizing i rtr₁
+  case final => simp [container]
+  case nest hn _ hi => simp [container, hi hn]
+
+theorem container_eq_root {rtr : α} {m : Member cpt i rtr} (h : m.container = ⟨⊤, con⟩) : 
+    rtr = con := by
+  induction m generalizing con
+  case final => 
+    simp [container] at h
+    assumption
+  case nest hn m _ =>
+    have ⟨_, _, _⟩ := nest_container hn m 
+    simp_all
+
+-- TODO: This doesn't just apply to root.
+theorem container_eq_root_to_cpt? {rtr : α} {m : Member cpt i rtr} (h : m.container = ⟨⊤, con⟩) : 
+    ∃ o, cpt? cpt con i = some o :=
+  sorry
 
 namespace ReactorType
 namespace Indexable
@@ -144,22 +234,42 @@ theorem member_isEmpty_obj?_none (h : IsEmpty (Member cpt i rtr)) : rtr[cpt][i] 
   cases cpt <;> simp [obj?, member_isEmpty_con?_none h, bind]
 
 end Indexable
+-/
 
-open Indexable Updatable
+namespace Equivalent
+
+variable [Indexable α] {rtr₁ : α}
+
+theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
+  sorry
+
+theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
+  sorry
+
+theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
+    n₁ ≈ n₂ := by
+  sorry
+
+theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
+    (∃ o₁, rtr₁[cpt][i] = some o₁) ↔ (∃ o₂, rtr₂[cpt][i] = some o₂) := 
+  sorry
+
+end Equivalent
 
 namespace LawfulMemUpdate
 
+open Indexable
 variable [a : Indexable α] {rtr₁ : α}
 
 theorem obj?_some₁ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₁[cpt][i] = some o := by
   induction u 
-  case final         => exact ⟨_, cpt?_to_obj? ‹_›⟩
-  case nest h _ _ hi => exact ⟨_, obj?_nested h hi.choose_spec⟩
+  case final         => exact ⟨_, get?_some_to_obj?_some ‹_›⟩
+  case nest h _ _ hi => exact ⟨_, obj?_some_nested h hi.choose_spec⟩
 
 theorem obj?_some₂ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₂[cpt][i] = some o := by
   induction u 
-  case final       => exact ⟨_, cpt?_to_obj? ‹_›⟩
-  case nest h _ hi => exact ⟨_, obj?_nested h hi.choose_spec⟩
+  case final       => exact ⟨_, get?_some_to_obj?_some ‹_›⟩
+  case nest h _ hi => exact ⟨_, obj?_some_nested h hi.choose_spec⟩
 
 -- TODO: You get this theorem for free it you move these lemmas into/after Theorems/Equivalent.lean.
 theorem obj?_some_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
@@ -171,7 +281,7 @@ theorem obj?_none_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) :
   sorry
 
 -- TODO: This is a general (perhaps very important) theorem about obj?.
-theorem obj?_some_elim {rtr : α} {i : ID} (h : rtr[cpt][i] = some o) : (a.cpt? cpt rtr i = some o) ∨ (∃ j con, a.nest rtr j = some con ∧ con[cpt][i] = some o) :=
+theorem obj?_some_elim {rtr : α} {i : ID} (h : rtr[cpt][i] = some o) : (a.get? rtr cpt i = some o) ∨ (∃ j con, a.get? rtr .rtr j = some con ∧ con[cpt][i] = some o) :=
   sorry
   -- This should be derivable directly from obj?_to_con?_and_cpt?
 
@@ -200,7 +310,6 @@ theorem obj?_preserved (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cp
         have hj : j₁ = j₂ := sorry 
         subst hj
         have hn := e (c := .rtr) (j := j₁) (by simp [h])
-        simp [cpt?] at hn
         injection hn₂ ▸ hn ▸ hn₁ with h
         subst h
         injection hc₁ ▸ hc₂ with h
@@ -218,17 +327,18 @@ theorem obj?_updated (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) :
     rtr₂[cpt][i] = f <$> rtr₁[cpt][i] := by
   induction u
   case final h₁ h₂ => 
-    rw [cpt?_to_obj? h₁, cpt?_to_obj? h₂, Option.map_some]
+    rw [get?_some_to_obj?_some h₁, get?_some_to_obj?_some h₂, Option.map_some]
   case nest h₁ h₂ u hi =>
     have ⟨_, h₁'⟩ := u.obj?_some₁
     have ⟨_, h₂'⟩ := u.obj?_some₂
-    rw [obj?_nested h₁ h₁', obj?_nested h₂ h₂']
+    rw [obj?_some_nested h₁ h₁', obj?_some_nested h₂ h₂']
     exact h₁' ▸ h₂' ▸ hi
 
 end LawfulMemUpdate
 
 namespace LawfulUpdate
 
+open Indexable
 variable [Indexable α] {rtr₁ : α}
 
 theorem obj?_preserved (h : c ≠ cpt ∨ j ≠ i) : 
@@ -238,27 +348,7 @@ theorem obj?_preserved (h : c ≠ cpt ∨ j ≠ i) :
 
 theorem obj?_updated : (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₂[cpt][i] = f <$> rtr₁[cpt][i]
   | update u => u.obj?_updated
-  | notMem h e => by subst e; have h := member_isEmpty_obj?_none h; simp at h; simp [h]
+  | notMem h e => by subst e; simp [member_isEmpty_obj?_none h]
 
 end LawfulUpdate
-
-namespace LawfulUpdatable
-
-variable [Indexable α] {rtr : α}
-
-theorem obj?_preserved (h : c ≠ cpt ∨ j ≠ i) : (update rtr cpt i f)[c][j] = rtr[c][j] :=
-  lawful rtr cpt i f |>.obj?_preserved h
-
-theorem obj?_preserved_cpt (h : c ≠ cpt := by exact (nomatch ·)) : 
-    (update rtr cpt i f)[c][j] = rtr[c][j] :=
-  obj?_preserved $ .inl h
-
-theorem obj?_preserved_id {c : Reactor.Component.Valued} (h : j ≠ i) : 
-    (update rtr cpt i f)[c][j] = rtr[c][j] :=
-  obj?_preserved $ .inr h
-
-theorem obj?_updated {rtr : α} : (update rtr cpt i f)[cpt][i] = f <$> rtr[cpt][i] :=
-  lawful rtr cpt i f |>.obj?_updated
-
-end LawfulUpdatable
 end ReactorType
