@@ -1,12 +1,12 @@
 import ReactorModel.Determinism.State
 
-open Classical ReactorType Indexable
+open Classical ReactorType Proper
 
 namespace Execution
 namespace Instantaneous
 namespace Step
 
-variable [Indexable α] {s₁ s₂ : State α} in section
+variable [Proper α] {s₁ s₂ : State α} in section
   
 theorem mem_progress_iff : (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress)
   | skip .. | exec .. => s₁.mem_record_progress_iff _ _
@@ -29,7 +29,7 @@ theorem preserves_tag : (s₁ ⇓ᵢ s₂) → s₁.tag = s₂.tag
   | skip .. | exec .. => rfl
 
 theorem equiv : (s₁ ⇓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
-  | skip .. => .refl
+  | skip .. => .refl _
   | exec .. => s₁.exec_equiv _
 
 theorem deterministic (e₁ : s ⇓ᵢ s₁) (e₂ : s ⇓ᵢ s₂) (h : e₁.rcn = e₂.rcn) : s₁ = s₂ := by

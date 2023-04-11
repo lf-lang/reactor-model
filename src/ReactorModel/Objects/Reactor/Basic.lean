@@ -34,10 +34,6 @@ namespace StrictMember
 abbrev final' [ReactorType α] {rtr : α} (h : i ∈ get? rtr cpt) : StrictMember cpt i rtr := 
   .final (Partial.mem_iff.mp h).choose_spec
 
-abbrev nested' [ReactorType α] {rtr₁ : α} (h : ∃ rtr₂, get? rtr₁ .rtr j = some rtr₂) 
-    (s : StrictMember cpt i h.choose) : StrictMember cpt i rtr₁ := 
-  .nested h.choose_spec s
-
 def object [ReactorType α] {rtr : α} : (StrictMember cpt i rtr) → cpt.type α
   | final (o := o) _ => o
   | nested _ m       => m.object
@@ -65,13 +61,6 @@ variable [ReactorType α] {rtr rtr₁ : α}
 instance : Coe (StrictMember cpt i rtr) (Member cpt i rtr) where
   coe := .strict
 
-abbrev final' (h : i ∈ get? rtr cpt) : Member cpt i rtr := 
-  StrictMember.final' h
-
-abbrev nested' (h : ∃ rtr₂, get? rtr₁ .rtr j = some rtr₂) (s : StrictMember cpt i h.choose) : 
-    Member cpt i rtr₁ := 
-  StrictMember.nested' h s
-
 @[match_pattern]
 abbrev final (h : get? rtr cpt i = some o) : Member cpt i rtr := 
   StrictMember.final h
@@ -79,6 +68,9 @@ abbrev final (h : get? rtr cpt i = some o) : Member cpt i rtr :=
 @[match_pattern]
 abbrev nested (h : get? rtr .rtr j = some rtr') (s : StrictMember cpt i rtr') : Member cpt i rtr := 
   StrictMember.nested h s
+
+abbrev final' (h : i ∈ get? rtr cpt) : Member cpt i rtr := 
+  StrictMember.final' h
 
 def object {rtr : α} : (Member cpt i rtr) → cpt.type α
   | root     => rtr

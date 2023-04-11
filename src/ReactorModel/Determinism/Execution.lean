@@ -5,7 +5,7 @@ open Classical
 
 namespace Execution
 
-variable [ReactorType.Indexable α] {s s₁ s₂ : State α} in section
+variable [ReactorType.Proper α] {s s₁ s₂ : State α}
 
 theorem tag_le {s₁ s₂ : State α} : (s₁ ⇓* s₂) → s₁.tag ≤ s₂.tag
   | refl      => le_refl _
@@ -16,10 +16,6 @@ theorem seq_progress_ssubset_or_tag_lt [State.Nontrivial s₁] :
   | e₁₂,        .step e e' => .inr $ lt_of_lt_of_le (e₁₂.seq_tag_lt e) e'.tag_le
   | .close e,   .refl      => .inl $ e.progress_ssubset
   | .advance a, .refl      => .inr $ a.tag_lt
-
-end
-
-variable [ReactorType.Proper α] {s s₁ s₂ : State α}
 
 theorem nontrivial_deterministic {s s₁ s₂ : State α} [State.Nontrivial s] :
     (s ⇓* s₁) → (s ⇓* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂

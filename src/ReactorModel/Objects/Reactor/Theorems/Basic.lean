@@ -114,7 +114,7 @@ def fromEquiv {rtr₁ : α} (e : rtr₁ ≈ rtr₂) : (StrictMember cpt i rtr₁
   | nested h m => 
     have h' := (Equivalent.get?_some_iff e).mp ⟨_, h⟩ 
     have e' := Equivalent.get?_rtr_some_equiv e h h'.choose_spec
-    nested' h' (fromEquiv e' m)
+    nested h'.choose_spec (fromEquiv e' m)
 
 inductive Equivalent [ReactorType β] : 
     {rtr₁ : α} → {rtr₂ : β} → (StrictMember cpt i rtr₁) → (StrictMember cpt i rtr₂) → Prop 
@@ -163,6 +163,12 @@ def split :
   | _, _, final hn, h => ⟨i, ⟨final h, hn⟩⟩
   | _, _, nested hn s, h => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨nested h s', hs'⟩⟩
 
+def split' : 
+    (s : StrictMember cpt i rtr) → 
+    (j : WithTop ID) × { m : Member .rtr j rtr // get? m.object cpt i = s.object } 
+  | final h     => ⟨⊤, ⟨.root, h⟩⟩
+  | nested hn s => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨.strict s', hs'⟩⟩
+
 def extend : 
     {rtr : α} → (s : StrictMember .rtr i rtr) → (get? s.object cpt j = some o) → 
     StrictMember cpt j rtr
@@ -175,47 +181,25 @@ theorem extend_object :
   | _, final _,    _ => rfl
   | _, nested _ s, h => extend_object s h
 
-theorem extend_split_eq (s : StrictMember cpt i' rtr') (h : get? rtr .rtr i = some rtr') :
+theorem extend_not_final (s : StrictMember .rtr i rtr) (h : get? s.object cpt j = some o)
+    (hf : get? rtr cpt j = some o') : s.extend h ≠ final hf := by
+  cases s <;> simp [extend]
+
+theorem extend_inj 
+    {s₁ : StrictMember .rtr i₁ rtr} {s₂ : StrictMember .rtr i₂ rtr}
+    {h₁ : get? s₁.object cpt j = some o₁} {h₂ : get? s₂.object cpt j = some o₂}
+    (h : s₁.extend h₁ = s₂.extend h₂) : i₁ = i₂ := by
+  induction s₁ generalizing i₂ <;> cases s₂
+  all_goals simp [extend] at h; obtain ⟨hj, hr, h⟩ := h; subst hj hr 
+  case final.final  => rfl
+  case nested.nested hi _ _ => exact hi $ eq_of_heq h
+  case final.nested => exact absurd (eq_of_heq h).symm $ StrictMember.extend_not_final _ _ _
+  case nested.final => exact absurd (eq_of_heq h) $ StrictMember.extend_not_final _ _ _
+
+theorem extend_split (s : StrictMember cpt i' rtr') (h : get? rtr .rtr i = some rtr') :
     extend (split s h).snd.val (split s h).snd.property = nested h s := by
   induction s generalizing rtr i <;> simp [extend]
   case nested h' _ hi => exact hi h'
-
--- TODO: Delete this if it remains unused.
-/-
--- This is the subtype of `StrictMember`s which are constructed from `StrictMember.nested`.
-inductive Nested (cpt : Component) (i : ID) (rtr : α)
-  | mk (nest : get? rtr .rtr i' = some rtr') (mem : StrictMember cpt i rtr')
-
-namespace Nested
-
-def val : (Nested cpt i rtr) → StrictMember cpt i rtr
-  | mk nest mem' => nested nest mem'
-
-instance : Coe (Nested cpt i rtr) (StrictMember cpt i rtr) where
-  coe := Nested.val
-
-def extending (s : StrictMember .rtr i rtr) (h : get? s.object cpt j = some o) : Nested cpt j rtr :=
-  match he : s.extend h with
-  | final .. => by 
-    simp [extend] at he
-  | nested .. => sorry
-
-def split : 
-    (n : Nested cpt i rtr) → 
-    (j : ID) × { s : StrictMember .rtr j rtr // get? s.object cpt i = n.val.object }
-  | .mk h s => s.split h
-
-set_option pp.proofs.withType false in
-theorem extending_split_eq (n : Nested cpt i rtr) : 
-    extending n.split.snd.val n.split.snd.property = n := by
-  cases n
-  case mk i' _ h s =>
-    simp [split]
-    induction s generalizing rtr i' <;> simp [extending]
-    case nested h' s hi => 
-      simp [val]
-      have := hi h'
--/
 
 end StrictMember
 
@@ -265,18 +249,28 @@ theorem extend_object :
   | root,     h => rfl
   | strict s, h => s.extend_object h
 
+theorem extend_inj
+    {m₁ : Member .rtr i₁ rtr} {m₂ : Member .rtr i₂ rtr} {h₁ : get? m₁.object cpt j = some o₁} 
+    {h₂ : get? m₂.object cpt j = some o₂} (h : m₁.extend h₁ = m₂.extend h₂) : i₁ = i₂ := by
+  cases m₁ <;> cases m₂ <;> simp [Member.extend] at h
+  case root.root     => rfl
+  case strict.strict => simp [StrictMember.extend_inj h]
+  case root.strict   => exact absurd h.symm $ StrictMember.extend_not_final _ _ _
+  case strict.root   => exact absurd h $ StrictMember.extend_not_final _ _ _
+
 end Member
 
+/- ---------------------------------------------------------------------------------------------- -/
 namespace Object
 
 variable [ReactorType α] {rtr : α}
 
 theorem «def» : (Object rtr cpt i o) ↔ (∃ m : Member cpt i rtr, m.object = o) where
-  mp  | intro m    => ⟨m, rfl⟩ 
-  mpr | .intro m h => h ▸ ⟨m⟩   
+  mp  | ⟨m⟩    => ⟨m, rfl⟩ 
+  mpr | ⟨m, h⟩ => h ▸ ⟨m⟩   
 
 theorem strict_elim {i : ID} : (Object rtr cpt i o) → ∃ (s : StrictMember cpt i rtr), s.object = o
-  | intro m => by cases cpt <;> cases m <;> exists ‹_›
+  | ⟨m⟩ => by cases cpt <;> cases m <;> exists ‹_›
 
 theorem not_of_member_isEmpty (h : IsEmpty $ Member cpt i rtr) (o) : ¬Object rtr cpt i o :=
   fun ⟨m⟩ => h.elim m

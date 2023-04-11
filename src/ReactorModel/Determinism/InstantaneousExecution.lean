@@ -6,7 +6,7 @@ namespace Execution
 namespace Instantaneous
 namespace Execution
  
-variable [ReactorType.Indexable α] {s₁ s₂ : State α} in section
+variable [ReactorType.Proper α] {s₁ s₂ : State α} in section
 
 theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ* s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns, not_or]
@@ -73,7 +73,7 @@ theorem mem_rcns_iff (e : s₁ ⇓ᵢ* s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
   exact e.mem_rcns_not_mem_progress
 
 theorem equiv {s₁ s₂ : State α} : (s₁ ⇓ᵢ* s₂) → s₁.rtr ≈ s₂.rtr
-  | refl => .refl
+  | refl       => .refl _
   | trans e e' => ReactorType.Equivalent.trans e.equiv e'.equiv
 
 theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ* s₃) : (e.rcn :: e'.rcns) ≮[s₁.rtr] e.rcn := by

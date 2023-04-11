@@ -31,10 +31,10 @@ namespace Proper
 variable [Proper α] 
 
 def apply (rtr : α) : Change → α 
-  | .inp i v   => update rtr .inp     i (fun _ => v)
-  | .out i v   => update rtr .out     i (fun _ => v)
-  | .stv i v   => update rtr .stv     i (fun _ => v)
-  | .act i t v => update rtr .act     i (·.schedule t v)
+  | .inp i v   => update rtr .inp i (fun _ => v)
+  | .out i v   => update rtr .out i (fun _ => v)
+  | .stv i v   => update rtr .stv i (fun _ => v)
+  | .act i t v => update rtr .act i (·.schedule t v)
   | .mut ..    => rtr -- Mutations are currently no-ops.
 
 def apply' (rtr : α) (cs : List Change) : α :=
@@ -52,15 +52,15 @@ def scheduledTags (rtr : α) : Set Time.Tag :=
   { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }
 
 scoped macro "cases_change " change:term : tactic => `(tactic| 
-  cases $change:term <;> try cases ‹Change.Normal›; cases ‹Reactor.Component.Valued›
+  cases $change:term <;> try cases ‹Change.Normal›; cases ‹Component.Valued›
 )
 
 theorem apply_equiv (rtr : α) (c : Change) : (apply rtr c) ≈ rtr := by
-  cases_change c <;> first | rfl | sorry -- apply LawfulUpdatable.equiv
+  cases_change c <;> first | rfl | apply LawfulUpdatable.equiv
 
 theorem apply_preserves_unchanged {c : Change} (rtr : α) (h : ¬c.Targets cpt i) :
     (apply rtr c)[cpt][i] = rtr[cpt][i] := by
-  cases_change c <;> first | rfl | exact sorry --LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
+  cases_change c <;> first | rfl | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
 
 variable {rtr : α}
 

@@ -3,13 +3,55 @@ import ReactorModel.Objects.Reactor.Updatable
 import ReactorModel.Objects.Reactor.Theorems.Basic
 
 namespace ReactorType
+namespace StrictMember
+
+open Indexable
+variable [Indexable α] {rtr rtr₁ : α}
+
+theorem unique (s₁ s₂ : StrictMember cpt i rtr) : s₁ = s₂ := by
+  injection unique_ids.allEq (.strict s₁) (.strict s₂)
+
+theorem rtr_equiv 
+    (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember .rtr i rtr₁) (s₂ : StrictMember .rtr i rtr₂) : 
+    s₁.object ≈ s₂.object := by
+  induction s₁ generalizing rtr₂ <;> cases s₂
+  case final.final h₁ _ h₂ => exact Equivalent.get?_rtr_some_equiv e h₁ h₂
+  case nested.nested j₁ _ h₁ s₁ hi j₂ _ s₂ h₂ =>
+    suffices hj : j₁ = j₂ by subst hj; exact hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) _
+    have hs := (nested h₁ s₁ |>.fromEquiv e).unique (nested h₂ s₂)
+    simp [fromEquiv] at hs
+    exact hs.left
+  case final.nested h₁ _ _ s₂ h₂ => 
+    injection (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
+  case nested.final h₁ s₁ _ _ h₂ =>
+    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
+
+end StrictMember
+
+/- ---------------------------------------------------------------------------------------------- -/
+namespace Member
+
+open Indexable
+variable [Indexable α] {rtr rtr₁ : α}
+
+theorem unique (m₁ m₂ : Member cpt i rtr) : m₁ = m₂ :=
+  unique_ids.allEq m₁ m₂
+
+theorem rtr_equiv (e : rtr₁ ≈ rtr₂) : 
+    (m₁ : Member .rtr i rtr₁) → (m₂ : Member .rtr i rtr₂) →  m₁.object ≈ m₂.object
+  | root,      root      => e
+  | strict s₁, strict s₂ => s₁.rtr_equiv e s₂
+
+end Member
+
+/- ---------------------------------------------------------------------------------------------- -/
 namespace Object
 
 open Indexable
 variable [Indexable α] {rtr : α}
 
 theorem unique : (Object rtr cpt i o₁) → (Object rtr cpt i o₂) → o₁ = o₂
-  | intro m₁, intro m₂ => unique_ids.allEq m₁ m₂ ▸ rfl
+  | ⟨m₁⟩, ⟨m₂⟩ => m₁.unique m₂ ▸ rfl
 
 theorem iff_obj?_some : (Object rtr cpt i o) ↔ (rtr[cpt][i] = some o) where
   mp := by 
@@ -18,7 +60,7 @@ theorem iff_obj?_some : (Object rtr cpt i o) ↔ (rtr[cpt][i] = some o) where
     split
     case inl h =>
       have ⟨m', h'⟩ := Object.def.mp h.choose_spec
-      simp [←h', unique_ids.allEq m m']
+      simp [←h', m.unique m']
     case inr h =>
       push_neg at h
       specialize h m.object
@@ -29,233 +71,109 @@ theorem iff_obj?_some : (Object rtr cpt i o) ↔ (rtr[cpt][i] = some o) where
     case inr => contradiction
     case inl h h' => 
       have ⟨m', h'⟩ := Object.def.mp h'.choose_spec
-      exact Option.some_inj.mp h ▸ h' ▸ intro m'
+      exact Option.some_inj.mp h ▸ h' ▸ ⟨m'⟩ 
 
 theorem not_iff_obj?_none : (∀ o, ¬Object rtr cpt i o) ↔ (rtr[cpt][i] = none) := by
   simp [Option.eq_none_iff_forall_not_mem, iff_obj?_some]
 
 end Object
 
+/- ---------------------------------------------------------------------------------------------- -/
 namespace Indexable
 
 variable [Indexable α] {rtr : α}
 
 theorem get?_some_to_obj?_some (h : get? rtr cpt i = some o) : rtr[cpt][i] = some o :=
-  Object.iff_obj?_some.mp (.intro $ .final h)
+  Object.iff_obj?_some.mp ⟨.final h⟩ 
 
-theorem obj?_root_some (ho : rtr[.rtr][⊤] = some o) : o = rtr := by
-  sorry
+theorem obj?_root_some (ho : rtr[.rtr][⊤] = some o) : o = rtr :=
+  have ⟨m⟩ := Object.iff_obj?_some.mpr ho
+  match m with | .root => rfl
 
 -- Note: This theorem does not hold for `i' = ⊤`. For a version that supports this case see 
 --       `obj?_some_nested'`.
 theorem obj?_some_nested {i' : ID} (h : get? rtr .rtr i = some rtr') (ho : rtr'[cpt][i'] = some o) : 
     rtr[cpt][i'] = some o := by
-  have ⟨s, h'⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
-  exact Object.iff_obj?_some.mp $ h' ▸ .intro (.nested h s)
+  have ⟨s, hs⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
+  exact Object.iff_obj?_some.mp $ hs ▸ ⟨.nested h s⟩ 
 
 theorem obj?_some_nested' (h : get? rtr .rtr i = some rtr') (ho : rtr'[cpt][i'] = some o) : 
     ∃ j, rtr[cpt][j] = some o := by
   cases cpt <;> try cases i'
   case rtr.none =>
     exists i
-    exact Object.iff_obj?_some.mp $ obj?_root_some ho ▸ (.intro $ .final h)
+    exact Object.iff_obj?_some.mp $ obj?_root_some ho ▸ ⟨.final h⟩ 
   all_goals 
     exact ⟨_, obj?_some_nested h ho⟩ 
+
+theorem obj?_some_extend (ho : rtr[.rtr][c] = some con) (hc : get? con cpt i = some o) :
+    rtr[cpt][i] = some o := by
+  have ⟨m⟩ := Object.iff_obj?_some.mpr ho
+  exact Object.iff_obj?_some.mp $ m.extend_object hc ▸ ⟨m.extend hc⟩
+
+-- Note: This theorem does not hold for `i = ⊤`.
+theorem obj?_some_split {i : ID} (ho : rtr[cpt][i] = some o) : 
+    ∃ c con, (rtr[.rtr][c] = some con) ∧ (get? con cpt i = some o) := by
+  have ⟨s, hs⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
+  have ⟨c, ⟨m, hm⟩⟩ := s.split'
+  exact ⟨c, m.object, Object.iff_obj?_some.mp ⟨m⟩, hs ▸ hm⟩
 
 theorem member_isEmpty_obj?_none (h : IsEmpty $ Member cpt i rtr) : rtr[cpt][i] = none :=
   Object.not_iff_obj?_none.mp (Object.not_of_member_isEmpty h ·)
 
-end Indexable
-
-/-
-theorem nest_container {rtr₁ rtr₂ : α} 
-    (h : cpt? rtr₁ .rtr i = some rtr₂) (m : Member cpt j rtr₂) : 
-    ∃ (k : ID) (con : α), (Member.nested h m).container = ⟨k, con⟩ := by
-  induction m generalizing i rtr₁
-  case final => simp [container]
-  case nest hn _ hi => simp [container, hi hn]
-
-theorem container_eq_root {rtr : α} {m : Member cpt i rtr} (h : m.container = ⟨⊤, con⟩) : 
-    rtr = con := by
-  induction m generalizing con
-  case final => 
-    simp [container] at h
-    assumption
-  case nest hn m _ =>
-    have ⟨_, _, _⟩ := nest_container hn m 
-    simp_all
-
--- TODO: This doesn't just apply to root.
-theorem container_eq_root_to_cpt? {rtr : α} {m : Member cpt i rtr} (h : m.container = ⟨⊤, con⟩) : 
-    ∃ o, cpt? cpt con i = some o :=
-  sorry
-
-namespace ReactorType
-namespace Indexable
-
-variable [a : Indexable α] {rtr rtr₁ rtr₂ : α}
-
-theorem con?_eq_some (h : rtr[cpt][i]& = some con) : 
-    ∃ m : Member cpt i rtr, m.container = con := by
-  simp [con?] at h
-  split at h
-  case inl n => exists n.some; injection h
-  case inr => contradiction
-
-theorem con?_to_obj?_and_cpt? (h : rtr[cpt][i]& = some ⟨c, con⟩) :
-    (rtr[.rtr][c] = con) ∧ ∃ o, (cpt? cpt con i = some o) := by
-  have ⟨m, hm⟩ := con?_eq_some h
-  cases c
-  case none => simp [obj?, Member.container_eq_root hm, Member.container_eq_root_to_cpt? hm]
-  case some => sorry
-
-theorem obj?_to_con?_and_cpt? {o} {i : ID} (h : rtr[cpt][i] = some o) :
-    ∃ c, (rtr[cpt][i]& = some c) ∧ (cpt? cpt c.rtr i = some o) := by
-  cases cpt
-  all_goals 
-    simp [obj?, bind] at h
-    assumption
-
-theorem obj?_con?_eq {i₁ i₂ : ID}
-    (h₁ : rtr[cpt][i₁] = some rcn₁) (h₂ : rtr[cpt][i₂] = some rcn₂) 
-    (hc : rtr[cpt][i₁]& = rtr[cpt][i₂]&) :
-    ∃ c con, (rtr[.rtr][c] = some con) ∧ (cpt? cpt con i₁ = some rcn₁) ∧ (cpt? cpt con i₂ = some rcn₂) := by
-  have ⟨con₁, hc₁, hr₁⟩ := obj?_to_con?_and_cpt? h₁
-  have ⟨con₂, hc₂, hr₂⟩ := obj?_to_con?_and_cpt? h₂
-  exists con₁.id, con₁.rtr
-  have ⟨ho₁, _, _⟩ := con?_to_obj?_and_cpt? hc₁
-  exact ⟨ho₁, hr₁, (Option.some_inj.mp $ hc₂ ▸ hc ▸ hc₁) ▸ hr₂⟩ 
-
-theorem con?_eq_ext 
-    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
-    (hc : {c₁ c₂ : Container α} → (rtr[.rtr][c₁.id] = c₁.rtr) → (rtr[.rtr][c₂.id] = c₂.rtr) → 
-          (rcns c₁.rtr i₁ = some rcn₁) → (rcns c₂.rtr i₂ = some rcn₂) → c₁.id = c₂.id) : 
-    rtr[.rcn][i₁]& = rtr[.rcn][i₂]& := by
-  have ⟨c₁, hc₁, hr₁⟩ := obj?_to_con?_and_cpt? h₁
-  have ⟨c₂, hc₂, hr₂⟩ := obj?_to_con?_and_cpt? h₂
-  simp [hc₁, hc₂]
-  have ⟨hc₁, _⟩ := con?_to_obj?_and_cpt? hc₁
-  have ⟨hc₂, _⟩ := con?_to_obj?_and_cpt? hc₂
-  have hc := hc hc₁ hc₂ hr₁ hr₂
-  exact Container.ext _ _ hc $ Option.some_inj.mp (hc₂ ▸ hc ▸ hc₁.symm)
-
-theorem obj?_rtr_and_cpt?_to_obj? (ho : rtr[.rtr][c] = some con) (hc : cpt? cpt con i = some o) :
-    rtr[cpt][i] = some o := by
-  sorry
-
-theorem cpt?_to_con? {o} (h : cpt? cpt rtr i = some o) : rtr[cpt][i]& = some ⟨⊤, rtr⟩ := by
-  let m := Member.final (Partial.mem_iff.mpr ⟨_, h⟩)
-  simp [con?, Nonempty.intro m, ←a.unique_ids.allEq m, Member.container]
-
-theorem cpt?_to_obj? {o} (h : cpt? cpt rtr i = some o) : rtr[cpt][i] = some o := by
-  cases cpt
-  all_goals 
-    simp [obj?, bind]
-    exact ⟨⟨⊤, rtr⟩, cpt?_to_con? h, h⟩ 
-
-theorem con?_nested {c : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cpt][j]& = some ⟨c, con⟩) : 
-    rtr₁[cpt][j]& = some ⟨c, con⟩ := by
-  simp [con?] at ho ⊢ 
-  split at ho
-  case inr => contradiction
-  case inl n =>
-    set m := n.some
-    cases hm : m
-    case final hc =>
-      simp [hm, Member.container] at ho
-    case nest l₂ h₂ =>
-      let l₁ := Member.nest h (.nest h₂ l₂)
-      simp [hm, Member.container] at ho
-      simp [Nonempty.intro l₁, ←a.unique_ids.allEq l₁, Member.container, ho]
-
-theorem con?_eq_root (h : rtr[cpt][i]& = some ⟨⊤, con⟩) : rtr = con :=
-  Member.container_eq_root (con?_eq_some h).choose_spec
-
-theorem obj?_nested {o} {j : ID} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cpt][j] = some o) : 
-    rtr₁[cpt][j] = some o := by
-  cases cpt <;> try cases j
-  all_goals
-    simp [obj?, bind]
-    have ⟨⟨c, con⟩, hc, ho⟩ := obj?_to_con?_and_cpt? ho 
-    cases c
-    case some c => 
-      have := con?_nested h hc
-      exists ⟨c, con⟩
-    case none => 
-      replace hc := con?_eq_root hc
-      simp at ho
-      subst hc
-      exists ⟨i, rtr₂⟩
-      let m := Member.nest h (.final $ Partial.mem_iff.mpr ⟨_, ho⟩)
-      simp [ho, con?, Nonempty.intro m, ←a.unique_ids.allEq m, Member.container]
-
--- Note: By `ho` we get `rtr₂ = rtr₃`.
-theorem obj?_nested_root (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[.rtr][⊤] = some rtr₃) : 
-    ∃ j, rtr₁[.rtr][j] = some rtr₃ := by
-  simp [obj?] at ho
-  exact ⟨i, ho ▸ cpt?_to_obj? h⟩
-
--- This is a version of `obj?_nested`, where we don't restrict `j` to be an `ID`. This makes a 
--- difference when `cpt = .rtr`. Note that if `cpt = .rtr` and `j = ⊤`, then `j' = .nest i`.
-theorem obj?_nested' {o j} (h : nest rtr₁ i = some rtr₂) (ho : rtr₂[cpt][j] = some o) : 
-    ∃ j', rtr₁[cpt][j'] = some o := by
-  cases cpt <;> try cases j
-  case rtr.none => exact obj?_nested_root h ho
-  all_goals exact ⟨_, obj?_nested h ho⟩
-
-theorem obj?_mem_nested {j : ID} (h : nest rtr₁ i = some rtr₂) (hm : ↑j ∈ rtr₂[cpt]) : 
-    ↑j ∈ rtr₁[cpt] :=
-  Partial.mem_iff.mpr ⟨_, obj?_nested h (Partial.mem_iff.mp hm).choose_spec⟩  
-
-theorem mem_cpt?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂) 
-    (hc₁ : j ∈ cpt? cpt con₁) (hc₂ : j ∈ cpt? cpt con₂) : c₁ = c₂ := by
-  cases c₁ <;> cases c₂
-  case none.none => rfl
-  case none.some c₂ => 
-    simp [obj?] at ho₁
-    subst ho₁
-    let m₁ := Member.final hc₁
-    have ⟨con₂', h, h'⟩ := obj?_to_con?_and_cpt? ho₂
-    have ⟨m, _⟩ := con?_eq_some h
-    -- let m₂ := Member.nest h' m
-    sorry
-  case some.none => sorry
-  case some.some =>
-    -- TODO: We can build two `Member` instances here.
-    --       One from ho₁ and hc₁ and one from ho₂ and hc₂.
-    --       By `unique_ids` they are equal, from which we can extract that `c₁ = c₂`.
-    --       The main difficulty is building the `Member` instances.
-    sorry
-
-theorem member_isEmpty_con?_none (h : IsEmpty (Member cpt i rtr)) : rtr[cpt][i]& = none := by
-  cases cpt <;> simp [con?, not_nonempty_iff.mpr h]
-
-theorem member_isEmpty_obj?_none (h : IsEmpty (Member cpt i rtr)) : rtr[cpt][i] = none := by
-  cases cpt <;> simp [obj?, member_isEmpty_con?_none h, bind]
+theorem get?_some_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂) 
+    (hc₁ : get? con₁ cpt j = some o₁) (hc₂ : get? con₂ cpt j = some o₂) : c₁ = c₂ := by
+  have ⟨m₁⟩ := Object.iff_obj?_some.mpr ho₁
+  have ⟨m₂⟩ := Object.iff_obj?_some.mpr ho₂
+  exact Member.extend_inj $ (m₁.extend hc₁).unique (m₂.extend hc₂) 
+    
+theorem mem_get?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂) 
+    (hc₁ : j ∈ get? con₁ cpt) (hc₂ : j ∈ get? con₂ cpt) : c₁ = c₂ :=
+  get?_some_rtr_eq ho₁ ho₂ (Partial.mem_iff.mp hc₁).choose_spec (Partial.mem_iff.mp hc₂).choose_spec
 
 end Indexable
--/
 
 namespace Equivalent
 
 variable [Indexable α] {rtr₁ : α}
 
-theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] :=
-  sorry
+theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] := by
+  funext i
+  cases ho : rtr₁[.rcn][i]
+  case none =>
+    apply Eq.symm
+    apply Object.not_iff_obj?_none.mp
+    intro o ob₂
+    have := Object.not_iff_obj?_none.mpr ho o
+    sorry -- I think we need to establish lemmas about Member witnesses for equivalent reactors and
+          -- hence lemmas about Object for equivalent reactors.
+  case some =>
+    sorry
 
-theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
-  sorry
+theorem obj?_rtr_equiv 
+    (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : n₁ ≈ n₂ := by
+  have ⟨m₁⟩ := Object.iff_obj?_some.mpr h₁
+  have ⟨m₂⟩ := Object.iff_obj?_some.mpr h₂
+  exact m₁.rtr_equiv e m₂
 
-theorem obj?_rtr_equiv (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : 
-    n₁ ≈ n₂ := by
-  sorry
-
+-- TODO: Generalize this to non-Indexable reactor types.
 theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
-    (∃ o₁, rtr₁[cpt][i] = some o₁) ↔ (∃ o₂, rtr₂[cpt][i] = some o₂) := 
-  sorry
+    (∃ o₁, rtr₁[cpt][i] = some o₁) ↔ (∃ o₂, rtr₂[cpt][i] = some o₂) := by
+  constructor
+  all_goals
+    intro ⟨_, h⟩
+    have ⟨m⟩ := Object.iff_obj?_some.mpr h    
+    refine ⟨_, Object.iff_obj?_some.mp ⟨m.fromEquiv ?_⟩⟩   
+  case mp  => exact e
+  case mpr => exact Equivalent.symm e
+
+-- TODO: Generalize this to non-Indexable reactor types.
+theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
+  simp [Partial.mem_iff, obj?_some_iff e]
 
 end Equivalent
 
+/- ---------------------------------------------------------------------------------------------- -/
 namespace LawfulMemUpdate
 
 open Indexable
@@ -336,6 +254,7 @@ theorem obj?_updated (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) :
 
 end LawfulMemUpdate
 
+/- ---------------------------------------------------------------------------------------------- -/
 namespace LawfulUpdate
 
 open Indexable

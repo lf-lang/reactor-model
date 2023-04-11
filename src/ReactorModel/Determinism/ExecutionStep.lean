@@ -5,7 +5,7 @@ namespace Execution
 open ReactorType
 open State (Closed)
 
-variable [Indexable α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁] in section
+variable [Proper α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁] in section
 
 namespace AdvanceTag
 

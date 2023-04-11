@@ -16,7 +16,7 @@ instance [Proper α] : WellUpdatable α where
 namespace Wellformed
 
 open Indexable Equivalent
-variable [Indexable α] {rtr₁ : α}
+variable [Indexable α] {rtr rtr₁ : α}
 
 scoped macro "equiv_local_proof " dep:ident : term => 
   `($dep $ mem_get?_iff (obj?_rtr_equiv ‹_› ‹_› ‹_›) |>.mp ‹_›)
@@ -56,5 +56,44 @@ theorem nested (wf : Wellformed rtr₁) (h : get? rtr₁ .rtr i = some rtr₂) :
   ordered_prio h₁     := wf.ordered_prio (obj?_some_nested' h h₁).choose_spec
   valid_deps h₁       := wf.valid_deps (obj?_some_nested' h h₁).choose_spec
   
+variable (wf : Wellformed rtr)
+
+theorem shared_dep_local 
+    (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂)
+    (hr₁ : get? con₁ .rcn i₁ = some rcn₁) (hr₂ : get? con₂ .rcn i₂ = some rcn₂)
+    (hd₁ : ⟨cpt, j⟩ ∈ rcn₁.deps k) (hd₂ : ⟨cpt, j⟩ ∈ rcn₂.deps k) : 
+    c₁ = c₂ := by
+  by_cases hi : i₁ = i₂
+  case pos => exact get?_some_rtr_eq hc₁ hc₂ (hi ▸ hr₁) hr₂
+  case neg =>
+    have hv₁ := wf.valid_deps hc₁ hr₁ hd₁
+    have hv₂ := wf.valid_deps hc₂ hr₂ hd₂
+    cases k <;> cases cpt <;> try cases ‹Kind› 
+    have := obj?_some_extend hc₁ hr₁
+    case out.inp => 
+      have hd₂' := wf.unique_inputs (obj?_some_extend hc₁ hr₁) (obj?_some_extend hc₂ hr₂) hi hd₁
+      exact absurd hd₂ hd₂'
+    case in.out =>
+      cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
+      case _ hn₁ hj₁ _ _ hn₂ hj₂ =>
+        have hc₁' := obj?_some_extend hc₁ hn₁
+        have hc₂' := obj?_some_extend hc₂ hn₂
+        have hj := mem_get?_rtr_eq hc₁' hc₂' hj₁ hj₂
+        injection hj with hj
+        exact get?_some_rtr_eq hc₁ hc₂ (hj ▸ hn₁) hn₂ 
+    all_goals 
+      cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
+      all_goals exact mem_get?_rtr_eq hc₁ hc₂ ‹_› ‹_› 
+        
+theorem shared_state_local
+    (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂)
+    (hr₁ : get? con₁ .rcn i₁ = some rcn₁) (hr₂ : get? con₂ .rcn i₂ = some rcn₂) 
+    (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : 
+    c₁ = c₂ := by
+  have hv₁ := wf.valid_deps hc₁ hr₁ hd₁
+  have hv₂ := wf.valid_deps hc₂ hr₂ hd₂
+  cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
+  all_goals exact mem_get?_rtr_eq hc₁ hc₂ ‹_› ‹_› 
+
 end Wellformed
 end ReactorType

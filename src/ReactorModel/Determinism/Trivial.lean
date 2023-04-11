@@ -2,7 +2,7 @@ import ReactorModel.Determinism.ExecutionStep
 
 open ReactorType Classical
 
-variable [Indexable α]
+variable [Proper α]
 
 namespace Execution
 

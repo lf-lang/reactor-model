@@ -1,11 +1,11 @@
 import ReactorModel.Determinism.Dependency
 
-open Classical ReactorType Indexable
+open Classical ReactorType Proper
 
 namespace Execution
 namespace State
 
-variable [Indexable α] {s s₁ s₂ : State α} in section
+variable [Proper α] {s s₁ s₂ : State α} in section
 
 theorem exec_preserves_tag (rcn : ID) : (s.exec rcn).tag = s.tag :=
   rfl
