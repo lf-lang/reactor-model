@@ -51,7 +51,7 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr�
     have e := obj?_rtr_equiv ‹_› h₁' h₁
     wf.valid_deps h₁' (get?_rcn_eq e ▸ h₂) h₃ |>.equiv ‹_› h₁' h₁
 
-theorem nested (wf : Wellformed rtr₁) (h : get? rtr₁ .rtr i = some rtr₂) : Wellformed rtr₂ where
+theorem nested (wf : Wellformed rtr₁) (h : rtr₁{.rtr}{i} = some rtr₂) : Wellformed rtr₂ where
   unique_inputs h₁ h₂ := wf.unique_inputs (obj?_some_nested h h₁) (obj?_some_nested h h₂)
   ordered_prio h₁     := wf.ordered_prio (obj?_some_nested' h h₁).choose_spec
   valid_deps h₁       := wf.valid_deps (obj?_some_nested' h h₁).choose_spec
@@ -60,7 +60,7 @@ variable (wf : Wellformed rtr)
 
 theorem shared_dep_local 
     (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂)
-    (hr₁ : get? con₁ .rcn i₁ = some rcn₁) (hr₂ : get? con₂ .rcn i₂ = some rcn₂)
+    (hr₁ : con₁{.rcn}{i₁} = some rcn₁) (hr₂ : con₂{.rcn}{i₂} = some rcn₂)
     (hd₁ : ⟨cpt, j⟩ ∈ rcn₁.deps k) (hd₂ : ⟨cpt, j⟩ ∈ rcn₂.deps k) : 
     c₁ = c₂ := by
   by_cases hi : i₁ = i₂
@@ -87,7 +87,7 @@ theorem shared_dep_local
         
 theorem shared_state_local
     (hc₁ : rtr[.rtr][c₁] = some con₁) (hc₂ : rtr[.rtr][c₂] = some con₂)
-    (hr₁ : get? con₁ .rcn i₁ = some rcn₁) (hr₂ : get? con₂ .rcn i₂ = some rcn₂) 
+    (hr₁ : con₁{.rcn}{i₁} = some rcn₁) (hr₂ : con₂{.rcn}{i₂} = some rcn₂) 
     (hd₁ : ⟨.stv, j⟩ ∈ rcn₁.deps k₁) (hd₂ : ⟨.stv, j⟩ ∈ rcn₂.deps k₂) : 
     c₁ = c₂ := by
   have hv₁ := wf.valid_deps hc₁ hr₁ hd₁

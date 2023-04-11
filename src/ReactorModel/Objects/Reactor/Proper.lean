@@ -13,14 +13,12 @@ namespace Wellformed
 -- identified by `i` as source.
 inductive ValidDependency [ReactorType α] (rtr : α) : 
     Reaction.Kind → Kind → Reaction.Dependency → Prop
-  | inp       : (i ∈ get? rtr .inp) → ValidDependency rtr _ .in ⟨.inp, i⟩   
-  | out       : (i ∈ get? rtr .out) → ValidDependency rtr _ .out ⟨.out, i⟩   
-  | stv       : (i ∈ get? rtr .stv) → ValidDependency rtr _ _ ⟨.stv, i⟩  
-  | act       : (i ∈ get? rtr .act) → ValidDependency rtr _ _ ⟨.act, i⟩
-  | nestedIn  : (get? rtr .rtr j = some con) → (i ∈ get? con .inp) → 
-                ValidDependency rtr _ .out ⟨.inp, i⟩
-  | nestedOut : (get? rtr .rtr j = some con) → (i ∈ get? con .out) → 
-                ValidDependency rtr .norm .in ⟨.out, i⟩ 
+  | inp       : (i ∈ rtr{.inp})                             → ValidDependency _ _     .in  ⟨.inp, i⟩   
+  | out       : (i ∈ rtr{.out})                             → ValidDependency _ _     .out ⟨.out, i⟩   
+  | stv       : (i ∈ rtr{.stv})                             → ValidDependency _ _     _    ⟨.stv, i⟩  
+  | act       : (i ∈ rtr{.act})                             → ValidDependency _ _     _    ⟨.act, i⟩
+  | nestedIn  : (rtr{.rtr}{j} = some con) → (i ∈ con{.inp}) → ValidDependency _ _     .out ⟨.inp, i⟩
+  | nestedOut : (rtr{.rtr}{j} = some con) → (i ∈ con{.out}) → ValidDependency _ .norm .in  ⟨.out, i⟩ 
 
 -- Note: This proposition is only meaningful under the condition that `rcn₁` and `rcn₂` live in the 
 --       same reactor.
@@ -36,10 +34,10 @@ open Wellformed
 structure Wellformed [idx : Indexable α] (rtr : α) : Prop where
   unique_inputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
                   (⟨.inp, i⟩ ∈ rcn₁.deps .out) → (⟨.inp, i⟩ ∉ rcn₂.deps .out)  
-  ordered_prio  : (rtr[.rtr][i] = some con) → (get? con .rcn i₁ = some rcn₁) → 
-                  (get? con .rcn i₂ = some rcn₂) → (i₁ ≠ i₂) → (NeedOrderedPriority rcn₁ rcn₂) → 
+  ordered_prio  : (rtr[.rtr][i] = some con) → (con{.rcn}{i₁} = some rcn₁) → 
+                  (con{.rcn}{i₂} = some rcn₂) → (i₁ ≠ i₂) → (NeedOrderedPriority rcn₁ rcn₂) → 
                   (rcn₁.prio < rcn₂.prio ∨ rcn₂.prio < rcn₁.prio)
-  valid_deps    : (rtr[.rtr][i] = some con) → (get? con .rcn j = some rcn) → (d ∈ rcn.deps k) → 
+  valid_deps    : (rtr[.rtr][i] = some con) → (con{.rcn}{j} = some rcn) → (d ∈ rcn.deps k) → 
                   (ValidDependency con rcn.kind k d) 
 
 class Proper (α) extends Extensional α, Indexable α, LawfulUpdatable α, WellFounded α where

@@ -22,9 +22,9 @@ instance [LawfulUpdatable α] [ind : Indexable β] [LawfulCoe α β] : Indexable
 
 class LawfulCoe (α β) [ReactorType α] [ReactorType β] extends Coe α β where
   inj          : coe.Injective := by lawfulCoe_inj_proof
-  get?_val_coe : get? (coe rtr) (cpt : Component.Valued) = get? rtr cpt
-  get?_rcn_coe : get? (coe rtr) .rcn = get? rtr .rcn
-  get?_rtr_coe : get? (coe rtr) .rtr = (get? rtr .rtr).map coe := by lawfulCoe_nest_proof
+  get?_val_coe : (coe rtr){(cpt : Component.Valued)} = rtr{cpt}
+  get?_rcn_coe : (coe rtr){.rcn} = rtr{.rcn}
+  get?_rtr_coe : (coe rtr){.rtr} = rtr{.rtr}.map coe := by lawfulCoe_nest_proof
 
 
 

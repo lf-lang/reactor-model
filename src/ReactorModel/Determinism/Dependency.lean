@@ -7,9 +7,9 @@ namespace Dependency
 variable [Proper α] {rtr : α}
 
 theorem same_con_needOrderedPriority
-    (hc : rtr[.rtr][c] = some con) (h₁ : get? con .rcn i₁ = some rcn₁) 
-    (h₂ : get? con .rcn i₂ = some rcn₂) (hn : i₁ ≠ i₂) 
-    (hp : Wellformed.NeedOrderedPriority rcn₁ rcn₂) : (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) := by
+    (hc : rtr[.rtr][c] = some con) (h₁ : con{.rcn}{i₁} = some rcn₁) (h₂ : con{.rcn}{i₂} = some rcn₂) 
+    (hn : i₁ ≠ i₂) (hp : Wellformed.NeedOrderedPriority rcn₁ rcn₂) : 
+    (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) := by
   by_cases hm₁ : rcn₁.Mutates <;> by_cases hm₂ : rcn₂.Mutates
   rotate_left
   · exact .inl $ .mutNorm hc h₁ h₂ hm₁ (by simp_all [Reaction.Mutates])
@@ -20,15 +20,15 @@ theorem same_con_needOrderedPriority
     · exact .inl $ .prio hc h₁ h₂ (by simp_all) ‹_›
 
 theorem hazard 
-    (hc : rtr[.rtr][c] = some con) (h₁ : get? con .rcn i₁ = some rcn₁) 
-    (h₂ : get? con .rcn i₂ = some rcn₂) (hn : i₁ ≠ i₂) (hd₁ : ⟨.stv, i⟩ ∈ Reaction.deps rcn₁ k₁) 
+    (hc : rtr[.rtr][c] = some con) (h₁ : con{.rcn}{i₁} = some rcn₁) (h₂ : con{.rcn}{i₂} = some rcn₂) 
+    (hn : i₁ ≠ i₂) (hd₁ : ⟨.stv, i⟩ ∈ Reaction.deps rcn₁ k₁) 
     (hd₂ : ⟨.stv, i⟩ ∈ Reaction.deps rcn₂ k₂) (hk : k₁ = .out ∨ k₂ = .out) : 
     (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) := 
   same_con_needOrderedPriority hc h₁ h₂ hn (.hazard hd₁ hd₂ hk)
 
 theorem same_con_shared_out_dep
-    (hc : rtr[.rtr][c] = some con) (h₁ : get? con .rcn i₁ = some rcn₁) 
-    (h₂ : get? con .rcn i₂ = some rcn₂) (hn : i₁ ≠ i₂) (hd₁ : ⟨cpt, i⟩ ∈ Reaction.deps rcn₁ .out) 
+    (hc : rtr[.rtr][c] = some con) (h₁ : con{.rcn}{i₁} = some rcn₁) (h₂ : con{.rcn}{i₂} = some rcn₂) 
+    (hn : i₁ ≠ i₂) (hd₁ : ⟨cpt, i⟩ ∈ Reaction.deps rcn₁ .out) 
     (hd₂ : ⟨cpt, i⟩ ∈ Reaction.deps rcn₂ .out) : (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) :=
   same_con_needOrderedPriority hc h₁ h₂ hn (.overlap hd₁ hd₂)
 

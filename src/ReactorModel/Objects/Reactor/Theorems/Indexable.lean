@@ -83,7 +83,7 @@ namespace Indexable
 
 variable [Indexable α] {rtr : α}
 
-theorem get?_some_to_obj?_some (h : get? rtr cpt i = some o) : rtr[cpt][i] = some o :=
+theorem get?_some_to_obj?_some (h : rtr{cpt}{i} = some o) : rtr[cpt][i] = some o :=
   Object.iff_obj?_some.mp ⟨.final h⟩ 
 
 theorem obj?_root_some (ho : rtr[.rtr][⊤] = some o) : o = rtr :=
@@ -92,12 +92,12 @@ theorem obj?_root_some (ho : rtr[.rtr][⊤] = some o) : o = rtr :=
 
 -- Note: This theorem does not hold for `i' = ⊤`. For a version that supports this case see 
 --       `obj?_some_nested'`.
-theorem obj?_some_nested {i' : ID} (h : get? rtr .rtr i = some rtr') (ho : rtr'[cpt][i'] = some o) : 
+theorem obj?_some_nested {i' : ID} (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = some o) : 
     rtr[cpt][i'] = some o := by
   have ⟨s, hs⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
   exact Object.iff_obj?_some.mp $ hs ▸ ⟨.nested h s⟩ 
 
-theorem obj?_some_nested' (h : get? rtr .rtr i = some rtr') (ho : rtr'[cpt][i'] = some o) : 
+theorem obj?_some_nested' (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = some o) : 
     ∃ j, rtr[cpt][j] = some o := by
   cases cpt <;> try cases i'
   case rtr.none =>
@@ -106,14 +106,14 @@ theorem obj?_some_nested' (h : get? rtr .rtr i = some rtr') (ho : rtr'[cpt][i'] 
   all_goals 
     exact ⟨_, obj?_some_nested h ho⟩ 
 
-theorem obj?_some_extend (ho : rtr[.rtr][c] = some con) (hc : get? con cpt i = some o) :
+theorem obj?_some_extend (ho : rtr[.rtr][c] = some con) (hc : con{cpt}{i} = some o) :
     rtr[cpt][i] = some o := by
   have ⟨m⟩ := Object.iff_obj?_some.mpr ho
   exact Object.iff_obj?_some.mp $ m.extend_object hc ▸ ⟨m.extend hc⟩
 
 -- Note: This theorem does not hold for `i = ⊤`.
 theorem obj?_some_split {i : ID} (ho : rtr[cpt][i] = some o) : 
-    ∃ c con, (rtr[.rtr][c] = some con) ∧ (get? con cpt i = some o) := by
+    ∃ c con, (rtr[.rtr][c] = some con) ∧ (con{cpt}{i} = some o) := by
   have ⟨s, hs⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
   have ⟨c, ⟨m, hm⟩⟩ := s.split'
   exact ⟨c, m.object, Object.iff_obj?_some.mp ⟨m⟩, hs ▸ hm⟩
@@ -122,13 +122,13 @@ theorem member_isEmpty_obj?_none (h : IsEmpty $ Member cpt i rtr) : rtr[cpt][i] 
   Object.not_iff_obj?_none.mp (Object.not_of_member_isEmpty h ·)
 
 theorem get?_some_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂) 
-    (hc₁ : get? con₁ cpt j = some o₁) (hc₂ : get? con₂ cpt j = some o₂) : c₁ = c₂ := by
+    (hc₁ : con₁{cpt}{j} = some o₁) (hc₂ : con₂{cpt}{j} = some o₂) : c₁ = c₂ := by
   have ⟨m₁⟩ := Object.iff_obj?_some.mpr ho₁
   have ⟨m₂⟩ := Object.iff_obj?_some.mpr ho₂
   exact Member.extend_inj $ (m₁.extend hc₁).unique (m₂.extend hc₂) 
     
 theorem mem_get?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂) 
-    (hc₁ : j ∈ get? con₁ cpt) (hc₂ : j ∈ get? con₂ cpt) : c₁ = c₂ :=
+    (hc₁ : j ∈ con₁{cpt}) (hc₂ : j ∈ con₂{cpt}) : c₁ = c₂ :=
   get?_some_rtr_eq ho₁ ho₂ (Partial.mem_iff.mp hc₁).choose_spec (Partial.mem_iff.mp hc₂).choose_spec
 
 end Indexable
@@ -199,7 +199,7 @@ theorem obj?_none_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) :
   sorry
 
 -- TODO: This is a general (perhaps very important) theorem about obj?.
-theorem obj?_some_elim {rtr : α} {i : ID} (h : rtr[cpt][i] = some o) : (a.get? rtr cpt i = some o) ∨ (∃ j con, a.get? rtr .rtr j = some con ∧ con[cpt][i] = some o) :=
+theorem obj?_some_elim {rtr : α} {i : ID} (h : rtr[cpt][i] = some o) : (rtr{cpt}{i} = some o) ∨ (∃ j con, rtr{.rtr}{j} = some con ∧ con[cpt][i] = some o) :=
   sorry
   -- This should be derivable directly from obj?_to_con?_and_cpt?
 

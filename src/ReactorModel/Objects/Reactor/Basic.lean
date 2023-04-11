@@ -25,28 +25,21 @@ class ReactorType (α : Type) where
 
 namespace ReactorType
 
+notation rtr "{" cpt "}"        => get? rtr cpt
+notation rtr "{" cpt "}{" i "}" => get? rtr cpt i
+
 inductive StrictMember [ReactorType α] (cpt : Component) (i : ID) : α → Type
-  | final  : (get? rtr cpt i = some o) → StrictMember cpt i rtr
-  | nested : (get? rtr₁ .rtr j = some rtr₂) → (StrictMember cpt i rtr₂) → StrictMember cpt i rtr₁
+  | final  : (rtr{cpt}{i} = some o) → StrictMember cpt i rtr
+  | nested : (rtr₁{.rtr}{j} = some rtr₂) → (StrictMember cpt i rtr₂) → StrictMember cpt i rtr₁
 
 namespace StrictMember
 
-abbrev final' [ReactorType α] {rtr : α} (h : i ∈ get? rtr cpt) : StrictMember cpt i rtr := 
-  .final (Partial.mem_iff.mp h).choose_spec
+abbrev final' [ReactorType α] {rtr : α} (h : i ∈ rtr{cpt}) : StrictMember cpt i rtr := 
+  final (Partial.mem_iff.mp h).choose_spec
 
 def object [ReactorType α] {rtr : α} : (StrictMember cpt i rtr) → cpt.type α
   | final (o := o) _ => o
   | nested _ m       => m.object
-
-@[ext]
-structure _root_.ReactorType.Container (α) where
-  id  : WithTop ID 
-  rtr : α 
-
-def container [ReactorType α] {rtr : α} : (StrictMember cpt i rtr) → Container α
-  | nested _ (.nested h l)           => container (.nested h l)
-  | nested (rtr₂ := con) (j := j) .. => { id := j, rtr := con }
-  | final _                          => { id := ⊤, rtr := rtr }
 
 end StrictMember
 
@@ -62,14 +55,14 @@ instance : Coe (StrictMember cpt i rtr) (Member cpt i rtr) where
   coe := .strict
 
 @[match_pattern]
-abbrev final (h : get? rtr cpt i = some o) : Member cpt i rtr := 
+abbrev final (h : rtr{cpt}{i} = some o) : Member cpt i rtr := 
   StrictMember.final h
 
 @[match_pattern]
-abbrev nested (h : get? rtr .rtr j = some rtr') (s : StrictMember cpt i rtr') : Member cpt i rtr := 
+abbrev nested (h : rtr{.rtr}{j} = some rtr') (s : StrictMember cpt i rtr') : Member cpt i rtr := 
   StrictMember.nested h s
 
-abbrev final' (h : i ∈ get? rtr cpt) : Member cpt i rtr := 
+abbrev final' (h : i ∈ rtr{cpt}) : Member cpt i rtr := 
   StrictMember.final' h
 
 def object {rtr : α} : (Member cpt i rtr) → cpt.type α
@@ -86,7 +79,7 @@ inductive Object [ReactorType α] (rtr : α) (cpt : Component) (i : cpt.idType) 
 
 -- TODO: Find a better name for this.
 def RootEqualUpTo [ReactorType α] (cpt : Component) (i : ID) (rtr₁ rtr₂ : α) : Prop :=
-  ∀ {c j}, (c ≠ cpt ∨ j ≠ i) → get? rtr₁ c j = get? rtr₂ c j
+  ∀ {c j}, (c ≠ cpt ∨ j ≠ i) → rtr₁{c}{j} = rtr₂{c}{j}
 
 notation rtr₁ " ≃[" cpt "][" i "] " rtr₂ => RootEqualUpTo cpt i rtr₁ rtr₂
 

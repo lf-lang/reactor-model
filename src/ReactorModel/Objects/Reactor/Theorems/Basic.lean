@@ -24,8 +24,7 @@ theorem trans (e₁ : rtr₁ ≃[cpt][i] rtr₂) (e₂ : rtr₂ ≃[cpt][i] rtr�
 instance : Equivalence ((· : α) ≃[cpt][i] ·) :=
   { refl, symm, trans }
 
-theorem mem_iff (e : rtr₁ ≃[cpt][i] rtr₂) (h : c ≠ cpt ∨ j ≠ i) : 
-    (j ∈ get? rtr₁ c) ↔ (j ∈ get? rtr₂ c) := by
+theorem mem_iff (e : rtr₁ ≃[cpt][i] rtr₂) (h : c ≠ cpt ∨ j ≠ i) : j ∈ rtr₁{c} ↔ j ∈ rtr₂{c} := by
   simp [Partial.mem_iff]
   exact ⟨(e h ▸ ·), (e h ▸ ·)⟩   
 
@@ -34,9 +33,9 @@ end RootEqualUpTo
 /- ---------------------------------------------------------------------------------------------- -/
 inductive Equivalent [inst : ReactorType α] : α → α → Prop
   | intro
-    (mem_get?_iff : ∀ cpt i, (i ∈ get? rtr₁ cpt) ↔ (i ∈ get? rtr₂ cpt)) 
-    (get?_rcn_some_eq : ∀ {i r₁ r₂}, (get? rtr₁ .rcn i = some r₁) → (get? rtr₂ .rcn i = some r₂) → r₁ = r₂) 
-    (get?_rtr_some_equiv : ∀ {i n₁ n₂}, (get? rtr₁ .rtr i = some n₁) → (get? rtr₂ .rtr i = some n₂) → Equivalent (inst := inst) n₁ n₂) 
+    (mem_get?_iff : ∀ cpt i, i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt}) 
+    (get?_rcn_some_eq : ∀ {i r₁ r₂}, (rtr₁{.rcn}{i} = some r₁) → (rtr₂{.rcn}{i} = some r₂) → r₁ = r₂) 
+    (get?_rtr_some_equiv : ∀ {i n₁ n₂}, (rtr₁{.rtr}{i} = some n₁) → (rtr₂{.rtr}{i} = some n₂) → Equivalent (inst := inst) n₁ n₂) 
     : Equivalent rtr₁ rtr₂
  
 namespace Equivalent
@@ -74,33 +73,32 @@ theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : rtr₁ ≈
 instance : IsTrans α (· ≈ ·) where
   trans _ _ _ := trans
 
-theorem mem_get?_iff : (rtr₁ ≈ rtr₂) → (i ∈ get? rtr₁ cpt ↔ i ∈ get? rtr₂ cpt)
+theorem mem_get?_iff : (rtr₁ ≈ rtr₂) → (i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt})
   | intro h .. => h _ _
 
 theorem get?_rcn_some_eq : 
-    (rtr₁ ≈ rtr₂) → (get? rtr₁ .rcn i = some r₁) → (get? rtr₂ .rcn i = some r₂) → r₁ = r₂
-  | intro _ h .. => h
+    (rtr₁ ≈ rtr₂) → (rtr₁{.rcn}{i} = some r₁) → (rtr₂{.rcn}{i} = some r₂) → r₁ = r₂
+  | intro _ h _ => h
 
 theorem get?_rtr_some_equiv : 
-    (rtr₁ ≈ rtr₂) → (get? rtr₁ .rtr i = some n₁) → (get? rtr₂ .rtr i = some n₂) → n₁ ≈ n₂
+    (rtr₁ ≈ rtr₂) → (rtr₁{.rtr}{i} = some n₁) → (rtr₂{.rtr}{i} = some n₂) → n₁ ≈ n₂
   | intro _ _ h => h
 
-theorem get?_rcn_eq (e : rtr₁ ≈ rtr₂) : get? rtr₂ .rcn = get? rtr₁ .rcn := by
+theorem get?_some_iff (e : rtr₁ ≈ rtr₂) : 
+    (∃ o, rtr₁{cpt}{i} = some o) ↔ (∃ o, rtr₂{cpt}{i} = some o) := by
+  simp [←Partial.mem_iff, mem_get?_iff e]
+
+theorem get?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₂{.rcn} = rtr₁{.rcn} := by
   funext i
-  by_cases h₁ : i ∈ get? rtr₁ .rcn 
+  by_cases h₁ : ∃ o, rtr₁{.rcn}{i} = some o
   case pos =>
-    have ⟨_, h₂⟩ := Partial.mem_iff.mp $ mem_get?_iff e (cpt := .rcn) |>.mp h₁
-    have ⟨_, h₁⟩ := Partial.mem_iff.mp h₁
+    have ⟨_, h₂⟩ := get?_some_iff e |>.mp h₁
+    have ⟨_, h₁⟩ := h₁
     exact get?_rcn_some_eq e h₁ h₂ ▸ h₁ |>.symm ▸ h₂
   case neg =>
-    have h₂ := Partial.mem_iff.not.mp $ mem_get?_iff e (cpt := .rcn) |>.not.mp h₁
-    have h₁ := Partial.mem_iff.not.mp h₁
+    have h₂ := get?_some_iff e |>.not.mp h₁
     push_neg at h₁ h₂
     simp [Option.eq_none_iff_forall_not_mem.mpr h₁, Option.eq_none_iff_forall_not_mem.mpr h₂]
-
-theorem get?_some_iff (e : rtr₁ ≈ rtr₂) :
-    (∃ o₁, get? rtr₁ cpt i = some o₁) ↔ (∃ o₂, get? rtr₂ cpt i = some o₂) := by
-  simp [←Partial.mem_iff, mem_get?_iff e]
 
 end Equivalent
 
@@ -120,7 +118,7 @@ inductive Equivalent [ReactorType β] :
     {rtr₁ : α} → {rtr₂ : β} → (StrictMember cpt i rtr₁) → (StrictMember cpt i rtr₂) → Prop 
   | final : Equivalent (final h₁) (final h₂)
   | nested {n₁ : α} {n₂ : β} {s₁ : StrictMember cpt i n₁} {s₂ : StrictMember cpt i n₂} :
-    (h₁ : get? rtr₁ .rtr j = some n₁) → (h₂ : get? rtr₂ .rtr j = some n₂) → 
+    (h₁ : rtr₁{.rtr}{j} = some n₁) → (h₂ : rtr₂{.rtr}{j} = some n₂) → 
     (Equivalent s₁ s₂) → Equivalent (nested h₁ s₁) (nested h₂ s₂)
 
 namespace Equivalent
@@ -153,41 +151,40 @@ theorem to_eq {s₁ s₂ : StrictMember cpt i rtr} (e : Equivalent s₁ s₂) : 
 
 end Equivalent
 
-theorem nested_object (s : StrictMember cpt i' rtr') (h : get? rtr .rtr i = some rtr') :
+theorem nested_object (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
     (nested h s).object = s.object := 
   rfl
 
 def split : 
-    {rtr rtr' : α} → (s : StrictMember cpt i' rtr') → (get? rtr .rtr i = some rtr') → 
-    (j : ID) × { s' : StrictMember .rtr j rtr // get? s'.object cpt i' = s.object }
+    {rtr rtr' : α} → (s : StrictMember cpt i' rtr') → (rtr{.rtr}{i} = some rtr') → 
+    (j : ID) × { s' : StrictMember .rtr j rtr // s'.object{cpt}{i'} = s.object }
   | _, _, final hn, h => ⟨i, ⟨final h, hn⟩⟩
   | _, _, nested hn s, h => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨nested h s', hs'⟩⟩
 
 def split' : 
     (s : StrictMember cpt i rtr) → 
-    (j : WithTop ID) × { m : Member .rtr j rtr // get? m.object cpt i = s.object } 
+    (j : WithTop ID) × { m : Member .rtr j rtr // m.object{cpt}{i} = s.object } 
   | final h     => ⟨⊤, ⟨.root, h⟩⟩
   | nested hn s => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨.strict s', hs'⟩⟩
 
 def extend : 
-    {rtr : α} → (s : StrictMember .rtr i rtr) → (get? s.object cpt j = some o) → 
-    StrictMember cpt j rtr
+    {rtr : α} → (s : StrictMember .rtr i rtr) → (s.object{cpt}{j} = some o) → StrictMember cpt j rtr
   | _, final hn,    h => nested hn (final h)
   | _, nested hn s, h => nested hn (extend s h)
 
 theorem extend_object :
-    {rtr : α} → (s : StrictMember .rtr i rtr) → (h : get? s.object cpt j = some o) → 
+    {rtr : α} → (s : StrictMember .rtr i rtr) → (h : s.object{cpt}{j} = some o) → 
     (s.extend h).object = o
   | _, final _,    _ => rfl
   | _, nested _ s, h => extend_object s h
 
-theorem extend_not_final (s : StrictMember .rtr i rtr) (h : get? s.object cpt j = some o)
-    (hf : get? rtr cpt j = some o') : s.extend h ≠ final hf := by
+theorem extend_not_final (s : StrictMember .rtr i rtr) (h : s.object{cpt}{j} = some o)
+    (hf : rtr{cpt}{j} = some o') : s.extend h ≠ final hf := by
   cases s <;> simp [extend]
 
 theorem extend_inj 
     {s₁ : StrictMember .rtr i₁ rtr} {s₂ : StrictMember .rtr i₂ rtr}
-    {h₁ : get? s₁.object cpt j = some o₁} {h₂ : get? s₂.object cpt j = some o₂}
+    {h₁ : s₁.object{cpt}{j} = some o₁} {h₂ : s₂.object{cpt}{j} = some o₂}
     (h : s₁.extend h₁ = s₂.extend h₂) : i₁ = i₂ := by
   induction s₁ generalizing i₂ <;> cases s₂
   all_goals simp [extend] at h; obtain ⟨hj, hr, h⟩ := h; subst hj hr 
@@ -196,7 +193,7 @@ theorem extend_inj
   case final.nested => exact absurd (eq_of_heq h).symm $ StrictMember.extend_not_final _ _ _
   case nested.final => exact absurd (eq_of_heq h) $ StrictMember.extend_not_final _ _ _
 
-theorem extend_split (s : StrictMember cpt i' rtr') (h : get? rtr .rtr i = some rtr') :
+theorem extend_split (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
     extend (split s h).snd.val (split s h).snd.property = nested h s := by
   induction s generalizing rtr i <;> simp [extend]
   case nested h' _ hi => exact hi h'
@@ -240,18 +237,18 @@ theorem to_eq {m₁ m₂ : Member cpt i rtr} : (Equivalent m₁ m₂) → m₁ =
 
 end Equivalent
 
-def extend : (m : Member .rtr i rtr) → (get? m.object cpt j = some o) → Member cpt j rtr
+def extend : (m : Member .rtr i rtr) → (m.object{cpt}{j} = some o) → Member cpt j rtr
   | root,     h => final h
   | strict s, h => s.extend h
 
 theorem extend_object : 
-    (m : Member .rtr i rtr) → (h : get? m.object cpt j = some o) → (m.extend h).object = o
+    (m : Member .rtr i rtr) → (h : m.object{cpt}{j} = some o) → (m.extend h).object = o
   | root,     h => rfl
   | strict s, h => s.extend_object h
 
 theorem extend_inj
-    {m₁ : Member .rtr i₁ rtr} {m₂ : Member .rtr i₂ rtr} {h₁ : get? m₁.object cpt j = some o₁} 
-    {h₂ : get? m₂.object cpt j = some o₂} (h : m₁.extend h₁ = m₂.extend h₂) : i₁ = i₂ := by
+    {m₁ : Member .rtr i₁ rtr} {m₂ : Member .rtr i₂ rtr} {h₁ : m₁.object{cpt}{j} = some o₁} 
+    {h₂ : m₂.object{cpt}{j} = some o₂} (h : m₁.extend h₁ = m₂.extend h₂) : i₁ = i₂ := by
   cases m₁ <;> cases m₂ <;> simp [Member.extend] at h
   case root.root     => rfl
   case strict.strict => simp [StrictMember.extend_inj h]

@@ -9,10 +9,10 @@ variable [ReactorType α]
 --       (We need to be able to eliminate into `Type` in `Member.fromLawfulUpdate`).
 inductive LawfulMemUpdate (cpt : Component.Valued) (i : ID) (f : cpt.type → cpt.type) : α → α → Type
   | final : 
-    (rtr₁ ≃[cpt][i] rtr₂) → (get? rtr₁ cpt i = some o) → (get? rtr₂ cpt i = f o) → 
+    (rtr₁ ≃[cpt][i] rtr₂) → (rtr₁{cpt}{i} = some o) → (rtr₂{cpt}{i} = f o) → 
     LawfulMemUpdate cpt i f rtr₁ rtr₂
   | nest : 
-    (rtr₁ ≃[.rtr][j] rtr₂) → (get? rtr₁ .rtr j = some n₁) → (get? rtr₂ .rtr j = some n₂) → 
+    (rtr₁ ≃[.rtr][j] rtr₂) → (rtr₁{.rtr}{j} = some n₁) → (rtr₂{.rtr}{j} = some n₂) → 
     (LawfulMemUpdate cpt i f n₁ n₂) → LawfulMemUpdate cpt i f rtr₁ rtr₂
 
 -- Note: This isn't a `Prop` because of the explanation on `LawfulMemUpdate`.
