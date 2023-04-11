@@ -1,14 +1,20 @@
 import ReactorModel.Objects.Reactor.Updatable
-import ReactorModel.Objects.Reactor.Indexable
-import ReactorModel.Objects.Reactor.Theorems.Indexable
+import ReactorModel.Objects.Reactor.Theorems.WellIndexable
+import ReactorModel.Objects.Reactor.Theorems.WellUpdatable
 
 namespace ReactorType
 
-class Accessible (α) extends LawfulUpdatable α, Indexable α 
+class Accessible (α) extends LawfulUpdatable α, WellFounded α, Indexable α 
 
 namespace LawfulUpdatable
 
 open Updatable LawfulUpdatable Indexable
+
+instance [Accessible α] : WellIndexable α where
+  wf := Accessible.wf
+
+instance [Accessible α] : WellUpdatable α where
+  wf := Accessible.wf
 
 variable [Accessible α] {rtr : α}
 

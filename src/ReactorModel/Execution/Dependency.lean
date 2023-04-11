@@ -11,17 +11,17 @@ namespace ReactorType
 -- Note: `Dependency rtr i₁ i₂` means that in `i₁` must occur before `i₂`. 
 inductive Dependency [Indexable α] (rtr : α) : ID → ID → Prop
   | prio : 
-    (rtr[.rtr][i] = some con) → (get? con .rcn i₁ = some rcn₁) → (get? con .rcn i₂ = some rcn₂) → 
+    (rtr[.rtr][i] = some con) → (con{.rcn}{i₁} = some rcn₁) → (con{.rcn}{i₂} = some rcn₂) → 
     (rcn₁.Mutates ↔ rcn₂.Mutates) → (rcn₁.prio > rcn₂.prio) → Dependency rtr i₁ i₂
   | depOverlap {d : Reaction.Dependency} :
     (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (d ∈ rcn₁.deps .out) → 
     (d ∈ rcn₂.deps .in) → (d.cpt ≠ .stv) → Dependency rtr i₁ i₂
   | mutNorm : 
-    (rtr[.rtr][i] = some con) → (get? con .rcn iₘ = some m) → (get? con .rcn iₙ = some n) → 
-    (m.Mutates) → (n.Normal) → Dependency rtr iₘ iₙ
+    (rtr[.rtr][i] = some con) → (con{.rcn}{iₘ} = some m) → (con{.rcn}{iₙ} = some n) → (m.Mutates) → 
+    (n.Normal) → Dependency rtr iₘ iₙ
   | mutNest :
-    (rtr[.rtr][i] = some rtr₁) → (get? rtr₁ .rtr j = some rtr₂) → (get? rtr₁ .rcn iₘ = some m) → 
-    (m.Mutates) → (iᵣ ∈ get? rtr₂ .rcn) → Dependency rtr iₘ iᵣ
+    (rtr[.rtr][i] = some rtr₁) → (rtr₁{.rtr}{j} = some rtr₂) → (rtr₁{.rcn}{iₘ} = some m) → 
+    (m.Mutates) → (iᵣ ∈ rtr₂{.rcn}) → Dependency rtr iₘ iᵣ
   | trans : 
     Dependency rtr i₁ i₂ → Dependency rtr i₂ i₃ → Dependency rtr i₁ i₃
 

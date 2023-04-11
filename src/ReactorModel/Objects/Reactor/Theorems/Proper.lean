@@ -1,16 +1,15 @@
 import ReactorModel.Objects.Reactor.Proper
 import ReactorModel.Objects.Reactor.Theorems.Basic
 import ReactorModel.Objects.Reactor.Theorems.Accessible
-import ReactorModel.Objects.Reactor.Theorems.WellUpdatable
+import ReactorModel.Objects.Reactor.Theorems.Readable
 
 namespace ReactorType
 
--- TODO: Why do you need to provide some fields explicitly for the following instances?
+instance [Proper α] : Readable α where
+  ext_iff := Proper.toExtensional.ext_iff
 
 instance [Proper α] : Accessible α where
   unique_ids := Proper.unique_ids
-
-instance [Proper α] : WellUpdatable α where
   wf := Proper.wf
 
 namespace Wellformed
@@ -96,4 +95,10 @@ theorem shared_state_local
   all_goals exact mem_get?_rtr_eq hc₁ hc₂ ‹_› ‹_› 
 
 end Wellformed
+
+open Updatable in
+theorem LawfulUpdatable.update_ne_comm [Proper α] {rtr : α} (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂):
+    update (update rtr cpt₁ i₁ f₁) cpt₂ i₂ f₂ = update (update rtr cpt₂ i₂ f₂) cpt₁ i₁ f₁ :=
+  LawfulUpdate.ne_comm (lawful ..) (lawful ..) (lawful ..) (lawful ..) h
+  
 end ReactorType

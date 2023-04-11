@@ -1,5 +1,6 @@
 import ReactorModel.Objects.Reactor.WellFounded
 import ReactorModel.Objects.Reactor.Updatable
+import ReactorModel.Objects.Reactor.Indexable
 import ReactorModel.Objects.Reactor.Theorems.Basic
 
 noncomputable section
@@ -156,4 +157,17 @@ theorem fromLawfulUpdate (u : LawfulUpdate cpt i f rtr₁ rtr₂) :
 
 end Equivalent
 end Member
+
+namespace UniqueIDs
+
+variable [WellFounded α] {rtr₁ : α}
+
+theorem updated 
+    (u : LawfulUpdate cpt i f rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
+  allEq m₁ m₂ := open Member in
+    h.allEq (.fromLawfulUpdate m₁ u) (.fromLawfulUpdate m₂ u) ▸ Equivalent.fromLawfulUpdate u m₁ 
+      |>.trans (Equivalent.fromLawfulUpdate u m₂).symm 
+      |>.to_eq
+
+end UniqueIDs
 end ReactorType

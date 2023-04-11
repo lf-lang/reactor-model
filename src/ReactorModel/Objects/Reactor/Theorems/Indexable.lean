@@ -11,6 +11,15 @@ variable [Indexable α] {rtr rtr₁ : α}
 theorem unique (s₁ s₂ : StrictMember cpt i rtr) : s₁ = s₂ := by
   injection unique_ids.allEq (.strict s₁) (.strict s₂)
 
+-- TODO: In both of the following theorems, the `final.nested` and `nested.final` cases could be 
+--       removed if we have a theorem that establishes that for indexable reactor types, if two
+--       reactors are equivalent, then so are their membership witnesses.
+
+-- TODO: Note that both of the following theorems are almost identical. The only difference happens
+--       in the "local" view of things in the `final.final` case. Perhaps there's a more general
+--       theorem here for lifting local properties to global properties. Though since these
+--       properties are tied to `Equivalent`, it might not be generalizable.
+
 theorem rtr_equiv 
     (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember .rtr i rtr₁) (s₂ : StrictMember .rtr i rtr₂) : 
     s₁.object ≈ s₂.object := by
@@ -22,6 +31,21 @@ theorem rtr_equiv
     simp [fromEquiv] at hs
     exact hs.left
   case final.nested h₁ _ _ s₂ h₂ => 
+    injection (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
+  case nested.final h₁ s₁ _ _ h₂ =>
+    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
+
+theorem equiv_rcn_eq 
+    (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember .rcn i rtr₁) (s₂ : StrictMember .rcn i rtr₂) : 
+    s₁.object = s₂.object := by
+  induction s₁ generalizing rtr₂ <;> cases s₂ 
+  case final.final h₁ _ h₂ => exact Equivalent.get?_rcn_some_eq e h₁ h₂
+  case nested.nested j₁ _ h₁ s₁ hi j₂ _ s₂ h₂ => 
+    suffices hj : j₁ = j₂ by subst hj; exact hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) _ 
+    have hs := (nested h₁ s₁ |>.fromEquiv e).unique (nested h₂ s₂)
+    simp [fromEquiv] at hs
+    exact hs.left
+  case final.nested h₁ _ _ s₂ h₂ =>
     injection (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
   case nested.final h₁ s₁ _ _ h₂ =>
     injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
@@ -38,9 +62,13 @@ theorem unique (m₁ m₂ : Member cpt i rtr) : m₁ = m₂ :=
   unique_ids.allEq m₁ m₂
 
 theorem rtr_equiv (e : rtr₁ ≈ rtr₂) : 
-    (m₁ : Member .rtr i rtr₁) → (m₂ : Member .rtr i rtr₂) →  m₁.object ≈ m₂.object
+    (m₁ : Member .rtr i rtr₁) → (m₂ : Member .rtr i rtr₂) → m₁.object ≈ m₂.object
   | root,      root      => e
   | strict s₁, strict s₂ => s₁.rtr_equiv e s₂
+
+theorem equiv_rcn_eq (e : rtr₁ ≈ rtr₂) :
+    (m₁ : Member .rcn i rtr₁) → (m₂ : Member .rcn i rtr₂) → m₁.object = m₂.object 
+  | strict s₁, strict s₂ => s₁.equiv_rcn_eq e s₂
 
 end Member
 
@@ -137,25 +165,6 @@ namespace Equivalent
 
 variable [Indexable α] {rtr₁ : α}
 
-theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] := by
-  funext i
-  cases ho : rtr₁[.rcn][i]
-  case none =>
-    apply Eq.symm
-    apply Object.not_iff_obj?_none.mp
-    intro o ob₂
-    have := Object.not_iff_obj?_none.mpr ho o
-    sorry -- I think we need to establish lemmas about Member witnesses for equivalent reactors and
-          -- hence lemmas about Object for equivalent reactors.
-  case some =>
-    sorry
-
-theorem obj?_rtr_equiv 
-    (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : n₁ ≈ n₂ := by
-  have ⟨m₁⟩ := Object.iff_obj?_some.mpr h₁
-  have ⟨m₂⟩ := Object.iff_obj?_some.mpr h₂
-  exact m₁.rtr_equiv e m₂
-
 -- TODO: Generalize this to non-Indexable reactor types.
 theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
     (∃ o₁, rtr₁[cpt][i] = some o₁) ↔ (∃ o₂, rtr₂[cpt][i] = some o₂) := by
@@ -171,103 +180,31 @@ theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
 theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
   simp [Partial.mem_iff, obj?_some_iff e]
 
-end Equivalent
+-- TODO: Generalize this to non-Indexable reactor types.
+theorem obj?_none_iff (e : rtr₁ ≈ rtr₂) : (rtr₁[cpt][i] = none) ↔ (rtr₂[cpt][i] = none) := by
+  simp [←Object.not_iff_obj?_none]
+  constructor
+  all_goals
+    intro h o ⟨m⟩
+    refine h _ ⟨m.fromEquiv ?_⟩
+  · exact Equivalent.symm e
+  · exact e
 
-/- ---------------------------------------------------------------------------------------------- -/
-namespace LawfulMemUpdate
+theorem obj?_rtr_equiv 
+    (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : n₁ ≈ n₂ := by
+  have ⟨m₁⟩ := Object.iff_obj?_some.mpr h₁
+  have ⟨m₂⟩ := Object.iff_obj?_some.mpr h₂
+  exact m₁.rtr_equiv e m₂
 
-open Indexable
-variable [a : Indexable α] {rtr₁ : α}
-
-theorem obj?_some₁ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₁[cpt][i] = some o := by
-  induction u 
-  case final         => exact ⟨_, get?_some_to_obj?_some ‹_›⟩
-  case nest h _ _ hi => exact ⟨_, obj?_some_nested h hi.choose_spec⟩
-
-theorem obj?_some₂ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₂[cpt][i] = some o := by
-  induction u 
-  case final       => exact ⟨_, get?_some_to_obj?_some ‹_›⟩
-  case nest h _ hi => exact ⟨_, obj?_some_nested h hi.choose_spec⟩
-
--- TODO: You get this theorem for free it you move these lemmas into/after Theorems/Equivalent.lean.
-theorem obj?_some_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
-    (∃ o, rtr₁[c][j] = some o) ↔ (∃ o, rtr₂[c][j] = some o) := by
-  sorry
-
-theorem obj?_none_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
-    (rtr₁[c][j] = none) ↔ (rtr₂[c][j] = none) := by
-  sorry
-
--- TODO: This is a general (perhaps very important) theorem about obj?.
-theorem obj?_some_elim {rtr : α} {i : ID} (h : rtr[cpt][i] = some o) : (rtr{cpt}{i} = some o) ∨ (∃ j con, rtr{.rtr}{j} = some con ∧ con[cpt][i] = some o) :=
-  sorry
-  -- This should be derivable directly from obj?_to_con?_and_cpt?
-
--- TODO: It feels like basing obj? on an Object predicate instead of con? would make everything so much
---       nicer. In fact, Object would be so similar to Member, that perhaps we can merge the two.
-
-theorem obj?_preserved (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) : 
-    rtr₂[c][j] = rtr₁[c][j] := by
-  cases ho₁ : rtr₁[c][j]
-  case none => simp [u.obj?_none_iff.mp ho₁]
+theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] := by
+  funext i
+  cases ho₁ : rtr₁[.rcn][i]
+  case none => simp [obj?_none_iff e |>.mp ho₁]
   case some =>
-    have ⟨_, ho₂⟩ := u.obj?_some_iff.mp ⟨_, ho₁⟩ 
-    simp [ho₂]
+    have ⟨_, ho₂⟩ := obj?_some_iff e |>.mp ⟨_, ho₁⟩ 
+    have ⟨m₁⟩ := Object.iff_obj?_some.mpr ho₁
+    have ⟨m₂⟩ := Object.iff_obj?_some.mpr ho₂
+    simp [ho₂, m₁.equiv_rcn_eq e m₂]
 
-    -- TODO: We need to somehow distinguish whether [c][j] lives in the same reactor as [cpt][i].
-    induction u
-    case final e _ _ =>
-      cases obj?_some_elim ho₁ <;> cases obj?_some_elim ho₂
-      case inl.inl h₁ h₂ =>
-        injection h₁ ▸ h₂ ▸ e (c := c) (j := j) (by simp [h]) with h
-        exact h.symm
-      case inr.inr h₁ h₂ =>
-        obtain ⟨j₁, con₁, hn₁, hc₁⟩ := h₁
-        obtain ⟨j₂, con₂, hn₂, hc₂⟩ := h₂
-        simp at hc₁ hc₂
-        have hj : j₁ = j₂ := sorry 
-        subst hj
-        have hn := e (c := .rtr) (j := j₁) (by simp [h])
-        injection hn₂ ▸ hn ▸ hn₁ with h
-        subst h
-        injection hc₁ ▸ hc₂ with h
-        exact h.symm
-      case inl.inr =>
-        simp at * -- contra
-        sorry
-      case inr.inl =>
-        simp at * -- contra
-        sorry
-    case nest =>
-      sorry
-
-theorem obj?_updated (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
-    rtr₂[cpt][i] = f <$> rtr₁[cpt][i] := by
-  induction u
-  case final h₁ h₂ => 
-    rw [get?_some_to_obj?_some h₁, get?_some_to_obj?_some h₂, Option.map_some]
-  case nest h₁ h₂ u hi =>
-    have ⟨_, h₁'⟩ := u.obj?_some₁
-    have ⟨_, h₂'⟩ := u.obj?_some₂
-    rw [obj?_some_nested h₁ h₁', obj?_some_nested h₂ h₂']
-    exact h₁' ▸ h₂' ▸ hi
-
-end LawfulMemUpdate
-
-/- ---------------------------------------------------------------------------------------------- -/
-namespace LawfulUpdate
-
-open Indexable
-variable [Indexable α] {rtr₁ : α}
-
-theorem obj?_preserved (h : c ≠ cpt ∨ j ≠ i) : 
-    (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₂[c][j] = rtr₁[c][j]
-  | update u   => u.obj?_preserved h
-  | notMem _ h => h ▸ rfl
-
-theorem obj?_updated : (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₂[cpt][i] = f <$> rtr₁[cpt][i]
-  | update u => u.obj?_updated
-  | notMem h e => by subst e; simp [member_isEmpty_obj?_none h]
-
-end LawfulUpdate
+end Equivalent
 end ReactorType

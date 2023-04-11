@@ -1,4 +1,4 @@
-import ReactorModel.Objects.Reactor.Basic
+import ReactorModel.Objects.Reactor.Updatable
 
 noncomputable section
 
@@ -260,7 +260,7 @@ end Member
 /- ---------------------------------------------------------------------------------------------- -/
 namespace Object
 
-variable [ReactorType α] {rtr : α}
+variable [ReactorType α] {rtr rtr₁ : α}
 
 theorem «def» : (Object rtr cpt i o) ↔ (∃ m : Member cpt i rtr, m.object = o) where
   mp  | ⟨m⟩    => ⟨m, rfl⟩ 
@@ -273,4 +273,19 @@ theorem not_of_member_isEmpty (h : IsEmpty $ Member cpt i rtr) (o) : ¬Object rt
   fun ⟨m⟩ => h.elim m
 
 end Object
+
+/- ---------------------------------------------------------------------------------------------- -/
+namespace LawfulMemUpdate
+
+variable [ReactorType α]
+
+def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₁
+  | final _ h _  => .final h
+  | nest _ h _ u => .nested h u.member₁
+
+def member₂ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₂
+  | final _ _ h  => .final h
+  | nest _ _ h u => .nested h u.member₂
+  
+end LawfulMemUpdate
 end ReactorType
