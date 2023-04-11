@@ -5,11 +5,17 @@ namespace ReactorType
 
 class Readable (α) extends Indexable α, Extensional α  
 
-namespace LawfulMemUpdate
+variable [Readable α] {rtr rtr₁ : α}
 
-variable [Readable α] {rtr : α}
+-- TODO: Does this require wellfoundedness?
+theorem ext_obj? 
+    (e : rtr₁ ≈ rtr₂) 
+    (h : ∀ {cpt i o₁ o₂}, (cpt ≠ .rtr) → (rtr₁[cpt][i] = some o₁) → (rtr₂[cpt][i] = some o₂) → o₁ = o₂) : 
+    rtr₁ = rtr₂ :=
+  sorry
 
-theorem unique 
+-- TODO: For simplification of this proof, see comments above `StrictMember.rtr_equiv`.
+theorem LawfulMemUpdate.unique 
     (u₁ : LawfulMemUpdate cpt i f rtr rtr₁) (u₂ : LawfulMemUpdate cpt i f rtr rtr₂) : 
     rtr₁ = rtr₂ := by
   induction u₁ generalizing rtr₂ <;> cases u₂
@@ -24,14 +30,5 @@ theorem unique
     injection (StrictMember.final h₁).unique (u.member₁.nested h₂)
   case nested.final h₁ _ u _ _ h₂ _ _ =>
     injection (StrictMember.final h₂).unique (u.member₁.nested h₁)
-
-end LawfulMemUpdate
-
-theorem LawfulUpdate.ne_comm [Indexable α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} 
-    (u₁ : LawfulUpdate cpt₁ i₁ f₁ rtr rtr₁) (u₂ : LawfulUpdate cpt₂ i₂ f₂ rtr₁ rtr₂) 
-    (u₁' : LawfulUpdate cpt₂ i₂ f₂ rtr rtr₁') (u₂' : LawfulUpdate cpt₁ i₁ f₁ rtr₁' rtr₂') 
-    (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂) : rtr₂ = rtr₂' := by
-  -- Use `obj?_preserved` and `obj?_updated`, as well as an extensionality theorem for `obj?`.
-  sorry
   
 end ReactorType

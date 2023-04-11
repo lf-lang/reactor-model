@@ -7,7 +7,7 @@ class WellIndexable (α) extends Indexable α, WellFounded α
 
 variable [WellIndexable α] {rtr₁ : α}
 
--- TODO: See comments above `StrictMember.rtr_equiv`.
+-- TODO: For simplification of this proof, see comments above `StrictMember.rtr_equiv`.
 theorem StrictMember.lawfulMemUpdate_object_preserved 
     (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) (s₁ : StrictMember c j rtr₁)
     (s₂ : StrictMember c j rtr₂) : s₁.object = s₂.object := by
