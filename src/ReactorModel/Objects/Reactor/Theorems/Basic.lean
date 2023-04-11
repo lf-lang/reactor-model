@@ -28,6 +28,10 @@ theorem mem_iff (e : rtr₁ ≃[cpt][i] rtr₂) (h : c ≠ cpt ∨ j ≠ i) : j 
   simp [Partial.mem_iff]
   exact ⟨(e h ▸ ·), (e h ▸ ·)⟩   
 
+theorem valued {c cpt : Component.Valued} (e : rtr₁ ≃[cpt][i] rtr₂) (h : c ≠ cpt ∨ j ≠ i) : 
+    rtr₁{c}{j} = rtr₂{c}{j} := 
+  e $ h.elim (by simp [*]) Or.inr  
+
 end RootEqualUpTo
 
 /- ---------------------------------------------------------------------------------------------- -/
@@ -281,11 +285,11 @@ variable [ReactorType α]
 
 def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₁
   | final _ h _  => .final h
-  | nest _ h _ u => .nested h u.member₁
+  | nested _ h _ u => .nested h u.member₁
 
 def member₂ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₂
   | final _ _ h  => .final h
-  | nest _ _ h u => .nested h u.member₂
+  | nested _ _ h u => .nested h u.member₂
   
 end LawfulMemUpdate
 end ReactorType

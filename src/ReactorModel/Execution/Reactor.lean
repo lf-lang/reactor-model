@@ -30,11 +30,12 @@ namespace Proper
 
 variable [Proper α] 
 
+-- TODO: Why do we explcitly have to write the `Updatable` here?
 def apply (rtr : α) : Change → α 
-  | .inp i v   => update rtr .inp i (fun _ => v)
-  | .out i v   => update rtr .out i (fun _ => v)
-  | .stv i v   => update rtr .stv i (fun _ => v)
-  | .act i t v => update rtr .act i (·.schedule t v)
+  | .inp i v   => Updatable.update rtr .inp i (fun _ => v)
+  | .out i v   => Updatable.update rtr .out i (fun _ => v)
+  | .stv i v   => Updatable.update rtr .stv i (fun _ => v)
+  | .act i t v => Updatable.update rtr .act i (·.schedule t v)
   | .mut ..    => rtr -- Mutations are currently no-ops.
 
 def apply' (rtr : α) (cs : List Change) : α :=
@@ -66,25 +67,25 @@ variable {rtr : α}
 
 theorem apply_input_change (h : i ∈ rtr[.inp]) : (apply rtr $ .inp i v)[.inp][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  sorry -- exact h
+  exact h
 
 theorem apply_output_change (h : i ∈ rtr[.out]) : (apply rtr $ .out i v)[.out][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  sorry -- exact h
+  exact h
 
 theorem apply_state_change (h : i ∈ rtr[.stv]) : (apply rtr $ .stv i v)[.stv][i] = some v := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  sorry -- exact h
+  exact h
 
 theorem apply_action_change (h : rtr[.act][i] = some a) : 
     (apply rtr $ .act i t v)[.act][i] = some (a.schedule t v) := by
   simp [apply, LawfulUpdatable.obj?_updated]
-  sorry -- exact ⟨_, ⟨h, rfl⟩⟩ 
+  exact ⟨_, ⟨h, rfl⟩⟩ 
 
 theorem apply_ne_target_comm (ht : c₁.target ≠ c₂.target ∨ c₁.target = none) : 
     apply (apply rtr c₁) c₂ = apply (apply rtr c₂) c₁ := by
   cases_change c₁ <;> cases_change c₂ <;> simp [apply, Change.target] at *
-  all_goals exact sorry -- LawfulUpdatable.update_ne_comm $ by simp_all
+  all_goals exact LawfulUpdatable.update_ne_comm $ by simp_all
     
 theorem apply'_equiv (rtr : α) : (cs : List Change) → (apply' rtr cs) ≈ rtr 
   | .nil        => .refl _

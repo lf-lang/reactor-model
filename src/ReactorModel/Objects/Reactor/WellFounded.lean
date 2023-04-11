@@ -12,8 +12,8 @@ class WellFounded (α) extends ReactorType α where
 variable [ReactorType.WellFounded α]
 
 theorem WellFounded.induction {motive : α → Prop} 
-    (nest : ∀ rtr, (∀ n, (∃ i, rtr{.rtr}{i} = some n) → motive n) → motive rtr) : 
+    (nested : ∀ rtr, (∀ n, (∃ i, rtr{.rtr}{i} = some n) → motive n) → motive rtr) : 
     ∀ rtr, motive rtr := 
-  (wf.induction · nest)
+  (wf.induction · nested)
 
 namespace ReactorType

@@ -11,7 +11,7 @@ inductive LawfulMemUpdate (cpt : Component.Valued) (i : ID) (f : cpt.type → cp
   | final : 
     (rtr₁ ≃[cpt][i] rtr₂) → (rtr₁{cpt}{i} = some o) → (rtr₂{cpt}{i} = f o) → 
     LawfulMemUpdate cpt i f rtr₁ rtr₂
-  | nest : 
+  | nested : 
     (rtr₁ ≃[.rtr][j] rtr₂) → (rtr₁{.rtr}{j} = some n₁) → (rtr₂{.rtr}{j} = some n₂) → 
     (LawfulMemUpdate cpt i f n₁ n₂) → LawfulMemUpdate cpt i f rtr₁ rtr₂
 

@@ -29,7 +29,7 @@ theorem obj?_preserved_id {c : Component.Valued} (h : j ≠ i) :
     (update rtr cpt i f)[c][j] = rtr[c][j] :=
   obj?_preserved $ .inr h
 
-theorem obj?_updated {rtr : α} : (update rtr cpt i f)[cpt][i] = f <$> rtr[cpt][i] :=
+theorem obj?_updated : (update rtr cpt i f)[cpt][i] = f <$> rtr[cpt][i] :=
   lawful rtr cpt i f |>.obj?_updated
 
 end LawfulUpdatable

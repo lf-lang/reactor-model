@@ -34,9 +34,6 @@ inductive StrictMember [ReactorType α] (cpt : Component) (i : ID) : α → Type
 
 namespace StrictMember
 
-abbrev final' [ReactorType α] {rtr : α} (h : i ∈ rtr{cpt}) : StrictMember cpt i rtr := 
-  final (Partial.mem_iff.mp h).choose_spec
-
 def object [ReactorType α] {rtr : α} : (StrictMember cpt i rtr) → cpt.type α
   | final (o := o) _ => o
   | nested _ m       => m.object
@@ -61,9 +58,6 @@ abbrev final (h : rtr{cpt}{i} = some o) : Member cpt i rtr :=
 @[match_pattern]
 abbrev nested (h : rtr{.rtr}{j} = some rtr') (s : StrictMember cpt i rtr') : Member cpt i rtr := 
   StrictMember.nested h s
-
-abbrev final' (h : i ∈ rtr{cpt}) : Member cpt i rtr := 
-  StrictMember.final' h
 
 def object {rtr : α} : (Member cpt i rtr) → cpt.type α
   | root     => rtr

@@ -16,13 +16,13 @@ theorem unique
   case final.final e₁ h₁ h₁' _ h₂ h₂' e₂ =>
     injection h₁ ▸ h₂ with h
     exact RootEqualUpTo.ext (RootEqualUpTo.trans e₁.symm e₂) (h₂' ▸ h ▸ h₁')
-  case nest.nest j₁ _ _ _ _ e₁ h₁ h₁' u₁ hi j₂ _ _ u₂ h₂ h₂' e₂ =>
+  case nested.nested j₁ _ _ _ _ e₁ h₁ h₁' u₁ hi j₂ _ _ u₂ h₂ h₂' e₂ =>
     have h : j₁ = j₂ := by injection (u₁.member₁.nested h₁).unique (u₂.member₁.nested h₂)
     subst h; cases h₁ ▸ h₂; cases hi u₂
     exact RootEqualUpTo.ext (RootEqualUpTo.trans e₁.symm e₂) $ h₁' ▸ h₂'.symm
-  case final.nest h₁ _ _ _ _ u h₂ _ _ =>
+  case final.nested h₁ _ _ _ _ u h₂ _ _ =>
     injection (StrictMember.final h₁).unique (u.member₁.nested h₂)
-  case nest.final h₁ _ u _ _ h₂ _ _ =>
+  case nested.final h₁ _ u _ _ h₂ _ _ =>
     injection (StrictMember.final h₂).unique (u.member₁.nested h₁)
 
 end LawfulMemUpdate

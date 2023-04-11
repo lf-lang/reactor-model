@@ -14,7 +14,7 @@ variable [WellFounded α]
 @[refl]
 theorem refl (rtr : α) : rtr ≈ rtr := by
   induction rtr using WellFounded.induction
-  case nest hi =>
+  case nested hi =>
     constructor <;> (intros; simp_all)
     exact hi _ _ ‹_›  
 
@@ -43,7 +43,7 @@ theorem LawfulMemUpdate.equiv [WellFounded α] {rtr₁ : α}
     have h := e (c := .rtr) (j := j) (.inl $ by simp)
     simp_all
     apply Equivalent.refl
-  case nest.mem_get?_iff j _ _ _ _ e h₁ h₂ _ _ =>
+  case nested.mem_get?_iff j _ _ _ _ e h₁ h₂ _ _ =>
     intro c j'
     by_cases hc : c = .rtr <;> try subst hc
     case neg => exact e.mem_iff (.inl hc)
@@ -51,11 +51,11 @@ theorem LawfulMemUpdate.equiv [WellFounded α] {rtr₁ : α}
       by_cases hj : j' = j <;> try subst hj
       case neg => exact e.mem_iff (.inr hj)
       case pos => simp [Partial.mem_iff, h₁, h₂]
-  case nest.get?_rcn_some_eq e h₁ h₂ _ _ =>
+  case nested.get?_rcn_some_eq e h₁ h₂ _ _ =>
     intro j _ _ h₁ h₂
     have h := e (c := .rcn) (j := j) (.inl $ by simp)
     simp_all
-  case nest.get?_rtr_some_equiv j _ _ _ _ e _ _ _ hi =>
+  case nested.get?_rtr_some_equiv j _ _ _ _ e _ _ _ hi =>
     intro j' n₁' n₂' h₁' h₂'
     by_cases hj : j' = j <;> try subst hj
     case pos => simp_all; assumption
@@ -75,9 +75,9 @@ variable [WellFounded α] {rtr rtr₁ : α}
 
 def fromLawfulMemUpdate {rtr₁ : α} : 
     (StrictMember c j rtr₂) → (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember c j rtr₁
-  | final h, u => final' $ (Equivalent.get?_some_iff u.equiv).mpr ⟨_, h⟩
+  | final h, u               => final $ (Equivalent.get?_some_iff u.equiv).mpr ⟨_, h⟩ |>.choose_spec
   | nested h s, .final e _ _ => nested (h ▸ e (.inl $ by simp)) s 
-  | nested h s (j := j₂), .nest e h₁ h₂ u (j := j₁) =>
+  | nested h s (j := j₂), .nested e h₁ h₂ u (j := j₁) =>
       if hj : j₂ = j₁ 
       then nested h₁ $ fromLawfulMemUpdate ((Option.some_inj.mp $ h₂ ▸ hj ▸ h) ▸ s) u
       else nested (h ▸ e $ .inr hj) s 
@@ -92,7 +92,7 @@ namespace Equivalent
 @[refl]
 theorem refl (s : StrictMember cpt i rtr) : Equivalent s s := by
   induction rtr using WellFounded.induction
-  case nest hi =>
+  case nested hi =>
     cases s
     case final    => exact final
     case nested h => exact nested _ _ (hi _ ⟨_, h⟩ _)
@@ -104,7 +104,7 @@ theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (s : Str
     Equivalent s (s.fromLawfulMemUpdate u) := by
   induction u <;> cases s <;> (simp [StrictMember.fromLawfulMemUpdate]; try exact final)
   case final.nested e _ _ _ _ _ hn => exact nested hn (e (c := .rtr) (.inl $ by simp) ▸ hn) (refl _)
-  case nest.nested e h₁ h₂ _ hi _ _ m hn =>
+  case nested.nested e h₁ h₂ _ hi _ _ m hn =>
     split
     case inl hj => cases hj; cases Option.some_inj.mp $ h₂ ▸ hn; exact nested hn h₁ (hi m)
     case inr hj => exact nested hn (hn ▸ e (.inr hj)) (refl _)

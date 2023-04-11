@@ -10,7 +10,7 @@ instance [Proper α] : Readable α where
 
 instance [Proper α] : Accessible α where
   unique_ids := Proper.unique_ids
-  wf := Proper.wf
+  wf         := Proper.wf
 
 namespace Wellformed
 
