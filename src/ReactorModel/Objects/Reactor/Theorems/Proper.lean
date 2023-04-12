@@ -96,6 +96,30 @@ theorem shared_state_local
 
 end Wellformed
 
+open Indexable in
+theorem Proper.ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂) 
+    (h : ∀ {c i o₁ o₂}, (c ≠ .rtr) → (rtr₁[c][i] = some o₁) → (rtr₂[c][i] = some o₂) → o₁ = o₂) : 
+    rtr₁ = rtr₂ := by
+  induction rtr₁ using WellFounded.induction generalizing rtr₂
+  case nested rtr₁ hi =>
+    ext1; funext cpt i
+    case _ =>
+      cases hc₁ : rtr₁{cpt}{i}
+      case none => simp [Equivalent.get?_none_iff e |>.mp hc₁]
+      case some n₁ =>
+        have ⟨n₂, hc₂⟩ := Equivalent.get?_some_iff e |>.mp ⟨_, hc₁⟩ 
+        simp [hc₂]
+        cases cpt
+        case rtr =>
+          apply hi n₁ ⟨_, hc₁⟩ $ Equivalent.get?_rtr_some_equiv e hc₁ hc₂
+          intro c _ _ _ hn ho₁ ho₂
+          cases c <;> try contradiction
+          all_goals exact h hn (obj?_some_nested hc₁ ho₁) (obj?_some_nested hc₂ ho₂)
+        all_goals 
+          have ho₁ := get?_some_to_obj?_some hc₁
+          have ho₂ := get?_some_to_obj?_some hc₂
+          exact h (by simp) ho₁ ho₂
+        
 theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} 
     (u₁ : LawfulUpdate cpt₁ i₁ f₁ rtr rtr₁) (u₂ : LawfulUpdate cpt₂ i₂ f₂ rtr₁ rtr₂) 
     (u₁' : LawfulUpdate cpt₂ i₂ f₂ rtr rtr₁') (u₂' : LawfulUpdate cpt₁ i₁ f₁ rtr₁' rtr₂') 
@@ -103,7 +127,7 @@ theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α
   have e₁ := Equivalent.trans u₁.equiv u₂.equiv
   have e₂ := Equivalent.trans u₁'.equiv u₂'.equiv
   have e := Equivalent.trans (Equivalent.symm e₁) e₂
-  apply ext_obj? e
+  apply Proper.ext_obj? e
   intro cpt i _ _ hc ho₁ ho₂
   cases cpt
   case rtr => contradiction

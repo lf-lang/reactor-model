@@ -159,6 +159,11 @@ theorem mem_get?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rt
     (hc₁ : j ∈ con₁{cpt}) (hc₂ : j ∈ con₂{cpt}) : c₁ = c₂ :=
   get?_some_rtr_eq ho₁ ho₂ (Partial.mem_iff.mp hc₁).choose_spec (Partial.mem_iff.mp hc₂).choose_spec
 
+theorem obj?_none_to_get?_none {i : ID} (ho : rtr[cpt][i] = none) : rtr{cpt}{i} = none := by
+  replace ho := Object.not_iff_obj?_none.mpr ho
+  by_contra h
+  exact ho _ ⟨.final $ Option.ne_none_iff_exists.mp h |>.choose_spec.symm⟩ 
+
 end Indexable
 
 namespace Equivalent

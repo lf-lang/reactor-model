@@ -92,6 +92,10 @@ theorem get?_some_iff (e : rtr₁ ≈ rtr₂) :
     (∃ o, rtr₁{cpt}{i} = some o) ↔ (∃ o, rtr₂{cpt}{i} = some o) := by
   simp [←Partial.mem_iff, mem_get?_iff e]
 
+theorem get?_none_iff (e : rtr₁ ≈ rtr₂) : (rtr₁{cpt}{i} = none) ↔ (rtr₂{cpt}{i} = none) := by
+  simp only [Option.eq_none_iff_forall_not_mem, ←not_exists]
+  simp [get?_some_iff e]
+
 theorem get?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₂{.rcn} = rtr₁{.rcn} := by
   funext i
   by_cases h₁ : ∃ o, rtr₁{.rcn}{i} = some o

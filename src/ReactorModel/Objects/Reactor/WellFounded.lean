@@ -9,7 +9,7 @@ def Nested [ReactorType α] (rtr₁ rtr₂ : α) : Prop :=
 class WellFounded (α) extends ReactorType α where
   wf : WellFounded $ Nested (α := α)
 
-variable [ReactorType.WellFounded α]
+variable [WellFounded α]
 
 theorem WellFounded.induction {motive : α → Prop} 
     (nested : ∀ rtr, (∀ n, (∃ i, rtr{.rtr}{i} = some n) → motive n) → motive rtr) : 

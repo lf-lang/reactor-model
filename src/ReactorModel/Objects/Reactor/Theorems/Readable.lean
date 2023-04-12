@@ -7,13 +7,6 @@ class Readable (α) extends Indexable α, Extensional α
 
 variable [Readable α] {rtr rtr₁ : α}
 
--- TODO: Does this require wellfoundedness?
-theorem ext_obj? 
-    (e : rtr₁ ≈ rtr₂) 
-    (h : ∀ {cpt i o₁ o₂}, (cpt ≠ .rtr) → (rtr₁[cpt][i] = some o₁) → (rtr₂[cpt][i] = some o₂) → o₁ = o₂) : 
-    rtr₁ = rtr₂ :=
-  sorry
-
 -- TODO: For simplification of this proof, see comments above `StrictMember.rtr_equiv`.
 theorem LawfulMemUpdate.unique 
     (u₁ : LawfulMemUpdate cpt i f rtr rtr₁) (u₂ : LawfulMemUpdate cpt i f rtr rtr₂) : 

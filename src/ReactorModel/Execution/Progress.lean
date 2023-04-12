@@ -16,8 +16,9 @@ structure State.Terminal (s : State α) : Prop where
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.
+-- TODO: This isn't exactly what we want. The freshness condition is too restrictive.
 def Progress (rtr : α) : Prop :=
-  ∀ {s : State α}, (s.rtr = rtr) → ¬s.Terminal → (∃ s', s ⇓ s')    
+  ∀ {s : State α}, (s.rtr = rtr) → (s.progress = ∅) → ¬s.Terminal → (∃ s', s ⇓ s')    
 
 theorem Progress.iff_deps_acyclic {rtr : α} : (Progress rtr) ↔ (Dependency.Acyclic rtr) :=
   sorry
