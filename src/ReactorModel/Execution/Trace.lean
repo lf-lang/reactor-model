@@ -49,14 +49,14 @@ abbrev ClosedExecution.rcns {s₁ s₂ : State α} (e : s₁ ⇓| s₂) : List I
 
 end Instantaneous
 
--- Note: We don't clear the ports here.
+-- TODO: We don't clear the ports here yet.
 structure AdvanceTag (s₁ s₂ : State α) where
   closed : s₁.Closed 
   advance : s₁.Advance s₂
 
 notation s₁:max " ⇓- " s₂:max => AdvanceTag s₁ s₂
 
-inductive Step (s₁ s₂ : State α)
+inductive Step (s₁ s₂ : State α) : Prop
   | close (h : s₁ ⇓| s₂)
   | advance (h : s₁ ⇓- s₂)
 
@@ -66,7 +66,7 @@ end Execution
 
 open Execution
 
-inductive Execution : State α → State α → Type
+inductive Execution : State α → State α → Prop
   | refl : Execution s s
   | step : (s₁ ⇓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 

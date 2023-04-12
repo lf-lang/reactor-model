@@ -22,8 +22,8 @@ theorem tag_lt (a : s₁ ⇓- s₂) : s₁.tag < s₂.tag :=
 theorem tag_ne (a : s₁ ⇓- s₂) : s₁.tag ≠ s₂.tag :=
   ne_of_lt a.tag_lt
 
-theorem determinisic (a₁ : s ⇓- s₁) (a₂ : s ⇓- s₂) : s₁ = s₂ :=
-  a₁.advance.determinisic a₂.advance
+theorem deterministic (a₁ : s ⇓- s₁) (a₂ : s ⇓- s₂) : s₁ = s₂ :=
+  a₁.advance.deterministic a₂.advance
 
 instance preserves_Nontrivial [State.Nontrivial s₁] {e : s₁ ⇓- s₂} : State.Nontrivial s₂ :=
   e.advance.preserves_Nontrivial
@@ -107,7 +107,7 @@ theorem Instantaneous.ClosedExecution.deterministic (e₁ : s ⇓| s₁) (e₂ :
 
 theorem Step.deterministic : (s ⇓ s₁) → (s ⇓ s₂) → s₁ = s₂
   | close e₁, close e₂                      => e₁.deterministic e₂
-  | advance a₁, advance a₂                  => a₁.determinisic a₂
+  | advance a₁, advance a₂                  => a₁.deterministic a₂
   | close e, advance a | advance a, close e => e.step_determined a |>.elim
 
 end Execution

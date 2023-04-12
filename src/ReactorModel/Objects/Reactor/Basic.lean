@@ -41,7 +41,7 @@ def object [ReactorType α] {rtr : α} : (StrictMember cpt i rtr) → cpt.type �
 end StrictMember
 
 inductive Member [ReactorType α] : (cpt : Component) → (i : cpt.idType) → α → Type 
-  | root   :  Member .rtr ⊤ rtr
+  | root   : Member .rtr ⊤ rtr
   | strict : (StrictMember cpt i rtr) → Member cpt i rtr 
 
 namespace Member

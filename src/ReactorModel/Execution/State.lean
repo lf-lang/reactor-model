@@ -134,7 +134,7 @@ theorem progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
 instance preserves_Nontrivial [inst : Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
   | mk .. => ⟨inst.nontrivial⟩
 
-theorem determinisic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
+theorem deterministic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
   | mk h₁, mk h₂ => by ext1 <;> simp [h₁.deterministic h₂]
   
 theorem tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag

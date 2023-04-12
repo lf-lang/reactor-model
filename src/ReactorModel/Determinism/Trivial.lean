@@ -50,32 +50,36 @@ end
 
 namespace AdvanceTag 
 
-inductive RTC : State α → State α → Type
+inductive RTC : State α → State α → Prop
   | refl : RTC s s
   | trans : (s₁ ⇓- s₂) → (RTC s₂ s₃) → RTC s₁ s₃   
 
-theorem RTC.tag_le {s₁ s₂ : State α} : (AdvanceTag.RTC s₁ s₂) → s₁.tag ≤ s₂.tag
-  | refl       => le_refl _
-  | trans a a' => le_trans (le_of_lt a.tag_lt) a'.tag_le
+theorem RTC.tag_le {s₁ s₂ : State α} (a : AdvanceTag.RTC s₁ s₂) : s₁.tag ≤ s₂.tag := by
+  induction a with
+  | refl         => exact le_refl _
+  | trans a _ hi => exact le_trans (le_of_lt a.tag_lt) hi
 
-theorem RTC.deterministic {s s₁ s₂ : State α} (ht : s₁.tag = s₂.tag) : 
-    (AdvanceTag.RTC s s₁) → (AdvanceTag.RTC s s₂) → s₁ = s₂
-  | refl,         refl         => rfl
-  | refl,         trans a a'   => absurd ht      (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
-  | trans a a',   refl         => absurd ht.symm (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
-  | trans a₁ a₁', trans a₂ a₂' => a₁'.deterministic ht (a₂.determinisic a₁ ▸ a₂')
-
+theorem RTC.deterministic {s s₁ s₂ : State α} 
+    (ht : s₁.tag = s₂.tag) (a₁ : AdvanceTag.RTC s s₁) (a₂ : AdvanceTag.RTC s s₂) : s₁ = s₂ := by
+  induction a₁ generalizing s₂ <;> cases a₂
+  case refl.refl         => rfl
+  case refl.trans a a'   => exact absurd ht      (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
+  case trans.refl a a' _ => exact absurd ht.symm (ne_of_lt $ lt_of_lt_of_le a.tag_lt a'.tag_le)
+  case trans.trans a₁ a₁' hi _ a₂ a₂' => exact hi ht (a₂.deterministic a₁ ▸ a₂')
+  
 end AdvanceTag
 
-def to_AdvanceTagRTC {s₁ s₂ : State α} (triv : s₁.Trivial) : (s₁ ⇓* s₂) → AdvanceTag.RTC s₁ s₂
-  | refl                 => .refl
-  | step (.advance a) e' => .trans a (e'.to_AdvanceTagRTC $ a.preserves_Trivial triv)
-  | step (.close e) e'   => e.trivial_eq triv ▸ (e'.to_AdvanceTagRTC $ e.preserves_Trivial triv)
+theorem to_advanceTagRTC {s₁ s₂ : State α} (triv : s₁.Trivial) (e : s₁ ⇓* s₂) : 
+    AdvanceTag.RTC s₁ s₂ := by
+  induction e <;> try cases ‹_ ⇓ _›
+  case refl              => exact .refl  
+  case step.advance hi a => exact .trans a (hi $ a.preserves_Trivial triv)
+  case step.close hi e   => exact e.trivial_eq triv ▸ (hi $ e.preserves_Trivial triv)
 
 theorem trivial_deterministic {s : State α}
     (triv : ¬s.Nontrivial) (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
   AdvanceTag.RTC.deterministic ht
-    (e₁.to_AdvanceTagRTC $ .of_not_Nontrivial triv) 
-    (e₂.to_AdvanceTagRTC $ .of_not_Nontrivial triv) 
+    (e₁.to_advanceTagRTC $ .of_not_Nontrivial triv) 
+    (e₂.to_advanceTagRTC $ .of_not_Nontrivial triv) 
 
 end Execution
