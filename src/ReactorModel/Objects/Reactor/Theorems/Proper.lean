@@ -98,7 +98,8 @@ end Wellformed
 
 open Indexable in
 theorem Proper.ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂) 
-    (h : ∀ {c i o₁ o₂}, (c ≠ .rtr) → (rtr₁[c][i] = some o₁) → (rtr₂[c][i] = some o₂) → o₁ = o₂) : 
+    (h : ∀ {c : Component.Valued} {i o₁ o₂}, 
+          (rtr₁[c][i] = some o₁) → (rtr₂[c][i] = some o₂) → o₁ = o₂) : 
     rtr₁ = rtr₂ := by
   induction rtr₁ using WellFounded.induction generalizing rtr₂
   case nested rtr₁ hi =>
@@ -110,15 +111,15 @@ theorem Proper.ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂)
         have ⟨n₂, hc₂⟩ := Equivalent.get?_some_iff e |>.mp ⟨_, hc₁⟩ 
         simp [hc₂]
         cases cpt
+        case rcn => exact Equivalent.get?_rcn_some_eq e hc₁ hc₂
         case rtr =>
           apply hi n₁ ⟨_, hc₁⟩ $ Equivalent.get?_rtr_some_equiv e hc₁ hc₂
-          intro c _ _ _ hn ho₁ ho₂
-          cases c <;> try contradiction
-          all_goals exact h hn (obj?_some_nested hc₁ ho₁) (obj?_some_nested hc₂ ho₂)
+          intro c _ _ _ ho₁ ho₂
+          exact h (obj?_some_nested hc₁ ho₁) (obj?_some_nested hc₂ ho₂)
         all_goals 
           have ho₁ := get?_some_to_obj?_some hc₁
           have ho₂ := get?_some_to_obj?_some hc₂
-          exact h (by simp) ho₁ ho₂
+          exact h ho₁ ho₂
         
 theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} 
     (u₁ : LawfulUpdate cpt₁ i₁ f₁ rtr rtr₁) (u₂ : LawfulUpdate cpt₂ i₂ f₂ rtr₁ rtr₂) 
@@ -128,42 +129,38 @@ theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α
   have e₂ := Equivalent.trans u₁'.equiv u₂'.equiv
   have e := Equivalent.trans (Equivalent.symm e₁) e₂
   apply Proper.ext_obj? e
-  intro cpt i _ _ hc ho₁ ho₂
-  cases cpt
-  case rtr => contradiction
-  case rcn => simp_all [Equivalent.obj?_rcn_eq e]
-  case val cpt _ _ =>
-    -- TODO: Simplify this case bashing a bit when this is fixed:
-    --       https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/by_cases.20tags.20bug/near/345415921
-    by_cases hc₁ : cpt = cpt₁ <;> by_cases hc₂ : cpt = cpt₂ <;> ((try subst hc₁); try subst hc₂)
-    · by_cases hi₁ : i = i₁ <;> by_cases hi₂ : i = i₂ <;> ((try subst hi₁); try subst hi₂)
-      · simp at h
-      · have h₁ := u₁.obj?_updated ▸ u₂.obj?_preserved (.inr hi₂) 
-        have h₂ := u₁'.obj?_preserved (.inr hi₂) ▸ u₂'.obj?_updated  
-        injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
-      · have h₁ := u₁.obj?_preserved (.inr hi₁) ▸ u₂.obj?_updated
-        have h₂ := u₁'.obj?_updated ▸ u₂'.obj?_preserved (.inr hi₁)
-        injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
-      · have := u₁.obj?_preserved  (.inr hi₁) ▸ u₂.obj?_preserved  (.inr hi₂) 
-        have := u₁'.obj?_preserved (.inr hi₂) ▸ u₂'.obj?_preserved (.inr hi₁)
-        simp_all
-    · by_cases hi₁ : i = i₁ <;> try subst hi₁
-      · have h₁ := u₁.obj?_updated ▸ u₂.obj?_preserved (.inl hc₂) 
-        have h₂ := u₁'.obj?_preserved (.inl hc₂) ▸ u₂'.obj?_updated  
-        injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
-      · have := u₁.obj?_preserved  (.inr hi₁) ▸ u₂.obj?_preserved (.inl hc₂) 
-        have := u₁'.obj?_preserved (.inl hc₂) ▸ u₂'.obj?_preserved (.inr hi₁)
-        simp_all
-    · by_cases hi₂ : i = i₂ <;> try subst hi₂
-      · have h₁ := u₁.obj?_preserved (.inl hc₁) ▸ u₂.obj?_updated 
-        have h₂ := u₁'.obj?_updated ▸ u₂'.obj?_preserved (.inl hc₁)  
-        injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
-      · have := u₁.obj?_preserved  (.inl hc₁) ▸ u₂.obj?_preserved (.inr hi₂) 
-        have := u₁'.obj?_preserved (.inr hi₂) ▸ u₂'.obj?_preserved (.inl hc₁)
-        simp_all
-    · have := u₁.obj?_preserved  (j := i) (.inl hc₁) ▸ u₂.obj?_preserved  (.inl hc₂) 
-      have := u₁'.obj?_preserved (j := i) (.inl hc₂) ▸ u₂'.obj?_preserved (.inl hc₁)
+  intro cpt i _ _ ho₁ ho₂
+  -- TODO: Simplify this case bashing a bit when this is fixed:
+  --       https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/by_cases.20tags.20bug/near/345415921
+  by_cases hc₁ : cpt = cpt₁ <;> by_cases hc₂ : cpt = cpt₂ <;> ((try subst hc₁); try subst hc₂)
+  · by_cases hi₁ : i = i₁ <;> by_cases hi₂ : i = i₂ <;> ((try subst hi₁); try subst hi₂)
+    · simp at h
+    · have h₁ := u₁.obj?_updated ▸ u₂.obj?_preserved (.inr hi₂) 
+      have h₂ := u₁'.obj?_preserved (.inr hi₂) ▸ u₂'.obj?_updated  
+      injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
+    · have h₁ := u₁.obj?_preserved (.inr hi₁) ▸ u₂.obj?_updated
+      have h₂ := u₁'.obj?_updated ▸ u₂'.obj?_preserved (.inr hi₁)
+      injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
+    · have := u₁.obj?_preserved  (.inr hi₁) ▸ u₂.obj?_preserved  (.inr hi₂) 
+      have := u₁'.obj?_preserved (.inr hi₂) ▸ u₂'.obj?_preserved (.inr hi₁)
       simp_all
+  · by_cases hi₁ : i = i₁ <;> try subst hi₁
+    · have h₁ := u₁.obj?_updated ▸ u₂.obj?_preserved (.inl hc₂) 
+      have h₂ := u₁'.obj?_preserved (.inl hc₂) ▸ u₂'.obj?_updated  
+      injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
+    · have := u₁.obj?_preserved  (.inr hi₁) ▸ u₂.obj?_preserved (.inl hc₂) 
+      have := u₁'.obj?_preserved (.inl hc₂) ▸ u₂'.obj?_preserved (.inr hi₁)
+      simp_all
+  · by_cases hi₂ : i = i₂ <;> try subst hi₂
+    · have h₁ := u₁.obj?_preserved (.inl hc₁) ▸ u₂.obj?_updated 
+      have h₂ := u₁'.obj?_updated ▸ u₂'.obj?_preserved (.inl hc₁)  
+      injection ho₁ ▸ h₂.trans h₁.symm ▸ ho₂
+    · have := u₁.obj?_preserved  (.inl hc₁) ▸ u₂.obj?_preserved (.inr hi₂) 
+      have := u₁'.obj?_preserved (.inr hi₂) ▸ u₂'.obj?_preserved (.inl hc₁)
+      simp_all
+  · have := u₁.obj?_preserved  (j := i) (.inl hc₁) ▸ u₂.obj?_preserved  (.inl hc₂) 
+    have := u₁'.obj?_preserved (j := i) (.inl hc₂) ▸ u₂'.obj?_preserved (.inl hc₁)
+    simp_all
 
 open Updatable in
 theorem LawfulUpdatable.update_ne_comm [Proper α] {rtr : α} (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂):

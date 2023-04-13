@@ -18,6 +18,10 @@ namespace State
 class Nontrivial (s : State α) : Prop where
   nontrivial : s.rtr[.rcn].Nonempty
 
+theorem Nontrivial.equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) [n : Nontrivial s₁] : 
+    Nontrivial s₂ :=
+  ⟨Equivalent.obj?_rcn_eq e ▸ n.nontrivial⟩ 
+
 def Closed (s : State α) : Prop := 
   s.progress = s.rtr[.rcn].ids
 
@@ -122,23 +126,23 @@ theorem NextTag.deterministic {s : State α} (n₁ : NextTag s g₁) (n₂ : Nex
   n₁.isLeast.unique n₂.isLeast
 
 inductive Advance : State α → State α → Prop 
-  | mk : (NextTag s next) → Advance s { s with tag := next, progress := ∅ }
+  | intro : (NextTag s g) → (Cleared s.rtr c) → Advance s { rtr := c, tag := g, progress := ∅ }
 
 namespace Advance
 
 variable {s₁ s₂ : State α} 
 
 theorem progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
-  | mk .. => rfl
+  | ⟨_, _⟩ => rfl
 
-instance preserves_Nontrivial [inst : Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
-  | mk .. => ⟨inst.nontrivial⟩
+instance preserves_Nontrivial [Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
+  | ⟨_, c⟩ => Nontrivial.equiv c.equiv
 
 theorem deterministic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
-  | mk h₁, mk h₂ => by ext1 <;> simp [h₁.deterministic h₂]
+  | ⟨n₁, c₁⟩, ⟨n₂, c₂⟩ => by ext1 <;> simp [n₁.deterministic n₂, c₁.deterministic c₂]
   
 theorem tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
-  | mk h => h.bound
+  | ⟨h, _⟩ => h.bound
 
 end Advance
 end State

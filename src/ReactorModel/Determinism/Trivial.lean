@@ -11,6 +11,9 @@ variable {s s₁ : State α} in section
 abbrev State.Trivial (s : State α) : Prop := 
   s.rtr[.rcn] = ∅
 
+theorem State.Trivial.equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) (t : s₁.Trivial) : s₂.Trivial :=
+  Equivalent.obj?_rcn_eq e |>.symm.trans t
+
 theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial :=
   byContradiction (h ⟨·⟩)
 
@@ -36,7 +39,7 @@ theorem ClosedExecution.trivial_eq (e : s₁ ⇓| s₂) : s₁ = s₂ :=
 end Instantaneous
 
 theorem State.Advance.preserves_Trivial : (Advance s₁ s₂) → s₂.Trivial
-  | mk .. => triv
+  | ⟨_, c⟩ => triv.equiv c.equiv
 
 theorem AdvanceTag.preserves_Trivial (a : s₁ ⇓- s₂) : s₂.Trivial :=
   a.advance.preserves_Trivial triv
