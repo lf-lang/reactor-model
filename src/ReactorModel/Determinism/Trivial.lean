@@ -26,9 +26,8 @@ theorem Step.not_Trivial (e : s₁ ⇓ᵢ s₂) : ¬s₁.Trivial := by
   simp [State.Trivial, Partial.empty_iff] at ht
   cases (Partial.mem_iff.mp e.allows_rcn.mem).choose_spec ▸ ht e.rcn  
 
-theorem Execution.trivial_eq : (s₁ ⇓ᵢ* s₂) → s₁ = s₂
-  | refl      => rfl
-  | trans e _ => absurd triv e.not_Trivial 
+theorem Execution.trivial_eq : (s₁ ⇓ᵢ+ s₂) → s₁ = s₂
+  | single e | trans e _ => absurd triv e.not_Trivial 
 
 theorem ClosedExecution.preserves_Trivial {e : s₁ ⇓| s₂} : s₂.Trivial := by
   simp [State.Trivial, ←Equivalent.obj?_rcn_eq e.equiv, triv]

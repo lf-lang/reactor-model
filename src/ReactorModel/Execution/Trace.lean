@@ -25,21 +25,18 @@ def allows_rcn : (e : s₁ ⇓ᵢ s₂) → s₁.Allows e.rcn
 
 end Step
 
--- TODO?: Once all else is settled, return this to being only transitive but not reflexive.
---        Then you can remove the `fresh` condiction on `ClosedExecution`.
 inductive Execution : State α → State α → Type
-  | refl : Execution s s
-  | trans : (s₁ ⇓ᵢ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
+  | single : (s₁ ⇓ᵢ s₂) → Execution s₁ s₂
+  | trans  : (s₁ ⇓ᵢ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 
-notation s₁:max " ⇓ᵢ* " s₂:max => Execution s₁ s₂
+notation s₁:max " ⇓ᵢ+ " s₂:max => Execution s₁ s₂
 
-def Execution.rcns {s₁ s₂ : State α} : (s₁ ⇓ᵢ* s₂) → List ID
-  | refl => []
+def Execution.rcns {s₁ s₂ : State α} : (s₁ ⇓ᵢ+ s₂) → List ID
+  | single e => [e.rcn]
   | trans hd tl => hd.rcn :: tl.rcns
 
 structure ClosedExecution (s₁ s₂ : State α) where  
-  exec   : s₁ ⇓ᵢ* s₂
-  fresh  : s₁.progress = ∅ 
+  exec   : s₁ ⇓ᵢ+ s₂
   closed : s₂.Closed
   
 notation s₁:max " ⇓| " s₂:max => ClosedExecution s₁ s₂

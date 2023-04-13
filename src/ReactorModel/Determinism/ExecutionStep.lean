@@ -34,9 +34,14 @@ namespace Instantaneous
 namespace ClosedExecution
 
 theorem not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := by
-  simp [Closed]
+  sorry
+  /-simp [Closed]
   have h := Partial.Nonempty.iff_ids_nonempty.mp $ State.Nontrivial.nontrivial (s := s₁)
   exact e.fresh ▸ h.ne_empty.symm 
+  -/
+
+theorem acyclic (e : s₁ ⇓| s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn :=
+  e.exec.acyclic h
 
 theorem preserves_tag (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
   e.exec.preserves_tag
@@ -52,6 +57,10 @@ theorem progress_def (e : s₁ ⇓| s₂) : s₂.progress = s₁.rtr[.rcn].ids :
 
 theorem mem_rcns_iff (e : s₁ ⇓| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr[.rcn] ∧ rcn ∉ s₁.progress) := by
   simp [Partial.mem_def, e.progress_def ▸ e.exec.mem_rcns_iff (rcn := rcn)]
+
+theorem progress_empty_mem_rcns_iff (e : s₁ ⇓| s₂) (h : s₁.progress = ∅) : 
+    (rcn ∈ e.rcns) ↔ rcn ∈ s₁.rtr[.rcn] := by
+  simp [e.mem_rcns_iff, h]
 
 theorem rcns_perm (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : e₁.rcns ~ e₂.rcns := by
   simp [List.perm_ext e₁.rcns_Nodup e₂.rcns_Nodup, e₁.mem_rcns_iff, e₂.mem_rcns_iff]
@@ -73,9 +82,11 @@ theorem nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| s₃) : False :=
   e₂.not_Closed e₁.closed
 
 theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress := by
-  have := e.preserves_Nontrivial -- TODO: Make this work via type class inference.
+  sorry
+  /-have := e.preserves_Nontrivial -- TODO: Make this work via type class inference.
   rw [e.fresh]
   exact e.closed.progress_Nonempty.empty_ssubset
+  -/
 
 end ClosedExecution
 end Instantaneous
@@ -95,6 +106,10 @@ theorem seq_tag_lt : (s₁ ⇓ s₂) → (s₂ ⇓ s₃) → s₁.tag < s₃.tag
 instance preserves_Nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → State.Nontrivial s₂
   | close e   => e.preserves_Nontrivial
   | advance a => a.preserves_Nontrivial
+
+theorem resolve_close : (e : s₁ ⇓ s₂) → ¬s₁.Closed → (s₁ ⇓| s₂)
+  | close e  , _ => e
+  | advance a, h => absurd a.closed h
 
 end Step
 
