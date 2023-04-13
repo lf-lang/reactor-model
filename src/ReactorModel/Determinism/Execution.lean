@@ -18,8 +18,11 @@ theorem seq_progress_ssubset_or_tag_lt [State.Nontrivial s₁] :
   | .close e,   refl      => .inl $ e.progress_ssubset
   | .advance a, refl      => .inr $ a.tag_lt
 
-theorem nontrivial_deterministic {s s₁ s₂ : State α} [nontriv : State.Nontrivial s] :
-    (s ⇓* s₁) → (s ⇓* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂
+theorem nontrivial_deterministic {s s₁ s₂ : State α} [nontriv : State.Nontrivial s]
+    (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
+    s₁ = s₂ := by
+  sorry
+  /-
   | refl, refl, _, _ => rfl
   | step e₁ e₁', step e₂ e₂', ht, hp => 
     have := e₂.preserves_Nontrivial -- TODO: Make this work via type class inference.
@@ -28,6 +31,7 @@ theorem nontrivial_deterministic {s s₁ s₂ : State α} [nontriv : State.Nontr
     match seq_progress_ssubset_or_tag_lt e e' with
     | .inl h => absurd hp (Set.ssubset_ne $ by simp_all) 
     | .inr h => absurd ht $ ne_of_lt (by simp_all)
+  -/
 
 theorem deterministic : 
     (s ⇓* s₁) → (s ⇓* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂ := 

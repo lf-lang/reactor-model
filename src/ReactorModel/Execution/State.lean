@@ -25,7 +25,7 @@ theorem Nontrivial.equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) [n :
 def Closed (s : State α) : Prop := 
   s.progress = s.rtr[.rcn].ids
 
-theorem Closed.progress_Nonempty {s : State α} [n : Nontrivial s] (h : Closed s) : 
+theorem Closed.progress_Nonempty {s : State α} [Nontrivial s] (h : Closed s) : 
     s.progress.Nonempty := by
   simp_all [Closed, ←Partial.Nonempty.iff_ids_nonempty]
   exact Nontrivial.nontrivial

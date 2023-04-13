@@ -107,8 +107,8 @@ instance preserves_Nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → Stat
   | close e   => e.preserves_Nontrivial
   | advance a => a.preserves_Nontrivial
 
-theorem resolve_close : (e : s₁ ⇓ s₂) → ¬s₁.Closed → (s₁ ⇓| s₂)
-  | close e  , _ => e
+theorem resolve_close : (e : s₁ ⇓ s₂) → ¬s₁.Closed → Nonempty (s₁ ⇓| s₂)
+  | close e  , _ => ⟨e⟩
   | advance a, h => absurd a.closed h
 
 end Step

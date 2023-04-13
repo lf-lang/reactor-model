@@ -1,5 +1,7 @@
 import Mathlib.Data.Finmap
 
+open Classical
+
 namespace Set 
 
 theorem insert_union' (s₁ s₂ : Set α) (a : α) : (insert a s₁) ∪ s₂ = s₁ ∪ (insert a s₂) := by
@@ -25,7 +27,7 @@ instance {α β : Type _} : EmptyCollection (α ⇀ β) where
 theorem empty_iff {f : α ⇀ β} : (f = ∅) ↔ (∀ a, f a = none) where
   mp h _ := h ▸ rfl
   mpr h := funext h  
-  
+
 def Nonempty (f : α ⇀ β) : Prop :=
   f ≠ ∅  
 
@@ -34,11 +36,21 @@ def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
 theorem empty_iff_ids_empty {f : α ⇀ β} : (f = ∅) ↔ (f.ids = ∅) := by
   simp [ids, empty_iff, Set.eq_empty_iff_forall_not_mem, Option.eq_none_iff_forall_not_mem]
 
-theorem Nonempty.def {f : α ⇀ β} : f.Nonempty ↔ (f ≠ ∅) :=
+theorem empty_ids : (∅ : α ⇀ β).ids = ∅ := 
+  empty_iff_ids_empty.mp rfl
+
+namespace Nonempty
+
+theorem «def» {f : α ⇀ β} : f.Nonempty ↔ (f ≠ ∅) :=
   Iff.refl _ 
 
-theorem Nonempty.iff_ids_nonempty {f : α ⇀ β} : f.Nonempty ↔ f.ids.Nonempty := by
+theorem not_to_empty {f : α ⇀ β} (h : ¬f.Nonempty) : f = ∅ :=
+  byContradiction (Nonempty.def.not.mp h ·)
+
+theorem iff_ids_nonempty {f : α ⇀ β} : f.Nonempty ↔ f.ids.Nonempty := by
   simp [Nonempty, Set.nonempty_iff_ne_empty, empty_iff_ids_empty]
+
+end Nonempty
 
 instance : Membership α (α ⇀ β) where
   mem a f := a ∈ f.ids 
@@ -48,6 +60,9 @@ theorem mem_def {f : α ⇀ β} : (a ∈ f) ↔ (a ∈ f.ids) := by
 
 theorem mem_iff {f : α ⇀ β} : (a ∈ f) ↔ (∃ b, f a = some b) := by
   rfl
+
+theorem not_mem_empty {a : α} : a ∉ (∅ : α ⇀ β) := by
+  simp [mem_def, empty_ids]
 
 def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
   fun a => 

@@ -11,11 +11,27 @@ variable {s s₁ : State α} in section
 abbrev State.Trivial (s : State α) : Prop := 
   s.rtr[.rcn] = ∅
 
-theorem State.Trivial.equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) (t : s₁.Trivial) : s₂.Trivial :=
+namespace State
+namespace Trivial
+
+theorem equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) (t : s₁.Trivial) : s₂.Trivial :=
   Equivalent.obj?_rcn_eq e |>.symm.trans t
 
-theorem State.Trivial.of_not_Nontrivial (h : ¬Nontrivial s) : s.Trivial :=
+theorem of_not_nontrivial (h : ¬Nontrivial s) : s.Trivial :=
   byContradiction (h ⟨·⟩)
+
+theorem closed (h : Trivial s) : s.Closed := by
+  simp [Closed] -- TODO: We run into a problem here: `progress` might contain reactions that aren't
+                --       in `s.rtr[.rcn]`. We might be able to circumvent this issue by changing the 
+                --       definition of `Closed` to a `⊆` instead of `=`.
+                --       Alternatives:
+                --       * Change the definition of `State` to include this fact as a requirement.
+                --       * Change the definition of `Progress` (the only place where this theorem is
+                --         currently being used) to include this as a requirement.
+  sorry
+
+end Trivial
+end State
 
 variable (triv : s₁.Trivial) in section
 
@@ -81,7 +97,7 @@ theorem to_advanceTagRTC {s₁ s₂ : State α} (triv : s₁.Trivial) (e : s₁ 
 theorem trivial_deterministic {s : State α}
     (triv : ¬s.Nontrivial) (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
   AdvanceTag.RTC.deterministic ht
-    (e₁.to_advanceTagRTC $ .of_not_Nontrivial triv) 
-    (e₂.to_advanceTagRTC $ .of_not_Nontrivial triv) 
+    (e₁.to_advanceTagRTC $ .of_not_nontrivial triv) 
+    (e₂.to_advanceTagRTC $ .of_not_nontrivial triv) 
 
 end Execution
