@@ -1,12 +1,12 @@
 import ReactorModel.Determinism.State
 
-open Classical ReactorType Proper
+open Classical ReactorType Practical
 
 namespace Execution
 namespace Instantaneous
 namespace Step
 
-variable [Proper α] {s₁ s₂ : State α} in section
+variable [Practical α] {s₁ s₂ : State α} in section
   
 theorem mem_progress_iff : (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress)
   | skip .. | exec .. => s₁.mem_record_progress_iff _ _
@@ -52,7 +52,7 @@ theorem seq_rcn_ne (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) : e₁.rc
 
 end
 
-variable [Proper α] {s₁ s₂ s₃ : State α}
+variable [Practical α] {s₁ s₂ s₃ : State α}
 
 theorem prepend_indep' (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
     ∃ (s₂' : _) (s₃' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃'), 

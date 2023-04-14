@@ -2,7 +2,7 @@ import ReactorModel.Execution.Trace
 import ReactorModel.Determinism.Execution
 
 noncomputable section
-open ReactorType Proper FiniteUpdatable Classical
+open ReactorType Practical FiniteUpdatable Classical
 
 -- TODO: Move the Determinism folder into the Execution folder.
 --       Perhaps also rename it to Theorems, as it contains many lemmas which aren't only relevant
@@ -16,18 +16,18 @@ def clear (rtr : α) : α :=
   update' (update' rtr .inp .absent) .out .absent
 
 theorem clear_cleared (rtr : α) : Cleared rtr (clear rtr) where
-  equiv := Equivalent.trans update'_equiv update'_equiv
+  equiv    := Equivalent.trans update'_equiv update'_equiv
   eq_state := sorry
-  eq_acts := sorry
-  inputs := sorry
-  outputs := sorry
+  eq_acts  := sorry
+  inputs   := sorry
+  outputs  := sorry
 
 end ReactorType
 
 namespace Execution
 namespace State
 
-variable [Proper α]
+variable [Practical α]
 
 protected structure Over (rtr : α) extends State α where 
   rtr_eq       : toState.rtr = rtr
@@ -68,12 +68,12 @@ end State
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.
-def Progress [Proper α] (rtr : α) : Prop :=
+def Progress [Practical α] (rtr : α) : Prop :=
   ∀ (s : State.Over rtr), ¬s.Terminal → (∃ s' : State α, s ⇓ s')    
 
 namespace Progress
 
-variable [Proper α] {rtr : α} in section
+variable [Practical α] {rtr : α} in section
 
 theorem to_deps_acyclic_nontriv (nontriv : rtr[.rcn].Nonempty) (p : Progress rtr) : 
     Dependency.Acyclic rtr := by

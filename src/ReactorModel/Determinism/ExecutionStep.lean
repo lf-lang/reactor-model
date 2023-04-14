@@ -5,7 +5,7 @@ namespace Execution
 open ReactorType
 open State (Closed)
 
-variable [Proper α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁] in section
+variable [Practical α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁] in section
 
 namespace AdvanceTag
 
@@ -115,7 +115,7 @@ end Step
 
 end
 
-variable [Proper α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁]
+variable [Practical α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁]
 
 theorem Instantaneous.ClosedExecution.deterministic (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁ = s₂ :=
   e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)

@@ -6,7 +6,7 @@ namespace Execution
 namespace Instantaneous
 namespace Execution
  
-variable [ReactorType.Proper α] {s₁ s₂ : State α} in section
+variable [ReactorType.Practical α] {s₁ s₂ : State α} in section
 
 theorem acyclic (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn := by
   induction e <;> simp [rcns] at h <;> try cases ‹_ ∨ _›   
@@ -104,7 +104,7 @@ theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ+ s₃) (h : i
 
 end
 
-variable [ReactorType.Proper α] {s₁ s₂ : State α}
+variable [ReactorType.Practical α] {s₁ s₂ : State α}
 
 -- The core lemma for `prepend_minimal`.
 theorem cons_prepend_minimal 

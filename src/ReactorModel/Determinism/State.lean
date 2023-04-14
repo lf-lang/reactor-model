@@ -1,11 +1,11 @@
 import ReactorModel.Determinism.Dependency
 
-open Classical ReactorType Proper
+open Classical ReactorType Practical
 
 namespace Execution
 namespace State
 
-variable [Proper α] {s s₁ s₂ : State α} in section
+variable [Practical α] {s s₁ s₂ : State α} in section
 
 theorem exec_preserves_tag (rcn : ID) : (s.exec rcn).tag = s.tag :=
   rfl
@@ -54,7 +54,7 @@ theorem exec_record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) :
 
 end
 
-variable [Proper α] {s s₁ s₂ : State α}
+variable [Practical α] {s s₁ s₂ : State α}
 
 theorem target_not_mem_indep_output 
     (h₂ : s.rtr[.rcn][i₂] = some rcn₂) (hi : i₁ ≮[s.rtr]≯ i₂) (hd : ⟨cpt, i⟩ ∈ rcn₂.deps .in) : 

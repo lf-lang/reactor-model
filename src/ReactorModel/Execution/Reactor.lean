@@ -26,9 +26,9 @@ def Action.schedule (a : Action) (t : Time) (v : Value) : Action :=
 
 -- TODO: Split up the following definitions into appropriate namespaces.
 namespace ReactorType
-namespace Proper
+namespace Practical
 
-variable [Proper α] 
+variable [Practical α] 
 
 structure Cleared (rtr₁ rtr₂ : α) : Prop where
   equiv    : rtr₁ ≈ rtr₂
@@ -40,7 +40,7 @@ structure Cleared (rtr₁ rtr₂ : α) : Prop where
 theorem Cleared.deterministic {rtr : α} (cl₁ : Cleared rtr rtr₁) (cl₂ : Cleared rtr rtr₂) : 
     rtr₁ = rtr₂ := by
   have e := Equivalent.trans (Equivalent.symm cl₁.equiv) cl₂.equiv
-  apply ext_obj? e
+  apply Proper.ext_obj? e
   intro cpt _ _ _ ho₁ ho₂
   cases cpt
   case stv => simp_all [(ho₁ ▸ cl₁.eq_state) ▸ (ho₂ ▸ cl₂.eq_state)] 
@@ -48,7 +48,6 @@ theorem Cleared.deterministic {rtr : α} (cl₁ : Cleared rtr rtr₁) (cl₂ : C
   case inp => simp [cl₁.inputs ho₁, cl₂.inputs ho₂]
   case out => simp [cl₁.outputs ho₁, cl₂.outputs ho₂]
 
--- TODO: Why do we explcitly have to write the `Updatable` here?
 def apply (rtr : α) : Change → α 
   | .inp i v   => Updatable.update rtr .inp i (fun _ => v)
   | .out i v   => Updatable.update rtr .out i (fun _ => v)
@@ -75,11 +74,12 @@ scoped macro "cases_change " change:term : tactic => `(tactic|
 )
 
 theorem apply_equiv (rtr : α) (c : Change) : (apply rtr c) ≈ rtr := by
-  cases_change c <;> first | rfl | apply (Equivalent.symm LawfulUpdatable.equiv)
+  cases_change c <;> first | exact .refl _ | apply Equivalent.symm; apply LawfulUpdatable.equiv
 
 theorem apply_preserves_unchanged {c : Change} (rtr : α) (h : ¬c.Targets cpt i) :
     (apply rtr c)[cpt][i] = rtr[cpt][i] := by
-  cases_change c <;> first | rfl | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
+  cases_change c
+  all_goals first | exact .refl _ | exact LawfulUpdatable.obj?_preserved (Change.Targets.norm_not h)
 
 variable {rtr : α}
 
@@ -150,5 +150,5 @@ theorem apply'_disjoint_targets_comm (ht : Disjoint cs₁.targets cs₂.targets)
     rw [hi h₁, apply_ne_target_comm h₂, ←apply', ←apply', ←apply'_apply_ne_targets_comm h₃]
     rfl
     
-end Proper
+end Practical
 end ReactorType

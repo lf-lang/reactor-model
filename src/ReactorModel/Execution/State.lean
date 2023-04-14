@@ -1,17 +1,17 @@
 import ReactorModel.Execution.Reactor
 
 noncomputable section
-open Classical ReactorType Proper
+open Classical ReactorType Practical
 
 namespace Execution
 
 @[ext]
-structure State (α) [Proper α] where
+structure State (α) [Practical α] where
   rtr : α 
   tag : Time.Tag
   progress : Set ID
 
-variable [Proper α]
+variable [Practical α]
 
 namespace State
 

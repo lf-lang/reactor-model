@@ -1,6 +1,7 @@
 import ReactorModel.Objects.Reactor.Updatable
 
 noncomputable section
+open Classical
 
 namespace ReactorType
 
@@ -36,11 +37,9 @@ end RootEqualUpTo
 
 /- ---------------------------------------------------------------------------------------------- -/
 
--- TODO: We need wellfoundedness to show reflexivity here. We can avoid this by adding reflexivity
---       as another constructor (we need to add this to a new type though, otherwise we break this 
---       notion of equivalence).
 inductive Equivalent [inst : ReactorType α] : α → α → Prop
-  | intro
+  | refl (rtr) : Equivalent rtr rtr
+  | struct
     (mem_get?_iff : ∀ cpt i, i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt}) 
     (get?_rcn_some_eq : ∀ {i r₁ r₂}, (rtr₁{.rcn}{i} = some r₁) → (rtr₂{.rcn}{i} = some r₂) → r₁ = r₂) 
     (get?_rtr_some_equiv : ∀ {i n₁ n₂}, (rtr₁{.rtr}{i} = some n₁) → (rtr₂{.rtr}{i} = some n₂) → Equivalent (inst := inst) n₁ n₂) 
@@ -56,41 +55,46 @@ instance : HasEquiv α where
 @[symm]
 theorem symm (e : rtr₁ ≈ rtr₂) : rtr₂ ≈ rtr₁ := by
   induction e
-  case intro h₁ h₂ _ hi => 
+  case refl => exact .refl _
+  case struct h₁ h₂ _ hi => 
     constructor <;> intros
     · exact h₁ ‹_› ‹_› |>.symm
     · exact h₂ ‹_› ‹_› |>.symm
     · exact hi ‹_› ‹_›
- 
-instance : IsSymm α (· ≈ ·) where
-  symm _ _ := symm
 
 @[trans]
 theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : rtr₁ ≈ rtr₃ := by
-  induction e₁ generalizing rtr₃; cases e₂
-  case intro.intro h₁ h₂ _ hi h₁' h₂' h₃' => 
-    constructor
-    · intros; exact h₁ ‹_› ‹_› |>.trans (h₁' ‹_› ‹_›)
-    · intro _ _ _ h _
-      have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rcn ‹_› |>.mp $ Partial.mem_iff.mpr ⟨_, h⟩
-      exact h₂ ‹_› h |>.trans (h₂' h ‹_›)
-    · intro _ _ _ h _
-      have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rtr ‹_› |>.mp $ Partial.mem_iff.mpr ⟨_, h⟩ 
-      exact hi ‹_› h (h₃' h ‹_›)
+  induction e₁ generalizing rtr₃
+  case refl => exact e₂
+  case struct h₁ h₂ _ hi =>
+    cases e₂
+    case refl => exact .struct ‹_› ‹_› ‹_› 
+    case struct h₁' h₂' h₃'=> 
+      apply Equivalent.struct
+      · intros; exact h₁ ‹_› ‹_› |>.trans (h₁' ‹_› ‹_›)
+      · intro _ _ _ h _
+        have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rcn ‹_› |>.mp $ Partial.mem_iff.mpr ⟨_, h⟩
+        exact h₂ ‹_› h |>.trans (h₂' h ‹_›)
+      · intro _ _ _ h _
+        have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rtr ‹_› |>.mp $ Partial.mem_iff.mpr ⟨_, h⟩ 
+        exact hi ‹_› h (h₃' h ‹_›)
 
-instance : IsTrans α (· ≈ ·) where
-  trans _ _ _ := trans
+instance : Equivalence ((· : α) ≈ ·) := 
+  { refl, symm, trans }
 
 theorem mem_get?_iff : (rtr₁ ≈ rtr₂) → (i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt})
-  | intro h .. => h _ _
+  | refl _      => Iff.refl _
+  | struct h .. => h _ _
 
 theorem get?_rcn_some_eq : 
     (rtr₁ ≈ rtr₂) → (rtr₁{.rcn}{i} = some r₁) → (rtr₂{.rcn}{i} = some r₂) → r₁ = r₂
-  | intro _ h _ => h
+  | refl _       => by simp_all
+  | struct _ h _ => h
 
 theorem get?_rtr_some_equiv : 
     (rtr₁ ≈ rtr₂) → (rtr₁{.rtr}{i} = some n₁) → (rtr₂{.rtr}{i} = some n₂) → n₁ ≈ n₂
-  | intro _ _ h => h
+  | refl _       => by intros; simp_all; exact .refl _
+  | struct _ _ h => h
 
 theorem get?_some_iff (e : rtr₁ ≈ rtr₂) : 
     (∃ o, rtr₁{cpt}{i} = some o) ↔ (∃ o, rtr₂{cpt}{i} = some o) := by
@@ -113,6 +117,70 @@ theorem get?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₂{.rcn} = rtr₁{.rcn} := by
     simp [Option.eq_none_iff_forall_not_mem.mpr h₁, Option.eq_none_iff_forall_not_mem.mpr h₂]
 
 end Equivalent
+
+/- ---------------------------------------------------------------------------------------------- -/
+namespace LawfulMemUpdate
+
+variable [ReactorType α]
+
+def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₁
+  | final _ h _  => .final h
+  | nested _ h _ u => .nested h u.member₁
+
+def member₂ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₂
+  | final _ _ h  => .final h
+  | nested _ _ h u => .nested h u.member₂
+  
+theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : rtr₁ ≈ rtr₂ := by
+  induction u <;> constructor
+  case final.mem_get?_iff e h₁ h₂ =>
+    intro c j
+    by_cases hc : c = cpt <;> try subst hc
+    case neg => exact e.mem_iff (.inl hc)
+    case pos =>
+      by_cases hj : j = i <;> try subst hj
+      case neg => exact e.mem_iff (.inr hj)
+      case pos => simp [Partial.mem_iff, h₁, h₂]
+  case final.get?_rcn_some_eq e _ _ =>
+    intro j _ _ h₁ h₂
+    have h := e (c := .rcn) (j := j) (.inl $ by simp)
+    simp_all
+  case final.get?_rtr_some_equiv e _ _ =>
+    intro j _ _ h₁ h₂
+    have h := e (c := .rtr) (j := j) (.inl $ by simp)
+    simp_all
+    apply Equivalent.refl
+  case nested.mem_get?_iff j _ _ _ _ e h₁ h₂ _ _ =>
+    intro c j'
+    by_cases hc : c = .rtr <;> try subst hc
+    case neg => exact e.mem_iff (.inl hc)
+    case pos => 
+      by_cases hj : j' = j <;> try subst hj
+      case neg => exact e.mem_iff (.inr hj)
+      case pos => simp [Partial.mem_iff, h₁, h₂]
+  case nested.get?_rcn_some_eq e h₁ h₂ _ _ =>
+    intro j _ _ h₁ h₂
+    have h := e (c := .rcn) (j := j) (.inl $ by simp)
+    simp_all
+  case nested.get?_rtr_some_equiv j _ _ _ _ e _ _ _ hi =>
+    intro j' n₁' n₂' h₁' h₂'
+    by_cases hj : j' = j <;> try subst hj
+    case pos => simp_all; assumption
+    case neg => 
+      have := e (c := .rtr) (j := j') (.inr hj)
+      simp_all
+      apply Equivalent.refl
+
+end LawfulMemUpdate
+
+theorem LawfulUpdate.equiv [ReactorType α] {rtr₁ : α} :
+    (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₁ ≈ rtr₂
+  | notMem _ h => h ▸ (.refl _)
+  | update u   => u.equiv
+
+theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} : 
+    rtr ≈ (Updatable.update rtr cpt i f) := 
+  (lawful rtr cpt i f).equiv
 
 /- ---------------------------------------------------------------------------------------------- -/
 namespace StrictMember
@@ -210,6 +278,20 @@ theorem extend_split (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr
   induction s generalizing rtr i <;> simp [extend]
   case nested h' _ hi => exact hi h'
 
+def fromLawfulMemUpdate {rtr₁ : α} : 
+    (StrictMember c j rtr₂) → (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember c j rtr₁
+  | final h, u               => final $ (Equivalent.get?_some_iff u.equiv).mpr ⟨_, h⟩ |>.choose_spec
+  | nested h s, .final e _ _ => nested (h ▸ e (.inl $ by simp)) s 
+  | nested h s (j := j₂), .nested e h₁ h₂ u (j := j₁) =>
+      if hj : j₂ = j₁ 
+      then nested h₁ $ fromLawfulMemUpdate ((Option.some_inj.mp $ h₂ ▸ hj ▸ h) ▸ s) u
+      else nested (h ▸ e $ .inr hj) s 
+
+def fromLawfulUpdate {rtr₂ : α} (s : StrictMember c j rtr₂) : 
+    (LawfulUpdate cpt i f rtr₁ rtr₂) → StrictMember c j rtr₁
+  | .notMem _ h => h ▸ s
+  | .update u   => s.fromLawfulMemUpdate u
+
 end StrictMember
 
 /- ---------------------------------------------------------------------------------------------- -/
@@ -267,6 +349,17 @@ theorem extend_inj
   case root.strict   => exact absurd h.symm $ StrictMember.extend_not_final _ _ _
   case strict.root   => exact absurd h $ StrictMember.extend_not_final _ _ _
 
+def fromLawfulMemUpdate (m : Member c j rtr₂) (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
+    Member c j rtr₁ :=
+  match m with
+  | root => root 
+  | strict s => s.fromLawfulMemUpdate u
+
+def fromLawfulUpdate (m : Member c j rtr₂) (u : LawfulUpdate cpt i f rtr₁ rtr₂) : Member c j rtr₁ :=
+  match m with
+  | root => root
+  | strict s => s.fromLawfulUpdate u
+
 end Member
 
 /- ---------------------------------------------------------------------------------------------- -/
@@ -285,19 +378,4 @@ theorem not_of_member_isEmpty (h : IsEmpty $ Member cpt i rtr) (o) : ¬Object rt
   fun ⟨m⟩ => h.elim m
 
 end Object
-
-/- ---------------------------------------------------------------------------------------------- -/
-namespace LawfulMemUpdate
-
-variable [ReactorType α]
-
-def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₁
-  | final _ h _  => .final h
-  | nested _ h _ u => .nested h u.member₁
-
-def member₂ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₂
-  | final _ _ h  => .final h
-  | nested _ _ h u => .nested h u.member₂
-  
-end LawfulMemUpdate
 end ReactorType

@@ -5,7 +5,7 @@ open Classical
 
 namespace Execution
 
-variable [ReactorType.Proper α] {s s₁ s₂ : State α}
+variable [ReactorType.Practical α] {s s₁ s₂ : State α}
 
 theorem tag_le {s₁ s₂ : State α} (e : s₁ ⇓* s₂) : s₁.tag ≤ s₂.tag := by
   induction e with
@@ -33,6 +33,7 @@ theorem nontrivial_deterministic {s s₁ s₂ : State α} [nontriv : State.Nontr
     | .inr h => absurd ht $ ne_of_lt (by simp_all)
   -/
 
+-- TODO: This theorem can be proven over non-`Finite` but `LawfulUpdatable`, `Proper` reactors. 
 theorem deterministic : 
     (s ⇓* s₁) → (s ⇓* s₂) → (s₁.tag = s₂.tag) → (s₁.progress = s₂.progress) → s₁ = s₂ := 
   if h : State.Nontrivial s 

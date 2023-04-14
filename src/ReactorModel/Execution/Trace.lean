@@ -2,7 +2,7 @@ import ReactorModel.Execution.State
 
 open Classical
 
-variable [ReactorType.Proper α]
+variable [ReactorType.Practical α]
 
 namespace Execution
 namespace Instantaneous

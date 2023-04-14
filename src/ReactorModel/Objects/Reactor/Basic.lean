@@ -21,8 +21,6 @@ abbrev Component.type (rtrType : Type) : Component → Type
 class ReactorType (α : Type) where
   get? : α → (cpt : Component) → (ID ⇀ cpt.type α)   
  
--- TODO: Introduce notation for `get?` - e.g. `rtr<cpt><i>` or `rtr{cpt}{i}`.
-
 namespace ReactorType
 
 notation rtr "{" cpt "}"        => get? rtr cpt

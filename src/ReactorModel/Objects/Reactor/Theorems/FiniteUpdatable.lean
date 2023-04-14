@@ -26,10 +26,8 @@ variable {rtr : α}
 
 theorem update'.go_equiv (ids : List ID) : rtr ≈ update'.go rtr cpt v ids := by
   induction ids generalizing rtr <;> simp [go]
-  case nil => sorry -- exact .refl _ TODO: Update ReactorType.Equivalent with refl as constructor.
-  case cons hd _ hi => 
-    have : rtr ≈ update rtr cpt hd fun _ => v := sorry -- exact LawfulUpdatable.equiv TODO: Update ReactorType.Equivalent with refl as constructor.
-    exact Equivalent.trans this hi
+  case nil     => exact .refl _
+  case cons hi => exact Equivalent.trans LawfulUpdatable.equiv hi
 
 theorem update'_equiv : rtr ≈ update' rtr cpt v :=
   update'.go_equiv _

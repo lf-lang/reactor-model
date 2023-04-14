@@ -8,10 +8,6 @@ namespace ReactorType
 instance [Proper α] : Readable α where
   ext_iff := Proper.toExtensional.ext_iff
 
-instance [Proper α] : Accessible α where
-  unique_ids := Proper.unique_ids
-  wf         := Proper.wf
-
 namespace Wellformed
 
 open Indexable Equivalent
@@ -161,10 +157,5 @@ theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α
   · have := u₁.obj?_preserved  (j := i) (.inl hc₁) ▸ u₂.obj?_preserved  (.inl hc₂) 
     have := u₁'.obj?_preserved (j := i) (.inl hc₂) ▸ u₂'.obj?_preserved (.inl hc₁)
     simp_all
-
-open Updatable in
-theorem LawfulUpdatable.update_ne_comm [Proper α] {rtr : α} (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂):
-    update (update rtr cpt₁ i₁ f₁) cpt₂ i₂ f₂ = update (update rtr cpt₂ i₂ f₂) cpt₁ i₁ f₁ :=
-  LawfulUpdate.ne_comm (lawful ..) (lawful ..) (lawful ..) (lawful ..) h
   
 end ReactorType
