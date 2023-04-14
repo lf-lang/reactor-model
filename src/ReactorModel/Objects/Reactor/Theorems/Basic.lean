@@ -35,6 +35,10 @@ theorem valued {c cpt : Component.Valued} (e : rtr₁ ≃[cpt][i] rtr₂) (h : c
 end RootEqualUpTo
 
 /- ---------------------------------------------------------------------------------------------- -/
+
+-- TODO: We need wellfoundedness to show reflexivity here. We can avoid this by adding reflexivity
+--       as another constructor (we need to add this to a new type though, otherwise we break this 
+--       notion of equivalence).
 inductive Equivalent [inst : ReactorType α] : α → α → Prop
   | intro
     (mem_get?_iff : ∀ cpt i, i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt}) 

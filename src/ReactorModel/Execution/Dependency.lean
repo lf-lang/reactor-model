@@ -63,15 +63,23 @@ theorem mem₁ (d : rcn₁ <[rtr] rcn₂) : rcn₁ ∈ rtr[.rcn] := by
 def Acyclic (rtr : α) : Prop :=
   ∀ i, ¬(i <[rtr] i)
 
-theorem Acyclic.equiv (e : rtr₁ ≈ rtr₂) (a : Acyclic rtr₁) : Acyclic rtr₂ :=
+namespace Acyclic
+
+theorem equiv (e : rtr₁ ≈ rtr₂) (a : Acyclic rtr₁) : Acyclic rtr₂ :=
   (a · $ ·.equiv e)
 
-theorem Acyclic.iff_mem_acyclic {rtr : α} : (Acyclic rtr) ↔ (∀ i ∈ rtr[.rcn], ¬(i <[rtr] i)) := by
+theorem iff_mem_acyclic {rtr : α} : (Acyclic rtr) ↔ (∀ i ∈ rtr[.rcn], ¬(i <[rtr] i)) := by
   apply not_iff_not.mp
   simp [Acyclic]
   constructor <;> intro ⟨d, h⟩  
   case mp  => exact ⟨_, h.mem₁, h⟩
   case mpr => exact ⟨_, h.right⟩ 
 
+theorem of_trivial (triv : rtr[.rcn] = ∅) : Dependency.Acyclic rtr := by
+  simp_all [Dependency.Acyclic.iff_mem_acyclic, triv]
+  intros _ h
+  exact absurd h Partial.not_mem_empty
+
+end Acyclic
 end Dependency
 end ReactorType

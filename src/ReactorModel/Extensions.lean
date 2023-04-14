@@ -1,4 +1,5 @@
 import Mathlib.Data.Finmap
+import Mathlib.Data.Set.Finite
 
 open Classical
 
@@ -108,6 +109,9 @@ theorem insert_same [DecidableEq α] (f : α ⇀ β) : (f.insert a b) a = b := b
 theorem insert_ne [DecidableEq α] (f : α ⇀ β) (h : a' ≠ a := by assumption) : 
     (f.insert a b) a' = f a' := by
   simp [insert, h]
+
+def Finite (f : α ⇀ β) : Prop :=
+  f.ids.Finite
 
 end Partial
 

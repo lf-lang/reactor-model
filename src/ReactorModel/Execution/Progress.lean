@@ -1,21 +1,53 @@
 import ReactorModel.Execution.Trace
 import ReactorModel.Determinism.Execution
 
-open ReactorType Classical
+noncomputable section
+open ReactorType Proper FiniteUpdatable Classical
 
 -- TODO: Move the Determinism folder into the Execution folder.
 --       Perhaps also rename it to Theorems, as it contains many lemmas which aren't only relevant
 --       to proving determinism.
 
+namespace ReactorType
+
+variable [Practical α]
+
+def clear (rtr : α) : α :=
+  update' (update' rtr .inp .absent) .out .absent
+
+theorem clear_cleared (rtr : α) : Cleared rtr (clear rtr) where
+  equiv := Equivalent.trans update'_equiv update'_equiv
+  eq_state := sorry
+  eq_acts := sorry
+  inputs := sorry
+  outputs := sorry
+
+end ReactorType
+
 namespace Execution
+namespace State
 
 variable [Proper α]
 
-structure State.Terminal (s : State α) : Prop where
+protected structure Over (rtr : α) extends State α where 
+  rtr_eq       : toState.rtr = rtr
+  progress_sub : progress ⊆ rtr[.rcn].ids 
+
+instance {rtr : α} : Coe (State.Over rtr) (State α) where
+  coe := State.Over.toState
+
+theorem Over.not_closed_to_nontrivial {rtr : α} {s : State.Over rtr} (h : ¬s.Closed) : 
+    s.Nontrivial := by
+  by_contra hn
+  have ht' := State.Trivial.of_not_nontrivial hn
+  have hp := s.progress_sub
+  simp [State.Closed, ht', Partial.empty_ids, Set.subset_empty_iff] at h hp
+  contradiction
+
+structure Terminal (s : State α) : Prop where
   closed  : s.Closed
   no_next : ∀ g, ¬s.NextTag g
 
-namespace State
 namespace Terminal
 
 variable {s : State α}
@@ -36,19 +68,12 @@ end State
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.
-def Progress (rtr : α) : Prop :=
-  ∀ s, (s.rtr = rtr) → ¬s.Terminal → (∃ s', s ⇓ s')    
+def Progress [Proper α] (rtr : α) : Prop :=
+  ∀ (s : State.Over rtr), ¬s.Terminal → (∃ s' : State α, s ⇓ s')    
 
 namespace Progress
 
-variable {rtr : α}
-
--- TODO: Factor out a lemma of the form "reactors with no reactions are acyclic."
-theorem to_deps_acyclic_triv (triv : rtr[.rcn] = ∅) (p : Progress rtr) : 
-    Dependency.Acyclic rtr := by
-  simp_all [Dependency.Acyclic.iff_mem_acyclic, triv]
-  intros _ h
-  exact absurd h Partial.not_mem_empty
+variable [Proper α] {rtr : α} in section
 
 theorem to_deps_acyclic_nontriv (nontriv : rtr[.rcn].Nonempty) (p : Progress rtr) : 
     Dependency.Acyclic rtr := by
@@ -57,24 +82,27 @@ theorem to_deps_acyclic_nontriv (nontriv : rtr[.rcn].Nonempty) (p : Progress rtr
   let s : State α := { rtr, tag := 0, progress := ∅ }
   have : s.Nontrivial := ⟨nontriv⟩ 
   have hc : ¬s.Closed := (Set.not_nonempty_empty ·.progress_Nonempty)
-  have ⟨_, e⟩ := p s rfl (State.Terminal.not_of_not_closed hc)
+  have ⟨_, e⟩ := p ⟨s, rfl, by simp⟩ (State.Terminal.not_of_not_closed hc)
   have ⟨e⟩ := e.resolve_close hc 
   exact e.acyclic $ e.progress_empty_mem_rcns_iff rfl |>.mpr hm
 
 theorem to_deps_acyclic : (Progress rtr) → Dependency.Acyclic rtr :=
   if h : rtr[.rcn].Nonempty 
   then to_deps_acyclic_nontriv h 
-  else to_deps_acyclic_triv (Partial.Nonempty.not_to_empty h)
+  else fun _ => Dependency.Acyclic.of_trivial (Partial.Nonempty.not_to_empty h)
+
+end
+
+variable [Practical α] {rtr : α}
 
 theorem of_deps_acyclic (a : Dependency.Acyclic rtr) : Progress rtr := by
-  intro s hs ht
+  intro s ht
   by_cases hc : s.Closed
   case pos =>
     have ⟨g, hg⟩ := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
-    sorry -- by_contra
-    -- Can you avoid proving that you can clear ports by going for proof by contra?
+    exact ⟨⟨clear s.rtr, g, ∅⟩, .advance ⟨hc, ⟨hg, clear_cleared _⟩⟩⟩
   case neg =>
-    have : s.Nontrivial := byContradiction (hc $ State.Trivial.of_not_nontrivial · |>.closed)
+    have := s.not_closed_to_nontrivial hc
     -- This might be the place to break out a lemma that works at the level of instantaneous
     -- execution steps. On that level you can show that there exists a reaction that doesn't have
     -- any unprocessed dependencies (assuming the reactor is nontrivial). Then you can show that you

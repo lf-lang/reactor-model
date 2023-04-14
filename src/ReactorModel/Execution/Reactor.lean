@@ -75,7 +75,7 @@ scoped macro "cases_change " change:term : tactic => `(tactic|
 )
 
 theorem apply_equiv (rtr : α) (c : Change) : (apply rtr c) ≈ rtr := by
-  cases_change c <;> first | rfl | apply LawfulUpdatable.equiv
+  cases_change c <;> first | rfl | apply (Equivalent.symm LawfulUpdatable.equiv)
 
 theorem apply_preserves_unchanged {c : Change} (rtr : α) (h : ¬c.Targets cpt i) :
     (apply rtr c)[cpt][i] = rtr[cpt][i] := by

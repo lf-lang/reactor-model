@@ -7,6 +7,11 @@ variable [ReactorType.Proper α]
 namespace Execution
 namespace Instantaneous
 
+-- TODO: Change this definition to use relations for the smaller steps.
+--       We only need the constructive aspect of the functions in the proof of determinism.
+--       That is, we don't need a reactor to be Updatable in order to define the execution model.
+--       We *do* need it to be Updatable in the proof of determinism.
+--       Once you've done this, move the requirement of Updatable from Proper to Practical.
 inductive Step : State α → State α → Type  
   | skip : (s.Allows rcn) → (¬s.Triggers rcn) → Step s (s.record rcn)
   | exec : (s.Allows rcn) → (s.Triggers rcn) → Step s (s.exec rcn |>.record rcn)

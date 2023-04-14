@@ -20,16 +20,6 @@ theorem equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) (t : s₁.Trivi
 theorem of_not_nontrivial (h : ¬Nontrivial s) : s.Trivial :=
   byContradiction (h ⟨·⟩)
 
-theorem closed (h : Trivial s) : s.Closed := by
-  simp [Closed] -- TODO: We run into a problem here: `progress` might contain reactions that aren't
-                --       in `s.rtr[.rcn]`. We might be able to circumvent this issue by changing the 
-                --       definition of `Closed` to a `⊆` instead of `=`.
-                --       Alternatives:
-                --       * Change the definition of `State` to include this fact as a requirement.
-                --       * Change the definition of `Progress` (the only place where this theorem is
-                --         currently being used) to include this as a requirement.
-  sorry
-
 end Trivial
 end State
 
