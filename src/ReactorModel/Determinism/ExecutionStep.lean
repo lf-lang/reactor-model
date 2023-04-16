@@ -9,12 +9,12 @@ variable [Practical α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Non
 
 namespace AdvanceTag
 
-theorem not_Closed (a : s₁ ⇓- s₂) : ¬(Closed s₂) :=
-  have := a.advance.preserves_Nontrivial -- TODO: Make this work via type class inference.
+theorem not_closed (a : s₁ ⇓- s₂) : ¬(Closed s₂) :=
+  have := a.advance.preserves_nontrivial -- TODO: Make this work via type class inference.
   (·.progress_Nonempty.ne_empty a.advance.progress_empty)
 
 theorem nonrepeatable (a₁ : s₁ ⇓- s₂) (a₂ : s₂ ⇓- s₃) : False :=
-  a₁.not_Closed a₂.closed
+  a₁.not_closed a₂.closed
 
 theorem tag_lt (a : s₁ ⇓- s₂) : s₁.tag < s₂.tag :=
   a.advance.tag_lt
@@ -25,20 +25,16 @@ theorem tag_ne (a : s₁ ⇓- s₂) : s₁.tag ≠ s₂.tag :=
 theorem deterministic (a₁ : s ⇓- s₁) (a₂ : s ⇓- s₂) : s₁ = s₂ :=
   a₁.advance.deterministic a₂.advance
 
-instance preserves_Nontrivial [State.Nontrivial s₁] {e : s₁ ⇓- s₂} : State.Nontrivial s₂ :=
-  e.advance.preserves_Nontrivial
+instance preserves_nontrivial [State.Nontrivial s₁] {e : s₁ ⇓- s₂} : State.Nontrivial s₂ :=
+  e.advance.preserves_nontrivial
 
 end AdvanceTag
 
 namespace Instantaneous
 namespace ClosedExecution
 
-theorem not_Closed (e : s₁ ⇓| s₂) : ¬(Closed s₁) := by
-  sorry
-  /-simp [Closed]
-  have h := Partial.Nonempty.iff_ids_nonempty.mp $ State.Nontrivial.nontrivial (s := s₁)
-  exact e.fresh ▸ h.ne_empty.symm 
-  -/
+theorem not_closed (e : s₁ ⇓| s₂) : ¬s₁.Closed := 
+  e.exec.not_closed
 
 theorem acyclic (e : s₁ ⇓| s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn :=
   e.exec.acyclic h
@@ -72,21 +68,16 @@ theorem progress_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.progress = 
   simp [e₁.progress_def, e₂.progress_def]
 
 theorem step_determined (e : s ⇓| s₁) (a : s ⇓- s₂) : False :=
-  e.not_Closed a.closed
+  e.not_closed a.closed
 
-instance preserves_Nontrivial [h : State.Nontrivial s₁] {e : s₁ ⇓| s₂} : State.Nontrivial s₂ where
+instance preserves_nontrivial [h : State.Nontrivial s₁] {e : s₁ ⇓| s₂} : State.Nontrivial s₂ where
   nontrivial := Equivalent.obj?_rcn_eq e.equiv ▸ h.nontrivial
 
 theorem nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| s₃) : False :=
-  have := e₁.preserves_Nontrivial -- TODO: Make this work via type class inference.
-  e₂.not_Closed e₁.closed
+  e₂.not_closed e₁.closed
 
-theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress := by
-  sorry
-  /-have := e.preserves_Nontrivial -- TODO: Make this work via type class inference.
-  rw [e.fresh]
-  exact e.closed.progress_Nonempty.empty_ssubset
-  -/
+theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress :=
+  e.exec.progress_ssubset
 
 end ClosedExecution
 end Instantaneous
@@ -103,9 +94,9 @@ theorem seq_tag_lt : (s₁ ⇓ s₂) → (s₂ ⇓ s₃) → s₁.tag < s₃.tag
   | close e,    advance a  => e.preserves_tag ▸ a.tag_lt
   | advance a,  close e    => e.preserves_tag ▸ a.tag_lt
 
-instance preserves_Nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → State.Nontrivial s₂
-  | close e   => e.preserves_Nontrivial
-  | advance a => a.preserves_Nontrivial
+instance preserves_nontrivial [State.Nontrivial s₁] : (s₁ ⇓ s₂) → State.Nontrivial s₂
+  | close e   => e.preserves_nontrivial
+  | advance a => a.preserves_nontrivial
 
 theorem resolve_close : (e : s₁ ⇓ s₂) → ¬s₁.Closed → Nonempty (s₁ ⇓| s₂)
   | close e  , _ => ⟨e⟩
@@ -115,7 +106,7 @@ end Step
 
 end
 
-variable [Practical α] {s s₁ s₂ : State α} [State.Nontrivial s] [State.Nontrivial s₁]
+variable [Practical α] {s s₁ s₂ : State α}
 
 theorem Instantaneous.ClosedExecution.deterministic (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁ = s₂ :=
   e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)

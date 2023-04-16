@@ -135,7 +135,7 @@ variable {s₁ s₂ : State α}
 theorem progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
   | ⟨_, _⟩ => rfl
 
-instance preserves_Nontrivial [Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
+instance preserves_nontrivial [Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
   | ⟨_, c⟩ => Nontrivial.equiv c.equiv
 
 theorem deterministic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂

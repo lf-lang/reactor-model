@@ -24,13 +24,13 @@ where
 
 variable {rtr : α} 
 
-theorem update'.go_equiv (ids : List ID) : rtr ≈ update'.go rtr cpt v ids := by
+theorem update'.go_equiv : rtr ≈ update'.go rtr cpt v ids := by
   induction ids generalizing rtr <;> simp [go]
   case nil     => exact .refl _
   case cons hi => exact Equivalent.trans LawfulUpdatable.equiv hi
 
 theorem update'_equiv : rtr ≈ update' rtr cpt v :=
-  update'.go_equiv _
+  update'.go_equiv
 
 end FiniteUpdatable
 end ReactorType

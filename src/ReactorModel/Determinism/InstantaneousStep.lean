@@ -22,7 +22,7 @@ theorem rcn_mem_progress : (e : s₁ ⇓ᵢ s₂) → e.rcn ∈ s₂.progress :=
 theorem rcn_not_mem_progress (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress := 
   e.allows_rcn.unprocessed
 
-theorem not_Closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed :=
+theorem not_closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed :=
   (· ▸ e.allows_rcn.unprocessed $ e.allows_rcn.mem)
 
 theorem preserves_tag : (s₁ ⇓ᵢ s₂) → s₁.tag = s₂.tag
@@ -41,6 +41,10 @@ theorem acyclic (e : s₁ ⇓ᵢ s₂) : e.rcn ≮[s₁.rtr] e.rcn :=
 
 theorem progress_eq : (e : s₁ ⇓ᵢ s₂) → s₂.progress = s₁.progress.insert e.rcn
   | skip .. | exec .. => rfl
+
+theorem progress_ssubset (e : s₁ ⇓ᵢ s₂) : s₁.progress ⊂ s₂.progress := by
+  simp [e.progress_eq, Set.ssubset_iff_insert]
+  exists e.rcn, e.allows_rcn.unprocessed
 
 theorem seq_wellordered (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) : e₂.rcn ≮[s₁.rtr] e₁.rcn := by
   by_contra d

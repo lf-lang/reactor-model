@@ -21,17 +21,17 @@ theorem seq_progress_ssubset_or_tag_lt [State.Nontrivial s₁] :
 theorem nontrivial_deterministic {s s₁ s₂ : State α} [nontriv : State.Nontrivial s]
     (e₁ : s ⇓* s₁) (e₂ : s ⇓* s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
     s₁ = s₂ := by
-  sorry
-  /-
-  | refl, refl, _, _ => rfl
-  | step e₁ e₁', step e₂ e₂', ht, hp => 
-    have := e₂.preserves_Nontrivial -- TODO: Make this work via type class inference.
-    nontrivial_deterministic (e₁.deterministic e₂ ▸ e₁') e₂' ht hp
-  | refl, step e e', ht, hp | step e e', refl, ht, hp => 
-    match seq_progress_ssubset_or_tag_lt e e' with
+  induction e₁ generalizing s₂ nontriv <;> cases e₂
+  case refl.refl => rfl
+  case step.step e₁ _ hi _ e₂ e₂' =>
+    have := e₁.preserves_nontrivial -- TODO: Make this work via type class inference.
+    exact hi (e₁.deterministic e₂ ▸ e₂') ht hp
+  all_goals
+    have e := ‹_ ⇓ _›; have e' := ‹_ ⇓* _›
+    have := e.preserves_nontrivial
+    exact match seq_progress_ssubset_or_tag_lt e e' with
     | .inl h => absurd hp (Set.ssubset_ne $ by simp_all) 
     | .inr h => absurd ht $ ne_of_lt (by simp_all)
-  -/
 
 -- TODO: This theorem can be proven over non-`Finite` but `LawfulUpdatable`, `Proper` reactors. 
 theorem deterministic : 

@@ -16,12 +16,8 @@ theorem acyclic (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr]
 
 theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns]
-  case single e =>
-    sorry
-  case trans e e' hi =>
-    simp [hi $ e.progress_monotonic h]
-    intro hc
-    exact e.rcn_not_mem_progress $ hc ▸ h
+  case' trans e e' hi => simp [hi $ e.progress_monotonic h]
+  all_goals exact (Step.rcn_not_mem_progress ‹_› $ · ▸ h)
 
 theorem mem_progress_iff (e : s₁ ⇓ᵢ+ s₂) : 
     (rcn ∈ s₂.progress) ↔ (rcn ∈ e.rcns ∨ rcn ∈ s₁.progress) := by
@@ -39,6 +35,12 @@ theorem mem_progress_iff (e : s₁ ⇓ᵢ+ s₂) :
 -- Corollary of `InstExecution.mem_progress_iff`.
 theorem rcns_mem_progress (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₂.progress := 
   e.mem_progress_iff.mpr $ .inl h
+
+theorem rcns_ne_nil {s₁ s₂ : State α} : (e : s₁ ⇓ᵢ+ s₂) → e.rcns ≠ []
+  | single _ | trans .. => by simp [rcns]
+
+theorem rcns_cons {s₁ s₂ : State α} : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl
+  | single _ | trans .. => by simp [rcns]
 
 theorem rcns_nodup {s₁ s₂ : State α} : (e : s₁ ⇓ᵢ+ s₂) → e.rcns.Nodup
   | single _   => List.nodup_singleton _
@@ -74,8 +76,9 @@ theorem progress_eq {s₁ s₂ : State α} :
 
 theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∉ s₁.progress := by
   induction e
-  case single => 
-    sorry -- contradiction
+  case single e => 
+    simp [rcns] at h
+    exact h ▸ e.rcn_not_mem_progress
   case trans e e' hi =>
     cases e'.rcns_trans_eq_cons e ▸ h
     case head   => exact e.rcn_not_mem_progress
@@ -111,8 +114,10 @@ theorem cons_prepend_minimal
     (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ+ s₃) (hm : i ∈ e'.rcns) (hr : (e.rcn :: e'.rcns) ≮[s₁.rtr] i) : 
     ∃ f : s₁ ⇓ᵢ+ s₃, f.rcns = i :: e.rcn :: (e'.rcns.erase i) := by
   induction e' generalizing s₁ <;> simp [rcns] at *
-  case single =>
-    sorry
+  case single e' =>
+    have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' $ hm ▸ hr.cons_head
+    exists trans f (single f')
+    simp [hm, rcns, ←hf₁, ←hf₂]
   case trans s₁ s₂ s₄ e' e'' hi =>
     cases hm
     case inl hm =>
@@ -132,8 +137,9 @@ theorem cons_prepend_minimal
 theorem prepend_minimal (e : s₁ ⇓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns ≮[s₁.rtr] i) :
     ∃ (e' : s₁ ⇓ᵢ+ s₂), e'.rcns = i :: (e.rcns.erase i) := by
   cases e <;> (simp [rcns] at *; try cases ‹_ ∨ _›)
-  case single =>
-    sorry
+  case single e =>
+    exists single e
+    simp [hm, rcns]
   case trans.inl e e' h =>
     exists trans e e'
     simp [rcns, h]
@@ -143,14 +149,20 @@ theorem prepend_minimal (e : s₁ ⇓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns
 theorem rcns_perm_deterministic 
     (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) : s₁.rtr = s₂.rtr := by
   induction e₁
-  case single => 
-    sorry -- cases e₂ <;> simp [rcns] at hp ⊢ 
+  case single e => 
+    cases e₂ <;> simp [rcns] at hp ⊢
+    case single e' => simp [e.deterministic e' hp]
+    case trans e'  => exact absurd rfl (hp.right ▸ e'.rcns_ne_nil)
   case trans s sₘ₁ s₁ e₁ e₁' hi =>
     have hm := hp.mem_iff.mp $ List.mem_cons_self _ _
     have hm' := e₁'.head_minimal e₁ |>.perm hp
     have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
     cases e₂ <;> simp [rcns] at he₂
     case single =>
+      simp [rcns] at hp
+      have ⟨hd, tl, h⟩ := e₂.rcns_cons
+      simp [h] at hp he₂
+      have := he₂.right.symm ▸ List.erase_cons e₁.rcn hd tl
       sorry
     case trans sₘ₂ e₂ e₂' =>
       have ⟨h, h'⟩ := he₂ 
@@ -164,6 +176,14 @@ protected theorem deterministic
     s₁ = s₂ := by
   ext1 <;> try assumption
   exact rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
+
+theorem not_closed : (s₁ ⇓ᵢ+ s₂) → ¬s₁.Closed
+  | single e | trans e _ => e.not_closed
+
+theorem progress_ssubset (e : s₁ ⇓ᵢ+ s₂) : s₁.progress ⊂ s₂.progress := by
+  induction e
+  case single e     => exact e.progress_ssubset
+  case trans e _ hi => exact e.progress_ssubset |>.trans hi
 
 end Execution
 end Instantaneous
