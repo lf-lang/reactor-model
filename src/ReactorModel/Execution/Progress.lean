@@ -30,24 +30,55 @@ theorem clear_cleared (rtr : α) : Cleared rtr (clear rtr) where
 end ReactorType
 
 namespace Execution
+
+theorem Step.not_closed_elim [Practical α] {s₁ s₂ : State α} (e : s₁ ⇓ s₂) (h : ¬s₁.Closed) : 
+    Nonempty (s₁ ⇓| s₂) := by
+  cases e 
+  case advance a => exact absurd a.closed h
+  case close e => exact ⟨e⟩ 
+
 namespace State
 
 variable [Practical α]
 
+def unprocessed (s : State α) : Set ID :=
+  { i ∈ s.rtr[.rcn] | i ∉ s.progress }
+
 protected structure Over (rtr : α) extends State α where 
-  rtr_eq       : toState.rtr = rtr
+  rtr_eq       : toState.rtr = rtr := by rfl
   progress_sub : progress ⊆ rtr[.rcn].ids 
 
-instance {rtr : α} : Coe (State.Over rtr) (State α) where
+namespace Over
+
+variable {rtr : α} {s : State.Over rtr}
+
+instance : Coe (State.Over rtr) (State α) where
   coe := State.Over.toState
 
-theorem Over.not_closed_to_nontrivial {rtr : α} {s : State.Over rtr} (h : ¬s.Closed) : 
-    s.Nontrivial := by
+theorem progress_finite (s : State.Over rtr) : s.progress.Finite :=
+  Finite.fin s.rtr .rcn |>.subset s.progress_sub
+
+theorem unprocessed_finite (s : State.Over rtr) : s.unprocessed.Finite :=
+  sorry
+
+def unprocessed' (s : State.Over rtr) : Finset ID :=
+  s.unprocessed_finite.toFinset
+
+theorem unprocessed'_empty_iff_closed : (s.unprocessed' = ∅) ↔ (s.Closed) := by
+  sorry
+
+theorem not_closed_to_nontrivial (h : ¬s.Closed) : s.Nontrivial := by
   by_contra hn
   have ht' := State.Trivial.of_not_nontrivial hn
   have hp := s.progress_sub
   simp [State.Closed, ht', Partial.empty_ids, Set.subset_empty_iff] at h hp
   contradiction
+
+theorem allowed_of_acyclic_not_closed [State.Nontrivial s.toState] 
+    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ i, s.Allows i := 
+  sorry -- somehow by induction over the finite set of reactions
+
+end Over
 
 structure Terminal (s : State α) : Prop where
   closed  : s.Closed
@@ -100,6 +131,14 @@ end
 
 variable [Practical α] {rtr : α}
 
+theorem Instantaneous.Step.of_acyclic_not_closed {s : State.Over rtr} 
+    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ s' : State α, Nonempty (s ⇓ᵢ s') := 
+  have := s.not_closed_to_nontrivial hc
+  let ⟨rcn, ha⟩ := s.allowed_of_acyclic_not_closed a hc
+  if h : s.Triggers rcn
+  then ⟨s.exec rcn |>.record rcn, ⟨.exec ha h⟩⟩
+  else ⟨s.record rcn, ⟨.skip ha h⟩⟩  
+
 theorem of_deps_acyclic (a : Dependency.Acyclic rtr) : Progress rtr := by
   intro s ht
   by_cases hc : s.Closed
@@ -107,15 +146,18 @@ theorem of_deps_acyclic (a : Dependency.Acyclic rtr) : Progress rtr := by
     have ⟨g, hg⟩ := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
     exact ⟨⟨clear s.rtr, g, ∅⟩, .advance ⟨hc, ⟨hg, clear_cleared _⟩⟩⟩
   case neg =>
-    have := s.not_closed_to_nontrivial hc
-    -- This might be the place to break out a lemma that works at the level of instantaneous
-    -- execution steps. On that level you can show that there exists a reaction that doesn't have
-    -- any unprocessed dependencies (assuming the reactor is nontrivial). Then you can show that you
-    -- can create an instantaneous step for that reaction by performing a case distinction on
-    -- whether the reaction is triggered or not - in both cases you can create a step.
-    -- Then you need to show that we can repeat this process for all unprocessed reactions, thus
-    -- obtaining an closed instantaneous execution.
-    sorry
+    generalize hp : s.unprocessed' = u
+    induction u using Finset.induction_on generalizing s rtr -- TODO: We might need Finset.induction_on'
+    case empty => exact absurd (State.Over.unprocessed'_empty_iff_closed.mp hp) hc
+    case insert r u hr hi =>
+      have ⟨sₑ, ⟨e⟩⟩  := Instantaneous.Step.of_acyclic_not_closed a hc
+      by_cases hc' : sₑ.Closed
+      case pos => exact ⟨_, .close ⟨.single e, hc'⟩⟩ 
+      case neg =>
+        let sₑ : State.Over sₑ.rtr := { sₑ with progress_sub := sorry }
+        have ⟨_, e'⟩ := hi sorry sₑ sorry hc' sorry
+        have ⟨e'⟩ := e'.not_closed_elim hc'
+        exact ⟨_, .close $ ⟨.trans e e'.exec, sorry⟩⟩ 
 
 theorem iff_deps_acyclic : (Progress rtr) ↔ (Dependency.Acyclic rtr) :=
   ⟨to_deps_acyclic, of_deps_acyclic⟩

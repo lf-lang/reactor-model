@@ -35,13 +35,26 @@ structure Allows (s : State α) (rcn : ID) : Prop where
   deps        : dependencies s.rtr rcn ⊆ s.progress
   unprocessed : rcn ∉ s.progress
 
-theorem Allows.def {s : State α} : 
+namespace Allows
+
+variable {s : State α}
+
+theorem «def» : 
     (s.Allows i) ↔ (i ∈ s.rtr[.rcn]) ∧ (dependencies s.rtr i ⊆ s.progress) ∧ (i ∉ s.progress) where
   mp  := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
   mpr := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
 
-theorem Allows.acyclic {s : State α} (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
+theorem acyclic (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   (a.unprocessed $ a.deps ·)
+
+theorem not_elim (a : ¬s.Allows rcn) : 
+    (rcn ∉ s.rtr[.rcn]) ∨ (∃ i, i ∈ dependencies s.rtr rcn ∧ i ∉ s.progress) ∨ (rcn ∈ s.progress) 
+    := by
+  by_contra h
+  push_neg at h
+  exact a { mem := h.left, deps := h.right.left, unprocessed := h.right.right }
+
+end Allows
 
 def input (s : State α) (rcn : ID) : Reaction.Input where
   val cpt := s.rtr[.rcn][rcn] |>.elim ∅ (restriction · cpt)
