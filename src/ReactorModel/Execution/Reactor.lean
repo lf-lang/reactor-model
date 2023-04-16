@@ -34,8 +34,8 @@ structure Cleared (rtr₁ rtr₂ : α) : Prop where
   equiv    : rtr₁ ≈ rtr₂
   eq_state : rtr₁[.stv] = rtr₂[.stv]
   eq_acts  : rtr₁[.act] = rtr₂[.act]
-  inputs   : ∀ {i v}, rtr₂[.inp][i] = some v → v = .absent  
-  outputs  : ∀ {i v}, rtr₂[.out][i] = some v → v = .absent
+  inputs   : rtr₁[.inp].map (fun _ => .absent) = rtr₂[.inp]  
+  outputs  : rtr₁[.out].map (fun _ => .absent) = rtr₂[.out]  
 
 theorem Cleared.deterministic {rtr : α} (cl₁ : Cleared rtr rtr₁) (cl₂ : Cleared rtr rtr₂) : 
     rtr₁ = rtr₂ := by
@@ -44,9 +44,9 @@ theorem Cleared.deterministic {rtr : α} (cl₁ : Cleared rtr rtr₁) (cl₂ : C
   intro cpt _ _ _ ho₁ ho₂
   cases cpt
   case stv => simp_all [(ho₁ ▸ cl₁.eq_state) ▸ (ho₂ ▸ cl₂.eq_state)] 
-  case act => simp_all [(ho₁ ▸ cl₁.eq_acts) ▸ (ho₂ ▸ cl₂.eq_acts)] 
-  case inp => simp [cl₁.inputs ho₁, cl₂.inputs ho₂]
-  case out => simp [cl₁.outputs ho₁, cl₂.outputs ho₂]
+  case act => simp_all [(ho₁ ▸ cl₁.eq_acts)  ▸ (ho₂ ▸ cl₂.eq_acts)] 
+  case inp => simp_all [(ho₁ ▸ cl₁.inputs)   ▸ (ho₂ ▸ cl₂.inputs)] 
+  case out => simp_all [(ho₁ ▸ cl₁.outputs)  ▸ (ho₂ ▸ cl₂.outputs)] 
 
 def apply (rtr : α) : Change → α 
   | .inp i v   => Updatable.update rtr .inp i (fun _ => v)

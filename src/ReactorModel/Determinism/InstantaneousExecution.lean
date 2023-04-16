@@ -22,8 +22,7 @@ theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ s₁.progress
 theorem mem_progress_iff (e : s₁ ⇓ᵢ+ s₂) : 
     (rcn ∈ s₂.progress) ↔ (rcn ∈ e.rcns ∨ rcn ∈ s₁.progress) := by
   induction e <;> simp [rcns]
-  case single =>
-    sorry
+  case single e => exact e.mem_progress_iff
   case trans s₁ s₂ s₃ e e' hi => 
     simp [hi]
     constructor <;> intro

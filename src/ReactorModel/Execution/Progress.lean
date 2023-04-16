@@ -15,12 +15,17 @@ variable [Practical α]
 def clear (rtr : α) : α :=
   update' (update' rtr .inp .absent) .out .absent
 
+open FiniteUpdatable in
 theorem clear_cleared (rtr : α) : Cleared rtr (clear rtr) where
-  equiv    := Equivalent.trans update'_equiv update'_equiv
-  eq_state := sorry
-  eq_acts  := sorry
-  inputs   := sorry
-  outputs  := sorry
+  equiv := Equivalent.trans update'_equiv update'_equiv
+  eq_state := by
+    rw [clear, update'_preserves (by simp : .stv ≠ .out), update'_preserves (by simp : .stv ≠ .inp)]
+  eq_acts := by
+    rw [clear, update'_preserves (by simp : .act ≠ .out), update'_preserves (by simp : .act ≠ .inp)]
+  inputs := by 
+    rw [clear, update'_preserves (by simp : .inp ≠ .out), update'_updated] 
+  outputs := by 
+    rw [clear, update'_updated, update'_preserves (by simp : .out ≠ .inp)] 
 
 end ReactorType
 

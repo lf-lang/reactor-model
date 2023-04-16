@@ -1,11 +1,16 @@
 import ReactorModel.Objects.Reactor.Practical
 import ReactorModel.Objects.Reactor.Theorems.Accessible
 import ReactorModel.Objects.Reactor.Theorems.Proper
+import ReactorModel.Objects.Reactor.Theorems.FiniteUpdatable
 
 namespace ReactorType
 
 instance [Practical α] : Accessible α where
   unique_ids := Practical.toProper.unique_ids
+
+instance [Practical α] : FiniteUpdatable α where
+  update := Practical.update
+  lawful := Practical.lawful
 
 variable [Practical α] {rtr : α}
 
