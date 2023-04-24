@@ -56,7 +56,12 @@ theorem unprocessed_finite (s : State.Over rtr) : s.unprocessed.Finite := by
   apply Set.Finite.inter_of_left $ Finite.fin rtr .rcn
 
 theorem unprocessed_empty_iff_closed : (s.unprocessed = ∅) ↔ s.Closed := by
-  sorry
+  simp [unprocessed, Closed]
+  constructor <;> (intro h₁; ext1 i; constructor) <;> intro h₂
+  · exact s.progress_sub h₂
+  · simp [Set.ext_iff, Partial.mem_def] at h₁; exact h₁ _ h₂
+  · simp [h₁, Partial.mem_def] at h₂
+  · contradiction   
 
 theorem not_closed_to_nontrivial (h : ¬s.Closed) : s.Nontrivial := by
   by_contra hn
@@ -65,9 +70,45 @@ theorem not_closed_to_nontrivial (h : ¬s.Closed) : s.Nontrivial := by
   simp [State.Closed, ht', Partial.empty_ids, Set.subset_empty_iff] at h hp
   contradiction
 
-theorem allowed_of_acyclic_not_closed [State.Nontrivial s.toState] 
-    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ i, s.Allows i := 
-  sorry -- somehow by induction over the finite set of reactions
+theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[.rcn].ids :=
+  Set.ssubset_iff_subset_ne.mpr ⟨s.progress_sub, hc⟩
+
+theorem exists_unprocessed_of_not_closed (hc : ¬s.Closed) : ∃ i ∈ s.rtr[.rcn], i ∉ s.progress := by
+  have ⟨i, _, _⟩ := Set.exists_of_ssubset $ s.progress_ssubset_of_not_closed hc
+  exists i
+
+theorem allowed_of_acyclic_has_unprocessed 
+    (a : Dependency.Acyclic rtr) (h₁ : i ∈ s.rtr[.rcn]) (h₂ : i ∉ s.progress) : ∃ i, s.Allows i :=
+  if h : dependencies s.rtr i \ s.progress = ∅ then by 
+    simp [Set.subset_empty_iff] at h
+    exact ⟨i, ‹_›, Set.diff_eq_empty.mp h, ‹_›⟩
+  else
+    have ⟨d, hd⟩ := Set.nonempty_iff_ne_empty.mpr h
+    have ⟨h₁, h₂⟩ := Set.mem_diff _ |>.mp hd
+    allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
+termination_by allowed_of_acyclic_has_unprocessed s i _ _ _ => 
+  have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset $ dependencies_subset _ i) s.progress
+  fin.toFinset.card
+decreasing_by
+  simp_wf
+  refine Finset.card_lt_card $ Set.Finite.toFinset_strictMono ?_
+  have h := mem_dependencies_ssubset a $ s.rtr_eq ▸ h₁
+  simp [ssubset_iff_subset_ne, s.rtr_eq] at h ⊢ 
+  refine ⟨?subset, ?ne⟩
+  case subset =>
+    intro x hx
+    simp [Set.mem_diff] at hx ⊢ 
+    exact ⟨h.left hx.left, hx.right⟩
+  case ne =>
+    simp [Set.ext_iff]
+    refine ⟨d, h₂, ?_⟩
+    rw [iff_true_right (b := d ∈ dependencies rtr d) $ s.rtr_eq ▸ h₁]
+    exact Dependency.Acyclic.iff_mem_acyclic.mp a d $ s.rtr_eq ▸ h₁.mem₁
+
+theorem allowed_of_acyclic_not_closed (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
+    ∃ i, s.Allows i :=
+  have ⟨_, hi₁, hi₂⟩ := s.exists_unprocessed_of_not_closed hc
+  allowed_of_acyclic_has_unprocessed a hi₁ hi₂
 
 def ofStep {s₁ : State.Over rtr₁} {s₂ : State α} (e : s₁.toState ⇓ᵢ s₂) : State.Over s₂.rtr := 
   { s₂ with 
@@ -109,7 +150,6 @@ variable {s₁ s₂ : State α}
 
 theorem of_acyclic_not_closed {s : State.Over rtr} (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
     ∃ s' : State α, Nonempty (s ⇓ᵢ s') := 
-  have := s.not_closed_to_nontrivial hc
   let ⟨rcn, ha⟩ := s.allowed_of_acyclic_not_closed a hc
   if h : s.Triggers rcn
   then ⟨s.exec rcn |>.record rcn, ⟨.exec ha h⟩⟩

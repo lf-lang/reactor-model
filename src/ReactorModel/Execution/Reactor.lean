@@ -61,10 +61,22 @@ def apply' (rtr : α) (cs : List Change) : α :=
 def dependencies (rtr : α) (rcn : ID) : Set ID := 
   { rcn' | rcn' <[rtr] rcn }
 
+def dependencies_subset (rtr : α) (rcn : ID) : dependencies rtr rcn ⊆ rtr[.rcn].ids := 
+  fun _ d => d.mem₁
+
 theorem equiv_eq_dependencies {rtr₁ : α} (e : rtr₁ ≈ rtr₂) : 
   dependencies rtr₁ = dependencies rtr₂ := by
   ext i j
   exact ⟨.equiv $ .symm e, .equiv e⟩ 
+
+theorem mem_dependencies_subset {rtr : α} {rcn₁ rcn₂ : ID} (h : rcn₂ ∈ dependencies rtr rcn₁) : 
+    dependencies rtr rcn₂ ⊆ dependencies rtr rcn₁ := 
+  sorry
+
+theorem mem_dependencies_ssubset {rtr : α} {rcn₁ rcn₂ : ID} 
+    (a : Dependency.Acyclic rtr) (h : rcn₂ ∈ dependencies rtr rcn₁) : 
+    dependencies rtr rcn₂ ⊂ dependencies rtr rcn₁ := 
+  sorry 
 
 def scheduledTags (rtr : α) : Set Time.Tag := 
   { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }

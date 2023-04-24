@@ -19,6 +19,17 @@ infixr:50 " ⇀ " => Partial
 
 namespace Partial
 
+def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
+
+instance : Membership α (α ⇀ β) where
+  mem a f := a ∈ f.ids 
+
+theorem mem_def {f : α ⇀ β} : (a ∈ f) ↔ (a ∈ f.ids) := by
+  rfl
+
+theorem mem_iff {f : α ⇀ β} : (a ∈ f) ↔ (∃ b, f a = some b) := by
+  rfl
+
 def empty : α ⇀ β :=  
   fun _ => none
 
@@ -29,16 +40,17 @@ theorem empty_iff {f : α ⇀ β} : (f = ∅) ↔ (∀ a, f a = none) where
   mp h _ := h ▸ rfl
   mpr h := funext h  
 
-def Nonempty (f : α ⇀ β) : Prop :=
-  f ≠ ∅  
-
-def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
-
 theorem empty_iff_ids_empty {f : α ⇀ β} : (f = ∅) ↔ (f.ids = ∅) := by
   simp [ids, empty_iff, Set.eq_empty_iff_forall_not_mem, Option.eq_none_iff_forall_not_mem]
 
 theorem empty_ids : (∅ : α ⇀ β).ids = ∅ := 
   empty_iff_ids_empty.mp rfl
+
+theorem not_mem_empty {a : α} : a ∉ (∅ : α ⇀ β) := by
+  simp [mem_def, empty_ids]
+
+def Nonempty (f : α ⇀ β) : Prop :=
+  f ≠ ∅  
 
 namespace Nonempty
 
@@ -51,19 +63,11 @@ theorem not_to_empty {f : α ⇀ β} (h : ¬f.Nonempty) : f = ∅ :=
 theorem iff_ids_nonempty {f : α ⇀ β} : f.Nonempty ↔ f.ids.Nonempty := by
   simp [Nonempty, Set.nonempty_iff_ne_empty, empty_iff_ids_empty]
 
+theorem exists_mem {f : α ⇀ β} (n : f.Nonempty) : ∃ a, a ∈ f := by
+  simp [iff_ids_nonempty, mem_def] at *
+  exact ⟨_, n.some_mem⟩
+
 end Nonempty
-
-instance : Membership α (α ⇀ β) where
-  mem a f := a ∈ f.ids 
-
-theorem mem_def {f : α ⇀ β} : (a ∈ f) ↔ (a ∈ f.ids) := by
-  rfl
-
-theorem mem_iff {f : α ⇀ β} : (a ∈ f) ↔ (∃ b, f a = some b) := by
-  rfl
-
-theorem not_mem_empty {a : α} : a ∉ (∅ : α ⇀ β) := by
-  simp [mem_def, empty_ids]
 
 def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } := 
   fun a => 
