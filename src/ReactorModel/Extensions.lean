@@ -3,6 +3,11 @@ import Mathlib.Data.Set.Finite
 
 open Classical
 
+class HasHEquiv (α : Sort u) (β : Sort v) where
+  HEquiv : α → β → Sort w
+
+infix:50 " ∼ "  => HasHEquiv.HEquiv
+
 namespace Set 
 
 theorem insert_union' (s₁ s₂ : Set α) (a : α) : (insert a s₁) ∪ s₂ = s₁ ∪ (insert a s₂) := by

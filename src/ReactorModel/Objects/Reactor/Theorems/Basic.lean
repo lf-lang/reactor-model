@@ -271,9 +271,11 @@ inductive Equivalent :
 
 namespace Equivalent
 
-infix:50 " ∼ " => Equivalent
-
 variable [ReactorType α] {rtr₁ : α}
+
+instance [ReactorType β] {rtr₂ : β} : 
+    HasHEquiv (StrictMember cpt i rtr₁) (StrictMember cpt i rtr₂) where
+  HEquiv := Equivalent (cpt := cpt) (i := i) (rtr₁ := rtr₁) (rtr₂ := rtr₂)
 
 theorem symm [ReactorType β] {rtr₂ : β} 
     {s₁ : StrictMember cpt i rtr₁} {s₂ : StrictMember cpt i rtr₂} (e : s₁ ∼ s₂) : s₂ ∼ s₁ := by
@@ -291,7 +293,7 @@ instance {rtr : α} : Equivalence (Equivalent (· : StrictMember cpt i rtr) ·) 
 theorem to_eq {rtr : α} {s₁ s₂ : StrictMember cpt i rtr} : (s₁ ∼ s₂) → s₁ = s₂
   | refl _         => rfl
   | final h₁ h₂    => by simp [Option.some_inj.mp $ h₁ ▸ h₂]
-  | nested h₁ h₂ e => by cases Option.some_inj.mp $ h₁ ▸ h₂; simp [e.to_eq]
+  | nested h₁ h₂ e => by cases Option.some_inj.mp $ h₁ ▸ h₂; simp [to_eq e]
 
 theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (s : StrictMember c j rtr₂) : 
     s ∼ s.fromLawfulMemUpdate u := by
@@ -355,7 +357,8 @@ inductive Equivalent [ReactorType β] {rtr₂ : β} : (Member cpt i rtr₁) → 
 
 namespace Equivalent
 
-infix:50 " ∼ " => Equivalent
+instance [ReactorType β] {rtr₂ : β} : HasHEquiv (Member cpt i rtr₁) (Member cpt i rtr₂) where
+  HEquiv := Equivalent (cpt := cpt) (i := i) (rtr₁ := rtr₁) (rtr₂ := rtr₂)
 
 theorem refl : (m : Member cpt i rtr) → m ∼ m
   | .root     => root
@@ -380,7 +383,7 @@ instance : Equivalence (Equivalent (· : Member cpt i rtr) ·) :=
 
 theorem to_eq {m₁ m₂ : Member cpt i rtr} : (m₁ ∼ m₂) → m₁ = m₂
   | root     => rfl
-  | strict e => congr_arg _ e.to_eq
+  | strict e => congr_arg _ $ StrictMember.Equivalent.to_eq e
 
 theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
     (m : Member c j rtr₂) → m ∼ m.fromLawfulMemUpdate u
@@ -418,10 +421,10 @@ namespace UniqueIDs
 variable [ReactorType α] {rtr₁ : α}
 
 theorem updated (u : LawfulUpdate cpt i f rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
-  allEq m₁ m₂ := open Member Equivalent in
-    h.allEq (m₁.fromLawfulUpdate u) (m₂.fromLawfulUpdate u) ▸ fromLawfulUpdate u m₁ 
-      |>.trans (fromLawfulUpdate u m₂).symm 
-      |>.to_eq
+  allEq m₁ m₂ := open Member.Equivalent in
+    to_eq $ trans 
+      (h.allEq (m₁.fromLawfulUpdate u) (m₂.fromLawfulUpdate u) ▸ fromLawfulUpdate u m₁)
+      (symm (fromLawfulUpdate u m₂))
 
 end UniqueIDs
 end ReactorType
