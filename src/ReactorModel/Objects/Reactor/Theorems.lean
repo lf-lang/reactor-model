@@ -7,4 +7,3 @@ import ReactorModel.Objects.Reactor.Theorems.Indexable
 import ReactorModel.Objects.Reactor.Theorems.Practical
 import ReactorModel.Objects.Reactor.Theorems.Proper
 import ReactorModel.Objects.Reactor.Theorems.Readable
-import ReactorModel.Objects.Reactor.Theorems.WellFounded
