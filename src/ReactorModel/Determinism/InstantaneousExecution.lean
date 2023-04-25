@@ -157,18 +157,21 @@ theorem rcns_perm_deterministic
     have hm' := e₁'.head_minimal e₁ |>.perm hp
     have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
     cases e₂ <;> simp [rcns] at he₂
-    case single =>
-      simp [rcns] at hp
-      have ⟨hd, tl, h⟩ := e₂.rcns_cons
-      simp [h] at hp he₂
-      have := he₂.right.symm ▸ List.erase_cons e₁.rcn hd tl
-      sorry
     case trans sₘ₂ e₂ e₂' =>
       have ⟨h, h'⟩ := he₂ 
       cases e₁.deterministic e₂ h.symm
       apply hi e₂'
       rw [h']
       exact List.perm_cons _ |>.mp (hp.trans $ List.perm_cons_erase hm)
+    case single =>
+      exfalso
+      simp [rcns] at hp
+      have ⟨hd, tl, h⟩ := e₂.rcns_cons
+      have ⟨_, _, h'⟩ := e₁'.rcns_cons
+      simp [h, h'] at hp he₂
+      have h := he₂.right.symm ▸ List.erase_cons e₁.rcn hd tl
+      split at h <;> try assumption
+      simp [←h] at hp
 
 protected theorem deterministic 
     (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
