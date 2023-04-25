@@ -37,16 +37,17 @@ variable [Practical α]
 def unprocessed (s : State α) : Set ID :=
   { i ∈ s.rtr[.rcn] | i ∉ s.progress }
 
-protected structure Over (ovr : α) extends State α where 
-  rtr_eq       : rtr = ovr := by rfl
+protected structure Over (over : α) extends State α where 
+  rtr_eq       : rtr = over := by rfl
   progress_sub : progress ⊆ rtr[.rcn].ids 
 
 namespace Over
 
 variable {rtr : α} {s : State.Over rtr}
 
-instance : Coe (State.Over rtr) (State α) where
-  coe := State.Over.toState
+-- TODO: https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/.28semi-.29out-params
+-- instance : Coe (State.Over rtr) (State α) where
+--   coe := State.Over.toState
 
 theorem progress_finite (s : State.Over rtr) : s.progress.Finite :=
   Finite.fin s.rtr .rcn |>.subset s.progress_sub
@@ -148,7 +149,7 @@ namespace Step
 variable {s₁ s₂ : State α}
 
 theorem of_acyclic_not_closed {s : State.Over rtr} (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
-    ∃ s' : State α, Nonempty (s ⇓ᵢ s') := 
+    ∃ s' : State α, Nonempty (s.toState ⇓ᵢ s') := 
   let ⟨rcn, ha⟩ := s.exists_allowed_of_acyclic_not_closed a hc
   if h : s.Triggers rcn
   then ⟨s.exec rcn |>.record rcn, ⟨.exec ha h⟩⟩
@@ -172,7 +173,7 @@ theorem unprocessed_ssubset (e : s₁ ⇓ᵢ s₂) : s₂.unprocessed ⊂ s₁.u
 end Step
 
 theorem ClosedExecution.of_acyclic_not_closed {rtr : α} {s : State.Over rtr} 
-    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ s' : State α, Nonempty (s ⇓| s') :=
+    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ s' : State α, Nonempty (s.toState ⇓| s') :=
   have ⟨sₑ, ⟨e⟩⟩ := Instantaneous.Step.of_acyclic_not_closed a hc
   if hc' : sₑ.Closed then
     ⟨_, ⟨.single e, hc'⟩⟩ 
@@ -188,14 +189,14 @@ decreasing_by
 end Instantaneous
 
 theorem AdvanceTag.of_nonterminal_closed {s : State.Over rtr} 
-    (ht : ¬s.Terminal) (hc : s.Closed) : ∃ s' : State α, Nonempty (s ⇓- s') := by
+    (ht : ¬s.Terminal) (hc : s.Closed) : ∃ s' : State α, Nonempty (s.toState ⇓- s') := by
   have ⟨g, hg⟩ := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
   exact ⟨⟨clear s.rtr, g, ∅⟩, ⟨hc, ⟨hg, clear_cleared _⟩⟩⟩
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.
 def Progress [Practical α] (rtr : α) : Prop :=
-  ∀ (s : State.Over rtr), ¬s.Terminal → (∃ s' : State α, s ⇓ s')    
+  ∀ (s : State.Over rtr), ¬s.Terminal → (∃ s' : State α, s.toState ⇓ s')    
 
 namespace Progress
 
@@ -204,8 +205,8 @@ theorem to_deps_acyclic_nontriv (nontriv : rtr[.rcn].Nonempty) (p : Progress rtr
   simp [Dependency.Acyclic.iff_mem_acyclic]
   intro rcn hm
   let s : State α := { rtr, tag := 0, progress := ∅ }
-  have : s.Nontrivial := ⟨nontriv⟩ 
-  have hc : ¬s.Closed := (Set.not_nonempty_empty ·.progress_Nonempty)
+  have n : s.Nontrivial := nontriv
+  have hc : ¬s.Closed := (Set.not_nonempty_empty $ ·.progress_nonempty n)
   have ⟨_, e⟩ := p ⟨s, rfl, by simp⟩ (State.Terminal.not_of_not_closed hc)
   have ⟨e⟩ := e.resolve_close hc 
   exact e.acyclic $ e.progress_empty_mem_rcns_iff rfl |>.mpr hm

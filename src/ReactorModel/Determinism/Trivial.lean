@@ -1,4 +1,4 @@
-import ReactorModel.Determinism.ExecutionStep
+import ReactorModel.Determinism.Nontrivial
 
 open ReactorType Classical
 
@@ -18,7 +18,7 @@ theorem equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) (t : s₁.Trivi
   Equivalent.obj?_rcn_eq e |>.symm.trans t
 
 theorem of_not_nontrivial (h : ¬Nontrivial s) : s.Trivial :=
-  byContradiction (h ⟨·⟩)
+  byContradiction (h ·)
 
 end Trivial
 end State

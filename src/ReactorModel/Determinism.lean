@@ -1,6 +1,8 @@
+import ReactorModel.Determinism.Dependency
 import ReactorModel.Determinism.Execution
 import ReactorModel.Determinism.ExecutionStep
-import ReactorModel.Determinism.Dependency
 import ReactorModel.Determinism.InstantaneousExecution
 import ReactorModel.Determinism.InstantaneousStep
+import ReactorModel.Determinism.Nontrivial
+import ReactorModel.Determinism.State
 import ReactorModel.Determinism.Trivial

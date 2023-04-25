@@ -15,20 +15,8 @@ variable [Practical α]
 
 namespace State
 
-class Nontrivial (s : State α) : Prop where
-  nontrivial : s.rtr[.rcn].Nonempty
-
-theorem Nontrivial.equiv {s₁ s₂ : State α} (e : s₁.rtr ≈ s₂.rtr) [n : Nontrivial s₁] : 
-    Nontrivial s₂ :=
-  ⟨Equivalent.obj?_rcn_eq e ▸ n.nontrivial⟩ 
-
 def Closed (s : State α) : Prop := 
   s.progress = s.rtr[.rcn].ids
-
-theorem Closed.progress_Nonempty {s : State α} [Nontrivial s] (h : Closed s) : 
-    s.progress.Nonempty := by
-  simp_all [Closed, ←Partial.Nonempty.iff_ids_nonempty]
-  exact Nontrivial.nontrivial
 
 structure Allows (s : State α) (rcn : ID) : Prop where
   mem         : rcn ∈ s.rtr[.rcn] 
@@ -147,9 +135,6 @@ variable {s₁ s₂ : State α}
 
 theorem progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
   | ⟨_, _⟩ => rfl
-
-instance preserves_nontrivial [Nontrivial s₁] : (Advance s₁ s₂) → Nontrivial s₂
-  | ⟨_, c⟩ => Nontrivial.equiv c.equiv
 
 theorem deterministic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
   | ⟨n₁, c₁⟩, ⟨n₂, c₂⟩ => by ext1 <;> simp [n₁.deterministic n₂, c₁.deterministic c₂]
