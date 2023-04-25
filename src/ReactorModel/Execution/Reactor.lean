@@ -70,13 +70,13 @@ theorem equiv_eq_dependencies {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
   exact ⟨.equiv $ .symm e, .equiv e⟩ 
 
 theorem mem_dependencies_subset {rtr : α} {rcn₁ rcn₂ : ID} (h : rcn₂ ∈ dependencies rtr rcn₁) : 
-    dependencies rtr rcn₂ ⊆ dependencies rtr rcn₁ := 
-  sorry
+    dependencies rtr rcn₂ ⊆ dependencies rtr rcn₁ :=
+  fun _ h' => Dependency.trans h' h
 
 theorem mem_dependencies_ssubset {rtr : α} {rcn₁ rcn₂ : ID} 
     (a : Dependency.Acyclic rtr) (h : rcn₂ ∈ dependencies rtr rcn₁) : 
-    dependencies rtr rcn₂ ⊂ dependencies rtr rcn₁ := 
-  sorry 
+    dependencies rtr rcn₂ ⊂ dependencies rtr rcn₁ :=
+  ssubset_iff_subset_ne.mpr ⟨mem_dependencies_subset h, (a _ $ ·.symm ▸ h)⟩
 
 def scheduledTags (rtr : α) : Set Time.Tag := 
   { g | ∃ i a, (rtr[.act][i] = some a) ∧ (g ∈ a.keys) }

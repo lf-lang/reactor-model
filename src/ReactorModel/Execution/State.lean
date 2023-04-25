@@ -126,7 +126,7 @@ theorem mem_record'_progress_iff (s : State α) (rcns : List ID) (i : ID) :
   simp [record']
 
 structure NextTag (s : State α) (next : Time.Tag) : Prop where
-  mem : next ∈ scheduledTags s.rtr
+  mem   : next ∈ scheduledTags s.rtr
   bound : s.tag < next
   least : ∀ g ∈ scheduledTags s.rtr, (s.tag < g) → (next ≤ g)    
 

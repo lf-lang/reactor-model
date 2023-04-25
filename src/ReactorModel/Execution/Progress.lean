@@ -77,16 +77,15 @@ theorem exists_unprocessed_of_not_closed (hc : ¬s.Closed) : ∃ i ∈ s.rtr[.rc
   have ⟨i, _, _⟩ := Set.exists_of_ssubset $ s.progress_ssubset_of_not_closed hc
   exists i
 
-theorem allowed_of_acyclic_has_unprocessed 
+theorem exists_allowed_of_acyclic_has_unprocessed 
     (a : Dependency.Acyclic rtr) (h₁ : i ∈ s.rtr[.rcn]) (h₂ : i ∉ s.progress) : ∃ i, s.Allows i :=
-  if h : dependencies s.rtr i \ s.progress = ∅ then by 
-    simp [Set.subset_empty_iff] at h
-    exact ⟨i, ‹_›, Set.diff_eq_empty.mp h, ‹_›⟩
+  if h : dependencies s.rtr i \ s.progress = ∅ then
+    ⟨i, ‹_›, Set.diff_eq_empty.mp h, ‹_›⟩
   else
-    have ⟨d, hd⟩ := Set.nonempty_iff_ne_empty.mpr h
+    have ⟨_, hd⟩ := Set.nonempty_iff_ne_empty.mpr h
     have ⟨h₁, h₂⟩ := Set.mem_diff _ |>.mp hd
-    allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
-termination_by allowed_of_acyclic_has_unprocessed s i _ _ _ => 
+    exists_allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
+termination_by exists_allowed_of_acyclic_has_unprocessed s i _ _ _ => 
   have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset $ dependencies_subset _ i) s.progress
   fin.toFinset.card
 decreasing_by
@@ -101,14 +100,14 @@ decreasing_by
     exact ⟨h.left hx.left, hx.right⟩
   case ne =>
     simp [Set.ext_iff]
-    refine ⟨d, h₂, ?_⟩
-    rw [iff_true_right (b := d ∈ dependencies rtr d) $ s.rtr_eq ▸ h₁]
-    exact Dependency.Acyclic.iff_mem_acyclic.mp a d $ s.rtr_eq ▸ h₁.mem₁
+    refine ⟨_, h₂, ?_⟩
+    rw [iff_true_right $ s.rtr_eq ▸ h₁]
+    exact a _
 
-theorem allowed_of_acyclic_not_closed (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
+theorem exists_allowed_of_acyclic_not_closed (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
     ∃ i, s.Allows i :=
   have ⟨_, hi₁, hi₂⟩ := s.exists_unprocessed_of_not_closed hc
-  allowed_of_acyclic_has_unprocessed a hi₁ hi₂
+  exists_allowed_of_acyclic_has_unprocessed a hi₁ hi₂
 
 def ofStep {s₁ : State.Over rtr₁} {s₂ : State α} (e : s₁.toState ⇓ᵢ s₂) : State.Over s₂.rtr := 
   { s₂ with 
@@ -150,46 +149,41 @@ variable {s₁ s₂ : State α}
 
 theorem of_acyclic_not_closed {s : State.Over rtr} (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
     ∃ s' : State α, Nonempty (s ⇓ᵢ s') := 
-  let ⟨rcn, ha⟩ := s.allowed_of_acyclic_not_closed a hc
+  let ⟨rcn, ha⟩ := s.exists_allowed_of_acyclic_not_closed a hc
   if h : s.Triggers rcn
   then ⟨s.exec rcn |>.record rcn, ⟨.exec ha h⟩⟩
   else ⟨s.record rcn, ⟨.skip ha h⟩⟩  
 
-theorem unprocessed₂_eq (e : s₁ ⇓ᵢ s₂) : s₂.unprocessed = s₁.unprocessed \ {e.rcn} := by
+theorem unprocessed_eq (e : s₁ ⇓ᵢ s₂) : s₂.unprocessed = s₁.unprocessed \ {e.rcn} := by
   ext i
   simp [State.unprocessed, Equivalent.obj?_rcn_eq e.equiv, and_assoc]
   intro _
   have h := e.mem_progress_iff (rcn' := i) |>.not
   push_neg at h
   simp [and_comm, h]
-  
-theorem unprocessed₁_eq (e : s₁ ⇓ᵢ s₂) : s₁.unprocessed = insert e.rcn s₂.unprocessed := by
-  sorry
+
+theorem rcn_mem_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∈ s₁.unprocessed := 
+  ⟨e.allows_rcn.mem, e.allows_rcn.unprocessed⟩ 
+
+theorem unprocessed_ssubset (e : s₁ ⇓ᵢ s₂) : s₂.unprocessed ⊂ s₁.unprocessed := by
+  simp [e.unprocessed_eq, Set.ssubset_iff_subset_ne]
+  exact e.rcn_mem_unprocessed
 
 end Step
 
-theorem ClosedExecution.of_nonterminal_acyclic_not_closed {s : State.Over rtr} 
-    (ht : ¬s.Terminal) (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ s' : State α, Nonempty (s ⇓| s') := by
-  generalize hp : s.unprocessed = u
-  have hu := hp ▸ s.unprocessed_finite
-  induction u, hu using Set.Finite.dinduction_on generalizing s rtr
-  case _ =>
-    exact absurd (State.Over.unprocessed_empty_iff_closed.mp hp) hc
-  case _ rcn r u hr hi =>
-    have ⟨sₑ, ⟨e⟩⟩ := Instantaneous.Step.of_acyclic_not_closed a hc
-    by_cases hc' : sₑ.Closed
-    case pos => exact ⟨_, ⟨.single e, hc'⟩⟩ 
-    case neg =>
-      suffices hs : (State.Over.ofStep e).unprocessed = r by
-        have a' := Dependency.Acyclic.equiv e.equiv (s.rtr_eq.symm ▸ a)
-        have ht' := State.Terminal.not_of_not_closed hc'
-        have ⟨_, ⟨e'⟩⟩ := hi (s := State.Over.ofStep e) ht' a' hc' hs
-        exact ⟨_, ⟨.trans e e'.exec, e'.closed⟩⟩ 
-      -- Is this provable, or do we need to adjust the way we do induction here?
-      clear hi ht hc a hc'
-      simp [State.Over.ofStep]
-      -- rw [State.Over.ofStep, e.unprocessed₂_eq, hp, Set.insert_diff_self_of_not_mem u]
-      sorry 
+theorem ClosedExecution.of_acyclic_not_closed {rtr : α} {s : State.Over rtr} 
+    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ s' : State α, Nonempty (s ⇓| s') :=
+  have ⟨sₑ, ⟨e⟩⟩ := Instantaneous.Step.of_acyclic_not_closed a hc
+  if hc' : sₑ.Closed then
+    ⟨_, ⟨.single e, hc'⟩⟩ 
+  else
+    have a' := Dependency.Acyclic.equiv e.equiv (s.rtr_eq.symm ▸ a)
+    have ⟨_, ⟨e'⟩⟩ := of_acyclic_not_closed (s := s.ofStep e) a' hc'
+    ⟨_, ⟨.trans e e'.exec, e'.closed⟩⟩   
+termination_by of_acyclic_not_closed s _ _ _ => s.unprocessed_finite.toFinset.card
+decreasing_by
+  simp_wf
+  exact Finset.card_lt_card $ Set.Finite.toFinset_strictMono $ e.unprocessed_ssubset
 
 end Instantaneous
 
@@ -227,7 +221,7 @@ theorem of_deps_acyclic (a : Dependency.Acyclic rtr) : Progress rtr := by
     have ⟨_, ⟨a⟩⟩ := AdvanceTag.of_nonterminal_closed ht hc
     exact ⟨_, .advance a⟩
   else 
-    have ⟨_, ⟨e⟩⟩ := Instantaneous.ClosedExecution.of_nonterminal_acyclic_not_closed ht a hc
+    have ⟨_, ⟨e⟩⟩ := Instantaneous.ClosedExecution.of_acyclic_not_closed a hc
     exact ⟨_, .close e⟩
 
 theorem iff_deps_acyclic : (Progress rtr) ↔ (Dependency.Acyclic rtr) :=
