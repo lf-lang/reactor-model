@@ -43,7 +43,7 @@ structure _root_.Reaction where
   body      : Input → List Change
   triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv } 
   target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
-  -- TODO: We don't need the following condictions for determinism. Should we remove them?
+  -- TODO: We don't need the following conditions for determinism. Should we remove them?
   act_not_past         : (.act j t v ∈ body i) → i.tag.time ≤ t
   act_local            : True -- `body` outputs the same even if we change all actions' past and future values.
 

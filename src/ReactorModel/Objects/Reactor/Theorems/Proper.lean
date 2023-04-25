@@ -38,12 +38,10 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr�
   unique_inputs h₁ h₂ := 
     wf.unique_inputs (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂)
   ordered_prio h₁ h₂ h₃ := 
-    have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
-    have e := obj?_rtr_equiv ‹_› h₁' h₁
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
     ordered_prio ‹_› h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃)
   valid_deps h₁ h₂ h₃ := 
-    have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩ 
-    have e := obj?_rtr_equiv ‹_› h₁' h₁
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
     wf.valid_deps h₁' (get?_rcn_eq e ▸ h₂) h₃ |>.equiv ‹_› h₁' h₁
 
 theorem nested (wf : Wellformed rtr₁) (h : rtr₁{.rtr}{i} = some rtr₂) : Wellformed rtr₂ where

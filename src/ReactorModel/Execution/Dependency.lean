@@ -31,24 +31,19 @@ namespace Dependency
 
 open Indexable Equivalent
 variable [Indexable α] {rtr rtr₁ : α}
- 
+
 theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁] j₂ := by
   induction d with
   | prio h₁ h₂ h₃ => 
-    -- TODO: The next 2 lines are a common pattern (see `Wellformed.equiv`). Perhaps create a 
-    --       (unidirectional) derivative of `Equivalent.obj?_some_iff` that includes equivalence.
-    have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩
-    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
     exact prio h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃) ‹_› ‹_›
   | depOverlap h₁ h₂ => 
     exact depOverlap (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› ‹_› ‹_›
   | mutNorm h₁ h₂ h₃ => 
-    have ⟨_, h₁'⟩ := obj?_some_iff e |>.mpr ⟨_, h₁⟩  
-    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
     exact mutNorm h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃) ‹_› ‹_›
   | mutNest h₁ h₂ h₃ _ h₄ => 
-    have ⟨_, h₁'⟩ := e.obj?_some_iff.mpr ⟨_, h₁⟩  
-    have e := Equivalent.obj?_rtr_equiv e h₁' h₁
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
     have ⟨_, h₂'⟩ := get?_some_iff e (cpt := .rtr) |>.mpr ⟨_, h₂⟩
     have h₄' := mem_get?_iff (Equivalent.get?_rtr_some_equiv e h₂' h₂) (cpt := .rcn) |>.mpr h₄
     exact mutNest h₁' h₂' (get?_rcn_eq e ▸ h₃) ‹_› h₄'

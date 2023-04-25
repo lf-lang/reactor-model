@@ -11,9 +11,27 @@ variable [Indexable α] {rtr rtr₁ : α}
 theorem unique (s₁ s₂ : StrictMember cpt i rtr) : s₁ = s₂ := by
   injection unique_ids.allEq (.strict s₁) (.strict s₂)
 
+theorem equiv 
+    (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember cpt i rtr₁) (s₂ : StrictMember cpt i rtr₂) : s₁ ∼ s₂ := by
+  induction s₁ generalizing rtr₂ <;> cases s₂
+  case final.final => constructor
+  case nested.nested rtr₁ j₁ _ h₁ s₁ hi j₂ _ s₂ h₂ =>
+    suffices hj : j₁ = j₂ by 
+      subst hj
+      exact Equivalent.nested h₁ h₂ $ hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) s₂
+    have hs := (nested h₁ s₁ |>.fromEquiv e).unique (nested h₂ s₂)
+    simp [fromEquiv] at hs
+    exact hs.left
+  case final.nested h₁ _ _ s₂ h₂ => 
+    injection (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
+  case nested.final h₁ s₁ _ _ h₂ =>
+    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
+
 -- TODO: In all three of the following theorems, the `final.nested` and `nested.final` cases could 
---       be removed if we have a theorem that establishes that for indexable reactor types, if two
---       reactors are equivalent, then so are their membership witnesses.
+--       be removed if we figure out how to use the above `equiv` theorem. Induction on the
+--       membership witness equivalence doesn't seem to work. Perhaps you need to prove a custom 
+--       induction principle for `StrictMember.Equivalent`. This would also remove the need to prove
+--       things like `j₁ = j₂` in the `nested` case each time. 
 
 -- TODO: Note that both of the following theorems are almost identical. The only difference happens
 --       in the "local" view of things in the `final.final` case. Perhaps there's a more general
@@ -21,7 +39,7 @@ theorem unique (s₁ s₂ : StrictMember cpt i rtr) : s₁ = s₂ := by
 --       properties are tied to `Equivalent`, it might not be generalizable.
 
 theorem rtr_equiv 
-    (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember .rtr i rtr₁) (s₂ : StrictMember .rtr i rtr₂) : 
+    (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember .rtr i rtr₁) (s₂ : StrictMember .rtr i rtr₂) :
     s₁.object ≈ s₂.object := by
   induction s₁ generalizing rtr₂ <;> cases s₂
   case final.final h₁ _ h₂ => exact Equivalent.get?_rtr_some_equiv e h₁ h₂
@@ -207,22 +225,13 @@ namespace Equivalent
 
 variable [Indexable α] {rtr₁ : α}
 
--- TODO: Generalize this to non-Indexable reactor types.
 theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
     (∃ o₁, rtr₁[cpt][i] = some o₁) ↔ (∃ o₂, rtr₂[cpt][i] = some o₂) := by
-  constructor
-  all_goals
-    intro ⟨_, h⟩
-    have ⟨m⟩ := Object.iff_obj?_some.mpr h    
-    refine ⟨_, Object.iff_obj?_some.mp ⟨m.fromEquiv ?_⟩⟩   
-  case mp  => exact e
-  case mpr => exact Equivalent.symm e
+  simp [←Object.iff_obj?_some, Object.equiv_exists_object_iff e]
 
--- TODO: Generalize this to non-Indexable reactor types.
 theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
   simp [Partial.mem_iff, obj?_some_iff e]
 
--- TODO: Generalize this to non-Indexable reactor types.
 theorem obj?_none_iff (e : rtr₁ ≈ rtr₂) : (rtr₁[cpt][i] = none) ↔ (rtr₂[cpt][i] = none) := by
   simp [←Object.not_iff_obj?_none]
   constructor
@@ -237,6 +246,11 @@ theorem obj?_rtr_equiv
   have ⟨m₁⟩ := Object.iff_obj?_some.mpr h₁
   have ⟨m₂⟩ := Object.iff_obj?_some.mpr h₂
   exact m₁.rtr_equiv e m₂
+
+theorem obj?_rtr_equiv' (e : rtr₁ ≈ rtr₂) (h₂ : rtr₂[.rtr][i] = some n₂) :
+    ∃ n₁, (rtr₁[.rtr][i] = some n₁) ∧ (n₁ ≈ n₂) := by
+  have ⟨_, h₁⟩ := obj?_some_iff e |>.mpr ⟨_, h₂⟩
+  exact ⟨_, h₁, Equivalent.obj?_rtr_equiv e h₁ h₂⟩ 
 
 theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] := by
   funext i

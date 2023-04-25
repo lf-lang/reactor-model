@@ -413,6 +413,11 @@ theorem strict_elim {i : ID} : (Object rtr cpt i o) → ∃ (s : StrictMember cp
 theorem not_of_member_isEmpty (h : IsEmpty $ Member cpt i rtr) (o) : ¬Object rtr cpt i o :=
   fun ⟨m⟩ => h.elim m
 
+theorem equiv_exists_object_iff (e : rtr₁ ≈ rtr₂) :
+    (∃ o₁, Object rtr₁ cpt i o₁) ↔ (∃ o₂, Object rtr₂ cpt i o₂) where
+  mp  | ⟨_, ⟨m⟩⟩ => ⟨_, ⟨m.fromEquiv e⟩⟩
+  mpr | ⟨_, ⟨m⟩⟩ => ⟨_, ⟨m.fromEquiv $ Equivalent.symm e⟩⟩
+  
 end Object
 
 /- ---------------------------------------------------------------------------------------------- -/
