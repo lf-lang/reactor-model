@@ -12,12 +12,12 @@ namespace Wellformed
 -- identified by `i` as source.
 inductive ValidDependency [ReactorType α] (rtr : α) : 
     Reaction.Kind → Kind → Reaction.Dependency → Prop
-  | inp       : (i ∈ rtr{.inp})                             → ValidDependency _ _     .in  ⟨.inp, i⟩   
-  | out       : (i ∈ rtr{.out})                             → ValidDependency _ _     .out ⟨.out, i⟩   
-  | stv       : (i ∈ rtr{.stv})                             → ValidDependency _ _     _    ⟨.stv, i⟩  
-  | act       : (i ∈ rtr{.act})                             → ValidDependency _ _     _    ⟨.act, i⟩
-  | nestedIn  : (rtr{.rtr}{j} = some con) → (i ∈ con{.inp}) → ValidDependency _ _     .out ⟨.inp, i⟩
-  | nestedOut : (rtr{.rtr}{j} = some con) → (i ∈ con{.out}) → ValidDependency _ .norm .in  ⟨.out, i⟩ 
+  | inp       : i ∈ rtr{.inp}                           → ValidDependency rtr _     .in  ⟨.inp, i⟩   
+  | out       : i ∈ rtr{.out}                           → ValidDependency rtr _     .out ⟨.out, i⟩   
+  | stv       : i ∈ rtr{.stv}                           → ValidDependency rtr _     _    ⟨.stv, i⟩  
+  | act       : i ∈ rtr{.act}                           → ValidDependency rtr _     _    ⟨.act, i⟩
+  | nestedIn  : rtr{.rtr}{j} = some con → i ∈ con{.inp} → ValidDependency rtr _     .out ⟨.inp, i⟩
+  | nestedOut : rtr{.rtr}{j} = some con → i ∈ con{.out} → ValidDependency rtr .norm .in  ⟨.out, i⟩ 
 
 -- Note: This proposition is only meaningful under the condition that `rcn₁` and `rcn₂` live in the 
 --       same reactor.

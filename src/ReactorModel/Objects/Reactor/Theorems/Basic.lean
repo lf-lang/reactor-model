@@ -189,31 +189,31 @@ namespace StrictMember
 variable [ReactorType α] {rtr : α} in section
 
 theorem nested_object (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
-    (nested h s).object = s.object := 
-  rfl
+    (nested h s).object = s.object := by
+  simp [object]
 
 def split : 
     {rtr rtr' : α} → (s : StrictMember cpt i' rtr') → (rtr{.rtr}{i} = some rtr') → 
     (j : ID) × { s' : StrictMember .rtr j rtr // s'.object{cpt}{i'} = s.object }
   | _, _, final hn, h => ⟨i, ⟨final h, hn⟩⟩
-  | _, _, nested hn s, h => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨nested h s', hs'⟩⟩
+  | _, _, nested hn s, h => let ⟨j, ⟨s', _⟩⟩ := split s hn; ⟨j, ⟨nested h s', by simpa [object]⟩⟩
 
 def split' : 
     (s : StrictMember cpt i rtr) → 
     (j : WithTop ID) × { m : Member .rtr j rtr // m.object{cpt}{i} = s.object } 
   | final h     => ⟨⊤, ⟨.root, h⟩⟩
-  | nested hn s => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨.strict s', hs'⟩⟩
+  | nested hn s => let ⟨j, ⟨s', _⟩⟩ := split s hn; ⟨j, ⟨.strict s', by simpa [object]⟩⟩
 
 def extend : 
     {rtr : α} → (s : StrictMember .rtr i rtr) → (s.object{cpt}{j} = some o) → StrictMember cpt j rtr
   | _, final hn,    h => nested hn (final h)
-  | _, nested hn s, h => nested hn (extend s h)
+  | _, nested hn s, h => nested hn (extend s (o := o) $ by simp_all [object])
 
 theorem extend_object :
     {rtr : α} → (s : StrictMember .rtr i rtr) → (h : s.object{cpt}{j} = some o) → 
     (s.extend h).object = o
-  | _, final _,    _ => rfl
-  | _, nested _ s, h => extend_object s h
+  | _, final _,    _ => by simp [extend, object]
+  | _, nested _ s, h => by simp [extend, object] at h ⊢; exact extend_object s h
 
 theorem extend_not_final (s : StrictMember .rtr i rtr) (h : s.object{cpt}{j} = some o)
     (hf : rtr{cpt}{j} = some o') : s.extend h ≠ final hf := by
@@ -232,8 +232,7 @@ theorem extend_inj
 
 theorem extend_split (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
     extend (split s h).snd.val (split s h).snd.property = nested h s := by
-  induction s generalizing rtr i <;> simp [extend]
-  case nested h' _ hi => exact hi h'
+  induction s generalizing rtr i <;> simp_all [extend, object]
 
 def fromLawfulMemUpdate {rtr₁ : α} : 
     (StrictMember c j rtr₂) → (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember c j rtr₁
@@ -259,6 +258,8 @@ def fromEquiv {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
 
 end
 
+-- BREAK: This becomes really annoying if we don't have the component-extension type baked into the
+--        `ReactorType`'s type, because then we can't make sure they're equal.
 inductive Equivalent : 
     {α : Type} → {β : Type} → [ReactorType α] → [ReactorType β] → {rtr₁ : α} → {rtr₂ : β} → 
     (StrictMember cpt i rtr₁) → (StrictMember cpt i rtr₂) → Prop 

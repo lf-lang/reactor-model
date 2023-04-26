@@ -5,13 +5,13 @@ inductive Component.Valued
   | out -- Output port
   | stv -- State variable
   | act -- Action
-  
 
 -- An enumeration of the different *kinds* of components that are addressable by ids in a reactor.
-inductive Component
+inductive Component (ε) [CoeSort ε Type]
   | val (v : Component.Valued)
-  | rtr -- Nested reactors
-  | rcn -- Reactions
+  | rcn         -- Reactions
+  | rtr         -- Nested reactors
+  | ext (e : ε) -- Extensions
 
 namespace Component
 
@@ -19,27 +19,29 @@ abbrev Valued.type : Valued → Type
   | inp => Value
   | out => Value
   | stv => Value 
-  | act => Action
+  | act => Action -- TODO: Change the way events are handled.
 
-@[match_pattern] abbrev inp := Component.val .inp
-@[match_pattern] abbrev out := Component.val .out
-@[match_pattern] abbrev act := Component.val .act
-@[match_pattern] abbrev stv := Component.val .stv
+variable [CoeSort ε Type]
 
-instance : Coe Component.Valued Component where
+@[match_pattern] abbrev inp : Component ε := val .inp
+@[match_pattern] abbrev out : Component ε := val .out
+@[match_pattern] abbrev act : Component ε := val .act
+@[match_pattern] abbrev stv : Component ε := val .stv
+
+instance : Coe Component.Valued (Component ε) where
   coe := val 
 
 -- The type of `WithTop ID`s extends the type of `ID`s with a `⊤` ID witch is used to refer to a/the
 -- top level reactor. We don't include the `⊤` ID in the normal `ID` type, as most contexts require
 -- that the `⊤` ID cannot not be used. For example, it should not be possible for a reaction to be
 -- identified by the `⊤` ID. 
-abbrev idType : Component → Type
+abbrev idType : Component ε → Type
   | rtr => WithTop ID
   | _   => ID
 
-instance {cpt : Component} : Coe ID cpt.idType where
+instance {cpt : Component ε} : Coe ID cpt.idType where
   coe i :=
     match cpt with 
-    | .rtr | .rcn | .val _ => i
-
+    | .val _ | .rcn | .rtr | .ext _ => i
+  
 end Component

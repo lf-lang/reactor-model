@@ -11,7 +11,7 @@ def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
 class Indexable (α) extends ReactorType α where
   unique_ids : ∀ {rtr : α}, UniqueIDs rtr
 
-def Indexable.obj? [Indexable α] (rtr : α) (cpt : Component) : cpt.idType ⇀ cpt.type α :=
+def Indexable.obj? [Indexable α] (rtr : α) (cpt : Cpt α) : cpt.idType ⇀ cpt.type α :=
   fun i => if h : ∃ o, Object rtr cpt i o then h.choose else none
 
 notation (priority := 1001) rtr "[" cpt "]" => Indexable.obj? rtr cpt
