@@ -8,10 +8,10 @@ namespace State
 variable [Practical α] {s s₁ s₂ : State α} in section
 
 theorem exec_preserves_tag (rcn : ID) : (s.exec rcn).tag = s.tag :=
-  rfl
+  apply'_preserves_tag
 
 theorem exec_preserves_progress (s : State α) (rcn : ID) : (s.exec rcn).progress = s.progress :=
-  rfl
+  apply'_preserves_progress
 
 theorem exec_equiv (s : State α) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
   simp [exec]
@@ -84,7 +84,7 @@ theorem exec_indep_input_eq
     (hi : i₁ ≮[s.rtr]≯ i₂) (h : s.rtr[.rcn][i₂] = some rcn₂)
     (h' : (s.exec i₁).rtr[.rcn][i₂] = some rcn₂) : (s.exec i₁).input i₂ = s.input i₂ := by 
   simp [input, h, h']
-  refine ⟨?_, by simp [exec]⟩
+  refine ⟨?_, exec_preserves_tag _⟩
   ext1
   injection h' ▸ Equivalent.obj?_rcn_eq (s.exec_equiv i₁) ▸ h with h'
   exact h'.symm ▸ exec_indep_restriction_eq hi h 
@@ -110,12 +110,13 @@ theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
 theorem exec_indep_comm (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
   ext1
-  case tag => apply exec_preserves_tag
-  case progress => apply exec_preserves_progress
+  case tag => simp [exec_preserves_tag]
+  case progress => simp [exec_preserves_progress]
+  case events => sorry
   case rtr =>
     conv => lhs; rw [exec, exec_indep_output_eq hi]
     conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
-    apply apply'_disjoint_targets_comm $ indep_output_disjoint_targets hi
+    sorry -- apply apply'_disjoint_targets_comm $ indep_output_disjoint_targets hi
 
 theorem exec_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
     s.Triggers i₂ ↔ (s.exec i₁).Triggers i₂ := by

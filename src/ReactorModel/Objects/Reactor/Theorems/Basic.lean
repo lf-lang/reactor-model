@@ -124,15 +124,15 @@ namespace LawfulMemUpdate
 
 variable [ReactorType α]
 
-def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₁
+def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember cpt i rtr₁
   | final _ h _  => .final h
   | nested _ h _ u => .nested h u.member₁
 
-def member₂ {rtr₁ : α} : (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember cpt i rtr₂
+def member₂ {rtr₁ : α} : (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember cpt i rtr₂
   | final _ _ h  => .final h
   | nested _ _ h u => .nested h u.member₂
   
-theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : rtr₁ ≈ rtr₂ := by
+theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : rtr₁ ≈ rtr₂ := by
   induction u <;> constructor
   case final.mem_get?_iff e h₁ h₂ =>
     intro c j
@@ -175,7 +175,7 @@ theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : rtr₁
 end LawfulMemUpdate
 
 theorem LawfulUpdate.equiv [ReactorType α] {rtr₁ : α} :
-    (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₁ ≈ rtr₂
+    (LawfulUpdate cpt i v rtr₁ rtr₂) → rtr₁ ≈ rtr₂
   | notMem _ h => h ▸ (.refl _)
   | update u   => u.equiv
 
@@ -236,7 +236,7 @@ theorem extend_split (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr
   case nested h' _ hi => exact hi h'
 
 def fromLawfulMemUpdate {rtr₁ : α} : 
-    (StrictMember c j rtr₂) → (LawfulMemUpdate cpt i f rtr₁ rtr₂) → StrictMember c j rtr₁
+    (StrictMember c j rtr₂) → (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember c j rtr₁
   | final h, u               => final $ (Equivalent.get?_some_iff u.equiv).mpr ⟨_, h⟩ |>.choose_spec
   | nested h s, .final e _ _ => nested (h ▸ e (.inl $ by simp)) s 
   | nested h s (j := j₂), .nested e h₁ h₂ u (j := j₁) =>
@@ -245,7 +245,7 @@ def fromLawfulMemUpdate {rtr₁ : α} :
       else nested (h ▸ e $ .inr hj) s 
 
 def fromLawfulUpdate {rtr₂ : α} (s : StrictMember c j rtr₂) : 
-    (LawfulUpdate cpt i f rtr₁ rtr₂) → StrictMember c j rtr₁
+    (LawfulUpdate cpt i v rtr₁ rtr₂) → StrictMember c j rtr₁
   | .notMem _ h => h ▸ s
   | .update u   => s.fromLawfulMemUpdate u
 
@@ -295,7 +295,7 @@ theorem to_eq {rtr : α} {s₁ s₂ : StrictMember cpt i rtr} : (s₁ ∼ s₂) 
   | final h₁ h₂    => by simp [Option.some_inj.mp $ h₁ ▸ h₂]
   | nested h₁ h₂ e => by cases Option.some_inj.mp $ h₁ ▸ h₂; simp [to_eq e]
 
-theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (s : StrictMember c j rtr₂) : 
+theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) (s : StrictMember c j rtr₂) : 
     s ∼ s.fromLawfulMemUpdate u := by
   induction u <;> cases s <;> (simp [StrictMember.fromLawfulMemUpdate]; try exact final _ _)
   case final.nested e _ _ _ _ _ hn => exact nested hn (e (c := .rtr) (.inl $ by simp) ▸ hn) (refl _)
@@ -304,7 +304,7 @@ theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (s : Str
     case inl hj => cases hj; cases Option.some_inj.mp $ h₂ ▸ hn; exact nested hn h₁ (hi m)
     case inr hj => exact nested hn (hn ▸ e (.inr hj)) (refl _)
 
-theorem fromLawfulUpdate (u : LawfulUpdate cpt i f rtr₁ rtr₂) (s : StrictMember c j rtr₂) : 
+theorem fromLawfulUpdate (u : LawfulUpdate cpt i v rtr₁ rtr₂) (s : StrictMember c j rtr₂) : 
     s ∼ s.fromLawfulUpdate u := by
   cases u
   case notMem   => cases ‹_ = _›; apply refl
@@ -336,13 +336,13 @@ theorem extend_inj
   case root.strict   => exact absurd h.symm $ StrictMember.extend_not_final _ _ _
   case strict.root   => exact absurd h $ StrictMember.extend_not_final _ _ _
 
-def fromLawfulMemUpdate (m : Member c j rtr₂) (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
+def fromLawfulMemUpdate (m : Member c j rtr₂) (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : 
     Member c j rtr₁ :=
   match m with
   | root => root 
   | strict s => s.fromLawfulMemUpdate u
 
-def fromLawfulUpdate (m : Member c j rtr₂) (u : LawfulUpdate cpt i f rtr₁ rtr₂) : Member c j rtr₁ :=
+def fromLawfulUpdate (m : Member c j rtr₂) (u : LawfulUpdate cpt i v rtr₁ rtr₂) : Member c j rtr₁ :=
   match m with
   | root => root
   | strict s => s.fromLawfulUpdate u
@@ -385,12 +385,12 @@ theorem to_eq {m₁ m₂ : Member cpt i rtr} : (m₁ ∼ m₂) → m₁ = m₂
   | root     => rfl
   | strict e => congr_arg _ $ StrictMember.Equivalent.to_eq e
 
-theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
+theorem fromLawfulMemUpdate (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : 
     (m : Member c j rtr₂) → m ∼ m.fromLawfulMemUpdate u
   | .root     => root
   | .strict s => strict $ .fromLawfulMemUpdate u s 
 
-theorem fromLawfulUpdate (u : LawfulUpdate cpt i f rtr₁ rtr₂) :
+theorem fromLawfulUpdate (u : LawfulUpdate cpt i v rtr₁ rtr₂) :
     (m : Member c j rtr₂) → m ∼ m.fromLawfulUpdate u
   | .root     => root
   | .strict s => strict $ .fromLawfulUpdate u s 
@@ -425,7 +425,7 @@ namespace UniqueIDs
 
 variable [ReactorType α] {rtr₁ : α}
 
-theorem updated (u : LawfulUpdate cpt i f rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
+theorem updated (u : LawfulUpdate cpt i v rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
   allEq m₁ m₂ := open Member.Equivalent in
     to_eq $ trans 
       (h.allEq (m₁.fromLawfulUpdate u) (m₂.fromLawfulUpdate u) ▸ fromLawfulUpdate u m₁)

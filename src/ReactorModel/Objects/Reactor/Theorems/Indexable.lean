@@ -69,7 +69,7 @@ theorem equiv_rcn_eq
     injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
 
 theorem lawfulMemUpdate_object_preserved 
-    (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) (s₁ : StrictMember c j rtr₁)
+    (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) (s₁ : StrictMember c j rtr₁)
     (s₂ : StrictMember c j rtr₂) : s₁.object = s₂.object := by
   induction s₁ generalizing rtr₂ <;> cases s₂ <;> simp [object]
   case final.final h₁ _ h₂ =>
@@ -120,7 +120,7 @@ theorem equiv_rcn_eq (e : rtr₁ ≈ rtr₂) :
   | strict s₁, strict s₂ => s₁.equiv_rcn_eq e s₂
 
 theorem lawfulMemUpdate_object_preserved 
-    (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) :
+    (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) :
     (m₁ : Member c j rtr₁) → (m₂ : Member c j rtr₂) → m₁.object = m₂.object
   | .strict s₁, .strict s₂ => s₁.lawfulMemUpdate_object_preserved u h s₂
 
@@ -270,25 +270,25 @@ namespace LawfulMemUpdate
 open Indexable
 variable [Indexable α] {rtr₁ : α}
 
-theorem obj?_some₁ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₁[cpt][i] = some o := by
+theorem obj?_some₁ (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : ∃ o, rtr₁[cpt][i] = some o := by
   induction u 
   case final           => exact ⟨_, get?_some_to_obj?_some ‹_›⟩
   case nested h _ _ hi => exact ⟨_, obj?_some_nested h hi.choose_spec⟩
 
-theorem obj?_some₂ (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : ∃ o, rtr₂[cpt][i] = some o := by
+theorem obj?_some₂ (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : ∃ o, rtr₂[cpt][i] = some o := by
   induction u 
   case final         => exact ⟨_, get?_some_to_obj?_some ‹_›⟩
   case nested h _ hi => exact ⟨_, obj?_some_nested h hi.choose_spec⟩
 
-theorem obj?_some_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
+theorem obj?_some_iff (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : 
     (∃ o, rtr₁[c][j] = some o) ↔ (∃ o, rtr₂[c][j] = some o) :=
   Equivalent.obj?_some_iff u.equiv
 
-theorem obj?_none_iff (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
+theorem obj?_none_iff (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : 
     (rtr₁[c][j] = none) ↔ (rtr₂[c][j] = none) :=
   Equivalent.obj?_none_iff u.equiv
 
-theorem obj?_preserved (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) : 
+theorem obj?_preserved (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) : 
     rtr₂[c][j] = rtr₁[c][j] := by
   cases ho₁ : rtr₁[c][j]
   case none => simp [obj?_none_iff u |>.mp ho₁]
@@ -298,8 +298,8 @@ theorem obj?_preserved (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) (h : c ≠ cp
     have ⟨m₂⟩ := Object.iff_obj?_some.mpr ho₂
     simp [ho₂, m₁.lawfulMemUpdate_object_preserved u h m₂]
 
-theorem obj?_updated (u : LawfulMemUpdate cpt i f rtr₁ rtr₂) : 
-    rtr₂[cpt][i] = f <$> rtr₁[cpt][i] := by
+theorem obj?_updated (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : 
+    rtr₂[cpt][i] = (fun _ => v) <$> rtr₁[cpt][i] := by
   induction u
   case final h₁ h₂ => 
     rw [get?_some_to_obj?_some h₁, get?_some_to_obj?_some h₂, Option.map_some]
@@ -318,11 +318,12 @@ open Indexable
 variable [Indexable α] {rtr₁ : α}
 
 theorem obj?_preserved (h : c ≠ cpt ∨ j ≠ i) : 
-    (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₂[c][j] = rtr₁[c][j]
+    (LawfulUpdate cpt i v rtr₁ rtr₂) → rtr₂[c][j] = rtr₁[c][j]
   | update u   => u.obj?_preserved h
   | notMem _ h => h ▸ rfl
 
-theorem obj?_updated : (LawfulUpdate cpt i f rtr₁ rtr₂) → rtr₂[cpt][i] = f <$> rtr₁[cpt][i]
+theorem obj?_updated : 
+    (LawfulUpdate cpt i v rtr₁ rtr₂) → rtr₂[cpt][i] = (fun _ => v) <$> rtr₁[cpt][i]
   | update u   => u.obj?_updated
   | notMem h e => by subst e; simp [member_isEmpty_obj?_none h]
 

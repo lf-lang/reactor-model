@@ -116,8 +116,8 @@ theorem Proper.ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂)
           exact h ho₁ ho₂
         
 theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} 
-    (u₁ : LawfulUpdate cpt₁ i₁ f₁ rtr rtr₁) (u₂ : LawfulUpdate cpt₂ i₂ f₂ rtr₁ rtr₂) 
-    (u₁' : LawfulUpdate cpt₂ i₂ f₂ rtr rtr₁') (u₂' : LawfulUpdate cpt₁ i₁ f₁ rtr₁' rtr₂') 
+    (u₁ : LawfulUpdate cpt₁ i₁ v₁ rtr rtr₁) (u₂ : LawfulUpdate cpt₂ i₂ v₂ rtr₁ rtr₂) 
+    (u₁' : LawfulUpdate cpt₂ i₂ v₂ rtr rtr₁') (u₂' : LawfulUpdate cpt₁ i₁ v₁ rtr₁' rtr₂') 
     (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂) : rtr₂ = rtr₂' := by
   have e₁ := Equivalent.trans u₁.equiv u₂.equiv
   have e₂ := Equivalent.trans u₁'.equiv u₂'.equiv

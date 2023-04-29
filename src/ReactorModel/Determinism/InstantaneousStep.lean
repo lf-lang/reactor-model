@@ -9,7 +9,7 @@ namespace Step
 variable [Practical α] {s₁ s₂ : State α} in section
   
 theorem mem_progress_iff : (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress)
-  | skip .. | exec .. => s₁.mem_record_progress_iff _ _
+  | skip .. | exec .. => sorry -- s₁.mem_record_progress_iff _ _
 
 -- Corollary of `InstStep.mem_progress_iff`.
 theorem progress_monotonic (e : s₁ ⇓ᵢ s₂) (h : rcn' ∈ s₁.progress) : rcn' ∈ s₂.progress := 
@@ -25,8 +25,8 @@ theorem rcn_not_mem_progress (e : s₁ ⇓ᵢ s₂) : e.rcn ∉ s₁.progress :=
 theorem not_closed (e : s₁ ⇓ᵢ s₂) : ¬s₁.Closed :=
   (· ▸ e.allows_rcn.unprocessed $ e.allows_rcn.mem)
 
-theorem preserves_tag : (s₁ ⇓ᵢ s₂) → s₁.tag = s₂.tag
-  | skip .. | exec .. => rfl
+theorem preserves_tag : (s₁ ⇓ᵢ s₂) → s₁.tag = s₂.tag 
+  | skip .. | exec .. => by simp [State.record_preserves_tag, State.exec_preserves_tag]
 
 theorem equiv : (s₁ ⇓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
   | skip .. => .refl _
@@ -40,7 +40,7 @@ theorem acyclic (e : s₁ ⇓ᵢ s₂) : e.rcn ≮[s₁.rtr] e.rcn :=
   e.allows_rcn.acyclic
 
 theorem progress_eq : (e : s₁ ⇓ᵢ s₂) → s₂.progress = s₁.progress.insert e.rcn
-  | skip .. | exec .. => rfl
+  | skip .. | exec .. => by simp [State.exec_preserves_progress, State.record]; rfl
 
 theorem progress_ssubset (e : s₁ ⇓ᵢ s₂) : s₁.progress ⊂ s₂.progress := by
   simp [e.progress_eq, Set.ssubset_iff_insert]

@@ -12,6 +12,9 @@ inductive Value
   | absent 
   | present (val : PresentValue)
 
+inductive Value.IsPresent : Value → Prop
+  | intro : IsPresent (present val)
+
 -- We use IDs to reference various kinds of components like ports, reactions, actions, etc.
 -- The precise nature of IDs is not relevant, which is why we define the type as `opaque`.
 opaque ID : Type
@@ -56,7 +59,3 @@ instance : OfNat Time.Tag 0 where
 
 -- TODO: https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Lexicographical.20LinearOrder
 instance : LinearOrder Time.Tag := sorry
-
-abbrev Action := Finmap fun _ : Time.Tag => Value
-
-def Action.tags (a : Action) : Finset Time.Tag := a.keys

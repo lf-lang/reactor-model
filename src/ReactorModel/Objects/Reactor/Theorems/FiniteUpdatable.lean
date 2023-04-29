@@ -16,12 +16,12 @@ namespace FiniteUpdatable
 
 variable [FiniteUpdatable α]
 
-def update' (rtr : α) (cpt : Component.Valued) (v : cpt.type) : α :=
+def update' (rtr : α) (cpt : Component.Valued) (v : Value) : α :=
   go rtr cpt v $ Finite.ids rtr cpt
 where 
-  go (rtr : α) (cpt : Component.Valued) (v : cpt.type) : List ID → α
+  go (rtr : α) (cpt : Component.Valued) (v : Value) : List ID → α
     | [] => rtr
-    | hd :: tl => go (Updatable.update rtr cpt hd fun _ => v) cpt v tl
+    | hd :: tl => go (Updatable.update rtr cpt hd v) cpt v tl
 
 variable {rtr : α} 
 
@@ -38,7 +38,7 @@ theorem update'.go_preserves {c : Component.Valued} {o v}
     (update'.go rtr cpt v ids)[c][i] = some o := by
   induction ids generalizing rtr o <;> simp_all [go]; cases h
   all_goals
-    have e := @LawfulUpdatable.equiv _ cpt ‹_› (fun _ => v) _ rtr
+    have e := @LawfulUpdatable.equiv _ cpt ‹_› v _ rtr
     have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
   case cons.inl hd tl hi h _ =>
     simp [hi ho' $ .inl h]
@@ -53,7 +53,7 @@ theorem update'.go_updated {cpt : Component.Valued} {o v}
   induction ids generalizing rtr o <;> simp [go] <;> simp at h; cases h
   all_goals
     try subst ‹_ = _›  
-    have e := @LawfulUpdatable.equiv _ cpt ‹_› (fun _ => v) _ rtr
+    have e := @LawfulUpdatable.equiv _ cpt ‹_› v _ rtr
     have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
   case' cons.inl hd tl hi _ =>
     by_cases ht : i ∈ tl

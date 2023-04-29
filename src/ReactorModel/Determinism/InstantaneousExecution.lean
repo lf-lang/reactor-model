@@ -174,10 +174,11 @@ theorem rcns_perm_deterministic
       simp [←h] at hp
 
 protected theorem deterministic 
-    (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
+    (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress): 
     s₁ = s₂ := by
   ext1 <;> try assumption
-  exact rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
+  case events => sorry
+  case rtr    => exact rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
 
 theorem not_closed : (s₁ ⇓ᵢ+ s₂) → ¬s₁.Closed
   | single e | trans e _ => e.not_closed

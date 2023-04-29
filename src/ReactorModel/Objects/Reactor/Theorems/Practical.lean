@@ -16,7 +16,7 @@ variable [Practical α] {rtr : α}
 
 open Updatable in
 theorem LawfulUpdatable.update_ne_comm (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂):
-    update (update rtr cpt₁ i₁ f₁) cpt₂ i₂ f₂ = update (update rtr cpt₂ i₂ f₂) cpt₁ i₁ f₁ :=
+    update (update rtr cpt₁ i₁ v₁) cpt₂ i₂ v₂ = update (update rtr cpt₂ i₂ v₂) cpt₁ i₁ v₁ :=
   LawfulUpdate.ne_comm (lawful ..) (lawful ..) (lawful ..) (lawful ..) h
 
 end ReactorType

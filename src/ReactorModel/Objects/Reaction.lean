@@ -15,14 +15,8 @@ def _root_.Change.Normal.target (c : Change.Normal) : Reaction.Dependency where
 
 @[ext]
 structure Input where
-  val : (cpt : Component.Valued) → ID ⇀ cpt.type 
+  val : Component.Valued → ID ⇀ Value
   tag : Time.Tag
-
-inductive Input.IsPresent (i : Input) : (Reaction.Dependency) → Prop
-  | inp : (i.val .inp j = some (.present v))               → IsPresent i ⟨.inp, j⟩  
-  | out : (i.val .out j = some (.present v))               → IsPresent i ⟨.out, j⟩  
-  | stv : (i.val .stv j = some (.present v))               → IsPresent i ⟨.stv, j⟩ 
-  | act : (i.val .act j >>= (· i.tag) = some (.present v)) → IsPresent i ⟨.act, j⟩ 
 
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
@@ -37,15 +31,12 @@ inductive Input.IsPresent (i : Input) : (Reaction.Dependency) → Prop
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
 structure _root_.Reaction where
-  deps      : Kind → Set Reaction.Dependency
-  triggers  : Set Reaction.Dependency
-  prio      : Priority
-  body      : Input → List Change
+  deps                 : Kind → Set Reaction.Dependency
+  triggers             : Set Reaction.Dependency
+  prio                 : Priority
+  body                 : Input → List Change
   triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv } 
   target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
-  -- TODO: We don't need the following conditions for determinism. Should we remove them?
-  act_not_past         : (.act j t v ∈ body i) → i.tag.time ≤ t
-  act_local            : True -- `body` outputs the same even if we change all actions' past and future values.
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
@@ -69,6 +60,6 @@ def kind (rcn : Reaction) : Reaction.Kind :=
 
 -- The condition under which a given reaction triggers on a given input.
 def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
-  ∃ t, (t ∈ rcn.triggers) ∧ (i.IsPresent t)
+  ∃ t v, (t ∈ rcn.triggers) ∧ (i.val t.cpt t.id = some v) ∧ v.IsPresent
 
 end Reaction

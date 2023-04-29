@@ -119,6 +119,9 @@ theorem insert_ne [DecidableEq α] (f : α ⇀ β) (h : a' ≠ a := by assumptio
     (f.insert a b) a' = f a' := by
   simp [insert, h]
 
+def update [DecidableEq α] (f : α ⇀ β) (a : α) (g : β → β) : α ⇀ β :=
+  fun a' => if a' = a then g <$> f a else f a'
+
 def Finite (f : α ⇀ β) : Prop :=
   f.ids.Finite
 

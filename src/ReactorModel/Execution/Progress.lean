@@ -190,7 +190,7 @@ end Instantaneous
 theorem AdvanceTag.of_nonterminal_closed {s : State.Over rtr} 
     (ht : ¬s.Terminal) (hc : s.Closed) : ∃ s' : State α, Nonempty (s ⇓- s') := by
   have ⟨g, hg⟩ := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
-  exact ⟨⟨clear s.rtr, g, ∅⟩, ⟨hc, ⟨hg, clear_cleared _⟩⟩⟩
+  exact ⟨⟨clear s.rtr, g, ∅, s.events⟩, ⟨hc, ⟨hg, clear_cleared _⟩⟩⟩
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.
@@ -203,7 +203,7 @@ theorem to_deps_acyclic_nontriv (nontriv : rtr[.rcn].Nonempty) (p : Progress rtr
     Dependency.Acyclic rtr := by
   simp [Dependency.Acyclic.iff_mem_acyclic]
   intro rcn hm
-  let s : State α := { rtr, tag := 0, progress := ∅ }
+  let s : State α := { rtr, tag := 0, progress := ∅, events := ∅ }
   have n : s.Nontrivial := nontriv
   have hc : ¬s.Closed := (Set.not_nonempty_empty $ ·.progress_nonempty n)
   have ⟨_, e⟩ := p ⟨s, rfl, by simp⟩ (State.Terminal.not_of_not_closed hc)
