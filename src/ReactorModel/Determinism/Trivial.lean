@@ -43,11 +43,8 @@ theorem ClosedExecution.trivial_eq (e : s₁ ⇓| s₂) : s₁ = s₂ :=
 
 end Instantaneous
 
-theorem State.Advance.preserves_Trivial : (Advance s₁ s₂) → s₂.Trivial
-  | ⟨_, c⟩ => triv.equiv c.equiv
-
-theorem AdvanceTag.preserves_Trivial (a : s₁ ⇓- s₂) : s₂.Trivial :=
-  a.advance.preserves_Trivial triv
+theorem Advance.preserves_Trivial (a : s₁ ⇓- s₂) : s₂.Trivial :=
+  triv.equiv a.equiv
 
 theorem Step.preserves_Trivial : (s₁ ⇓ s₂) → s₂.Trivial
   | close e   => e.preserves_Trivial triv

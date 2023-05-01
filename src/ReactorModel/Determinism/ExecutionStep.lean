@@ -7,18 +7,32 @@ open State (Closed)
 
 variable [Practical α] {s s₁ s₂ : State α}
 
-namespace AdvanceTag
+namespace Advance
 
-theorem tag_lt (a : s₁ ⇓- s₂) : s₁.tag < s₂.tag :=
-  a.advance.tag_lt
+variable {s₁ s₂ : State α} 
+
+theorem closed : (s₁ ⇓- s₂) → s₁.Closed
+  | ⟨c, _, _⟩ => c
+
+theorem progress_empty : (s₁ ⇓- s₂) → s₂.progress = ∅
+  | intro .. => rfl
+  
+theorem equiv : (s₁ ⇓- s₂) → s₁.rtr ≈ s₂.rtr
+  | ⟨_, _, r⟩ => r.equiv 
+
+theorem tag_lt : (s₁ ⇓- s₂) → s₁.tag < s₂.tag
+  | ⟨_, n, _⟩ => n.bound
 
 theorem tag_ne (a : s₁ ⇓- s₂) : s₁.tag ≠ s₂.tag :=
   ne_of_lt a.tag_lt
 
-theorem deterministic (a₁ : s ⇓- s₁) (a₂ : s ⇓- s₂) : s₁ = s₂ :=
-  a₁.advance.deterministic a₂.advance
+set_option linter.unnecessarySimpa false in -- TODO: Report this.
+theorem deterministic : (s ⇓- s₁) → (s ⇓- s₂) → s₁ = s₂
+  | ⟨_, n₁, r₁⟩, ⟨_, n₂, r₂⟩ => by 
+    have hn := n₁.deterministic n₂
+    ext1 <;> simpa [hn ▸ r₁ |>.deterministic r₂] 
 
-end AdvanceTag
+end Advance
 
 namespace Instantaneous
 namespace ClosedExecution

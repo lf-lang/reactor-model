@@ -23,8 +23,6 @@ end List
 
 namespace Execution
 
-infix:50 " ⇉ " => (Finmap fun _ : · => ·)
-
 -- TODO?: Factor out a context again.
 @[ext]
 structure State (α) [Practical α] where
@@ -36,6 +34,9 @@ structure State (α) [Practical α] where
 variable [Practical α]
 
 namespace State
+
+def actions (s : State α) (g : Time.Tag) : ID ⇀ Value := 
+  fun i => s.events i >>= (· g)
 
 def schedule (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
   match a.keys.filter (·.time = t) |>.max with
@@ -254,22 +255,5 @@ theorem NextTag.isLeast {s : State α} (n : NextTag s g) :
 theorem NextTag.deterministic {s : State α} (n₁ : NextTag s g₁) (n₂ : NextTag s g₂) : g₁ = g₂ :=
   n₁.isLeast.unique n₂.isLeast
 
-inductive Advance : State α → State α → Prop 
-  | intro : (NextTag s g) → (Cleared s.rtr c) → Advance s { s with rtr := c, tag := g, progress := ∅ }
-
-namespace Advance
-
-variable {s₁ s₂ : State α} 
-
-theorem progress_empty : (Advance s₁ s₂) → s₂.progress = ∅
-  | ⟨_, _⟩ => rfl
-
-theorem deterministic : (Advance s s₁) → (Advance s s₂) → s₁ = s₂
-  | ⟨n₁, c₁⟩, ⟨n₂, c₂⟩ => by ext1 <;> simp [n₁.deterministic n₂, c₁.deterministic c₂]
-  
-theorem tag_lt : (Advance s₁ s₂) → s₁.tag < s₂.tag
-  | ⟨h, _⟩ => h.bound
-
-end Advance
 end State
 end Execution 

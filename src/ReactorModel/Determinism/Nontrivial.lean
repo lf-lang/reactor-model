@@ -18,23 +18,20 @@ theorem Closed.progress_nonempty (n : s.Nontrivial) (h : Closed s) : s.progress.
   simp_all [Closed, ←Partial.Nonempty.iff_ids_nonempty]
   exact n
 
-theorem Advance.preserves_nontrivial (n : Nontrivial s₁) : (Advance s₁ s₂) → s₂.Nontrivial
-  | ⟨_, c⟩ => n.equiv c.equiv
-
 end State
 
-namespace AdvanceTag
+namespace Advance
+
+theorem preserves_nontrivial {a : s₁ ⇓- s₂} (n : s₁.Nontrivial) : s₂.Nontrivial :=
+  n.equiv a.equiv
 
 theorem not_closed (a : s₁ ⇓- s₂) (n : s₁.Nontrivial) : ¬s₂.Closed :=
-  (·.progress_nonempty (a.advance.preserves_nontrivial n) |>.ne_empty a.advance.progress_empty)
+  (·.progress_nonempty (a.preserves_nontrivial n) |>.ne_empty a.progress_empty)
 
 theorem nonrepeatable (a₁ : s₁ ⇓- s₂) (a₂ : s₂ ⇓- s₃) (n : s₁.Nontrivial) : False :=
   a₁.not_closed n a₂.closed
 
-instance preserves_nontrivial {e : s₁ ⇓- s₂} (n : s₁.Nontrivial) : s₂.Nontrivial :=
-  e.advance.preserves_nontrivial n
-
-end AdvanceTag
+end Advance
 
 theorem Instantaneous.ClosedExecution.preserves_nontrivial {e : s₁ ⇓| s₂} (n : s₁.Nontrivial) : 
     s₂.Nontrivial := by

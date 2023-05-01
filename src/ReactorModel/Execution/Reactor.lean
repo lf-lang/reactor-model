@@ -7,23 +7,23 @@ namespace Practical
 
 variable [Practical α] 
 
-structure Cleared (rtr₁ rtr₂ : α) : Prop where
+structure Refresh (rtr₁ rtr₂ : α) (acts : ID ⇀ Value) : Prop where
   equiv    : rtr₁ ≈ rtr₂
   eq_state : rtr₁[.stv] = rtr₂[.stv]
-  eq_acts  : rtr₁[.act] = rtr₂[.act]
+  acts     : acts = rtr₂[.act]
   inputs   : rtr₁[.inp].map (fun _ => .absent) = rtr₂[.inp]  
   outputs  : rtr₁[.out].map (fun _ => .absent) = rtr₂[.out]  
 
-theorem Cleared.deterministic {rtr : α} (cl₁ : Cleared rtr rtr₁) (cl₂ : Cleared rtr rtr₂) : 
+theorem Refresh.deterministic {rtr : α} (rf₁ : Refresh rtr rtr₁ as) (rf₂ : Refresh rtr rtr₂ as) : 
     rtr₁ = rtr₂ := by
-  have e := Equivalent.trans (Equivalent.symm cl₁.equiv) cl₂.equiv
+  have e := Equivalent.trans (Equivalent.symm rf₁.equiv) rf₂.equiv
   apply Proper.ext_obj? e
   intro cpt _ _ _ ho₁ ho₂
   cases cpt
-  case stv => simp_all [(ho₁ ▸ cl₁.eq_state) ▸ (ho₂ ▸ cl₂.eq_state)] 
-  case act => simp_all [(ho₁ ▸ cl₁.eq_acts)  ▸ (ho₂ ▸ cl₂.eq_acts)] 
-  case inp => simp_all [(ho₁ ▸ cl₁.inputs)   ▸ (ho₂ ▸ cl₂.inputs)] 
-  case out => simp_all [(ho₁ ▸ cl₁.outputs)  ▸ (ho₂ ▸ cl₂.outputs)] 
+  case stv => simp_all [(ho₁ ▸ rf₁.eq_state) ▸ (ho₂ ▸ rf₂.eq_state)] 
+  case act => simp_all [(ho₁ ▸ rf₁.acts)     ▸ (ho₂ ▸ rf₂.acts)] 
+  case inp => simp_all [(ho₁ ▸ rf₁.inputs)   ▸ (ho₂ ▸ rf₂.inputs)] 
+  case out => simp_all [(ho₁ ▸ rf₁.outputs)  ▸ (ho₂ ▸ rf₂.outputs)] 
 
 def dependencies (rtr : α) (rcn : ID) : Set ID := 
   { rcn' | rcn' <[rtr] rcn }

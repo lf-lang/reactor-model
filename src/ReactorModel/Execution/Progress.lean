@@ -12,20 +12,21 @@ namespace ReactorType
 
 variable [Practical α]
 
-def clear (rtr : α) : α :=
-  update' (update' rtr .inp .absent) .out .absent
+def refresh (rtr : α) (acts : ID ⇀ Value) (h : acts.Finite) : α :=
+  update' (update' rtr .inp .absent) .out .absent -- TODO: Set the actions.
 
 open FiniteUpdatable in
-theorem clear_cleared (rtr : α) : Cleared rtr (clear rtr) where
+theorem refresh_correct (rtr : α) : Refresh rtr (refresh rtr acts h) acts where
   equiv := Equivalent.trans update'_equiv update'_equiv
   eq_state := by
-    rw [clear, update'_preserves (by simp : .stv ≠ .out), update'_preserves (by simp : .stv ≠ .inp)]
-  eq_acts := by
-    rw [clear, update'_preserves (by simp : .act ≠ .out), update'_preserves (by simp : .act ≠ .inp)]
+    rw [refresh, update'_preserves (by simp : .stv ≠ .out), update'_preserves (by simp : .stv ≠ .inp)]
+  acts := by
+    -- rw [refresh, update'_preserves (by simp : .act ≠ .out), update'_preserves (by simp : .act ≠ .inp)]
+    sorry
   inputs := by 
-    rw [clear, update'_preserves (by simp : .inp ≠ .out), update'_updated] 
+    rw [refresh, update'_preserves (by simp : .inp ≠ .out), update'_updated] 
   outputs := by 
-    rw [clear, update'_updated, update'_preserves (by simp : .out ≠ .inp)] 
+    rw [refresh, update'_updated, update'_preserves (by simp : .out ≠ .inp)] 
 
 end ReactorType
 
@@ -39,7 +40,8 @@ def unprocessed (s : State α) : Set ID :=
 
 protected structure Over (over : α) extends State α where 
   rtr_eq       : rtr = over := by rfl
-  progress_sub : progress ⊆ rtr[.rcn].ids 
+  progress_sub : progress ⊆ rtr[.rcn].ids
+  events_sub   : events.ids ⊆ rtr[.act].ids
 
 namespace Over
 
@@ -54,6 +56,12 @@ theorem progress_finite (s : State.Over rtr) : s.progress.Finite :=
 theorem unprocessed_finite (s : State.Over rtr) : s.unprocessed.Finite := by
   simp [unprocessed, Set.setOf_and, s.rtr_eq]
   apply Set.Finite.inter_of_left $ Finite.fin rtr .rcn
+
+theorem actions_finite (s : State.Over rtr) (g : Time.Tag) : (s.actions g).Finite := by 
+  apply Set.Finite.subset (Finite.fin s.rtr .act)
+  intro _ h
+  simp [actions, bind] at h
+  sorry
 
 theorem unprocessed_empty_iff_closed : (s.unprocessed = ∅) ↔ s.Closed := by
   simp [unprocessed, Closed]
@@ -114,6 +122,8 @@ def ofStep {s₁ : State.Over rtr₁} {s₂ : State α} (e : s₁ ⇓ᵢ s₂) :
     progress_sub := by 
       simp [e.progress_eq, ←Equivalent.obj?_rcn_eq e.equiv]
       exact Set.insert_subset.mpr ⟨e.allows_rcn.mem, s₁.progress_sub⟩ 
+    events_sub := by
+      sorry
   }
 
 end Over
@@ -187,10 +197,11 @@ decreasing_by
 
 end Instantaneous
 
-theorem AdvanceTag.of_nonterminal_closed {s : State.Over rtr} 
-    (ht : ¬s.Terminal) (hc : s.Closed) : ∃ s' : State α, Nonempty (s ⇓- s') := by
+theorem Advance.of_nonterminal_closed {s : State.Over rtr} 
+    (ht : ¬s.Terminal) (hc : s.Closed) : ∃ s' : State α, s ⇓- s' := by
   have ⟨g, hg⟩ := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
-  exact ⟨⟨clear s.rtr, g, ∅, s.events⟩, ⟨hc, ⟨hg, clear_cleared _⟩⟩⟩
+  exists ⟨refresh s.rtr (s.actions g) $ s.actions_finite g, g, ∅, s.events⟩
+  exact ⟨hc, hg, refresh_correct _⟩
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.
@@ -206,7 +217,7 @@ theorem to_deps_acyclic_nontriv (nontriv : rtr[.rcn].Nonempty) (p : Progress rtr
   let s : State α := { rtr, tag := 0, progress := ∅, events := ∅ }
   have n : s.Nontrivial := nontriv
   have hc : ¬s.Closed := (Set.not_nonempty_empty $ ·.progress_nonempty n)
-  have ⟨_, e⟩ := p ⟨s, rfl, by simp⟩ (State.Terminal.not_of_not_closed hc)
+  have ⟨_, e⟩ := p ⟨s, rfl, by simp, sorry⟩ (State.Terminal.not_of_not_closed hc)
   have ⟨e⟩ := e.resolve_close hc 
   exact e.acyclic $ e.progress_empty_mem_rcns_iff rfl |>.mpr hm
 
@@ -218,7 +229,7 @@ theorem to_deps_acyclic : (Progress rtr) → Dependency.Acyclic rtr :=
 theorem of_deps_acyclic (a : Dependency.Acyclic rtr) : Progress rtr := by
   intro s ht
   if hc : s.Closed then 
-    have ⟨_, ⟨a⟩⟩ := AdvanceTag.of_nonterminal_closed ht hc
+    have ⟨_, a⟩ := Advance.of_nonterminal_closed ht hc
     exact ⟨_, .advance a⟩
   else 
     have ⟨_, ⟨e⟩⟩ := Instantaneous.ClosedExecution.of_acyclic_not_closed a hc

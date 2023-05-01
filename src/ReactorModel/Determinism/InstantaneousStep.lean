@@ -8,8 +8,8 @@ namespace Step
 
 variable [Practical α] {s₁ s₂ : State α} in section
   
-theorem mem_progress_iff : (e : s₁ ⇓ᵢ s₂) → (rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress)
-  | skip .. | exec .. => sorry -- s₁.mem_record_progress_iff _ _
+theorem mem_progress_iff (e : s₁ ⇓ᵢ s₂) : rcn' ∈ s₂.progress ↔ rcn' = e.rcn ∨ rcn' ∈ s₁.progress := 
+  by cases e <;> simp [State.mem_record_progress_iff, rcn, State.exec_preserves_progress]
 
 -- Corollary of `InstStep.mem_progress_iff`.
 theorem progress_monotonic (e : s₁ ⇓ᵢ s₂) (h : rcn' ∈ s₁.progress) : rcn' ∈ s₂.progress := 

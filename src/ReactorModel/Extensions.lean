@@ -129,7 +129,9 @@ end Partial
 
 namespace Finmap
 
-instance [DecidableEq α] : CoeFun (Finmap fun _ : α => β) (fun _ => α → Option β) where
+infix:50 " ⇉ " => (Finmap fun _ : · => ·)
+
+instance [DecidableEq α] : CoeFun (α ⇉ β) (fun _ => α → Option β) where
   coe f := f.lookup
 
 end Finmap

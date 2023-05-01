@@ -1,8 +1,8 @@
 import ReactorModel.Execution.State
 
-open Classical
+open Classical ReactorType Practical
 
-variable [ReactorType.Practical α]
+variable [Practical α]
 
 namespace Execution
 namespace Instantaneous
@@ -51,15 +51,15 @@ abbrev ClosedExecution.rcns {s₁ s₂ : State α} (e : s₁ ⇓| s₂) : List I
 
 end Instantaneous
 
-structure AdvanceTag (s₁ s₂ : State α) where
-  closed : s₁.Closed 
-  advance : s₁.Advance s₂
+inductive Advance : State α → State α → Prop 
+  | intro (closed : s.Closed) (next : s.NextTag g) (refreshed : Refresh s.rtr ref $ s.actions g) :
+    Advance s { s with rtr := ref, tag := g, progress := ∅ }
 
-notation s₁:max " ⇓- " s₂:max => AdvanceTag s₁ s₂
+notation s₁:max " ⇓- " s₂:max => Advance s₁ s₂
 
 inductive Step (s₁ s₂ : State α) : Prop
-  | close (h : s₁ ⇓| s₂)
-  | advance (h : s₁ ⇓- s₂)
+  | close   (step : s₁ ⇓| s₂)
+  | advance (step : s₁ ⇓- s₂)
 
 notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
 
