@@ -63,6 +63,13 @@ scoped macro "cases_change " change:term : tactic => `(tactic|
 theorem apply_equiv (s : State α) (c : Change) : (apply s c).rtr ≈ s.rtr := by
   cases_change c <;> first | exact .refl _ | apply Equivalent.symm; apply LawfulUpdatable.equiv
 
+theorem apply_preserves_tag (s : State α) (c : Change) : (apply s c).tag = s.tag := by
+  cases_change c <;> rfl
+
+theorem apply_preserves_progress (s : State α) (c : Change) : 
+    (apply s c).progress = s.progress := by
+  cases_change c <;> rfl
+
 theorem apply_preserves_unchanged {c : Change} (s : State α) (h : ¬c.Targets cpt i) :
     (apply s c).rtr[cpt][i] = s.rtr[cpt][i] := by
   cases_change c
@@ -84,20 +91,25 @@ theorem apply_state_change (h : i ∈ s.rtr[.stv]) : (apply s $ .stv i v).rtr[.s
 
 theorem apply_ne_target_comm (ht : c₁.target ≠ c₂.target ∨ c₁.target = none) : 
     apply (apply s c₁) c₂ = apply (apply s c₂) c₁ := by
-  sorry -- by ext1?
-  /-cases_change c₁ <;> cases_change c₂ <;> simp [apply, Change.target] at *
-  all_goals exact LawfulUpdatable.update_ne_comm $ by simp_all
-  -/  
+  ext1 <;> cases_change c₁ <;> cases_change c₂ <;> simp [apply, Change.target] at *
+  all_goals 
+    try rfl
+    try exact LawfulUpdatable.update_ne_comm $ by simp_all
+  apply Partial.update_ne_comm _ ht
 
 theorem apply'_equiv (s : State α) : (cs : List Change) → (apply' s cs).rtr ≈ s.rtr 
   | .nil        => .refl _
   | .cons hd tl => Equivalent.trans (apply'_equiv (apply s hd) tl) (apply_equiv s hd)
 
-theorem apply'_preserves_tag {cs : List Change} : (apply' s cs).tag = s.tag := by
-  sorry
+theorem apply'_preserves_tag (cs : List Change) : (apply' s cs).tag = s.tag := by
+  induction cs generalizing s
+  case nil => rfl
+  case cons hd tl hi => exact apply_preserves_tag s hd ▸ @hi (apply s hd)
 
-theorem apply'_preserves_progress {cs : List Change} : (apply' s cs).progress = s.progress := by
-  sorry
+theorem apply'_preserves_progress (cs : List Change) : (apply' s cs).progress = s.progress := by
+  induction cs generalizing s
+  case nil => rfl
+  case cons hd tl hi => exact apply_preserves_progress s hd ▸ @hi (apply s hd)
 
 theorem apply'_preserves_unchanged {cs : List Change} {cpt : Component.Valued} {i}
     (h : cs.All₂ (¬·.Targets cpt i)) : (apply' s cs).rtr[cpt][i] = s.rtr[cpt][i] := by
@@ -221,16 +233,28 @@ theorem record_preserves_rtr (s : State α) (rcn : ID) : (s.record rcn).rtr = s.
 theorem record_preserves_tag (s : State α) (rcn : ID) : (s.record rcn).tag = s.tag := 
   rfl
 
+theorem record_preserves_events (s : State α) (rcn : ID) : (s.record rcn).events = s.events := 
+  rfl
+
 theorem mem_record_progress_iff (s : State α) (rcn₁ rcn₂ : ID) : 
     rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
   simp [record, Set.insert]
 
+theorem record_apply_comm {s : State α} {rcn : ID} : 
+    (s.record rcn).apply c = (s.apply c).record rcn := by
+  cases_change c <;> simp [apply, record]
+
+theorem record_apply'_comm {s : State α} {rcn : ID} : 
+    (s.record rcn).apply' cs = (s.apply' cs).record rcn := by
+  induction cs generalizing s
+  case nil => rfl
+  case cons hi => simp [apply', record_apply_comm]; exact hi 
+
 theorem record_exec_comm {s : State α} {rcn₁ rcn₂ : ID} : 
     (s.record rcn₁).exec rcn₂ = (s.exec rcn₂).record rcn₁ := by
-  sorry
-  /-simp [exec, output_progress_agnostic]
-  rfl
-  -/
+  simp [exec]
+  rw [←output_progress_agnostic (s₁ := s) (s₂ := record s rcn₁) (i := rcn₂)]
+  exact record_apply'_comm
 
 def record' [DecidableEq ID] (s : State α) (rcns : List ID) : State α := 
   { s with progress := s.progress ∪ { i | i ∈ rcns } }

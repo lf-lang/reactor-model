@@ -122,6 +122,10 @@ theorem insert_ne [DecidableEq α] (f : α ⇀ β) (h : a' ≠ a := by assumptio
 def update [DecidableEq α] (f : α ⇀ β) (a : α) (g : β → β) : α ⇀ β :=
   fun a' => if a' = a then g <$> f a else f a'
 
+theorem update_ne_comm [DecidableEq α] (f : α ⇀ β) {a₁ a₂ : α} (h : a₁ ≠ a₂) (g₁ g₂ : β → β) :
+    (f.update a₁ g₁).update a₂ g₂ = (f.update a₂ g₂).update a₁ g₁ := by
+  ext1 a; by_cases a = a₁ <;> by_cases a = a₂ <;> simp_all [update]
+
 def Finite (f : α ⇀ β) : Prop :=
   f.ids.Finite
 

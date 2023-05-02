@@ -146,7 +146,8 @@ theorem prepend_minimal (e : s₁ ⇓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns
     exact e'.rcns.erase_cons_tail (head_not_mem_tail e e' h) ▸ cons_prepend_minimal e e' h hr
         
 theorem rcns_perm_deterministic 
-    (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) : s₁.rtr = s₂.rtr := by
+    (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) : 
+    (s₁.rtr = s₂.rtr) ∧ (s₁.events = s₂.events) := by
   induction e₁
   case single e => 
     cases e₂ <;> simp [rcns] at hp ⊢
@@ -176,9 +177,8 @@ theorem rcns_perm_deterministic
 protected theorem deterministic 
     (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress): 
     s₁ = s₂ := by
+  have ⟨_, _⟩ := rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
   ext1 <;> try assumption
-  case events => sorry
-  case rtr    => exact rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
 
 theorem not_closed : (s₁ ⇓ᵢ+ s₂) → ¬s₁.Closed
   | single e | trans e _ => e.not_closed

@@ -8,10 +8,10 @@ namespace State
 variable [Practical α] {s s₁ s₂ : State α} in section
 
 theorem exec_preserves_tag (rcn : ID) : (s.exec rcn).tag = s.tag :=
-  apply'_preserves_tag
+  apply'_preserves_tag _
 
 theorem exec_preserves_progress (s : State α) (rcn : ID) : (s.exec rcn).progress = s.progress :=
-  apply'_preserves_progress
+  apply'_preserves_progress _
 
 theorem exec_equiv (s : State α) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
   simp [exec]
@@ -109,14 +109,9 @@ theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
 
 theorem exec_indep_comm (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
     (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
-  ext1
-  case tag => simp [exec_preserves_tag]
-  case progress => simp [exec_preserves_progress]
-  case events => sorry
-  case rtr =>
-    conv => lhs; rw [exec, exec_indep_output_eq hi]
-    conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
-    sorry -- apply apply'_disjoint_targets_comm $ indep_output_disjoint_targets hi
+  conv => lhs; rw [exec, exec_indep_output_eq hi]
+  conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
+  apply apply'_disjoint_targets_comm $ indep_output_disjoint_targets hi
 
 theorem exec_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
     s.Triggers i₂ ↔ (s.exec i₁).Triggers i₂ := by
