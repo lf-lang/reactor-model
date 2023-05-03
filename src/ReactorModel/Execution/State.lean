@@ -23,7 +23,6 @@ end List
 
 namespace Execution
 
--- TODO?: Factor out a context again.
 @[ext]
 structure State (α) [Practical α] where
   rtr      : α 
@@ -43,6 +42,7 @@ def schedule (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Valu
   | ⊥           => a.insert ⟨t, 0⟩ v
   | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
 
+-- TODO: Why do we need `Updatable` here?
 def apply (s : State α) : Change → State α 
   | .inp i v   => { s with    rtr := Updatable.update s.rtr .inp i v }
   | .out i v   => { s with    rtr := Updatable.update s.rtr .out i v }

@@ -32,8 +32,8 @@ theorem equiv
 --       membership witness equivalence doesn't seem to work. Perhaps you need to prove a custom 
 --       induction principle for `StrictMember.Equivalent`. This would also remove the need to prove
 --       things like `j₁ = j₂` in the `nested` case each time. 
-
--- TODO: Note that both of the following theorems are almost identical. The only difference happens
+--
+--       Note that both of the following theorems are almost identical. The only difference happens
 --       in the "local" view of things in the `final.final` case. Perhaps there's a more general
 --       theorem here for lifting local properties to global properties. Though since these
 --       properties are tied to `Equivalent`, it might not be generalizable.
@@ -231,6 +231,10 @@ theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
 
 theorem mem_iff {i} (e : rtr₁ ≈ rtr₂) : (i ∈ rtr₁[cpt]) ↔ (i ∈ rtr₂[cpt]) := by
   simp [Partial.mem_iff, obj?_some_iff e]
+
+theorem ids_eq (e : rtr₁ ≈ rtr₂) : rtr₁[cpt].ids = rtr₂[cpt].ids := by
+  ext1 
+  exact mem_iff e
 
 theorem obj?_none_iff (e : rtr₁ ≈ rtr₂) : (rtr₁[cpt][i] = none) ↔ (rtr₂[cpt][i] = none) := by
   simp [←Object.not_iff_obj?_none]

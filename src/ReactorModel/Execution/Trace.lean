@@ -30,6 +30,7 @@ def allows_rcn : (e : s₁ ⇓ᵢ s₂) → s₁.Allows e.rcn
 
 end Step
 
+-- TODO: Rename this to "Sequence" or something like that.
 inductive Execution : State α → State α → Type
   | single : (s₁ ⇓ᵢ s₂) → Execution s₁ s₂
   | trans  : (s₁ ⇓ᵢ s₂) → (Execution s₂ s₃) → Execution s₁ s₃

@@ -12,21 +12,33 @@ namespace ReactorType
 
 variable [Practical α]
 
-def refresh (rtr : α) (acts : ID ⇀ Value) (h : acts.Finite) : α :=
-  update' (update' rtr .inp .absent) .out .absent -- TODO: Set the actions.
+def refresh (rtr : α) (acts : ID ⇀ Value) : α :=
+  let rtr₁ := FiniteUpdatable.set rtr  .inp $ Partial.const (rtr[.inp].ids : Set ID) .absent
+  let rtr₂ := FiniteUpdatable.set rtr₁ .out $ Partial.const (rtr[.out].ids : Set ID) .absent
+  FiniteUpdatable.set rtr₂ .act acts
 
 open FiniteUpdatable in
-theorem refresh_correct (rtr : α) : Refresh rtr (refresh rtr acts h) acts where
-  equiv := Equivalent.trans update'_equiv update'_equiv
+theorem refresh_correct (rtr : α) (h : acts.ids = rtr[.act].ids) : 
+    Refresh rtr (refresh rtr acts) acts where
+  equiv := Equivalent.trans set_equiv $ Equivalent.trans set_equiv set_equiv
   eq_state := by
-    rw [refresh, update'_preserves (by simp : .stv ≠ .out), update'_preserves (by simp : .stv ≠ .inp)]
-  acts := by
-    -- rw [refresh, update'_preserves (by simp : .act ≠ .out), update'_preserves (by simp : .act ≠ .inp)]
-    sorry
+    rw [
+      refresh, set_preserves (by simp : .stv ≠ .act), set_preserves (by simp : .stv ≠ .out), 
+      set_preserves (by simp : .stv ≠ .inp)
+    ]
+  acts := by 
+    rw [refresh, set_updated' $ h ▸ (Equivalent.ids_eq $ Equivalent.trans set_equiv set_equiv)]
   inputs := by 
-    rw [refresh, update'_preserves (by simp : .inp ≠ .out), update'_updated] 
+    rw [
+      refresh, set_preserves (by simp : .inp ≠ .act), set_preserves (by simp : .inp ≠ .out), 
+      set_updated' $ Partial.const_ids _ _, Partial.const_eq_map_const
+    ]
   outputs := by 
-    rw [refresh, update'_updated, update'_preserves (by simp : .out ≠ .inp)] 
+    rw [
+      refresh, set_preserves (by simp : .out ≠ .act),
+      set_updated' $ by rw [←Equivalent.ids_eq set_equiv, Partial.const_ids _ _],
+      Partial.const_eq_map_const
+    ]
 
 end ReactorType
 
@@ -59,10 +71,11 @@ theorem unprocessed_finite (s : State.Over rtr) : s.unprocessed.Finite := by
 
 theorem actions_finite (s : State.Over rtr) (g : Time.Tag) : (s.actions g).Finite := by 
   apply Set.Finite.subset (Finite.fin s.rtr .act)
-  intro _ h
-  simp [actions, bind] at h
-  sorry
-
+  intro i h
+  simp [actions, bind, ←Partial.mem_def, Partial.mem_iff] at h
+  obtain ⟨v, _, h, _⟩ := h
+  exact s.events_sub $ Partial.mem_iff.mp ⟨_, h⟩
+  
 theorem unprocessed_empty_iff_closed : (s.unprocessed = ∅) ↔ s.Closed := by
   simp [unprocessed, Closed]
   constructor <;> (intro h₁; ext1 i; constructor) <;> intro h₂
@@ -200,8 +213,7 @@ end Instantaneous
 theorem Advance.of_nonterminal_closed {s : State.Over rtr} 
     (ht : ¬s.Terminal) (hc : s.Closed) : ∃ s' : State α, s ⇓- s' := by
   have ⟨g, hg⟩ := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
-  exists ⟨refresh s.rtr (s.actions g) $ s.actions_finite g, g, ∅, s.events⟩
-  exact ⟨hc, hg, refresh_correct _⟩
+  exact ⟨⟨refresh s.rtr (s.actions g), g, ∅, s.events⟩, hc, hg, refresh_correct _ sorry⟩
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.

@@ -7,6 +7,8 @@ abbrev Component.type (rtrType : Type) : Component → Type
   | .rcn   => Reaction
   | .val _ => Value
 
+-- TODO: Rename this to `Reactor`.
+--
 -- Note: This approach is similar to how algebras are defined in category theory, where the 
 --       `Component` parameter plays the role of the functor over which the algrabra is defined.
 class ReactorType (α : Type) where

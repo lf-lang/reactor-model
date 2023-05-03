@@ -1,6 +1,9 @@
 import ReactorModel.Execution.Dependency
 import Mathlib.Data.Finset.Lattice
 
+noncomputable section
+open Classical
+
 -- TODO: Split up the following definitions into appropriate namespaces.
 namespace ReactorType
 namespace Practical
@@ -9,10 +12,10 @@ variable [Practical α]
 
 structure Refresh (rtr₁ rtr₂ : α) (acts : ID ⇀ Value) : Prop where
   equiv    : rtr₁ ≈ rtr₂
-  eq_state : rtr₁[.stv] = rtr₂[.stv]
-  acts     : acts = rtr₂[.act]
-  inputs   : rtr₁[.inp].map (fun _ => .absent) = rtr₂[.inp]  
-  outputs  : rtr₁[.out].map (fun _ => .absent) = rtr₂[.out]  
+  eq_state : rtr₂[.stv] = rtr₁[.stv]
+  acts     : rtr₂[.act] = acts
+  inputs   : rtr₂[.inp] = rtr₁[.inp].map fun _ => .absent
+  outputs  : rtr₂[.out] = rtr₁[.out].map fun _ => .absent
 
 theorem Refresh.deterministic {rtr : α} (rf₁ : Refresh rtr rtr₁ as) (rf₂ : Refresh rtr rtr₂ as) : 
     rtr₁ = rtr₂ := by
@@ -20,10 +23,10 @@ theorem Refresh.deterministic {rtr : α} (rf₁ : Refresh rtr rtr₁ as) (rf₂ 
   apply Proper.ext_obj? e
   intro cpt _ _ _ ho₁ ho₂
   cases cpt
-  case stv => simp_all [(ho₁ ▸ rf₁.eq_state) ▸ (ho₂ ▸ rf₂.eq_state)] 
-  case act => simp_all [(ho₁ ▸ rf₁.acts)     ▸ (ho₂ ▸ rf₂.acts)] 
-  case inp => simp_all [(ho₁ ▸ rf₁.inputs)   ▸ (ho₂ ▸ rf₂.inputs)] 
-  case out => simp_all [(ho₁ ▸ rf₁.outputs)  ▸ (ho₂ ▸ rf₂.outputs)] 
+  case stv => injection (rf₁.eq_state ▸ ho₁) ▸ rf₂.eq_state ▸ ho₂
+  case act => injection (rf₁.acts     ▸ ho₁) ▸ rf₂.acts     ▸ ho₂
+  case inp => injection (rf₁.inputs   ▸ ho₁) ▸ rf₂.inputs   ▸ ho₂
+  case out => injection (rf₁.outputs  ▸ ho₁) ▸ rf₂.outputs  ▸ ho₂
 
 def dependencies (rtr : α) (rcn : ID) : Set ID := 
   { rcn' | rcn' <[rtr] rcn }

@@ -126,6 +126,15 @@ theorem update_ne_comm [DecidableEq α] (f : α ⇀ β) {a₁ a₂ : α} (h : a�
     (f.update a₁ g₁).update a₂ g₂ = (f.update a₂ g₂).update a₁ g₁ := by
   ext1 a; by_cases a = a₁ <;> by_cases a = a₂ <;> simp_all [update]
 
+def const (as : Set α) (b : β) [DecidablePred (· ∈ as)] : α ⇀ β :=
+  fun a => if a ∈ as then b else none
+
+theorem const_ids (as : Set α) (b : β) : (const as b).ids = as := 
+  sorry
+
+theorem const_eq_map_const (f : α ⇀ β) (b : b) : f.map (fun _ => b) = const f.ids b := 
+  sorry
+
 def Finite (f : α ⇀ β) : Prop :=
   f.ids.Finite
 
