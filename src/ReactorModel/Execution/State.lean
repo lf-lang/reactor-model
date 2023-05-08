@@ -1,7 +1,7 @@
 import ReactorModel.Execution.Reactor
 
 noncomputable section
-open Classical ReactorType Practical
+open Classical ReactorType 
 
 namespace List
 
@@ -24,34 +24,26 @@ end List
 namespace Execution
 
 @[ext]
-structure State (α) [Practical α] where
+structure State (α) [Indexable α] where
   rtr      : α 
   tag      : Time.Tag
   progress : Set ID
   events   : ID ⇀ Time.Tag ⇉ Value -- For each action we keep a mapping of tag to value.
 
-variable [Practical α]
+variable [Indexable α]
 
 namespace State
 
 def actions (s : State α) (g : Time.Tag) : ID ⇀ Value := 
   fun i => s.events i >>= (· g)
 
-def schedule (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
-  match a.keys.filter (·.time = t) |>.max with
-  | ⊥           => a.insert ⟨t, 0⟩ v
-  | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
-
--- TODO: Why do we need `Updatable` here?
-def apply (s : State α) : Change → State α 
-  | .inp i v   => { s with    rtr := Updatable.update s.rtr .inp i v }
-  | .out i v   => { s with    rtr := Updatable.update s.rtr .out i v }
-  | .stv i v   => { s with    rtr := Updatable.update s.rtr .stv i v }
-  | .act i t v => { s with events := s.events.update i (schedule · t v) }
-  | .mut ..    => s -- Mutations are currently no-ops.
-
-def apply' (s : State α) (cs : List Change) : State α :=
-  cs.foldl apply s
+def schedule (s : State α) (i : ID) (t : Time) (v : Value) : State α := 
+  { s with events := s.events.update i (go · t v) }
+where 
+  go (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
+    match a.keys.filter (·.time = t) |>.max with
+    | ⊥           => a.insert ⟨t, 0⟩ v
+    | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
 
 def scheduledTags (s : State α) : Set Time.Tag := 
   { g | ∃ i a, (s.events i = some a) ∧ (g ∈ a.keys) }
@@ -60,6 +52,7 @@ scoped macro "cases_change " change:term : tactic => `(tactic|
   cases $change:term <;> try cases ‹Change.Normal›; cases ‹Component.Valued›
 )
 
+/-
 theorem apply_equiv (s : State α) (c : Change) : (apply s c).rtr ≈ s.rtr := by
   cases_change c <;> first | exact .refl _ | apply Equivalent.symm; apply LawfulUpdatable.equiv
 
@@ -153,6 +146,7 @@ theorem apply'_disjoint_targets_comm (ht : Disjoint cs₁.targets cs₂.targets)
     rfl
 
 end
+-/
 
 def Closed (s : State α) : Prop := 
   s.progress = s.rtr[.rcn].ids
@@ -216,9 +210,6 @@ theorem Triggers.progress_agnostic {s₁ s₂ : State α}
     Triggers s₁ i ↔ Triggers s₂ i := by
   simp [Triggers.def, hr, input_progress_agnostic hr ht]    
 
-def exec (s : State α) (rcn : ID) : State α :=
-  s.apply' (s.output rcn)
-
 def record [DecidableEq ID] (s : State α) (rcn : ID) : State α := 
   { s with progress := s.progress.insert rcn }
 
@@ -240,6 +231,7 @@ theorem mem_record_progress_iff (s : State α) (rcn₁ rcn₂ : ID) :
     rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
   simp [record, Set.insert]
 
+/-
 theorem record_apply_comm {s : State α} {rcn : ID} : 
     (s.record rcn).apply c = (s.apply c).record rcn := by
   cases_change c <;> simp [apply, record]
@@ -255,7 +247,9 @@ theorem record_exec_comm {s : State α} {rcn₁ rcn₂ : ID} :
   simp [exec]
   rw [←output_progress_agnostic (s₁ := s) (s₂ := record s rcn₁) (i := rcn₂)]
   exact record_apply'_comm
+-/
 
+-- TODO: Is this being used?
 def record' [DecidableEq ID] (s : State α) (rcns : List ID) : State α := 
   { s with progress := s.progress ∪ { i | i ∈ rcns } }
 

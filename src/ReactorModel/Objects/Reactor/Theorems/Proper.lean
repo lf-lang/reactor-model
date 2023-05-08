@@ -8,6 +8,9 @@ namespace ReactorType
 instance [Proper α] : Readable α where
   ext_iff := Proper.toExtensional.ext_iff
 
+instance [Proper α] : Accessible α where
+  unique_ids := Proper.unique_ids
+
 namespace Wellformed
 
 open Indexable Equivalent
@@ -91,7 +94,7 @@ theorem shared_state_local
 end Wellformed
 
 open Indexable in
-theorem Proper.ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂) 
+theorem ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂) 
     (h : ∀ {c : Component.Valued} {i o₁ o₂}, 
           (rtr₁[c][i] = some o₁) → (rtr₂[c][i] = some o₂) → o₁ = o₂) : 
     rtr₁ = rtr₂ := by
@@ -122,7 +125,7 @@ theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α
   have e₁ := Equivalent.trans u₁.equiv u₂.equiv
   have e₂ := Equivalent.trans u₁'.equiv u₂'.equiv
   have e := Equivalent.trans (Equivalent.symm e₁) e₂
-  apply Proper.ext_obj? e
+  apply ext_obj? e
   intro cpt i _ _ ho₁ ho₂
   -- TODO: Simplify this case bashing a bit when this is fixed:
   --       https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/by_cases.20tags.20bug/near/345415921
@@ -156,4 +159,9 @@ theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α
     have := u₁'.obj?_preserved (j := i) (.inl hc₂) ▸ u₂'.obj?_preserved (.inl hc₁)
     simp_all
   
+open Updatable in
+theorem LawfulUpdatable.update_ne_comm [Proper α] {rtr : α} (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂):
+    update (update rtr cpt₁ i₁ v₁) cpt₂ i₂ v₂ = update (update rtr cpt₂ i₂ v₂) cpt₁ i₁ v₁ :=
+  LawfulUpdate.ne_comm (lawful ..) (lawful ..) (lawful ..) (lawful ..) h
+
 end ReactorType

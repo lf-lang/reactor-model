@@ -1,51 +1,13 @@
-import ReactorModel.Execution.Trace
-import ReactorModel.Determinism.Execution
+import ReactorModel.Execution.Theorems.Reactor
+import ReactorModel.Execution.Theorems.Trivial
 
 noncomputable section
-open ReactorType Practical FiniteUpdatable Classical
-
--- TODO: Move the Determinism folder into the Execution folder.
---       Perhaps also rename it to Theorems, as it contains many lemmas which aren't only relevant
---       to proving determinism.
-
-namespace ReactorType
-
-variable [Practical α]
-
-def refresh (rtr : α) (acts : ID ⇀ Value) : α :=
-  let rtr₁ := FiniteUpdatable.set rtr  .inp $ Partial.const (rtr[.inp].ids : Set ID) .absent
-  let rtr₂ := FiniteUpdatable.set rtr₁ .out $ Partial.const (rtr[.out].ids : Set ID) .absent
-  FiniteUpdatable.set rtr₂ .act acts
-
-open FiniteUpdatable in
-theorem refresh_correct (rtr : α) (h : acts.ids = rtr[.act].ids) : 
-    Refresh rtr (refresh rtr acts) acts where
-  equiv := Equivalent.trans set_equiv $ Equivalent.trans set_equiv set_equiv
-  eq_state := by
-    rw [
-      refresh, set_preserves (by simp : .stv ≠ .act), set_preserves (by simp : .stv ≠ .out), 
-      set_preserves (by simp : .stv ≠ .inp)
-    ]
-  acts := by 
-    rw [refresh, set_updated' $ h ▸ (Equivalent.ids_eq $ Equivalent.trans set_equiv set_equiv)]
-  inputs := by 
-    rw [
-      refresh, set_preserves (by simp : .inp ≠ .act), set_preserves (by simp : .inp ≠ .out), 
-      set_updated' $ Partial.const_ids _ _, Partial.const_eq_map_const
-    ]
-  outputs := by 
-    rw [
-      refresh, set_preserves (by simp : .out ≠ .act),
-      set_updated' $ by rw [←Equivalent.ids_eq set_equiv, Partial.const_ids _ _],
-      Partial.const_eq_map_const
-    ]
-
-end ReactorType
+open ReactorType Classical
 
 namespace Execution
 namespace State
 
-variable [Practical α]
+variable [Proper α] [ReactorType.Finite α]
 
 def unprocessed (s : State α) : Set ID :=
   { i ∈ s.rtr[.rcn] | i ∉ s.progress }
@@ -75,7 +37,7 @@ theorem actions_finite (s : State.Over rtr) (g : Time.Tag) : (s.actions g).Finit
   simp [actions, bind, ←Partial.mem_def, Partial.mem_iff] at h
   obtain ⟨v, _, h, _⟩ := h
   exact s.events_sub $ Partial.mem_iff.mp ⟨_, h⟩
-  
+
 theorem unprocessed_empty_iff_closed : (s.unprocessed = ∅) ↔ s.Closed := by
   simp [unprocessed, Closed]
   constructor <;> (intro h₁; ext1 i; constructor) <;> intro h₂
@@ -105,6 +67,7 @@ theorem exists_allowed_of_acyclic_has_unprocessed
   else
     have ⟨_, hd⟩ := Set.nonempty_iff_ne_empty.mpr h
     have ⟨h₁, h₂⟩ := Set.mem_diff _ |>.mp hd
+    have := inferInstanceAs $ ReactorType.Finite α
     exists_allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
 termination_by exists_allowed_of_acyclic_has_unprocessed s i _ _ _ => 
   have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset $ dependencies_subset _ i) s.progress
@@ -130,11 +93,12 @@ theorem exists_allowed_of_acyclic_not_closed (a : Dependency.Acyclic rtr) (hc : 
   have ⟨_, hi₁, hi₂⟩ := s.exists_unprocessed_of_not_closed hc
   exists_allowed_of_acyclic_has_unprocessed a hi₁ hi₂
 
-def ofStep {s₁ : State.Over rtr₁} {s₂ : State α} (e : s₁ ⇓ᵢ s₂) : State.Over s₂.rtr := 
+def ofStep {s₁ : State.Over rtr₁} {s₂ : State α} (e : s₁ ↓ s₂) : State.Over s₂.rtr := 
   { s₂ with 
     progress_sub := by 
-      simp [e.progress_eq, ←Equivalent.obj?_rcn_eq e.equiv]
-      exact Set.insert_subset.mpr ⟨e.allows_rcn.mem, s₁.progress_sub⟩ 
+      sorry
+      -- simp [e.progress_eq, ←Equivalent.obj?_rcn_eq e.equiv]
+      -- exact Set.insert_subset.mpr ⟨e.allows_rcn.mem, s₁.progress_sub⟩ 
     events_sub := by
       sorry
   }
@@ -163,7 +127,7 @@ theorem not_elim (t : ¬s.Terminal) : ¬s.Closed ∨ (∃ g, s.NextTag g) := by
 end Terminal
 end State
 
-variable [Practical α] {rtr : α}
+variable [Proper α] {rtr : α}
 
 namespace Instantaneous
 namespace Step

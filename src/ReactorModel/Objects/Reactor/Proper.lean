@@ -1,6 +1,7 @@
 import ReactorModel.Objects.Reactor.Extensional
 import ReactorModel.Objects.Reactor.Indexable
 import ReactorModel.Objects.Reactor.WellFounded
+import ReactorModel.Objects.Reactor.Updatable
 
 namespace ReactorType
 namespace Wellformed
@@ -39,7 +40,7 @@ structure Wellformed [idx : Indexable α] (rtr : α) : Prop where
   valid_deps    : (rtr[.rtr][i] = some con) → (con{.rcn}{j} = some rcn) → (d ∈ rcn.deps k) → 
                   (ValidDependency con rcn.kind k d) 
 
-class Proper (α) extends Extensional α, Indexable α, WellFounded α where
+class Proper (α) extends Extensional α, Indexable α, WellFounded α, LawfulUpdatable α where
   wellformed : ∀ rtr : α, Wellformed rtr (idx := toIndexable)
 
 end ReactorType

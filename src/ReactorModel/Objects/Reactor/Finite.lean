@@ -4,15 +4,10 @@ noncomputable section
 
 namespace ReactorType
 
-class Finite (α) extends Indexable α where
+class Finite (α) [Indexable α] where
   fin : ∀ (rtr : α) (cpt : Component), rtr[cpt].Finite
 
-namespace Finite
-
-variable [Finite α]
-
-def ids (rtr : α) (cpt : Component) : List cpt.idType :=
+def Finite.ids [Indexable α] [Finite α] (rtr : α) (cpt : Component) : List cpt.idType :=
   (fin rtr cpt).toFinset.toList 
 
-end Finite
 namespace ReactorType

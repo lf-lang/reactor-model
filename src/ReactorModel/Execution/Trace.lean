@@ -1,75 +1,80 @@
 import ReactorModel.Execution.State
 
-open Classical ReactorType Practical
+open Classical ReactorType Execution State
 
-variable [Practical α]
+variable [Indexable α]
 
 namespace Execution
-namespace Instantaneous
+namespace Step 
 
--- TODO: Change this definition to use relations for the smaller steps.
---       We only need the constructive aspect of the functions in the proof of determinism.
---       That is, we don't need a reactor to be Updatable in order to define the execution model.
---       We *do* need it to be Updatable in the proof of determinism.
---       Once you've done this, move the requirement of Updatable from Proper to Practical.
-inductive Step : State α → State α → Type  
-  | skip : (s.Allows rcn) → (¬s.Triggers rcn) → Step s (s.record rcn)
-  | exec : (s.Allows rcn) → (s.Triggers rcn) → Step s (s.exec rcn |>.record rcn)
+inductive Apply : Change → State α → State α → Type
+  | inp {rtr} : (LawfulUpdate .inp i v s.rtr rtr) → Apply (.inp i v) s { s with rtr }    
+  | out {rtr} : (LawfulUpdate .out i v s.rtr rtr) → Apply (.out i v) s { s with rtr }    
+  | stv {rtr} : (LawfulUpdate .stv i v s.rtr rtr) → Apply (.stv i v) s { s with rtr }    
+  | act : Apply (.act i t v ) s (s.schedule i t v)
+  | mut : Apply (.mut _) s s -- Mutations are currently no-ops.
+  
+notation s₁:max " -[" c "]→ " s₂:max => Apply c s₁ s₂
 
-namespace Step
+inductive Apply.RTC : List Change → State α → State α → Type
+  | refl  : Apply.RTC [] s s
+  | trans : (s₁ -[hd]→ s₂) → (Apply.RTC tl s₂ s₃) → Apply.RTC (hd :: tl) s₁ s₃  
 
-variable {s₁ s₂ : State α}
+notation s₁:max " -[" cs "]→ " s₂:max => Apply.RTC cs s₁ s₂
 
-notation s₁:max " ⇓ᵢ " s₂:max => Step s₁ s₂
+inductive Skip : State α → State α → Type
+  | mk : (Allows s rcn) → (¬Triggers s rcn) → Skip s (s.record rcn)
 
-def rcn : (s₁ ⇓ᵢ s₂) → ID
-  | skip (rcn := rcn) .. | exec (rcn := rcn) .. => rcn
+notation s₁:max " ↓ₛ " s₂:max => Skip s₁ s₂
 
-def allows_rcn : (e : s₁ ⇓ᵢ s₂) → s₁.Allows e.rcn
-  | skip h .. | exec h .. => h
+inductive Exec : State α → State α → Type
+  | mk : (Allows s₁ rcn) → (Triggers s₁ rcn) → (s₁ -[s₁.output rcn]→ s₂) → Exec s₁ (s₂.record rcn)
+
+notation s₁:max " ↓ₑ " s₂:max => Exec s₁ s₂
+
+inductive Time : State α → State α → Type
+  | mk : (Closed s) → (NextTag s g) → (Refresh s.rtr ref $ s.actions g) → 
+         Time s { s with rtr := ref, tag := g, progress := ∅ }
+
+notation s₁:max " ↓ₜ " s₂:max => Time s₁ s₂
 
 end Step
 
--- TODO: Rename this to "Sequence" or something like that.
-inductive Execution : State α → State α → Type
-  | single : (s₁ ⇓ᵢ s₂) → Execution s₁ s₂
-  | trans  : (s₁ ⇓ᵢ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
+inductive Step (s₁ s₂ : State α)
+  | skip (s : s₁ ↓ₛ s₂)
+  | exec (e : s₁ ↓ₑ s₂)
+  | time (t : s₁ ↓ₜ s₂)
 
-notation s₁:max " ⇓ᵢ+ " s₂:max => Execution s₁ s₂
-
-def Execution.rcns {s₁ s₂ : State α} : (s₁ ⇓ᵢ+ s₂) → List ID
-  | single e => [e.rcn]
-  | trans hd tl => hd.rcn :: tl.rcns
-
-structure ClosedExecution (s₁ s₂ : State α) where  
-  exec   : s₁ ⇓ᵢ+ s₂
-  closed : s₂.Closed
-  
-notation s₁:max " ⇓| " s₂:max => ClosedExecution s₁ s₂
-
-abbrev ClosedExecution.rcns {s₁ s₂ : State α} (e : s₁ ⇓| s₂) : List ID :=
-  e.exec.rcns
-
-end Instantaneous
-
-inductive Advance : State α → State α → Prop 
-  | intro (closed : s.Closed) (next : s.NextTag g) (refreshed : Refresh s.rtr ref $ s.actions g) :
-    Advance s { s with rtr := ref, tag := g, progress := ∅ }
-
-notation s₁:max " ⇓- " s₂:max => Advance s₁ s₂
-
-inductive Step (s₁ s₂ : State α) : Prop
-  | close   (step : s₁ ⇓| s₂)
-  | advance (step : s₁ ⇓- s₂)
-
-notation s₁:max " ⇓ " s₂:max => Step s₁ s₂
+notation s₁:max " ↓ " s₂:max => Step s₁ s₂
 
 end Execution
 
-open Execution
+inductive Execution : State α → State α → Type
+  | refl  : Execution s s
+  | trans : (s₁ ↓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 
-inductive Execution : State α → State α → Prop
-  | refl : Execution s s
-  | step : (s₁ ⇓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
+notation s₁ " ⇓ " s₂ => Execution s₁ s₂
 
-notation s₁ " ⇓* " s₂ => Execution s₁ s₂
+-- TODO: Move this out of this file.
+namespace Execution 
+namespace Step
+
+variable {s₁ : State α}
+
+namespace Skip
+
+def rcn :                      (s₁ ↓ₛ s₂) → ID                 | .mk (rcn := rcn) .. => rcn
+theorem allows_rcn :       (e : s₁ ↓ₛ s₂) → Allows s₁ e.rcn    | .mk a _ => a
+theorem not_triggers_rcn : (e : s₁ ↓ₛ s₂) → ¬Triggers s₁ e.rcn | .mk _ t => t
+
+end Skip
+
+namespace Exec
+
+def rcn :                  (s₁ ↓ₑ s₂) → ID                               | mk (rcn := r) .. => r
+def applied :              (s₁ ↓ₑ s₂) → State α                          | mk (s₂ := s) .. => s
+theorem allows_rcn :   (e : s₁ ↓ₑ s₂) → Allows s₁ e.rcn                  | mk a .. => a
+theorem triggers_rcn : (e : s₁ ↓ₑ s₂) → Triggers s₁ e.rcn                | mk _ t _ => t
+theorem apply :        (e : s₁ ↓ₑ s₂) → s₁ -[s₁.output e.rcn]→ e.applied | mk _ _ a => a
+
+end Exec

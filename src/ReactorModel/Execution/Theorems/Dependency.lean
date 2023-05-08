@@ -1,8 +1,56 @@
-import ReactorModel.Execution
+import ReactorModel.Execution.Dependency
 
 open Classical ReactorType Indexable
 
 namespace Dependency
+
+section
+
+open Equivalent Indexable
+variable [Indexable α] {rtr rtr₁ : α}
+
+theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁] j₂ := by
+  induction d with
+  | prio h₁ h₂ h₃ => 
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
+    exact prio h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃) ‹_› ‹_›
+  | depOverlap h₁ h₂ => 
+    exact depOverlap (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› ‹_› ‹_›
+  | mutNorm h₁ h₂ h₃ => 
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
+    exact mutNorm h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃) ‹_› ‹_›
+  | mutNest h₁ h₂ h₃ _ h₄ => 
+    have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
+    have ⟨_, h₂'⟩ := get?_some_iff e (cpt := .rtr) |>.mpr ⟨_, h₂⟩
+    have h₄' := mem_get?_iff (Equivalent.get?_rtr_some_equiv e h₂' h₂) (cpt := .rcn) |>.mpr h₄
+    exact mutNest h₁' h₂' (get?_rcn_eq e ▸ h₃) ‹_› h₄'
+  | trans _ _ d₁ d₂ => 
+    exact trans d₁ d₂
+
+theorem mem₁ (d : rcn₁ <[rtr] rcn₂) : rcn₁ ∈ rtr[.rcn] := by
+  induction d <;> try exact Partial.mem_iff.mpr ⟨_, obj?_some_extend ‹_› ‹_›⟩ 
+  case depOverlap => exact Partial.mem_iff.mpr ⟨_, ‹_›⟩ 
+  case trans => assumption
+
+namespace Acyclic
+
+theorem equiv (e : rtr₁ ≈ rtr₂) (a : Acyclic rtr₁) : Acyclic rtr₂ :=
+  (a · $ ·.equiv e)
+
+theorem iff_mem_acyclic {rtr : α} : (Acyclic rtr) ↔ (∀ i ∈ rtr[.rcn], ¬(i <[rtr] i)) := by
+  apply not_iff_not.mp
+  simp [Acyclic]
+  constructor <;> intro ⟨d, h⟩  
+  case mp  => exact ⟨_, h.mem₁, h⟩
+  case mpr => exact ⟨_, h.right⟩ 
+
+theorem of_trivial (triv : rtr[.rcn] = ∅) : Dependency.Acyclic rtr := by
+  simp_all [Dependency.Acyclic.iff_mem_acyclic, triv]
+  intros _ h
+  exact absurd h Partial.not_mem_empty
+
+end Acyclic
+end
 
 variable [Proper α] {rtr : α}
 
@@ -118,6 +166,6 @@ theorem perm {rcns : List ID} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns'
   (m · $ h.mem_iff.mpr ·)
 
 theorem equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (e : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
-  fun i h d => absurd (ReactorType.Dependency.equiv e d) (m i h)
+  fun i h d => absurd (d.equiv e) (m i h)
 
 end Minimal
