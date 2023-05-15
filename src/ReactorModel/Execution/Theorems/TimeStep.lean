@@ -1,4 +1,4 @@
-import ReactorModel.Execution.Trace
+import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.Reactor
 
 open ReactorType Execution State

@@ -1,5 +1,5 @@
 import ReactorModel.Execution.Theorems.Trivial 
-import ReactorModel.Execution.Theorems.Grouped
+import ReactorModel.Execution.Theorems.Grouped.Basic
 
 open Classical ReactorType
 

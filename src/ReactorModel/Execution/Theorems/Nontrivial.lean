@@ -62,13 +62,9 @@ theorem tag_le {s₁ s₂ : State α} (e : s₁ ⇓ s₂) : s₁.tag ≤ s₂.ta
   induction e with
   | refl        => exact le_refl _
   | step e _ hi => exact le_trans e.tag_le hi
+-/
 
-theorem seq_progress_ssubset_or_tag_lt (n : s₁.Nontrivial) : 
-    (s₁ ↓ s₂) → (s₂ ⇓ s₃) → (s₁.progress ⊂ s₃.progress) ∨ (s₁.tag < s₃.tag)
-  | e₁₂,        step e e' => .inr $ lt_of_lt_of_le (e₁₂.seq_tag_lt n e) e'.tag_le
-  | .close e,   refl      => .inl $ e.progress_ssubset
-  | .advance a, refl      => .inr $ a.tag_lt
-
+/-
 theorem nontrivial_deterministic {s s₁ s₂ : State α} (n : s.Nontrivial)
     (e₁ : s ⇓ s₁) (e₂ : s ⇓ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
     s₁ = s₂ := by
@@ -81,7 +77,6 @@ theorem nontrivial_deterministic {s s₁ s₂ : State α} (n : s.Nontrivial)
     exact match seq_progress_ssubset_or_tag_lt n e e' with
     | .inl h => absurd hp (Set.ssubset_ne $ by simp_all) 
     | .inr h => absurd ht $ ne_of_lt (by simp_all)
-
 -/
 
 end Execution

@@ -54,27 +54,3 @@ inductive Execution : State α → State α → Type
   | trans : (s₁ ↓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 
 notation s₁ " ⇓ " s₂ => Execution s₁ s₂
-
--- TODO: Move this out of this file.
-namespace Execution 
-namespace Step
-
-variable {s₁ : State α}
-
-namespace Skip
-
-def rcn :                      (s₁ ↓ₛ s₂) → ID                 | .mk (rcn := rcn) .. => rcn
-theorem allows_rcn :       (e : s₁ ↓ₛ s₂) → Allows s₁ e.rcn    | .mk a _ => a
-theorem not_triggers_rcn : (e : s₁ ↓ₛ s₂) → ¬Triggers s₁ e.rcn | .mk _ t => t
-
-end Skip
-
-namespace Exec
-
-def rcn :                  (s₁ ↓ₑ s₂) → ID                               | mk (rcn := r) .. => r
-def applied :              (s₁ ↓ₑ s₂) → State α                          | mk (s₂ := s) .. => s
-theorem allows_rcn :   (e : s₁ ↓ₑ s₂) → Allows s₁ e.rcn                  | mk a .. => a
-theorem triggers_rcn : (e : s₁ ↓ₑ s₂) → Triggers s₁ e.rcn                | mk _ t _ => t
-theorem apply :        (e : s₁ ↓ₑ s₂) → s₁ -[s₁.output e.rcn]→ e.applied | mk _ _ a => a
-
-end Exec

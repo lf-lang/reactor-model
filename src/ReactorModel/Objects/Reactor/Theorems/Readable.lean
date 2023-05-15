@@ -23,4 +23,11 @@ theorem LawfulMemUpdate.unique
   case nested.final h₁ _ u _ _ h₂ _ _ =>
     injection (StrictMember.final h₂).unique (u.member₁.nested h₁)
   
+theorem LawfulUpdate.unique 
+    (u₁ : LawfulUpdate cpt i v rtr rtr₁) (u₂ : LawfulUpdate cpt i v rtr rtr₂) : rtr₁ = rtr₂ := by
+  cases u₁ <;> cases u₂
+  case notMem.notMem => simp_all
+  case update.update u₁ u₂ => exact u₁.unique u₂
+  all_goals exact ‹IsEmpty _›.elim $ Member.strict ‹LawfulMemUpdate ..›.member₁
+
 end ReactorType

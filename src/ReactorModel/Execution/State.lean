@@ -227,9 +227,15 @@ theorem record_preserves_tag (s : State α) (rcn : ID) : (s.record rcn).tag = s.
 theorem record_preserves_events (s : State α) (rcn : ID) : (s.record rcn).events = s.events := 
   rfl
 
+theorem record_progress_eq (s : State α) (rcn₁ rcn₂ : ID) : 
+    (s.record rcn).progress = s.progress.insert rcn := 
+  rfl
+
+/- TODO: Delete if unused.
 theorem mem_record_progress_iff (s : State α) (rcn₁ rcn₂ : ID) : 
     rcn₁ ∈ (s.record rcn₂).progress ↔ (rcn₁ = rcn₂ ∨ rcn₁ ∈ s.progress) := by
   simp [record, Set.insert]
+-/
 
 /-
 theorem record_apply_comm {s : State α} {rcn : ID} : 

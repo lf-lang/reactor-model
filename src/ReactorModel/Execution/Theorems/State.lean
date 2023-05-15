@@ -6,7 +6,19 @@ open Classical ReactorType
 namespace Execution
 namespace State
 
-variable [Proper α] {s s₁ s₂ : State α} in section
+variable [Indexable α] {s s₁ s₂ : State α} in section
+
+theorem schedule_preserves_rtr (s : State α) (i : ID) (t : Time) (v : Value) : 
+    (s.schedule i t v).rtr = s.rtr := 
+  rfl
+
+theorem schedule_preserves_tag (s : State α) (i : ID) (t : Time) (v : Value) : 
+    (s.schedule i t v).tag = s.tag := 
+  rfl
+
+theorem schedule_preserves_progress (s : State α) (i : ID) (t : Time) (v : Value) : 
+    (s.schedule i t v).progress = s.progress := 
+  rfl
 
 /-
 theorem exec_preserves_tag (rcn : ID) : (s.exec rcn).tag = s.tag :=
