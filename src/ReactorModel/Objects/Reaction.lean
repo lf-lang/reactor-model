@@ -18,6 +18,26 @@ structure Input where
   val : Component.Valued → ID ⇀ Value
   tag : Time.Tag
 
+abbrev Output := List Change
+
+-- TODO: Are these definitions/theorems being used?
+namespace Output
+
+def targets (out : Output) :=
+  { t : Component.Valued × ID | ∃ c ∈ out, c.Targets t.fst t.snd }
+
+theorem mem_targets_cons (h : t ∈ targets tl) : t ∈ targets (hd :: tl) := by
+  have ⟨c, hm, _⟩ := h 
+  exists c, by simp [hm]
+
+theorem target_mem_targets (hc : c ∈ out) (ht : c.target = some t) : t ∈ targets out := by
+  exists c, hc
+  cases c <;> simp [Change.target] at *
+  subst ht
+  constructor
+
+end Output
+
 -- Reactions are the components that can produce changes in a reactor system.
 -- The can be classified into "normal" reactions and "mutations". The `Reaction`
 -- type encompasses both of these flavors (cf. `isNorm` and `isMut`).
@@ -34,13 +54,13 @@ structure _root_.Reaction where
   deps                 : Kind → Set Reaction.Dependency
   triggers             : Set Reaction.Dependency
   prio                 : Priority
-  body                 : Input → List Change
+  body                 : Input → Output
   triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv } 
   target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
-instance : CoeFun Reaction (fun _ => Input → List Change) where
+instance : CoeFun Reaction (fun _ => Input → Output) where
   coe rcn := rcn.body
 
 -- A reaction is normal if its body only produces normal changes.

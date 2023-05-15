@@ -16,7 +16,7 @@ inductive Apply : Change → State α → State α → Type
   
 notation s₁:max " -[" c "]→ " s₂:max => Apply c s₁ s₂
 
-inductive Apply.RTC : List Change → State α → State α → Type
+inductive Apply.RTC : Reaction.Output → State α → State α → Type
   | refl  : Apply.RTC [] s s
   | trans : (s₁ -[hd]→ s₂) → (Apply.RTC tl s₂ s₃) → Apply.RTC (hd :: tl) s₁ s₃  
 

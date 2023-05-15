@@ -1,6 +1,6 @@
-import ReactorModel.Execution.Theorems.SkipStep
-import ReactorModel.Execution.Theorems.ExecStep
-import ReactorModel.Execution.Theorems.TimeStep
+import ReactorModel.Execution.Theorems.Step.Skip
+import ReactorModel.Execution.Theorems.Step.Exec
+import ReactorModel.Execution.Theorems.Step.Time
 
 open Classical ReactorType
 
@@ -95,6 +95,7 @@ namespace Step
 variable [Indexable α] {s₁ s₂ s₃ : State α}
 
 -- TODO: I'm guessing this will require `Proper α`.
+open State in
 theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
     ∃ (s₂' : _) (s₃' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃'), 
       (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) ∧ (s₃' = s₃) := by
@@ -102,25 +103,25 @@ theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : 
   cases e₁ <;> cases e₂ <;> (repeat cases ‹_ ↓ₛ _›) <;> (repeat cases ‹_ ↓ₑ _›)
   all_goals simp [rcn, Step.Skip.rcn, Step.Exec.rcn] at h hi
   case skip.skip rcn₂ _ ha₁ ht₁ ha₂ ht₂ =>
-    have ha₁' := State.record_indep_allows_iff hi.symm |>.mp ha₁
-    have ha₂' := State.record_indep_allows_iff hi |>.mpr ha₂
-    have ht₁' := State.record_triggers_iff (i₁ := rcn₂) |>.not.mp ht₁
-    have ht₂' := State.record_triggers_iff (i₂ := rcn₂) |>.not.mpr ht₂
+    have ha₁' := Allows.iff_record_indep hi.symm |>.mp ha₁
+    have ha₂' := Allows.iff_record_indep hi |>.mpr ha₂
+    have ht₁' := Triggers.iff_record (i₁ := rcn₂) |>.not.mp ht₁
+    have ht₂' := Triggers.iff_record (i₂ := rcn₂) |>.not.mpr ht₂
     exact ⟨_, _, .skip ⟨ha₂', ht₂'⟩, .skip ⟨ha₁', ht₁'⟩, rfl, rfl, State.record_comm⟩
   case skip.exec ha₁ ht₁ ha₂ ht₂ => sorry
     /-
     have ha₁' := State.exec_record_indep_allows_iff hi |>.mp ha₁
-    have ha₂' := State.record_indep_allows_iff hi |>.mpr ha₂
+    have ha₂' := Allows.iff_record_indep hi |>.mpr ha₂
     have ht₁' := State.exec_record_indep_triggers_iff hi |>.not.mp ht₁
-    have ht₂' := State.record_triggers_iff.mpr ht₂
+    have ht₂' := Triggers.iff_record.mpr ht₂
     refine ⟨_, _, Step.exec ha₂' ht₂', Step.skip ha₁' ht₁', rfl, rfl, ?_⟩
     simp [rcn, State.record_exec_comm, State.record_comm]
     -/
   case exec.skip rcn₂ _ ha₁ ht₁ ha₂ ht₂ => sorry
     /-
-    have ha₁' := State.record_indep_allows_iff hi.symm |>.mp ha₁
+    have ha₁' := Allows.iff_record_indep hi.symm |>.mp ha₁
     have ha₂' := State.exec_record_indep_allows_iff hi.symm |>.mpr ha₂
-    have ht₁' := State.record_triggers_iff (i₁ := rcn₂) |>.mp ht₁
+    have ht₁' := Triggers.iff_record (i₁ := rcn₂) |>.mp ht₁
     have ht₂' := State.exec_record_indep_triggers_iff hi.symm |>.not.mpr ht₂
     refine ⟨_, _, Step.skip ha₂' ht₂', Step.exec ha₁' ht₁', rfl, rfl, ?_⟩
     simp [rcn, State.record_exec_comm, State.record_comm]
@@ -212,7 +213,7 @@ theorem mem_rcns_not_mem_progress (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) :
     case tail h => exact mt e.progress_monotonic (hi h)
 
 theorem mem_rcns_iff (e : s₁ ↓ᵢ+ s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
-  simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
+  simp [e.progress_eq, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
 theorem equiv {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → s₁.rtr ≈ s₂.rtr
@@ -276,6 +277,9 @@ theorem progress_ssubset (e : s₁ ↓ᵢ+ s₂) : s₁.progress ⊂ s₂.progre
   induction e
   case single e     => exact e.progress_ssubset
   case trans e _ hi => exact e.progress_ssubset |>.trans hi
+
+theorem progress_ne (e : s₁ ↓ᵢ+ s₂) : s₁.progress ≠ s₂.progress :=
+  Set.ssubset_ne e.progress_ssubset
 
 end Step.TC
 

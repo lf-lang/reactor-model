@@ -1,11 +1,12 @@
 import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.Reactor
+import ReactorModel.Execution.Theorems.State
 
 open ReactorType Execution State
 
 namespace Execution.Step.Time
 
-variable [Indexable α] {s₁ : State α} in section
+variable [Indexable α] {s₁ : State α}
 
 theorem closed :         (e : s₁ ↓ₜ s₂) → Closed s₁                                 | mk c .. => c
 theorem next_tag :       (e : s₁ ↓ₜ s₂) → NextTag s₁ s₂.tag                         | mk _ n _ => n
@@ -22,13 +23,19 @@ theorem tag_ne (e : s₁ ↓ₜ s₂) : s₁.tag ≠ s₂.tag :=
 theorem equiv (e : s₁ ↓ₜ s₂) : s₁.rtr ≈ s₂.rtr := 
   e.refreshed.equiv
 
-end
+theorem preserves_nontrivial {e : s₁ ↓ₜ s₂} (n : s₁.Nontrivial) : s₂.Nontrivial :=
+  n.equiv e.equiv
 
-variable [Proper α] {s : State α}
+theorem not_closed (e : s₁ ↓ₜ s₂) (n : s₁.Nontrivial) : ¬s₂.Closed :=
+  (·.progress_nonempty (e.preserves_nontrivial n) |>.ne_empty e.progress_empty)
 
-theorem deterministic (e₁ : s ↓ₜ s₁) (e₂ : s ↓ₜ s₂) : s₁ = s₂ := by
+theorem nonrepeatable (e₁ : s₁ ↓ₜ s₂) (e₂ : s₂ ↓ₜ s₃) (n : s₁.Nontrivial) : False :=
+  e₁.not_closed n e₂.closed
+
+end Execution.Step.Time
+
+theorem Execution.Step.Time.deterministic [Proper α] {s s₁ s₂ : State α} 
+    (e₁ : s ↓ₜ s₁) (e₂ : s ↓ₜ s₂) : s₁ = s₂ := by
   have hn := e₁.next_tag.deterministic e₂.next_tag
   have hr := hn ▸ e₁.refreshed |>.deterministic e₂.refreshed
   ext1 <;> simp [hn, hr, e₁.progress_empty, e₂.progress_empty, e₁.events_eq, e₂.events_eq]
-
-end Execution.Step.Time

@@ -3,7 +3,7 @@ import ReactorModel.Execution.Theorems.Dependency
 
 namespace ReactorType
 
-variable [Indexable α] in section
+variable [Indexable α]
 
 theorem dependencies_subset (rtr : α) (rcn : ID) : dependencies rtr rcn ⊆ rtr[.rcn].ids := 
   fun _ d => d.mem₁
@@ -22,7 +22,9 @@ theorem mem_dependencies_ssubset {rtr : α} {rcn₁ rcn₂ : ID}
     dependencies rtr rcn₂ ⊂ dependencies rtr rcn₁ :=
   ssubset_iff_subset_ne.mpr ⟨mem_dependencies_subset h, (a _ $ ·.symm ▸ h)⟩
 
-end
+end ReactorType
+
+namespace ReactorType
 
 variable [Proper α]
 

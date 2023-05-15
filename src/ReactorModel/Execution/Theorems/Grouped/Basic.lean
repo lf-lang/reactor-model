@@ -1,4 +1,3 @@
-import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.Grouped.Instantaneous
 import ReactorModel.Execution.Theorems.Grouped.Steps
 import ReactorModel.Execution.Theorems.Grouped.Tail
@@ -22,7 +21,7 @@ theorem deterministic [Proper α] {s s₁ s₂ : State α}
     have hp' : tl₁.progress = tl₂.progress := by
       sorry
     replace tail₁ := steps₁.deterministic steps₂ n ht hp' ▸ tail₁
-    exact tail₁.deterministic tail₂ hp
+    exact tail₁.deterministic hp tail₂
 
 end Grouped
 

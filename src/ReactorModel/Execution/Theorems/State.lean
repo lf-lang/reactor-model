@@ -3,10 +3,35 @@ import ReactorModel.Execution.Theorems.Dependency
 
 open Classical ReactorType
 
-namespace Execution
-namespace State
+namespace Execution.State
 
-variable [Indexable α] {s s₁ s₂ : State α} in section
+variable [Indexable α] {s s₁ s₂ : State α}
+
+theorem input_congr (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
+    s₁.input i = s₂.input i := by
+  simp [input, input.restriction, hr, ht]
+
+theorem output_congr (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
+    s₁.output i = s₂.output i := by
+  simp [output, input_congr hr ht, hr]
+
+theorem record_preserves_rtr (s : State α) (rcn : ID) : (s.record rcn).rtr = s.rtr := 
+  rfl
+
+theorem record_preserves_tag (s : State α) (rcn : ID) : (s.record rcn).tag = s.tag := 
+  rfl
+
+theorem record_preserves_events (s : State α) (rcn : ID) : (s.record rcn).events = s.events := 
+  rfl
+
+theorem record_progress_eq (s : State α) (rcn₁ rcn₂ : ID) : 
+    (s.record rcn).progress = s.progress.insert rcn := 
+  rfl
+
+theorem record_comm {s : State α} {rcn₁ rcn₂ : ID} : 
+    (s.record rcn₁).record rcn₂ = (s.record rcn₂).record rcn₁ := by
+  simp [record]
+  apply Set.insert_comm 
 
 theorem schedule_preserves_rtr (s : State α) (i : ID) (t : Time) (v : Value) : 
     (s.schedule i t v).rtr = s.rtr := 
@@ -20,37 +45,15 @@ theorem schedule_preserves_progress (s : State α) (i : ID) (t : Time) (v : Valu
     (s.schedule i t v).progress = s.progress := 
   rfl
 
-/-
-theorem exec_preserves_tag (rcn : ID) : (s.exec rcn).tag = s.tag :=
-  apply'_preserves_tag _
+theorem Allows.«def» : 
+    (s.Allows i) ↔ (i ∈ s.rtr[.rcn]) ∧ (dependencies s.rtr i ⊆ s.progress) ∧ (i ∉ s.progress) where
+  mp  := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
+  mpr := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
 
-theorem exec_preserves_progress (s : State α) (rcn : ID) : (s.exec rcn).progress = s.progress :=
-  apply'_preserves_progress _
+theorem Allows.acyclic (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
+  (a.unprocessed $ a.deps ·)
 
-theorem exec_equiv (s : State α) (rcn : ID) : s.rtr ≈ (s.exec rcn).rtr := by
-  simp [exec]
-  exact Equivalent.symm $ apply'_equiv _ _
-
-theorem exec_preserves_dependencies (s : State α) (j) : 
-    dependencies s.rtr i = dependencies (s.exec j).rtr i := by
-  simp [dependencies, Set.ext_iff]
-  intro i
-  constructor
-  all_goals
-    intro d
-    refine Dependency.equiv ?_ d
-    simp [Equivalent.symm, exec_equiv s j]
-
-theorem exec_allows_iff : s.Allows i₂ ↔ (s.exec i₁).Allows i₂ := by
-  simp [Allows.def]
-  rw [←Equivalent.mem_iff (cpt := .rcn) (exec_equiv s i₁)]
-  simp [←exec_preserves_progress s i₁, exec_preserves_dependencies s i₁]
--/
-
-theorem record_triggers_iff : s.Triggers i₂ ↔ (s.record i₁).Triggers i₂ :=
-  Triggers.progress_agnostic
-
-theorem record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ ↔ (s.record i₁).Allows i₂ := by
+theorem Allows.iff_record_indep (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ ↔ (s.record i₁).Allows i₂ := by
   simp [record, Allows.def]
   intro _
   constructor <;> intro ⟨hd, hp⟩ 
@@ -62,16 +65,40 @@ theorem record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ �
     constructor
     · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left (hi.left $ · ▸ d)
     · exact not_or.mp (Set.mem_insert_iff.not.mp hp) |>.right
+
+theorem Triggers.def {s : State α} : 
+    (s.Triggers i) ↔ (∃ rcn, (s.rtr[.rcn][i] = some rcn) ∧ rcn.TriggersOn (s.input i)) where
+  mp  := fun ⟨mem, triggers⟩ => ⟨_, mem, triggers⟩   
+  mpr := fun ⟨_, mem, triggers⟩ => .intro mem triggers
+
+theorem Triggers.congr {s₁ s₂ : State α}
+    (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
+    Triggers s₁ i ↔ Triggers s₂ i := by
+  simp [Triggers.def, hr, input_congr hr ht]   
+
+theorem Triggers.iff_record : s.Triggers i₂ ↔ (s.record i₁).Triggers i₂ :=
+  Triggers.congr
+
+theorem NextTag.isLeast {s : State α} (n : NextTag s g) : 
+    IsLeast { g' ∈ s.scheduledTags | s.tag < g' } g where
+  left := ⟨n.mem, n.bound⟩
+  right := by simp [lowerBounds]; exact n.least
   
-/-
-theorem exec_record_indep_allows_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
-    s.Allows i₁ ↔ (s.exec i₂ |>.record i₂).Allows i₁ := 
-  exec_allows_iff.trans $ record_indep_allows_iff (hi.equiv $ s.exec_equiv i₂).symm
--/
+theorem NextTag.deterministic {s : State α} (n₁ : NextTag s g₁) (n₂ : NextTag s g₂) : g₁ = g₂ :=
+  n₁.isLeast.unique n₂.isLeast
 
-end
+theorem Closed.progress_nonempty (n : s.Nontrivial) (h : Closed s) : s.progress.Nonempty := by
+  simp_all [Closed, ←Partial.Nonempty.iff_ids_nonempty]
+  exact n
 
-variable [Proper α] {s s₁ s₂ : State α}
+theorem Nontrivial.equiv (e : s₁.rtr ≈ s₂.rtr) (n : s₁.Nontrivial) : s₂.Nontrivial := by
+  simp_all [Nontrivial, Equivalent.obj?_rcn_eq e]
+
+end Execution.State
+
+namespace Execution.State
+
+variable [Proper α] {s : State α}
 
 theorem target_not_mem_indep_output 
     (h₂ : s.rtr[.rcn][i₂] = some rcn₂) (hi : i₁ ≮[s.rtr]≯ i₂) (hd : ⟨cpt, i⟩ ∈ rcn₂.deps .in) : 
@@ -90,30 +117,6 @@ theorem target_not_mem_indep_output
     all_goals 
       exact hi.left.deps_disjoint h₁ h₂ (rcn₁.target_mem_deps hc) $ by simp [Change.Normal.target]
 
-/-
-theorem exec_indep_restriction_eq (hi : i₁ ≮[s.rtr]≯ i₂) (h₂ : s.rtr[.rcn][i₂] = some rcn₂) : 
-    input.restriction (s.exec i₁) rcn₂ cpt = input.restriction s rcn₂ cpt := by 
-  simp [input.restriction]
-  apply Partial.ext_restrict 
-  intro _ hd
-  exact apply'_preserves_unchanged $ target_not_mem_indep_output h₂ hi hd  
-  
-theorem exec_indep_input_eq 
-    (hi : i₁ ≮[s.rtr]≯ i₂) (h : s.rtr[.rcn][i₂] = some rcn₂)
-    (h' : (s.exec i₁).rtr[.rcn][i₂] = some rcn₂) : (s.exec i₁).input i₂ = s.input i₂ := by 
-  simp [input, h, h']
-  refine ⟨?_, exec_preserves_tag _⟩
-  ext1
-  injection h' ▸ Equivalent.obj?_rcn_eq (s.exec_equiv i₁) ▸ h with h'
-  exact h'.symm ▸ exec_indep_restriction_eq hi h 
-
-theorem exec_indep_output_eq (hi : i₁ ≮[s.rtr]≯ i₂) : (s.exec i₁).output i₂ = s.output i₂ := by 
-  simp [output]
-  have e := Equivalent.obj?_rcn_eq $ s.exec_equiv i₁
-  cases h : s.rtr[.rcn][i₂] <;> simp [e ▸ h]
-  simp [exec_indep_input_eq hi h $ e ▸ h]
--/
-
 theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
     Disjoint (s.output i₁).targets (s.output i₂).targets := by
   cases h₁ : s.rtr[.rcn][i₁] <;> cases h₂ : s.rtr[.rcn][i₂] <;> simp [output, h₁, h₂]
@@ -124,31 +127,6 @@ theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
     replace hc₁ := rcn₁.target_mem_deps hc₁
     replace hc₂ := rcn₂.target_mem_deps hc₂
     cases Dependency.shared_out_dep h₁ h₂ hi.not_eq hc₁ hc₂ <;> simp [hi.left, hi.right] at *
-  all_goals simp [List.targets]
+  all_goals simp [Reaction.Output.targets]
 
-/-
-theorem exec_indep_comm (hi : rcn₁ ≮[s.rtr]≯ rcn₂) : 
-    (s.exec rcn₁).exec rcn₂ = (s.exec rcn₂).exec rcn₁ := by 
-  conv => lhs; rw [exec, exec_indep_output_eq hi]
-  conv => rhs; rw [exec, exec_indep_output_eq hi.symm]
-  apply apply'_disjoint_targets_comm $ indep_output_disjoint_targets hi
-
-theorem exec_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
-    s.Triggers i₂ ↔ (s.exec i₁).Triggers i₂ := by
-  constructor <;> intro ⟨ho, ht⟩  
-  case mp =>
-    have ho' := Equivalent.obj?_rcn_eq (exec_equiv s i₁) ▸ ho
-    have ht' := exec_indep_input_eq hi ‹_› ‹_› |>.symm ▸ ht
-    exact .intro ho' ht'
-  case mpr =>
-    have ho' := Equivalent.obj?_rcn_eq (exec_equiv s i₁) |>.symm ▸ ho
-    have ht' := exec_indep_input_eq hi ‹_› ‹_› ▸ ht
-    exact .intro ho' ht'
-
-theorem exec_record_indep_triggers_iff (hi : i₁ ≮[s.rtr]≯ i₂) : 
-    s.Triggers i₁ ↔ (s.exec i₂ |>.record i₂).Triggers i₁ :=
-  exec_indep_triggers_iff hi.symm |>.trans record_triggers_iff
--/
-
-namespace State
-namespace Execution
+namespace Execution.State

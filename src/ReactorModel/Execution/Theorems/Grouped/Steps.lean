@@ -1,6 +1,5 @@
 import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.Grouped.Instantaneous
-import ReactorModel.Execution.Theorems.Nontrivial
 
 open ReactorType
 
