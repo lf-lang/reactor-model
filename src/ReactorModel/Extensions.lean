@@ -8,6 +8,13 @@ class HasHEquiv (α : Sort u) (β : Sort v) where
 
 infix:50 " ∼ "  => HasHEquiv.HEquiv
 
+namespace List
+
+instance : Coe (List α) (Set α) where
+  coe l := { a : α | a ∈ l }
+
+end List
+
 namespace Set 
 
 theorem insert_union' (s₁ s₂ : Set α) (a : α) : (insert a s₁) ∪ s₂ = s₁ ∪ (insert a s₂) := by

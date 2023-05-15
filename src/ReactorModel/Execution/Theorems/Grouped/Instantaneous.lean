@@ -1,39 +1,38 @@
 import ReactorModel.Execution.Theorems.SkipStep
 import ReactorModel.Execution.Theorems.ExecStep
+import ReactorModel.Execution.Theorems.TimeStep
 
-open ReactorType
+open Classical ReactorType
 
 namespace Execution.Instantaneous
 
-variable [Indexable α]
-
-inductive Step (s₁ s₂ : State α)
+inductive Step [Indexable α] (s₁ s₂ : State α)
   | skip (s : s₁ ↓ₛ s₂)
   | exec (e : s₁ ↓ₑ s₂)
 
 notation s₁:max " ↓ᵢ " s₂:max => Step s₁ s₂
 
-inductive Step.TC : State α → State α → Type
+inductive Step.TC [Indexable α] : State α → State α → Type
   | single : (s₁ ↓ᵢ s₂) → TC s₁ s₂
   | trans  : (s₁ ↓ᵢ s₂) → (TC s₂ s₃) → TC s₁ s₃
 
 notation s₁:max " ↓ᵢ+ " s₂:max => Step.TC s₁ s₂
 
-structure Closed (s₁ s₂ : State α) where
+structure Closed [Indexable α] (s₁ s₂ : State α) where
   exec   : s₁ ↓ᵢ+ s₂ 
   closed : s₂.Closed
 
 notation s₁:max " ↓ᵢ| " s₂:max => Closed s₁ s₂
 
-variable {s₁ s₂ : State α}
+namespace Step
+
+variable [Indexable α] {s₁ s₂ : State α}
 
 instance : Coe (s₁ ↓ₛ s₂) (Step s₁ s₂) where
   coe := Step.skip
 
 instance : Coe (s₁ ↓ₑ s₂) (Step s₁ s₂) where
   coe := Step.exec
-
-namespace Step
   
 def rcn : (s₁ ↓ᵢ s₂) → ID 
   | skip e | exec e => e.rcn
@@ -64,15 +63,6 @@ theorem rcn_not_mem_progress (e : s₁ ↓ᵢ s₂) : e.rcn ∉ s₁.progress :=
 theorem not_closed (e : s₁ ↓ᵢ s₂) : ¬s₁.Closed :=
   (· ▸ e.allows_rcn.unprocessed $ e.allows_rcn.mem)
 
-theorem deterministic (e₁ : s ↓ᵢ s₁) (e₂ : s ↓ᵢ s₂) (h : e₁.rcn = e₂.rcn) : s₁ = s₂ := by
-  cases e₁ <;> cases e₂ <;> simp [rcn] at h
-  case skip.skip e₁ e₂ => simp [e₁.dst_eq, e₂.dst_eq, h]
-  case exec.exec e₁ e₂ => simp [e₁.dst_eq, e₂.dst_eq, h, e₁.apply.deterministic (h.symm ▸ e₂.apply)]
-  all_goals
-    have := ‹_ ↓ₛ _›.not_triggers_rcn
-    have := ‹_ ↓ₑ _›.triggers_rcn
-    simp_all
-
 theorem acyclic (e : s₁ ↓ᵢ s₂) : e.rcn ≮[s₁.rtr] e.rcn :=
   e.allows_rcn.acyclic
 
@@ -90,120 +80,128 @@ theorem seq_rcn_ne (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) : e₁.rc
 
 end Step
 
-/- Step:
+theorem Step.deterministic [Readable α] {s s₁ s₂ : State α} 
+    (e₁ : s ↓ᵢ s₁) (e₂ : s ↓ᵢ s₂) (h : e₁.rcn = e₂.rcn) : s₁ = s₂ := by
+  cases e₁ <;> cases e₂ <;> simp [rcn] at h
+  case skip.skip e₁ e₂ => simp [e₁.dst_eq, e₂.dst_eq, h]
+  case exec.exec e₁ e₂ => simp [e₁.dst_eq, e₂.dst_eq, h, e₁.apply.deterministic (h.symm ▸ e₂.apply)]
+  all_goals
+    have := ‹_ ↓ₛ _›.not_triggers_rcn
+    have := ‹_ ↓ₑ _›.triggers_rcn
+    simp_all
 
-variable [Practical α] {s₁ s₂ s₃ : State α}
+namespace Step
 
-theorem prepend_indep' (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
-    ∃ (s₂' : _) (s₃' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃'), 
+variable [Indexable α] {s₁ s₂ s₃ : State α}
+
+-- TODO: I'm guessing this will require `Proper α`.
+theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
+    ∃ (s₂' : _) (s₃' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃'), 
       (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) ∧ (s₃' = s₃) := by
   have hi : _ ≮[_]≯ _ := { not_eq := e₁.seq_rcn_ne e₂, left := h, right := e₁.seq_wellordered e₂ }
-  cases e₁ <;> cases e₂ <;> simp [rcn] at hi  
-  case skip.skip ha₁ ht₁ rcn₂ ha₂ ht₂ =>
+  cases e₁ <;> cases e₂ <;> (repeat cases ‹_ ↓ₛ _›) <;> (repeat cases ‹_ ↓ₑ _›)
+  all_goals simp [rcn, Step.Skip.rcn, Step.Exec.rcn] at h hi
+  case skip.skip rcn₂ _ ha₁ ht₁ ha₂ ht₂ =>
     have ha₁' := State.record_indep_allows_iff hi.symm |>.mp ha₁
     have ha₂' := State.record_indep_allows_iff hi |>.mpr ha₂
     have ht₁' := State.record_triggers_iff (i₁ := rcn₂) |>.not.mp ht₁
     have ht₂' := State.record_triggers_iff (i₂ := rcn₂) |>.not.mpr ht₂
-    exact ⟨_, _, Step.skip ha₂' ht₂', Step.skip ha₁' ht₁', rfl, rfl, State.record_comm⟩
-  case skip.exec ha₁ ht₁ _ ha₂ ht₂ =>
+    exact ⟨_, _, .skip ⟨ha₂', ht₂'⟩, .skip ⟨ha₁', ht₁'⟩, rfl, rfl, State.record_comm⟩
+  case skip.exec ha₁ ht₁ ha₂ ht₂ => sorry
+    /-
     have ha₁' := State.exec_record_indep_allows_iff hi |>.mp ha₁
     have ha₂' := State.record_indep_allows_iff hi |>.mpr ha₂
     have ht₁' := State.exec_record_indep_triggers_iff hi |>.not.mp ht₁
     have ht₂' := State.record_triggers_iff.mpr ht₂
     refine ⟨_, _, Step.exec ha₂' ht₂', Step.skip ha₁' ht₁', rfl, rfl, ?_⟩
     simp [rcn, State.record_exec_comm, State.record_comm]
-  case exec.skip ha₁ ht₁ rcn₂ ha₂ ht₂ => 
+    -/
+  case exec.skip rcn₂ _ ha₁ ht₁ ha₂ ht₂ => sorry
+    /-
     have ha₁' := State.record_indep_allows_iff hi.symm |>.mp ha₁
     have ha₂' := State.exec_record_indep_allows_iff hi.symm |>.mpr ha₂
     have ht₁' := State.record_triggers_iff (i₁ := rcn₂) |>.mp ht₁
     have ht₂' := State.exec_record_indep_triggers_iff hi.symm |>.not.mpr ht₂
     refine ⟨_, _, Step.skip ha₂' ht₂', Step.exec ha₁' ht₁', rfl, rfl, ?_⟩
     simp [rcn, State.record_exec_comm, State.record_comm]
-  case exec.exec ha₁ ht₁ _ ha₂ ht₂ =>
+    -/
+  case exec.exec ha₁ ht₁ ha₂ ht₂ => sorry
+    /-  
     have ha₁' := State.exec_record_indep_allows_iff hi |>.mp ha₁
     have ha₂' := State.exec_record_indep_allows_iff hi.symm |>.mpr ha₂
     have ht₁' := State.exec_record_indep_triggers_iff hi |>.mp ht₁
     have ht₂' := State.exec_record_indep_triggers_iff hi.symm |>.mpr ht₂
     refine ⟨_, _, Step.exec ha₂' ht₂', Step.exec ha₁' ht₁', rfl, rfl, ?_⟩
     simp [rcn, State.record_exec_comm, State.record_comm, State.exec_indep_comm hi]
+    -/
 
-theorem prepend_indep (e₁ : s₁ ⇓ᵢ s₂) (e₂ : s₂ ⇓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
-    ∃ (s₂' : _) (e₁' : s₁ ⇓ᵢ s₂') (e₂' : s₂' ⇓ᵢ s₃), (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) := by
+theorem prepend_indep (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
+    ∃ (s₂' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃), (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) := by
   have ⟨s₂', _, e₁', e₂', h₁, h₂, h⟩ := prepend_indep' e₁ e₂ h
   subst h
   exists s₂', e₁', e₂'
--/
 
-/- Step.TC:
+end Step
 
-variable [ReactorType.Practical α] {s₁ s₂ : State α} in section
+namespace Step.TC
 
-theorem acyclic (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn := by
+variable [Indexable α] {s₁ s₂ : State α} {rcn : ID}
+
+def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List ID 
+  | single e => [e.rcn]
+  | trans e e' => e.rcn :: e'.rcns
+
+theorem acyclic (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn := by
   induction e <;> simp [rcns] at h <;> try cases ‹_ ∨ _›   
   case single e           => exact h ▸ e.acyclic
   case trans.inl e _ _ h  => exact h ▸ e.acyclic
   case trans.inr e _ hi h => exact (hi h).equiv (ReactorType.Equivalent.symm e.equiv)
 
-theorem progress_not_mem_rcns (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
+theorem progress_not_mem_rcns (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns]
   case' trans e e' hi => simp [hi $ e.progress_monotonic h]
   all_goals exact (Step.rcn_not_mem_progress ‹_› $ · ▸ h)
 
-theorem mem_progress_iff (e : s₁ ⇓ᵢ+ s₂) : 
-    (rcn ∈ s₂.progress) ↔ (rcn ∈ e.rcns ∨ rcn ∈ s₁.progress) := by
+theorem progress_eq (e : s₁ ↓ᵢ+ s₂) : s₂.progress = s₁.progress ∪ e.rcns := by
   induction e <;> simp [rcns]
-  case single e => exact e.mem_progress_iff
-  case trans s₁ s₂ s₃ e e' hi => 
-    simp [hi]
-    constructor <;> intro
-    all_goals repeat cases ‹_ ∨ _› <;> simp [*]
-    case mp.inr h      => cases e.mem_progress_iff.mp h <;> simp [*]
-    case mpr.inl.inl h => simp [e.rcn_mem_progress]
-    case mpr.inr h     => simp [e.progress_monotonic h]
+  case single e     => exact e.progress_eq
+  case trans e _ hi => simp [hi, e.progress_eq]; apply Set.insert_union'
 
--- Corollary of `InstExecution.mem_progress_iff`.
-theorem rcns_mem_progress (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₂.progress := 
-  e.mem_progress_iff.mpr $ .inl h
+-- Corollary of `InstExecution.progress_eq`.
+theorem rcns_mem_progress (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₂.progress := 
+  e.progress_eq ▸ Set.mem_union_right _ h
 
-theorem rcns_ne_nil {s₁ s₂ : State α} : (e : s₁ ⇓ᵢ+ s₂) → e.rcns ≠ []
+theorem rcns_ne_nil {s₁ s₂ : State α} : (e : s₁ ↓ᵢ+ s₂) → e.rcns ≠ []
   | single _ | trans .. => by simp [rcns]
 
-theorem rcns_cons {s₁ s₂ : State α} : (e : s₁ ⇓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl
+theorem rcns_cons {s₁ s₂ : State α} : (e : s₁ ↓ᵢ+ s₂) → ∃ hd tl, e.rcns = hd :: tl
   | single _ | trans .. => by simp [rcns]
 
-theorem rcns_nodup {s₁ s₂ : State α} : (e : s₁ ⇓ᵢ+ s₂) → e.rcns.Nodup
+theorem rcns_nodup {s₁ s₂ : State α} : (e : s₁ ↓ᵢ+ s₂) → e.rcns.Nodup
   | single _   => List.nodup_singleton _
   | trans e e' => List.nodup_cons.mpr ⟨e'.progress_not_mem_rcns e.rcn_mem_progress, e'.rcns_nodup⟩
 
 theorem progress_eq_rcns_perm 
-    (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (hp : s₁.progress = s₂.progress) : e₁.rcns ~ e₂.rcns := by
+    (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : s₁.progress = s₂.progress) : e₁.rcns ~ e₂.rcns := by
   apply List.perm_ext e₁.rcns_nodup e₂.rcns_nodup |>.mpr
   intro rcn
   by_cases hc : rcn ∈ s.progress
   case pos => simp [e₁.progress_not_mem_rcns hc, e₂.progress_not_mem_rcns hc]
   case neg =>
     constructor <;> intro hm
-    case mp  => exact e₂.mem_progress_iff.mp (hp ▸ e₁.rcns_mem_progress hm) |>.resolve_right hc
-    case mpr => exact e₁.mem_progress_iff.mp (hp ▸ e₂.rcns_mem_progress hm) |>.resolve_right hc
+    case' mp  => have h := e₂.progress_eq ▸ hp ▸ e₁.rcns_mem_progress hm
+    case' mpr => have h := e₁.progress_eq ▸ hp.symm ▸ e₂.rcns_mem_progress hm
+    all_goals exact (Set.mem_union ..).mp h |>.resolve_left hc
 
-theorem preserves_tag {s₁ s₂ : State α} : (s₁ ⇓ᵢ+ s₂) → s₁.tag = s₂.tag
+theorem preserves_tag {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → s₁.tag = s₂.tag
   | single e   => e.preserves_tag
   | trans e e' => e.preserves_tag.trans e'.preserves_tag
 
-theorem rcns_trans_eq_cons (e₁ : s ⇓ᵢ s₁) (e₂ : s₁ ⇓ᵢ+ s₂) : 
+theorem rcns_trans_eq_cons (e₁ : s ↓ᵢ s₁) (e₂ : s₁ ↓ᵢ+ s₂) : 
     (trans e₁ e₂).rcns = e₁.rcn :: e₂.rcns := by
   simp [rcns, Step.rcn]
 
-theorem progress_eq {s₁ s₂ : State α} : 
-    (e : s₁ ⇓ᵢ+ s₂) → s₂.progress = s₁.progress ∪ { i | i ∈ e.rcns }
-  | single e => by 
-    simp [rcns]
-    exact e.progress_eq
-  | trans e e' => by 
-    simp [e.progress_eq ▸ e'.progress_eq, rcns_trans_eq_cons]
-    apply Set.insert_union'
-
-theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∉ s₁.progress := by
+theorem mem_rcns_not_mem_progress (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∉ s₁.progress := by
   induction e
   case single e => 
     simp [rcns] at h
@@ -213,35 +211,31 @@ theorem mem_rcns_not_mem_progress (e : s₁ ⇓ᵢ+ s₂) (h : rcn ∈ e.rcns) :
     case head   => exact e.rcn_not_mem_progress
     case tail h => exact mt e.progress_monotonic (hi h)
 
-theorem mem_rcns_iff (e : s₁ ⇓ᵢ+ s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
+theorem mem_rcns_iff (e : s₁ ↓ᵢ+ s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.progress ∧ rcn ∉ s₁.progress) := by
   simp [e.progress_eq, s₁.mem_record'_progress_iff e.rcns rcn, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
-theorem equiv {s₁ s₂ : State α} : (s₁ ⇓ᵢ+ s₂) → s₁.rtr ≈ s₂.rtr
+theorem equiv {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → s₁.rtr ≈ s₂.rtr
   | single e   => e.equiv
   | trans e e' => ReactorType.Equivalent.trans e.equiv e'.equiv
 
-theorem head_minimal (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ+ s₃) : (e.rcn :: e'.rcns) ≮[s₁.rtr] e.rcn := by
+theorem head_minimal (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) : (e.rcn :: e'.rcns) ≮[s₁.rtr] e.rcn := by
   by_contra hc
   simp [Minimal] at hc
   have ⟨_, hm, h⟩ := hc e.acyclic
   replace hc := mt e.progress_monotonic $ e'.mem_rcns_not_mem_progress hm
   exact hc $ e.allows_rcn.deps h
 
-theorem head_not_mem_tail (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ+ s₃) (h : i ∈ e'.rcns) : e.rcn ≠ i := by
+theorem head_not_mem_tail (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) (h : i ∈ e'.rcns) : e.rcn ≠ i := by
   intro hc
   have := trans e e' |>.rcns_nodup
   have := hc.symm ▸ List.not_nodup_cons_of_mem h
   contradiction
 
-end
-
-variable [ReactorType.Practical α] {s₁ s₂ : State α}
-
 -- The core lemma for `prepend_minimal`.
 theorem cons_prepend_minimal 
-    (e : s₁ ⇓ᵢ s₂) (e' : s₂ ⇓ᵢ+ s₃) (hm : i ∈ e'.rcns) (hr : (e.rcn :: e'.rcns) ≮[s₁.rtr] i) : 
-    ∃ f : s₁ ⇓ᵢ+ s₃, f.rcns = i :: e.rcn :: (e'.rcns.erase i) := by
+    (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) (hm : i ∈ e'.rcns) (hr : (e.rcn :: e'.rcns) ≮[s₁.rtr] i) : 
+    ∃ f : s₁ ↓ᵢ+ s₃, f.rcns = i :: e.rcn :: (e'.rcns.erase i) := by
   induction e' generalizing s₁ <;> simp [rcns] at *
   case single e' =>
     have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' $ hm ▸ hr.cons_head
@@ -263,8 +257,8 @@ theorem cons_prepend_minimal
         exists trans f $ trans f' f''
         simp [rcns, hf₁, h₁, hf₂, h₂, e''.rcns.erase_cons_tail $ head_not_mem_tail e' e'' hm]
 
-theorem prepend_minimal (e : s₁ ⇓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns ≮[s₁.rtr] i) :
-    ∃ (e' : s₁ ⇓ᵢ+ s₂), e'.rcns = i :: (e.rcns.erase i) := by
+theorem prepend_minimal (e : s₁ ↓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns ≮[s₁.rtr] i) :
+    ∃ (e' : s₁ ↓ᵢ+ s₂), e'.rcns = i :: (e.rcns.erase i) := by
   cases e <;> (simp [rcns] at *; try cases ‹_ ∨ _›)
   case single e =>
     exists single e
@@ -275,8 +269,18 @@ theorem prepend_minimal (e : s₁ ⇓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns
   case trans.inr e e' h =>
     exact e'.rcns.erase_cons_tail (head_not_mem_tail e e' h) ▸ cons_prepend_minimal e e' h hr
         
-theorem rcns_perm_deterministic 
-    (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) : 
+theorem not_closed : (s₁ ↓ᵢ+ s₂) → ¬s₁.Closed
+  | single e | trans e _ => e.not_closed
+
+theorem progress_ssubset (e : s₁ ↓ᵢ+ s₂) : s₁.progress ⊂ s₂.progress := by
+  induction e
+  case single e     => exact e.progress_ssubset
+  case trans e _ hi => exact e.progress_ssubset |>.trans hi
+
+end Step.TC
+
+theorem Step.TC.rcns_perm_deterministic [Readable α] {s s₁ s₂ : State α}
+    (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) : 
     (s₁.rtr = s₂.rtr) ∧ (s₁.events = s₂.events) := by
   induction e₁
   case single e => 
@@ -304,74 +308,66 @@ theorem rcns_perm_deterministic
       split at h <;> try assumption
       simp [←h] at hp
 
-protected theorem deterministic 
-    (e₁ : s ⇓ᵢ+ s₁) (e₂ : s ⇓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress): 
+theorem Step.TC.deterministic [Readable α] {s s₁ s₂ : State α}
+    (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress): 
     s₁ = s₂ := by
   have ⟨_, _⟩ := rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
   ext1 <;> try assumption
 
-theorem not_closed : (s₁ ⇓ᵢ+ s₂) → ¬s₁.Closed
-  | single e | trans e _ => e.not_closed
+namespace Closed
 
-theorem progress_ssubset (e : s₁ ⇓ᵢ+ s₂) : s₁.progress ⊂ s₂.progress := by
-  induction e
-  case single e     => exact e.progress_ssubset
-  case trans e _ hi => exact e.progress_ssubset |>.trans hi
--/
+variable [Indexable α] {s s₁ s₂ : State α}
 
-/- Closed:
+abbrev rcns (e : s₁ ↓ᵢ| s₂) : List ID :=
+  e.exec.rcns
 
-namespace Instantaneous
-namespace ClosedExecution
-
-theorem not_closed (e : s₁ ⇓| s₂) : ¬s₁.Closed := 
+theorem not_closed (e : s₁ ↓ᵢ| s₂) : ¬s₁.Closed := 
   e.exec.not_closed
 
-theorem nonrepeatable (e₁ : s₁ ⇓| s₂) (e₂ : s₂ ⇓| s₃) : False :=
+theorem nonrepeatable (e₁ : s₁ ↓ᵢ| s₂) (e₂ : s₂ ↓ᵢ| s₃) : False :=
   e₂.not_closed e₁.closed
 
-theorem acyclic (e : s₁ ⇓| s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn :=
+theorem acyclic (e : s₁ ↓ᵢ| s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn :=
   e.exec.acyclic h
 
-theorem preserves_tag (e : s₁ ⇓| s₂) : s₁.tag = s₂.tag :=
+theorem preserves_tag (e : s₁ ↓ᵢ| s₂) : s₁.tag = s₂.tag :=
   e.exec.preserves_tag
 
-theorem equiv (e : s₁ ⇓| s₂) : s₁.rtr ≈ s₂.rtr :=
+theorem equiv (e : s₁ ↓ᵢ| s₂) : s₁.rtr ≈ s₂.rtr :=
   e.exec.equiv
   
-theorem rcns_nodup (e : s₁ ⇓| s₂) : e.rcns.Nodup := 
+theorem rcns_nodup (e : s₁ ↓ᵢ| s₂) : e.rcns.Nodup := 
   e.exec.rcns_nodup
 
-theorem progress_def (e : s₁ ⇓| s₂) : s₂.progress = s₁.rtr[.rcn].ids :=
+theorem progress_def (e : s₁ ↓ᵢ| s₂) : s₂.progress = s₁.rtr[.rcn].ids :=
   Equivalent.obj?_rcn_eq e.equiv ▸ e.closed
 
-theorem mem_rcns_iff (e : s₁ ⇓| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr[.rcn] ∧ rcn ∉ s₁.progress) := by
+theorem mem_rcns_iff (e : s₁ ↓ᵢ| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr[.rcn] ∧ rcn ∉ s₁.progress) := by
   simp [Partial.mem_def, e.progress_def ▸ e.exec.mem_rcns_iff (rcn := rcn)]
 
-theorem progress_empty_mem_rcns_iff (e : s₁ ⇓| s₂) (h : s₁.progress = ∅) : 
+theorem progress_empty_mem_rcns_iff (e : s₁ ↓ᵢ| s₂) (h : s₁.progress = ∅) : 
     (rcn ∈ e.rcns) ↔ rcn ∈ s₁.rtr[.rcn] := by
   simp [e.mem_rcns_iff, h]
 
-theorem rcns_perm (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : e₁.rcns ~ e₂.rcns := by
+theorem rcns_perm (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : e₁.rcns ~ e₂.rcns := by
   simp [List.perm_ext e₁.rcns_nodup e₂.rcns_nodup, e₁.mem_rcns_iff, e₂.mem_rcns_iff]
 
-theorem tag_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.tag = s₂.tag :=
+theorem tag_eq (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : s₁.tag = s₂.tag :=
   e₁.exec.preserves_tag ▸ e₂.exec.preserves_tag
 
-theorem progress_eq (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁.progress = s₂.progress := by
+theorem progress_eq (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : s₁.progress = s₂.progress := by
   simp [e₁.progress_def, e₂.progress_def]
 
-theorem step_determined (e : s ⇓| s₁) (a : s ⇓- s₂) : False :=
+theorem step_determined (e : s ↓ᵢ| s₁) (a : s ↓ₜ s₂) : False :=
   e.not_closed a.closed
 
-theorem progress_ssubset (e : s₁ ⇓| s₂) : s₁.progress ⊂ s₂.progress :=
+theorem progress_ssubset (e : s₁ ↓ᵢ| s₂) : s₁.progress ⊂ s₂.progress :=
   e.exec.progress_ssubset
 
-theorem deterministic (e₁ : s ⇓| s₁) (e₂ : s ⇓| s₂) : s₁ = s₂ :=
-  e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)
+end Closed
 
-end ClosedExecution
-end Instantaneous
--/
+theorem Closed.deterministic [Readable α] {s s₁ s₂ : State α} 
+    (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : s₁ = s₂ :=
+  e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)
 
 end Execution.Instantaneous

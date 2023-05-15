@@ -1,4 +1,6 @@
 import ReactorModel.Execution.Theorems.Nontrivial
+import ReactorModel.Execution.Theorems.SkipStep
+import ReactorModel.Execution.Theorems.ExecStep
 
 open ReactorType Classical
 
