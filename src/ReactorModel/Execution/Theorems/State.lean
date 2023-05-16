@@ -45,6 +45,15 @@ theorem schedule_preserves_progress (s : State α) (i : ID) (t : Time) (v : Valu
     (s.schedule i t v).progress = s.progress := 
   rfl
 
+theorem schedule_events_congr {s₁ s₂ : State α} {i : ID} {t : Time} {v : Value}
+    (h : s₁.events = s₂.events) : (s₁.schedule i t v).events = (s₂.schedule i t v).events := by 
+  simp [schedule, h]
+
+theorem schedule_ne_comm {s : State α} {i₁ i₂ : ID} {t₁ t₂ : Time} {v₁ v₂ : Value} (h : i₁ ≠ i₂) :
+    (s.schedule i₁ t₁ v₁).schedule i₂ t₂ v₂ = (s.schedule i₂ t₂ v₂).schedule i₁ t₁ v₁ := by
+  simp [schedule]
+  apply Partial.update_ne_comm _ h
+
 theorem Allows.«def» : 
     (s.Allows i) ↔ (i ∈ s.rtr[.rcn]) ∧ (dependencies s.rtr i ⊆ s.progress) ∧ (i ∉ s.progress) where
   mp  := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
