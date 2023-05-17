@@ -129,7 +129,11 @@ end Execution.Step.Apply.RTC
 
 namespace Execution.Step.Apply.RTC
 
-variable [Proper α] {s s₁ s₂ : State α} {c : Change} {out out₁ out₂ : Reaction.Output} 
+variable [Proper α] {s s₁ s₂ s₁₂ s₂₁ : State α} {c : Change} {out out₁ out₂ : Reaction.Output} 
+
+def construct (s : State α) : (out : Reaction.Output) → (s' : State α) × (s -[out]→ s')
+  | []       => ⟨s, refl⟩
+  | hd :: tl => let ⟨s', e⟩ := Apply.construct s hd; let ⟨_, e'⟩ := construct s' tl; ⟨_, trans e e'⟩   
 
 theorem ne_targets_comm_apply 
     (ht : ∀ {t}, c.target = some t → t ∉ out.targets) (eₒ : s -[out]→ sₒ) (eₒ₁ : sₒ -[c]→ sₒ₁) 
@@ -137,40 +141,35 @@ theorem ne_targets_comm_apply
   induction eₒ generalizing s₁ <;> cases e₁ₒ
   case refl.refl => exact eₒ₁.deterministic e₁
   case trans.trans hd _ s' tl _ eₒ _ hi _ e₁ₒ e₁ₒ' =>
-    suffices h : hd.target ≠ c.target ∨ hd.target = none by 
-      have ⟨_, e'⟩ := Apply.construct s' c
-      cases Apply.ne_target_comm h eₒ e' e₁ e₁ₒ
-      exact hi (ht · $ Reaction.Output.mem_targets_cons ·) ‹_› ‹_› ‹_›
-    by_contra hc
-    push_neg at hc
-    have ⟨_, h⟩ := Option.ne_none_iff_exists.mp hc.right
-    exact ht (hc.left ▸ h.symm) $ Reaction.Output.target_mem_targets (by simp) h.symm
+    have h : hd.target ≠ c.target ∨ hd.target = none := by
+      by_contra hc
+      push_neg at hc
+      have ⟨_, h⟩ := Option.ne_none_iff_exists.mp hc.right
+      exact ht (hc.left ▸ h.symm) $ Reaction.Output.target_mem_targets (by simp) h.symm
+    have ⟨_, e'⟩ := Apply.construct s' c
+    cases Apply.ne_target_comm h eₒ e' e₁ e₁ₒ
+    exact hi (ht · $ Reaction.Output.mem_targets_cons ·) ‹_› ‹_› ‹_›
 
 theorem disjoint_targets_comm 
     (ht : Disjoint out₁.targets out₂.targets) (e₁ : s -[out₁]→ s₁) (e₁₂ : s₁ -[out₂]→ s₁₂) 
     (e₂ : s -[out₂]→ s₂) (e₂₁ : s₂ -[out₁]→ s₂₁) : s₁₂ = s₂₁ := by
-  /-
-  induction cs₁ generalizing s <;> cases cs₂ <;> simp [apply'] at *
-  case cons.cons hd₁ tl₁ hd₂ tl₂ hi =>
-    have h₁ : Disjoint (List.targets tl₁) (List.targets (hd₂ :: tl₂)) := by
+  induction e₁ generalizing s₂ <;> cases e₁₂ <;> cases e₂ <;> cases e₂₁
+  case refl.refl.refl.refl => rfl
+  case trans.trans.trans.trans hd₁ s z₁ tl₁ _ e₁ e₁' hd₂ _ tl₂ hi e₂ e₂' _ f₂ f₂' _ f₁ f₁' =>
+    have h₁ : ∀ {t}, hd₁.target = some t → ¬t ∈ Reaction.Output.targets (hd₂ :: tl₂) := by
+      intro _ h hm₂
+      have hm₁ := Reaction.Output.target_mem_targets (out := hd₁ :: tl₁) (by simp) h
+      exact absurd rfl $ Set.disjoint_iff_forall_ne.mp ht hm₁ hm₂
+    have h₂ : Disjoint tl₁.targets $ Reaction.Output.targets (hd₂ :: tl₂) := by
       simp [Set.disjoint_iff_forall_ne]
       intro _ _ hm₁ _ _ hm₂ h₁ h₂
       subst h₁ h₂    
-      exact Set.disjoint_left.mp ht (List.mem_targets_cons hm₁) hm₂
-    have h₂ : hd₁.target ≠ hd₂.target ∨ hd₁.target = none := by
-      by_contra hc
-      push_neg at hc
-      have ⟨_, h⟩ := Option.ne_none_iff_exists.mp hc.right
-      have h₁ := (hd₁ :: tl₁).target_mem_targets (by simp) h.symm
-      have h₂ := (hd₂ :: tl₂).target_mem_targets (by simp) (hc.left ▸ h.symm)
-      exact Set.disjoint_left.mp ht h₁ h₂
-    have h₃ : ∀ {t}, hd₁.target = some t → ¬t ∈ tl₂.targets := by
-      intro _ h hm
-      have h₁ := (hd₁ :: tl₁).target_mem_targets (by simp) h
-      exact Set.disjoint_left.mp ht h₁ $ List.mem_targets_cons hm
-    rw [hi h₁, apply_ne_target_comm h₂, ←apply', ←apply', ←ne_targets_comm_apply h₃]
-    rfl
-  -/
-  sorry
-
+      exact Set.disjoint_left.mp ht (Reaction.Output.mem_targets_cons hm₁) hm₂
+    have ⟨_, g₁⟩ := Apply.RTC.construct z₁ (hd₂ :: tl₂)
+    cases ne_targets_comm_apply h₁ (trans f₂ f₂') f₁ e₁ g₁
+    exact hi h₂ (.trans e₂ e₂') g₁ f₁'
+  case' refl.trans.trans.refl e₁ e₁' _ e₂ e₂' => skip
+  case' trans.refl.refl.trans e₁ e₁' _ _ e₂ e₂' => skip
+  all_goals cases e₁.deterministic e₂; exact e₁'.deterministic e₂'
+  
 end Execution.Step.Apply.RTC
