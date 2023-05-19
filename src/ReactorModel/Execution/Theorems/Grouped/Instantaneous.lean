@@ -92,15 +92,33 @@ theorem Step.deterministic [Readable α] {s s₁ s₂ : State α}
 
 namespace Step
 
-variable [Indexable α] {s₁ s₂ s₃ : State α}
+variable [Proper α] {s₁ s₂ s₃ : State α}
 
--- TODO: I'm guessing this will require `Proper α`.
 open State in
 theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
     ∃ (s₂' : _) (s₃' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃'), 
       (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) ∧ (s₃' = s₃) := by
-  have hi : _ ≮[_]≯ _ := { not_eq := e₁.seq_rcn_ne e₂, left := h, right := e₁.seq_wellordered e₂ }
-  cases e₁ <;> cases e₂ <;> (repeat cases ‹_ ↓ₛ _›) <;> (repeat cases ‹_ ↓ₑ _›)
+  replace h : _ ≮[_]≯ _ := { not_eq := e₁.seq_rcn_ne e₂, left := h, right := e₁.seq_wellordered e₂ }
+  cases e₁ <;> cases e₂ 
+  case skip.skip => sorry
+  case skip.exec => sorry
+  case exec.skip => sorry
+  case exec.exec e₁ e₂ =>
+    have ⟨z₂, a₁⟩ := Step.Apply.RTC.construct s₁ (s₁.output e₂.rcn)
+    have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
+    have ht₁ := e₁.indep_triggers_iff h.symm |>.mpr e₂.triggers_rcn
+    let s₂' := z₂.record e₂.rcn
+    have f₁ : s₁ ↓ₑ s₂' := ⟨ha₁, ht₁, a₁⟩ 
+    have ⟨z₃, a₂⟩ := Step.Apply.RTC.construct s₂' (s₂'.output e₁.rcn)
+    have ha₂ : s₂'.Allows e₁.rcn := sorry -- e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
+    have ht₂ : s₂'.Triggers e₁.rcn := sorry -- e₁.indep_triggers_iff h.symm |>.mpr e₂.triggers_rcn
+    let s₃' := z₃.record e₁.rcn
+    have f₂ : s₂' ↓ₑ s₃' := ⟨ha₂, ht₂, a₂⟩ 
+    refine ⟨_, _, .exec f₁, .exec f₂, sorry, sorry, ?_⟩
+    exact Eq.symm $ Step.Exec.indep_comm e₁ e₂ f₁ f₂ sorry sorry sorry
+
+  /-
+  <;> (repeat cases ‹_ ↓ₛ _›) <;> (repeat cases ‹_ ↓ₑ _›)
   all_goals simp [rcn, Step.Skip.rcn, Step.Exec.rcn] at h hi
   case skip.skip rcn₂ _ ha₁ ht₁ ha₂ ht₂ =>
     have ha₁' := Allows.iff_record_indep hi.symm |>.mp ha₁
@@ -126,16 +144,8 @@ theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : 
     refine ⟨_, _, Step.skip ha₂' ht₂', Step.exec ha₁' ht₁', rfl, rfl, ?_⟩
     simp [rcn, State.record_exec_comm, State.record_comm]
     -/
-  case exec.exec ha₁ ht₁ ha₂ ht₂ => sorry
-    /-  
-    have ha₁' := State.exec_record_indep_allows_iff hi |>.mp ha₁
-    have ha₂' := State.exec_record_indep_allows_iff hi.symm |>.mpr ha₂
-    have ht₁' := State.exec_record_indep_triggers_iff hi |>.mp ht₁
-    have ht₂' := State.exec_record_indep_triggers_iff hi.symm |>.mpr ht₂
-    refine ⟨_, _, Step.exec ha₂' ht₂', Step.exec ha₁' ht₁', rfl, rfl, ?_⟩
-    simp [rcn, State.record_exec_comm, State.record_comm, State.exec_indep_comm hi]
-    -/
-
+  -/
+  
 theorem prepend_indep (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
     ∃ (s₂' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃), (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) := by
   have ⟨s₂', _, e₁', e₂', h₁, h₂, h⟩ := prepend_indep' e₁ e₂ h
@@ -232,6 +242,23 @@ theorem head_not_mem_tail (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) (h : i
   have := trans e e' |>.rcns_nodup
   have := hc.symm ▸ List.not_nodup_cons_of_mem h
   contradiction
+        
+theorem not_closed : (s₁ ↓ᵢ+ s₂) → ¬s₁.Closed
+  | single e | trans e _ => e.not_closed
+
+theorem progress_ssubset (e : s₁ ↓ᵢ+ s₂) : s₁.progress ⊂ s₂.progress := by
+  induction e
+  case single e     => exact e.progress_ssubset
+  case trans e _ hi => exact e.progress_ssubset |>.trans hi
+
+theorem progress_ne (e : s₁ ↓ᵢ+ s₂) : s₁.progress ≠ s₂.progress :=
+  Set.ssubset_ne e.progress_ssubset
+
+end Step.TC
+
+namespace Step.TC
+
+variable [Proper α] {s s₁ s₂ : State α}
 
 -- The core lemma for `prepend_minimal`.
 theorem cons_prepend_minimal 
@@ -269,22 +296,8 @@ theorem prepend_minimal (e : s₁ ↓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns
     simp [rcns, h]
   case trans.inr e e' h =>
     exact e'.rcns.erase_cons_tail (head_not_mem_tail e e' h) ▸ cons_prepend_minimal e e' h hr
-        
-theorem not_closed : (s₁ ↓ᵢ+ s₂) → ¬s₁.Closed
-  | single e | trans e _ => e.not_closed
 
-theorem progress_ssubset (e : s₁ ↓ᵢ+ s₂) : s₁.progress ⊂ s₂.progress := by
-  induction e
-  case single e     => exact e.progress_ssubset
-  case trans e _ hi => exact e.progress_ssubset |>.trans hi
-
-theorem progress_ne (e : s₁ ↓ᵢ+ s₂) : s₁.progress ≠ s₂.progress :=
-  Set.ssubset_ne e.progress_ssubset
-
-end Step.TC
-
-theorem Step.TC.rcns_perm_deterministic [Readable α] {s s₁ s₂ : State α}
-    (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) : 
+theorem rcns_perm_deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) : 
     (s₁.rtr = s₂.rtr) ∧ (s₁.events = s₂.events) := by
   induction e₁
   case single e => 
@@ -312,11 +325,13 @@ theorem Step.TC.rcns_perm_deterministic [Readable α] {s s₁ s₂ : State α}
       split at h <;> try assumption
       simp [←h] at hp
 
-theorem Step.TC.deterministic [Readable α] {s s₁ s₂ : State α}
-    (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress): 
+theorem deterministic 
+    (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
     s₁ = s₂ := by
   have ⟨_, _⟩ := rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
   ext1 <;> try assumption
+
+end Step.TC
 
 namespace Closed
 
@@ -370,7 +385,7 @@ theorem progress_ssubset (e : s₁ ↓ᵢ| s₂) : s₁.progress ⊂ s₂.progre
 
 end Closed
 
-theorem Closed.deterministic [Readable α] {s s₁ s₂ : State α} 
+theorem Closed.deterministic [Proper α] {s s₁ s₂ : State α} 
     (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : s₁ = s₂ :=
   e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)
 
