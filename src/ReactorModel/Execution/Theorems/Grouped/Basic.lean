@@ -2,7 +2,7 @@ import ReactorModel.Execution.Theorems.Grouped.Instantaneous
 import ReactorModel.Execution.Theorems.Grouped.Steps
 import ReactorModel.Execution.Theorems.Grouped.Tail
 
-open ReactorType
+open Reactor
 
 namespace Execution
 

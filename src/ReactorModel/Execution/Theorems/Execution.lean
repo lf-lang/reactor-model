@@ -1,7 +1,7 @@
 import ReactorModel.Execution.Theorems.Trivial 
 import ReactorModel.Execution.Theorems.Grouped.Basic
 
-open Classical ReactorType
+open Classical Reactor
 
 namespace Execution
 

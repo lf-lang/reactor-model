@@ -1,6 +1,6 @@
 import ReactorModel.Objects.Reactor.Extensional
 
-namespace ReactorType
+namespace Reactor
 
 variable [Extensional α] {rtr₁ : α}
 
@@ -13,4 +13,4 @@ theorem RootEqualUpTo.ext (e : rtr₁ ≃[cpt][i] rtr₂) (h : rtr₁{cpt}{i} = 
   · exact e (.inl hc)
   · exact e (.inl hc)
 
-end ReactorType
+end Reactor

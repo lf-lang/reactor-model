@@ -4,13 +4,13 @@ noncomputable section
 
 structure Reactor where
   raw : Reactor.Raw
-  wf  : ReactorType.Wellformed raw
+  wf  : Reactor.Wellformed raw
 
 namespace Reactor
 
-open ReactorType
+open Reactor
 
-instance : ReactorType Reactor where
+instance : Reactor Reactor where
   ports    := ports ∘ raw
   acts     := acts  ∘ raw
   state    := state ∘ raw
@@ -21,8 +21,8 @@ instance : ReactorType Reactor where
       wf := rtr.wf.nested h.choose_spec 
     }
 
--- Note: From this we get `ReactorType.Extensional`, `ReactorType.WellFounded` and 
---       `ReactorType.Indexable`.
+-- Note: From this we get `Reactor.Extensional`, `Reactor.WellFounded` and 
+--       `Reactor.Indexable`.
 instance : LawfulCoe Reactor Reactor.Raw where
   coe := Reactor.raw
 
@@ -32,7 +32,7 @@ instance : Updatable Reactor where
     wf  := Wellformed.equiv (LawfulUpdatable.lawful (α := Reactor.Raw) rtr cpt i f).equiv rtr.wf
   }
 
--- Note: From this we get `ReactorType.LawfulUpdatable Reactor`.
+-- Note: From this we get `Reactor.LawfulUpdatable Reactor`.
 instance : LawfulUpdatableCoe Reactor Reactor.Raw where
 
 instance : Proper Reactor where

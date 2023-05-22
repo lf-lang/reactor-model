@@ -1,6 +1,6 @@
 import ReactorModel.Objects
 
-open ReactorType
+open Reactor
 
 variable [Indexable α]
 

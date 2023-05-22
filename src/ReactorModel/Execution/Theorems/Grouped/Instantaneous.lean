@@ -2,7 +2,7 @@ import ReactorModel.Execution.Theorems.Step.Skip
 import ReactorModel.Execution.Theorems.Step.Exec
 import ReactorModel.Execution.Theorems.Step.Time
 
-open Classical ReactorType
+open Classical Reactor
 
 namespace Execution.Instantaneous
 
@@ -192,7 +192,7 @@ theorem acyclic (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr]
   induction e <;> simp [rcns] at h <;> try cases ‹_ ∨ _›   
   case single e           => exact h ▸ e.acyclic
   case trans.inl e _ _ h  => exact h ▸ e.acyclic
-  case trans.inr e _ hi h => exact (hi h).equiv (ReactorType.Equivalent.symm e.equiv)
+  case trans.inr e _ hi h => exact (hi h).equiv (Reactor.Equivalent.symm e.equiv)
 
 theorem progress_not_mem_rcns (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns]
@@ -254,7 +254,7 @@ theorem mem_rcns_iff (e : s₁ ↓ᵢ+ s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
 
 theorem equiv {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → s₁.rtr ≈ s₂.rtr
   | single e   => e.equiv
-  | trans e e' => ReactorType.Equivalent.trans e.equiv e'.equiv
+  | trans e e' => Reactor.Equivalent.trans e.equiv e'.equiv
 
 theorem head_minimal (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) : (e.rcn :: e'.rcns) ≮[s₁.rtr] e.rcn := by
   by_contra hc

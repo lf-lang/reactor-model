@@ -3,7 +3,7 @@ import ReactorModel.Objects.Reactor.Indexable
 import ReactorModel.Objects.Reactor.WellFounded
 import ReactorModel.Objects.Reactor.Updatable
 
-namespace ReactorType
+namespace Reactor
 namespace Wellformed
 
 -- `ValidDependency rtr rk dk d` means that in reactor `rtr`, reactions of kind `rk` can have `d` as 
@@ -11,7 +11,7 @@ namespace Wellformed
 -- states that mutations can specify the input port identified by `i` as effect and 
 -- `ValidDependency rtr .norm .in (.action i)` states that normal reactions can specify the action 
 -- identified by `i` as source.
-inductive ValidDependency [ReactorType α] (rtr : α) : 
+inductive ValidDependency [Reactor α] (rtr : α) : 
     Reaction.Kind → Kind → Reaction.Dependency → Prop
   | inp       : (i ∈ rtr{.inp})                             → ValidDependency _ _     .in  ⟨.inp, i⟩   
   | out       : (i ∈ rtr{.out})                             → ValidDependency _ _     .out ⟨.out, i⟩   
@@ -43,4 +43,4 @@ structure Wellformed [idx : Indexable α] (rtr : α) : Prop where
 class Proper (α) extends Extensional α, Indexable α, WellFounded α, LawfulUpdatable α where
   wellformed : ∀ rtr : α, Wellformed rtr (idx := toIndexable)
 
-end ReactorType
+end Reactor

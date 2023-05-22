@@ -1,6 +1,6 @@
 import ReactorModel.Execution.State
 
-open Classical ReactorType Execution State
+open Classical Reactor Execution State
 
 variable [Indexable α]
 

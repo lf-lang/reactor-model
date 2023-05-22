@@ -8,13 +8,13 @@ namespace Reactor
 
 protected structure Raw where
   core : Reactor.Core
-  unique_ids : ReactorType.UniqueIDs core
+  unique_ids : Reactor.UniqueIDs core
 
 namespace Raw
 
-open ReactorType
+open Reactor
 
-instance : ReactorType Reactor.Raw where
+instance : Reactor Reactor.Raw where
   ports    := ports ∘ core
   acts     := acts  ∘ core
   state    := state ∘ core
@@ -26,7 +26,7 @@ instance : ReactorType Reactor.Raw where
         injection rtr.unique_ids.allEq (.nest h.choose_spec l₁) (.nest h.choose_spec l₂)
     }
 
--- Note: From this we get `ReactorType.Extensional` and `ReactorType.WellFounded`.
+-- Note: From this we get `Reactor.Extensional` and `Reactor.WellFounded`.
 instance : LawfulCoe Reactor.Raw Reactor.Core where
   coe := Reactor.Raw.core
 
@@ -37,7 +37,7 @@ instance : Updatable Reactor.Raw where
     unique_ids := UniqueIDs.updated (lawful (α := Reactor.Core) rtr cpt i f) rtr.unique_ids
   }
 
--- Note: From this we get `ReactorType.LawfulUpdatable Reactor.Raw`.
+-- Note: From this we get `Reactor.LawfulUpdatable Reactor.Raw`.
 instance : LawfulUpdatableCoe Reactor.Raw Reactor.Core where
 
 instance : Indexable Reactor.Raw where

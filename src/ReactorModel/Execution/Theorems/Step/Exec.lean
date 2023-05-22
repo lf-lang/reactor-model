@@ -1,6 +1,6 @@
 import ReactorModel.Execution.Theorems.Step.Apply
 
-open Classical ReactorType Execution State
+open Classical Reactor Execution State
 
 namespace Execution.Step.Exec
 

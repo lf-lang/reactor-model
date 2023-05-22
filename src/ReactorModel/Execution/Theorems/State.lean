@@ -2,7 +2,7 @@ import ReactorModel.Execution.State
 import ReactorModel.Execution.Theorems.Dependency
 import ReactorModel.Execution.Theorems.Reactor
 
-open Classical ReactorType
+open Classical Reactor
 
 namespace Execution.State
 

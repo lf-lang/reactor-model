@@ -2,7 +2,7 @@ import ReactorModel.Objects.Reactor.Indexable
 import ReactorModel.Objects.Reactor.Updatable
 import ReactorModel.Objects.Reactor.Theorems.Basic
 
-namespace ReactorType
+namespace Reactor
 namespace StrictMember
 
 open Indexable
@@ -25,7 +25,7 @@ theorem equiv
   case final.nested h₁ _ _ s₂ h₂ => 
     injection (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
   case nested.final h₁ s₁ _ _ h₂ =>
-    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
+    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm e) 
 
 -- TODO: In all three of the following theorems, the `final.nested` and `nested.final` cases could 
 --       be removed if we figure out how to use the above `equiv` theorem. Induction on the
@@ -51,7 +51,7 @@ theorem rtr_equiv
   case final.nested h₁ _ _ s₂ h₂ => 
     injection (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
   case nested.final h₁ s₁ _ _ h₂ =>
-    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
+    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm e) 
 
 theorem equiv_rcn_eq 
     (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember .rcn i rtr₁) (s₂ : StrictMember .rcn i rtr₂) : 
@@ -66,7 +66,7 @@ theorem equiv_rcn_eq
   case final.nested h₁ _ _ s₂ h₂ =>
     injection (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
   case nested.final h₁ s₁ _ _ h₂ =>
-    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm e) 
+    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm e) 
 
 theorem lawfulMemUpdate_object_preserved 
     (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) (s₁ : StrictMember c j rtr₁)
@@ -97,7 +97,7 @@ theorem lawfulMemUpdate_object_preserved
   case final.nested h₁ _ _ s₂ h₂ =>
     injection (final h₁ |>.fromEquiv u.equiv).unique (nested h₂ s₂)
   case nested.final h₁ s₁ _ _ h₂ =>
-    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ ReactorType.Equivalent.symm u.equiv)     
+    injection (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm u.equiv)     
 
 end StrictMember
 
@@ -332,4 +332,4 @@ theorem obj?_updated :
   | notMem h e => by subst e; simp [member_isEmpty_obj?_none h]
 
 end LawfulUpdate
-end ReactorType
+end Reactor

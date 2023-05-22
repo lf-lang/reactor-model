@@ -1,7 +1,7 @@
 import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.Grouped.Instantaneous
 
-open ReactorType
+open Reactor
 
 namespace Execution.Grouped
 

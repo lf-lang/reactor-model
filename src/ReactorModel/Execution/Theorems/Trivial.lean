@@ -2,7 +2,7 @@ import ReactorModel.Execution.Theorems.Step.Skip
 import ReactorModel.Execution.Theorems.Step.Exec
 import ReactorModel.Execution.Theorems.Step.Time
 
-open ReactorType Classical
+open Reactor Classical
 
 variable [Proper α]
 

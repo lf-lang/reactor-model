@@ -3,12 +3,12 @@ import ReactorModel.Objects.Reactor.Basic
 noncomputable section
 open Classical
 
-namespace ReactorType
+namespace Reactor
 
-def UniqueIDs [ReactorType α] (rtr : α) : Prop :=
+def UniqueIDs [Reactor α] (rtr : α) : Prop :=
   ∀ {cpt i}, Subsingleton (Member cpt i rtr)
 
-class Indexable (α) extends ReactorType α where
+class Indexable (α) extends Reactor α where
   unique_ids : ∀ {rtr : α}, UniqueIDs rtr
 
 def Indexable.obj? [Indexable α] (rtr : α) (cpt : Component) : cpt.idType ⇀ cpt.type α :=
@@ -17,4 +17,4 @@ def Indexable.obj? [Indexable α] (rtr : α) (cpt : Component) : cpt.idType ⇀ 
 notation (priority := 1001) rtr "[" cpt "]" => Indexable.obj? rtr cpt
 notation rtr "[" cpt "][" i "]"             => Indexable.obj? rtr cpt i 
 
-end ReactorType
+end Reactor

@@ -4,12 +4,12 @@ import ReactorModel.Objects.Reactor.Indexable
 noncomputable section
 open Classical
 
-namespace ReactorType
+namespace Reactor
 
 /- ---------------------------------------------------------------------------------------------- -/
 namespace RootEqualUpTo
 
-variable [ReactorType α] {rtr₁ : α}
+variable [Reactor α] {rtr₁ : α}
 
 @[refl]
 theorem refl (rtr₁ : α) : rtr₁ ≃[cpt][i] rtr₁ :=
@@ -38,7 +38,7 @@ end RootEqualUpTo
 
 /- ---------------------------------------------------------------------------------------------- -/
 
-inductive Equivalent [inst : ReactorType α] : α → α → Prop
+inductive Equivalent [inst : Reactor α] : α → α → Prop
   | refl (rtr) : Equivalent rtr rtr
   | struct
     (mem_get?_iff : ∀ cpt i, i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt}) 
@@ -48,7 +48,7 @@ inductive Equivalent [inst : ReactorType α] : α → α → Prop
  
 namespace Equivalent
 
-variable [ReactorType α] {rtr₁ : α}
+variable [Reactor α] {rtr₁ : α}
 
 instance : HasEquiv α where 
   Equiv := Equivalent
@@ -122,7 +122,7 @@ end Equivalent
 /- ---------------------------------------------------------------------------------------------- -/
 namespace LawfulMemUpdate
 
-variable [ReactorType α]
+variable [Reactor α]
 
 def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember cpt i rtr₁
   | final _ h _  => .final h
@@ -174,7 +174,7 @@ theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : rtr₁
 
 end LawfulMemUpdate
 
-theorem LawfulUpdate.equiv [ReactorType α] {rtr₁ : α} :
+theorem LawfulUpdate.equiv [Reactor α] {rtr₁ : α} :
     (LawfulUpdate cpt i v rtr₁ rtr₂) → rtr₁ ≈ rtr₂
   | notMem _ h => h ▸ (.refl _)
   | update u   => u.equiv
@@ -186,7 +186,7 @@ theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} :
 /- ---------------------------------------------------------------------------------------------- -/
 namespace StrictMember
 
-variable [ReactorType α] {rtr : α} in section
+variable [Reactor α] {rtr : α} in section
 
 theorem nested_object (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
     (nested h s).object = s.object := 
@@ -260,28 +260,28 @@ def fromEquiv {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
 end
 
 inductive Equivalent : 
-    {α : Type} → {β : Type} → [ReactorType α] → [ReactorType β] → {rtr₁ : α} → {rtr₂ : β} → 
+    {α : Type} → {β : Type} → [Reactor α] → [Reactor β] → {rtr₁ : α} → {rtr₂ : β} → 
     (StrictMember cpt i rtr₁) → (StrictMember cpt i rtr₂) → Prop 
-  | refl [ReactorType α] {rtr : α} (s : StrictMember cpt i rtr) : Equivalent s s
-  | final [ReactorType α] [ReactorType β] {rtr₁ : α} {rtr₂ : β} 
+  | refl [Reactor α] {rtr : α} (s : StrictMember cpt i rtr) : Equivalent s s
+  | final [Reactor α] [Reactor β] {rtr₁ : α} {rtr₂ : β} 
     (h₁ : rtr₁{cpt}{i} = some o₁) (h₂ : rtr₂{cpt}{i} = some o₂) : Equivalent (final h₁) (final h₂)
-  | nested [ReactorType α] [ReactorType β] {rtr₁ : α} {rtr₂ : β} {n₁ : α} {n₂ : β} 
+  | nested [Reactor α] [Reactor β] {rtr₁ : α} {rtr₂ : β} {n₁ : α} {n₂ : β} 
     {s₁ : StrictMember cpt i n₁} {s₂ : StrictMember cpt i n₂} (h₁ : rtr₁{.rtr}{j} = some n₁) 
     (h₂ : rtr₂{.rtr}{j} = some n₂) : (Equivalent s₁ s₂) → Equivalent (nested h₁ s₁) (nested h₂ s₂)
 
 namespace Equivalent
 
-variable [ReactorType α] {rtr₁ : α}
+variable [Reactor α] {rtr₁ : α}
 
-instance [ReactorType β] {rtr₂ : β} : 
+instance [Reactor β] {rtr₂ : β} : 
     HasHEquiv (StrictMember cpt i rtr₁) (StrictMember cpt i rtr₂) where
   HEquiv := Equivalent (cpt := cpt) (i := i) (rtr₁ := rtr₁) (rtr₂ := rtr₂)
 
-theorem symm [ReactorType β] {rtr₂ : β} 
+theorem symm [Reactor β] {rtr₂ : β} 
     {s₁ : StrictMember cpt i rtr₁} {s₂ : StrictMember cpt i rtr₂} (e : s₁ ∼ s₂) : s₂ ∼ s₁ := by
   induction e <;> constructor; assumption
 
-theorem trans [ReactorType β] [ReactorType γ] {rtr₂ : β} {rtr₃ : γ}
+theorem trans [Reactor β] [Reactor γ] {rtr₂ : β} {rtr₃ : γ}
     {s₁ : StrictMember cpt i rtr₁} {s₂ : StrictMember cpt i rtr₂} {s₃ : StrictMember cpt i rtr₃}
     (e₁ : s₁ ∼ s₂) (e₂ : s₂ ∼ s₃) : s₁ ∼ s₃ := by
   induction e₁ generalizing rtr₃ <;> cases e₂ <;> constructor <;> try assumption
@@ -316,7 +316,7 @@ end StrictMember
 /- ---------------------------------------------------------------------------------------------- -/
 namespace Member
 
-variable [ReactorType α] {rtr rtr₁ : α}
+variable [Reactor α] {rtr rtr₁ : α}
 
 def extend : (m : Member .rtr i rtr) → (m.object{cpt}{j} = some o) → Member cpt j rtr
   | root,     h => final h
@@ -351,26 +351,26 @@ def fromEquiv (e : rtr₁ ≈ rtr₂) : (Member cpt i rtr₁) → Member cpt i r
   | root     => root
   | strict s => s.fromEquiv e
 
-inductive Equivalent [ReactorType β] {rtr₂ : β} : (Member cpt i rtr₁) → (Member cpt i rtr₂) → Prop 
+inductive Equivalent [Reactor β] {rtr₂ : β} : (Member cpt i rtr₁) → (Member cpt i rtr₂) → Prop 
   | root   : Equivalent root root
   | strict : (StrictMember.Equivalent s₁ s₂) → Equivalent (strict s₁) (strict s₂)
 
 namespace Equivalent
 
-instance [ReactorType β] {rtr₂ : β} : HasHEquiv (Member cpt i rtr₁) (Member cpt i rtr₂) where
+instance [Reactor β] {rtr₂ : β} : HasHEquiv (Member cpt i rtr₁) (Member cpt i rtr₂) where
   HEquiv := Equivalent (cpt := cpt) (i := i) (rtr₁ := rtr₁) (rtr₂ := rtr₂)
 
 theorem refl : (m : Member cpt i rtr) → m ∼ m
   | .root     => root
   | .strict s => strict $ .refl s
 
-theorem symm [ReactorType β] {rtr₂ : β} {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂} 
+theorem symm [Reactor β] {rtr₂ : β} {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂} 
     (e : m₁ ∼ m₂) : m₂ ∼ m₁ := by
   cases m₁ 
   case root => cases m₂; exact root
   case strict => cases cpt <;> cases e <;> exact .strict $ StrictMember.Equivalent.symm ‹_›  
 
-theorem trans [ReactorType β] [ReactorType γ] {rtr₂ : β} {rtr₃ : γ}
+theorem trans [Reactor β] [Reactor γ] {rtr₂ : β} {rtr₃ : γ}
     {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂} {m₃ : Member cpt i rtr₃}
     (e₁ : m₁ ∼ m₂) (e₂ : m₂ ∼ m₃) : m₁ ∼ m₃ := by
   cases m₁
@@ -401,7 +401,7 @@ end Member
 /- ---------------------------------------------------------------------------------------------- -/
 namespace Object
 
-variable [ReactorType α] {rtr rtr₁ : α}
+variable [Reactor α] {rtr rtr₁ : α}
 
 theorem «def» : (Object rtr cpt i o) ↔ (∃ m : Member cpt i rtr, m.object = o) where
   mp  | ⟨m⟩    => ⟨m, rfl⟩ 
@@ -423,7 +423,7 @@ end Object
 /- ---------------------------------------------------------------------------------------------- -/
 namespace UniqueIDs
 
-variable [ReactorType α] {rtr₁ : α}
+variable [Reactor α] {rtr₁ : α}
 
 theorem updated (u : LawfulUpdate cpt i v rtr₁ rtr₂) (h : UniqueIDs rtr₁) : UniqueIDs rtr₂ where
   allEq m₁ m₂ := open Member.Equivalent in
@@ -432,4 +432,4 @@ theorem updated (u : LawfulUpdate cpt i v rtr₁ rtr₂) (h : UniqueIDs rtr₁) 
       (symm (fromLawfulUpdate u m₂))
 
 end UniqueIDs
-end ReactorType
+end Reactor

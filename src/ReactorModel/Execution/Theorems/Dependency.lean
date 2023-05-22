@@ -1,6 +1,6 @@
 import ReactorModel.Execution.Dependency
 
-open Classical ReactorType Indexable
+open Classical Reactor Indexable
 
 namespace Dependency
 

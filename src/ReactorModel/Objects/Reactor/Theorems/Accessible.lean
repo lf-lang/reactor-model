@@ -3,7 +3,7 @@ import ReactorModel.Objects.Reactor.Theorems.Indexable
 
 noncomputable section
 
-namespace ReactorType
+namespace Reactor
 
 class Accessible (α) extends LawfulUpdatable α, Indexable α 
 
@@ -110,4 +110,4 @@ theorem set_preserves (h : c ≠ cpt) : (set rtr cpt vs)[c] = rtr[c] := by
   case some => exact set.go_preserves ho (.inl h)
   case none => exact Equivalent.obj?_none_iff set_equiv |>.mp ho
 
-end ReactorType
+end Reactor

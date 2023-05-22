@@ -1,7 +1,7 @@
 import ReactorModel.Execution.Reactor
 
 noncomputable section
-open Classical ReactorType 
+open Classical Reactor 
 
 namespace Execution
 

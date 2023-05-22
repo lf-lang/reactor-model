@@ -1,7 +1,7 @@
 import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.State
 
-open Classical ReactorType Execution State
+open Classical Reactor Execution State
 
 namespace Execution.Step.Skip
 

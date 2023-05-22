@@ -5,7 +5,7 @@ import ReactorModel.Objects.Reactor.Proper
 
 
 
-theorem UniqueIDs.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} 
+theorem UniqueIDs.lift [Reactor α] [Reactor β] [LawfulCoe α β] {rtr : α} 
     (h : UniqueIDs (rtr : β)) : UniqueIDs rtr where
   allEq m₁ m₂ :=
     h.allEq (.fromLawfulCoe m₁) (.fromLawfulCoe m₂) ▸ Member.Equivalent.from_lawfulCoe m₁ 
@@ -20,7 +20,7 @@ instance [LawfulUpdatable α] [ind : Indexable β] [LawfulCoe α β] : Indexable
 
 
 
-class LawfulCoe (α β) [ReactorType α] [ReactorType β] extends Coe α β where
+class LawfulCoe (α β) [Reactor α] [Reactor β] extends Coe α β where
   inj          : coe.Injective := by lawfulCoe_inj_proof
   get?_val_coe : (coe rtr){(cpt : Component.Valued)} = rtr{cpt}
   get?_rcn_coe : (coe rtr){.rcn} = rtr{.rcn}
@@ -36,15 +36,15 @@ class LawfulCoe (α β) [ReactorType α] [ReactorType β] extends Coe α β wher
 noncomputable section
 open Classical Reactor
 
-namespace ReactorType
+namespace Reactor
 
 scoped macro "lawfulCoe_nest_proof" : tactic => 
-  `(tactic| simp [ReactorType.nest, Partial.map_map, Function.comp, Partial.attach_map_val])
+  `(tactic| simp [Reactor.nest, Partial.map_map, Function.comp, Partial.attach_map_val])
 
 scoped macro "lawfulCoe_inj_proof" : tactic => 
   `(tactic| (simp [Function.Injective]; intro ⟨_, _⟩ ⟨_, _⟩; simp))
 
-class LawfulCoe (α β) [a : ReactorType α] [b : ReactorType β] extends Coe α β where
+class LawfulCoe (α β) [a : Reactor α] [b : Reactor β] extends Coe α β where
   ports : b.ports ∘ coe = a.ports                    := by rfl
   acts  : b.acts  ∘ coe = a.acts                     := by rfl
   rcns  : b.rcns  ∘ coe = a.rcns                     := by rfl
@@ -54,14 +54,14 @@ class LawfulCoe (α β) [a : ReactorType α] [b : ReactorType β] extends Coe α
 
 namespace LawfulCoe
 
-variable [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] {rtr : α}
+variable [a : Reactor α] [b : Reactor β] [c : LawfulCoe α β] {rtr : α}
 
-theorem nest' [a : ReactorType α] [b : ReactorType β] [c : LawfulCoe α β] :
+theorem nest' [a : Reactor α] [b : Reactor β] [c : LawfulCoe α β] :
     b.nest (c.coe rtr) = (a.nest rtr).map c.coe := by
-  rw [←Function.comp_apply (f := ReactorType.nest), c.nest]
+  rw [←Function.comp_apply (f := Reactor.nest), c.nest]
   simp
 
-theorem coe_ext_iff [ReactorType α] [ReactorType β] [c : LawfulCoe α β] 
+theorem coe_ext_iff [Reactor α] [Reactor β] [c : LawfulCoe α β] 
     {rtr₁ rtr₂ : α} : rtr₁ = rtr₂ ↔ (rtr₁ : β) = (rtr₂ : β) :=
   ⟨(congr_arg _ ·), (c.inj ·)⟩
 
@@ -110,16 +110,16 @@ theorem lift_mem_cpt? (cpt) (h : i ∈ b.cpt? cpt rtr) (hc : cpt ≠ .rtr := by 
 
 end LawfulCoe
 
-def Member.fromLawfulCoe [ReactorType α] [ReactorType β] [c : LawfulCoe α β] {rtr : α} : 
+def Member.fromLawfulCoe [Reactor α] [Reactor β] [c : LawfulCoe α β] {rtr : α} : 
     (Member cpt i rtr) → Member cpt i (rtr : β)
   | final h  => final (c.lower_mem_cpt? _ h)
   | nest h m => nest (c.lower_cpt?_eq_some (cpt := .rtr) h) (fromLawfulCoe m)
 
-instance [ReactorType α] [ReactorType β] [c : LawfulCoe α β] {rtr : α} :
+instance [Reactor α] [Reactor β] [c : LawfulCoe α β] {rtr : α} :
     Coe (Member cpt i rtr) (Member cpt i (rtr : β)) where
   coe := Member.fromLawfulCoe
 
-instance [ReactorType α] [e : Extensional β] [c : LawfulCoe α β] : Extensional α where
+instance [Reactor α] [e : Extensional β] [c : LawfulCoe α β] : Extensional α where
   ext_iff := by
     intro rtr₁ rtr₂ 
     simp [c.coe_ext_iff, e.ext_iff, ←c.ports, ←c.acts, ←c.rcns, ←c.state, c.nest']
@@ -129,15 +129,15 @@ instance [ReactorType α] [e : Extensional β] [c : LawfulCoe α β] : Extension
       mpr := by simp_all
     }
 
-instance [Extensional α] [b : ReactorType.WellFounded β] [c : LawfulCoe α β] : 
-    ReactorType.WellFounded α where
+instance [Extensional α] [b : Reactor.WellFounded β] [c : LawfulCoe α β] : 
+    Reactor.WellFounded α where
   wf := by
     suffices h : InvImage Nested c.coe = Nested from h ▸ InvImage.wf c.coe b.wf
     funext rtr₁ rtr₂
     simp [Nested, InvImage, c.nest', Partial.map_val]
     exact ⟨fun ⟨_, ⟨_, hn, h⟩⟩ => ⟨_, c.inj h ▸ hn⟩, fun ⟨i, h⟩ => ⟨i, rtr₁, by simp [h]⟩⟩  
 
-variable [ReactorType α] [ReactorType β] in section
+variable [Reactor α] [Reactor β] in section
 
 theorem RootEqualUpTo.lift [l : LawfulCoe α β] {rtr₁ rtr₂ : α} 
     (e : RootEqualUpTo cpt i (rtr₁ : β) (rtr₂ : β)) : RootEqualUpTo cpt i rtr₁ rtr₂ := by
@@ -275,7 +275,7 @@ scoped macro "lift_nested_proof " name:ident : term => `(
       (LawfulCoe.lift_cpt?_eq_some .rtr hc) (LawfulCoe.lift_mem_cpt? (.prt _) hp)
 )
 
-theorem ValidDependency.lift [ReactorType α] [ReactorType β] [LawfulCoe α β] {rtr : α} : 
+theorem ValidDependency.lift [Reactor α] [Reactor β] [LawfulCoe α β] {rtr : α} : 
     (ValidDependency (rtr : β) rk dk d) → ValidDependency rtr rk dk d 
   | stv h           => stv $ LawfulCoe.lift_mem_cpt? .stv h
   | act h           => act $ LawfulCoe.lift_mem_cpt? .act h
@@ -302,4 +302,4 @@ theorem lift [Indexable α] [Indexable β] [LawfulCoe α β] {rtr : α} (wf : We
   unique_inputs h₁ h₂ := wf.unique_inputs (lower_obj?_some h₁) (lower_obj?_some h₂)
 
 end Wellformed
-end ReactorType
+end Reactor

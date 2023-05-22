@@ -1,11 +1,11 @@
 import ReactorModel.Execution.Theorems.StateOver
 
 noncomputable section
-open ReactorType Classical
+open Reactor Classical
 
 namespace Execution
 
-variable [Proper α] [ReactorType.Finite α] {rtr : α} {s : State.Over rtr} 
+variable [Proper α] [Reactor.Finite α] {rtr : α} {s : State.Over rtr} 
 
 def Step.Time.construct (ht : ¬s.Terminal) (hc : s.Closed) : (s' : State α) × (s ↓ₜ s') :=
   let g := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)

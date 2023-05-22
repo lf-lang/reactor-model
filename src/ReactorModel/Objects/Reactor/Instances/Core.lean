@@ -5,7 +5,7 @@ import ReactorModel.Objects.Reactor.Updatable
 noncomputable section
 open Classical
 
-open ReactorType
+open Reactor
 
 namespace Reactor
 
@@ -20,7 +20,7 @@ inductive Core
 
 namespace Core
 
-instance reactorType : ReactorType Reactor.Core where
+instance reactorType : Reactor Reactor.Core where
   get?
     | mk i _ _ _ _ _, .inp => i
     | mk _ o _ _ _ _, .out => o
@@ -55,7 +55,7 @@ abbrev «with»
     (nest : ID ⇀ Reactor.Core := nest rtr) :=
   Reactor.Core.mk ports acts state rcns nest
 
-def insert [inst : ReactorType Reactor.Core] 
+def insert [inst : Reactor Reactor.Core] 
     (rtr : Reactor.Core) (cpt : Component) (i : ID) (v : inst.cptType cpt) :=
   match cpt with
   | .prt k => rtr.with (ports := Function.update (ports rtr) k $ ports rtr k |>.insert i v)
@@ -101,7 +101,7 @@ theorem updateMem_lawfulMemUpdate
 def update (rtr : Reactor.Core) (cpt : Component.Valued) (i : ID) (f : cpt.type → cpt.type) :=
   if l : Nonempty (Member cpt i rtr) then updateMem f l.some else rtr
 
-instance : ReactorType.LawfulUpdatable Reactor.Core where
+instance : Reactor.LawfulUpdatable Reactor.Core where
   update := update
   lawful rtr cpt i f := 
     if h : Nonempty (Member (Component.val cpt) i rtr) 

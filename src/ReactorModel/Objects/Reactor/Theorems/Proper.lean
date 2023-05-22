@@ -3,7 +3,7 @@ import ReactorModel.Objects.Reactor.Theorems.Basic
 import ReactorModel.Objects.Reactor.Theorems.Accessible
 import ReactorModel.Objects.Reactor.Theorems.Readable
 
-namespace ReactorType
+namespace Reactor
 
 instance [Proper α] : Readable α where
   ext_iff := Proper.toExtensional.ext_iff
@@ -164,4 +164,4 @@ theorem LawfulUpdatable.update_ne_comm [Proper α] {rtr : α} (h : cpt₁ ≠ cp
     update (update rtr cpt₁ i₁ v₁) cpt₂ i₂ v₂ = update (update rtr cpt₂ i₂ v₂) cpt₁ i₁ v₁ :=
   LawfulUpdate.ne_comm (lawful ..) (lawful ..) (lawful ..) (lawful ..) h
 
-end ReactorType
+end Reactor

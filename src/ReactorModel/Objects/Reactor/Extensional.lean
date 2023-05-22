@@ -1,8 +1,8 @@
 import ReactorModel.Objects.Reactor.Basic
 
-namespace ReactorType
+namespace Reactor
 
-class Extensional (α) extends ReactorType α where
+class Extensional (α) extends Reactor α where
   ext_iff : (rtr₁ = rtr₂) ↔ (get? rtr₁ = get? rtr₂)
   
 variable [Extensional α] {rtr₁ rtr₂ : α}
@@ -11,4 +11,4 @@ variable [Extensional α] {rtr₁ rtr₂ : α}
 theorem Extensional.ext : (get? rtr₁ = get? rtr₂) → rtr₁ = rtr₂ :=
   ext_iff.mpr
 
-namespace ReactorType
+namespace Reactor

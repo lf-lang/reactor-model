@@ -3,7 +3,7 @@ import ReactorModel.Execution.Dependency
 noncomputable section
 open Classical
 
-namespace ReactorType
+namespace Reactor
 
 variable [Indexable α] in section
 
@@ -26,4 +26,4 @@ def refresh (rtr : α) (acts : ID ⇀ Value) : α :=
   let rtr₂ := set rtr₁ .out $ Partial.const (rtr[.out].ids : Set ID) .absent
   set rtr₂ .act acts
 
-end ReactorType
+end Reactor

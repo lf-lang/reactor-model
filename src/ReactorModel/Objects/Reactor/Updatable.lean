@@ -1,8 +1,8 @@
 import ReactorModel.Objects.Reactor.Basic
 
-namespace ReactorType
+namespace Reactor
 
-variable [ReactorType α]
+variable [Reactor α]
 
 -- Note: Without ID-uniqueness this can be satisfied by updating exactly one of the occurrences of
 --       the target. Since we have a choice of which target we update, this type isn't a `Prop`. 
@@ -20,10 +20,10 @@ inductive LawfulUpdate (cpt : Component.Valued) (i : ID) (v : Value) (rtr₁ rtr
   | update (u : LawfulMemUpdate cpt i v rtr₁ rtr₂)
   | notMem (h : IsEmpty $ Member cpt i rtr₁) (eq : rtr₁ = rtr₂)
 
-class Updatable (α) extends ReactorType α where
+class Updatable (α) extends Reactor α where
   update : α → (cpt : Component.Valued) → ID → Value → α  
     
 class LawfulUpdatable (α) extends Updatable α where 
   lawful : ∀ rtr cpt i v, LawfulUpdate cpt i v rtr (update rtr cpt i v)      
 
-end ReactorType
+end Reactor

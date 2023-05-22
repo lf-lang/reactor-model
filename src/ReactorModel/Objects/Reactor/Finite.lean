@@ -2,7 +2,7 @@ import ReactorModel.Objects.Reactor.Indexable
 
 noncomputable section
 
-namespace ReactorType
+namespace Reactor
 
 class Finite (α) [Indexable α] where
   fin : ∀ (rtr : α) (cpt : Component), rtr[cpt].Finite
@@ -10,4 +10,4 @@ class Finite (α) [Indexable α] where
 def Finite.ids [Indexable α] [Finite α] (rtr : α) (cpt : Component) : List cpt.idType :=
   (fin rtr cpt).toFinset.toList 
 
-namespace ReactorType
+namespace Reactor

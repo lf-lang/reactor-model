@@ -2,11 +2,11 @@ import ReactorModel.Execution.Theorems.State
 import ReactorModel.Execution.Theorems.Trivial
 
 noncomputable section
-open ReactorType Classical
+open Reactor Classical
 
 namespace Execution.State.Over
 
-variable [Proper α] [ReactorType.Finite α]{rtr rtr₁ : α} {s : State.Over rtr}
+variable [Proper α] [Reactor.Finite α]{rtr rtr₁ : α} {s : State.Over rtr}
 
 theorem exists_allowed_of_acyclic_has_unprocessed 
     (a : Dependency.Acyclic rtr) (h₁ : i ∈ s.rtr[.rcn]) (h₂ : i ∉ s.progress) : ∃ i, s.Allows i :=
@@ -15,7 +15,7 @@ theorem exists_allowed_of_acyclic_has_unprocessed
   else
     have ⟨_, hd⟩ := Set.nonempty_iff_ne_empty.mpr h
     have ⟨h₁, h₂⟩ := Set.mem_diff _ |>.mp hd
-    have := inferInstanceAs $ ReactorType.Finite α
+    have := inferInstanceAs $ Reactor.Finite α
     exists_allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
 termination_by exists_allowed_of_acyclic_has_unprocessed s i _ _ _ => 
   have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset $ dependencies_subset _ i) s.progress

@@ -2,7 +2,7 @@ import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.Reactor
 import ReactorModel.Execution.Theorems.State
 
-open ReactorType Execution State
+open Reactor Execution State
 
 namespace Execution.Step.Time
 

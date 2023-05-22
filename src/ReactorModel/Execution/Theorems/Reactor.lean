@@ -1,7 +1,7 @@
 import ReactorModel.Execution.Reactor
 import ReactorModel.Execution.Theorems.Dependency
 
-namespace ReactorType
+namespace Reactor
 
 variable [Indexable α]
 
@@ -22,9 +22,9 @@ theorem mem_dependencies_ssubset {rtr : α} {rcn₁ rcn₂ : ID}
     dependencies rtr rcn₂ ⊂ dependencies rtr rcn₁ :=
   ssubset_iff_subset_ne.mpr ⟨mem_dependencies_subset h, (a _ $ ·.symm ▸ h)⟩
 
-end ReactorType
+end Reactor
 
-namespace ReactorType
+namespace Reactor
 
 variable [Proper α]
 
@@ -63,4 +63,4 @@ theorem refresh_correct (rtr : α) (h : acts.ids = rtr[.act].ids) :
       Partial.const_eq_map_const
     ]
 
-end ReactorType
+end Reactor

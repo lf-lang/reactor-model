@@ -1,7 +1,7 @@
 import ReactorModel.Objects.Reactor.Theorems.Indexable
 import ReactorModel.Objects.Reactor.Theorems.Extensional
 
-namespace ReactorType
+namespace Reactor
 
 class Readable (α) extends Indexable α, Extensional α  
 
@@ -30,4 +30,4 @@ theorem LawfulUpdate.unique
   case update.update u₁ u₂ => exact u₁.unique u₂
   all_goals exact ‹IsEmpty _›.elim $ Member.strict ‹LawfulMemUpdate ..›.member₁
 
-end ReactorType
+end Reactor
