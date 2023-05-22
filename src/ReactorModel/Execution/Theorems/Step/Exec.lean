@@ -29,26 +29,11 @@ theorem progress_eq (e : s₁ ↓ₑ s₂) : s₂.progress = s₁.progress.inser
 theorem preserves_nontrivial {e : s₁ ↓ₑ s₂} (n : s₁.Nontrivial) : s₂.Nontrivial :=
   n.equiv e.equiv
 
-theorem preserves_independent (e : s₁ ↓ₑ s₂) (h : rcn₁ ≮[s₁.rtr]≯ rcn₂) : rcn₁ ≮[s₂.rtr]≯ rcn₂ :=
-  h.equiv e.equiv
-
-theorem preserves_dependencies (e : s₁ ↓ₑ s₂) : 
-    dependencies s₁.rtr i = dependencies s₂.rtr i := by
-  simp [dependencies, Set.ext_iff]
-  intro i
-  constructor <;> (intro d; refine Dependency.equiv ?_ d)
-  case mp  => exact Equivalent.symm e.equiv
-  case mpr => exact e.equiv
-
-
 theorem indep_allows_iff (e : s₁ ↓ₑ s₂) (hi : i ≮[s₁.rtr]≯ e.rcn) : 
     s₁.Allows i ↔ s₂.Allows i := by
-  simp [Allows.def]
-  rw [←Equivalent.mem_iff (cpt := .rcn) e.equiv, e.progress_eq]
-  sorry -- exec_preserves_dependencies s i₁
-  -- exec_allows_iff.trans $ Allows.iff_record_indep (hi.equiv $ s.exec_equiv i₂).symm
-
-
+  have a := e.apply
+  simp [e.dst_eq, ←Allows.iff_record_indep (a.preserves_independent hi).symm, a.allows_iff]
+  
 end Execution.Step.Exec
 
 namespace Execution.Step.Exec

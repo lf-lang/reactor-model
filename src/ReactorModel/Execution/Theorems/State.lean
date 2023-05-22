@@ -1,5 +1,6 @@
 import ReactorModel.Execution.State
 import ReactorModel.Execution.Theorems.Dependency
+import ReactorModel.Execution.Theorems.Reactor
 
 open Classical ReactorType
 
@@ -27,6 +28,10 @@ theorem record_preserves_events (s : State α) (rcn : ID) : (s.record rcn).event
 theorem record_progress_eq (s : State α) (rcn₁ rcn₂ : ID) : 
     (s.record rcn).progress = s.progress.insert rcn := 
   rfl
+
+theorem record_preserves_output (s : State α) (rcn₁ rcn₂ : ID) : 
+    (s.record rcn₁).output rcn₂ = s.output rcn₂ := 
+  output_congr (s.record_preserves_rtr _) (s.record_preserves_tag _)
 
 theorem record_comm {s : State α} {rcn₁ rcn₂ : ID} : 
     (s.record rcn₁).record rcn₂ = (s.record rcn₂).record rcn₁ := by
@@ -61,6 +66,17 @@ theorem Allows.«def» :
 
 theorem Allows.acyclic (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
   (a.unprocessed $ a.deps ·)
+
+theorem Allows.congr {s₁ s₂ : State α}
+    (hr : s₁.rtr ≈ s₂.rtr) (hp : s₁.progress = s₂.progress := by rfl) : 
+    Allows s₁ i ↔ Allows s₂ i := by
+  constructor <;> intro ⟨hm, hd, hu⟩ 
+  all_goals
+    exact {
+      mem := by first | exact Equivalent.mem_iff hr |>.mp hm | exact Equivalent.mem_iff hr |>.mpr hm
+      deps := equiv_eq_dependencies hr ▸ hp ▸ hd
+      unprocessed := hp ▸ hu
+    }
 
 theorem Allows.iff_record_indep (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ ↔ (s.record i₁).Allows i₂ := by
   simp [record, Allows.def]

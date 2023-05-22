@@ -94,57 +94,75 @@ namespace Step
 
 variable [Proper α] {s₁ s₂ s₃ : State α}
 
+-- TODO: Refactor this proof. It currently does two things (1) constructing the commuted execution 
+--       and (2) applying the lemmas needed to show that the commuted order produces the same state.
 open State in
 theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
     ∃ (s₂' : _) (s₃' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃'), 
       (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) ∧ (s₃' = s₃) := by
   replace h : _ ≮[_]≯ _ := { not_eq := e₁.seq_rcn_ne e₂, left := h, right := e₁.seq_wellordered e₂ }
   cases e₁ <;> cases e₂ 
-  case skip.skip => sorry
-  case skip.exec => sorry
-  case exec.skip => sorry
+  case skip.skip e₁ e₂ =>
+    have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
+    have ht₁ := e₁.triggers_iff.not.mpr e₂.not_triggers_rcn
+    let s₂' := s₁.record e₂.rcn
+    let f₁ : s₁ ↓ₛ s₂' := ⟨ha₁, ht₁⟩ 
+    have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
+    have ht₂ := f₁.triggers_iff.not.mp e₁.not_triggers_rcn
+    let s₃' := s₂'.record e₁.rcn
+    let f₂ : s₂' ↓ₛ s₃' := ⟨ha₂, ht₂⟩ 
+    refine ⟨_, _, .skip f₁, .skip f₂, rfl, rfl, ?_⟩
+    exact Step.Skip.comm e₁ e₂ f₁ f₂ rfl rfl |>.symm
+  case skip.exec e₁ e₂ =>
+    have ⟨z₂, a₁⟩ := Step.Apply.RTC.construct s₁ (s₁.output e₂.rcn)
+    have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
+    have ht₁ := e₁.triggers_iff.mpr e₂.triggers_rcn
+    let s₂' := z₂.record e₂.rcn
+    let f₁ : s₁ ↓ₑ s₂' := ⟨ha₁, ht₁, a₁⟩ 
+    have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
+    have ht₂ := f₁.indep_triggers_iff h |>.not.mp e₁.not_triggers_rcn
+    let s₃' := s₂'.record e₁.rcn
+    let f₂ : s₂' ↓ₛ s₃' := ⟨ha₂, ht₂⟩ 
+    refine ⟨_, _, .exec f₁, .skip f₂, rfl, rfl, ?_⟩
+    --
+    simp [e₂.dst_eq]
+    rw [State.record_comm]
+    congr
+    have a₂ := e₂.apply
+    simp [e₁.dst_eq] at a₂
+    exact a₁.comm_record a₂
+  case exec.skip e₁ e₂ => 
+    have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
+    have ht₁ := e₁.indep_triggers_iff h.symm |>.not.mpr e₂.not_triggers_rcn
+    let s₂' := s₁.record e₂.rcn
+    let f₁ : s₁ ↓ₛ s₂' := ⟨ha₁, ht₁⟩ 
+    have ⟨z₃, a₂⟩ := Step.Apply.RTC.construct s₂' (s₂'.output e₁.rcn)
+    have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
+    have ht₂ := f₁.triggers_iff.mp e₁.triggers_rcn
+    let s₃' := z₃.record e₁.rcn
+    let f₂ : s₂' ↓ₑ s₃' := ⟨ha₂, ht₂, a₂⟩ 
+    refine ⟨_, _, .skip f₁, .exec f₂, rfl, rfl, ?_⟩
+    --
+    simp [e₂.dst_eq, e₁.dst_eq]
+    rw [State.record_comm]
+    congr
+    have a₁ := e₁.apply
+    rw [s₁.record_preserves_output] at a₂
+    simp at a₂
+    exact a₁.comm_record a₂ |>.symm
   case exec.exec e₁ e₂ =>
     have ⟨z₂, a₁⟩ := Step.Apply.RTC.construct s₁ (s₁.output e₂.rcn)
     have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
     have ht₁ := e₁.indep_triggers_iff h.symm |>.mpr e₂.triggers_rcn
     let s₂' := z₂.record e₂.rcn
-    have f₁ : s₁ ↓ₑ s₂' := ⟨ha₁, ht₁, a₁⟩ 
+    let f₁ : s₁ ↓ₑ s₂' := ⟨ha₁, ht₁, a₁⟩ 
     have ⟨z₃, a₂⟩ := Step.Apply.RTC.construct s₂' (s₂'.output e₁.rcn)
-    have ha₂ : s₂'.Allows e₁.rcn := sorry -- e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
-    have ht₂ : s₂'.Triggers e₁.rcn := sorry -- e₁.indep_triggers_iff h.symm |>.mpr e₂.triggers_rcn
+    have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
+    have ht₂ := f₁.indep_triggers_iff h |>.mp e₁.triggers_rcn
     let s₃' := z₃.record e₁.rcn
-    have f₂ : s₂' ↓ₑ s₃' := ⟨ha₂, ht₂, a₂⟩ 
-    refine ⟨_, _, .exec f₁, .exec f₂, sorry, sorry, ?_⟩
-    exact Eq.symm $ Step.Exec.indep_comm e₁ e₂ f₁ f₂ sorry sorry sorry
-
-  /-
-  <;> (repeat cases ‹_ ↓ₛ _›) <;> (repeat cases ‹_ ↓ₑ _›)
-  all_goals simp [rcn, Step.Skip.rcn, Step.Exec.rcn] at h hi
-  case skip.skip rcn₂ _ ha₁ ht₁ ha₂ ht₂ =>
-    have ha₁' := Allows.iff_record_indep hi.symm |>.mp ha₁
-    have ha₂' := Allows.iff_record_indep hi |>.mpr ha₂
-    have ht₁' := Triggers.iff_record (i₁ := rcn₂) |>.not.mp ht₁
-    have ht₂' := Triggers.iff_record (i₂ := rcn₂) |>.not.mpr ht₂
-    exact ⟨_, _, .skip ⟨ha₂', ht₂'⟩, .skip ⟨ha₁', ht₁'⟩, rfl, rfl, State.record_comm⟩
-  case skip.exec ha₁ ht₁ ha₂ ht₂ => sorry
-    /-
-    have ha₁' := State.exec_record_indep_allows_iff hi |>.mp ha₁
-    have ha₂' := Allows.iff_record_indep hi |>.mpr ha₂
-    have ht₁' := State.exec_record_indep_triggers_iff hi |>.not.mp ht₁
-    have ht₂' := Triggers.iff_record.mpr ht₂
-    refine ⟨_, _, Step.exec ha₂' ht₂', Step.skip ha₁' ht₁', rfl, rfl, ?_⟩
-    simp [rcn, State.record_exec_comm, State.record_comm]
-    -/
-  case exec.skip rcn₂ _ ha₁ ht₁ ha₂ ht₂ => sorry
-    /-
-    have ha₁' := Allows.iff_record_indep hi.symm |>.mp ha₁
-    have ha₂' := State.exec_record_indep_allows_iff hi.symm |>.mpr ha₂
-    have ht₁' := Triggers.iff_record (i₁ := rcn₂) |>.mp ht₁
-    have ht₂' := State.exec_record_indep_triggers_iff hi.symm |>.not.mpr ht₂
-    refine ⟨_, _, Step.skip ha₂' ht₂', Step.exec ha₁' ht₁', rfl, rfl, ?_⟩
-    simp [rcn, State.record_exec_comm, State.record_comm]
-    -/
-  -/
+    let f₂ : s₂' ↓ₑ s₃' := ⟨ha₂, ht₂, a₂⟩ 
+    refine ⟨_, _, .exec f₁, .exec f₂, rfl, rfl, ?_⟩
+    exact Step.Exec.indep_comm e₁ e₂ f₁ f₂ rfl rfl h |>.symm
   
 theorem prepend_indep (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
     ∃ (s₂' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃), (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) := by

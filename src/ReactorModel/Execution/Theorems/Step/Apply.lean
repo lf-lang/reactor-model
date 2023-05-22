@@ -30,6 +30,9 @@ theorem events_congr (e : s₁ -[c]→ s₂) (e' : s₁' -[c]→ s₂') (he : s�
   cases e <;> cases e' <;> simp [he]
   exact schedule_events_congr he
 
+theorem allows_iff (e : s₁ -[c]→ s₂) : s₁.Allows i ↔ s₂.Allows i :=
+  Allows.congr e.equiv e.preserves_progress
+
 end Execution.Step.Apply
 
 namespace Execution.Step.Apply
@@ -108,6 +111,15 @@ theorem preserves_unchanged {cpt : Component.Valued}
   case trans e _ hi =>
     have ⟨hh, ht⟩ := List.all₂_cons _ _ _ |>.mp h
     exact e.preserves_unchanged hh ▸ hi ht 
+
+theorem preserves_independent (e : s₁ -[out]→ s₂) (h : rcn₁ ≮[s₁.rtr]≯ rcn₂) : 
+    rcn₁ ≮[s₂.rtr]≯ rcn₂ :=
+  h.equiv e.equiv
+
+theorem allows_iff (e : s₁ -[out]→ s₂) : s₁.Allows i ↔ s₂.Allows i := by
+  induction e
+  case refl => rfl
+  case trans e _ hi => exact e.allows_iff.trans hi
 
 end Execution.Step.Apply.RTC
 

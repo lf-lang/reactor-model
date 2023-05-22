@@ -12,8 +12,14 @@ theorem allows_rcn :       (e : s₁ ↓ₛ s₂) → Allows s₁ e.rcn      | m
 theorem not_triggers_rcn : (e : s₁ ↓ₛ s₂) → ¬Triggers s₁ e.rcn   | mk _ t => t
 theorem dst_eq :           (e : s₁ ↓ₛ s₂) → s₂ = s₁.record e.rcn | mk .. => rfl
 
+theorem preserves_rtr (e : s₁ ↓ₛ s₂) : s₁.rtr = s₂.rtr := by
+  simp [e.dst_eq, State.record_preserves_rtr]
+
 theorem preserves_tag (e : s₁ ↓ₛ s₂) : s₁.tag = s₂.tag := by
   simp [e.dst_eq, State.record_preserves_tag]
+
+theorem preserves_events (e : s₁ ↓ₛ s₂) : s₁.events = s₂.events := by
+  simp [e.dst_eq, State.record_preserves_events]
 
 theorem equiv (e : s₁ ↓ₛ s₂) : s₁.rtr ≈ s₂.rtr := by
   simp [e.dst_eq, State.record_preserves_rtr]
@@ -24,5 +30,30 @@ theorem progress_eq (e : s₁ ↓ₛ s₂) : s₂.progress = s₁.progress.inser
 
 theorem preserves_nontrivial {e : s₁ ↓ₛ s₂} (n : s₁.Nontrivial) : s₂.Nontrivial :=
   n.equiv e.equiv
+
+theorem indep_allows_iff (e : s₁ ↓ₛ s₂) (hi : i ≮[s₁.rtr]≯ e.rcn) : 
+    s₁.Allows i ↔ s₂.Allows i := by
+  simp [e.dst_eq, Allows.iff_record_indep hi.symm]
+
+theorem triggers_iff (e : s₁ ↓ₛ s₂) : 
+    s₁.Triggers i ↔ s₂.Triggers i := by
+  simp [e.dst_eq, Triggers.iff_record (s := s₁) (i₁ := e.rcn)]
+
+theorem comm 
+    (e₁ : s ↓ₛ s₁) (e₁₂ : s₁ ↓ₛ s₁₂) (e₂ : s ↓ₛ s₂) (e₂₁ : s₂ ↓ₛ s₂₁) (hr₁ : e₁.rcn = e₂₁.rcn) 
+    (hr₂ : e₂.rcn = e₁₂.rcn) : s₁₂ = s₂₁ := by 
+  ext1
+  case rtr => 
+    exact e₁₂.preserves_rtr ▸ e₁.preserves_rtr ▸ e₂₁.preserves_rtr ▸ e₂.preserves_rtr 
+  case tag => 
+    exact e₁₂.preserves_tag ▸ e₁.preserves_tag ▸ e₂₁.preserves_tag ▸ e₂.preserves_tag
+  case events => 
+    exact e₁₂.preserves_events ▸ e₁.preserves_events ▸ e₂₁.preserves_events ▸ e₂.preserves_events
+  case progress  =>
+    have h₁ := e₁.progress_eq ▸ e₁₂.progress_eq
+    have h₂ := e₂.progress_eq ▸ e₂₁.progress_eq
+    rw [hr₁, hr₂] at *
+    simp [h₁, h₂]
+    apply Set.insert_comm
 
 end Execution.Step.Skip
