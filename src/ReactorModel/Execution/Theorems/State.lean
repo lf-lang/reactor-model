@@ -119,6 +119,14 @@ theorem Closed.progress_nonempty (n : s.Nontrivial) (h : Closed s) : s.progress.
 theorem Nontrivial.equiv (e : s₁.rtr ≈ s₂.rtr) (n : s₁.Nontrivial) : s₂.Nontrivial := by
   simp_all [Nontrivial, Equivalent.obj?_rcn_eq e]
 
+theorem Terminal.not_of_not_closed (h : ¬s.Closed) : ¬State.Terminal s :=
+  (h ·.closed)
+
+theorem Terminal.not_elim (t : ¬s.Terminal) : ¬s.Closed ∨ (∃ g, s.NextTag g) := by
+  by_contra h
+  push_neg at h
+  exact t ⟨h.left, h.right⟩ 
+
 end Execution.State
 
 namespace Execution.State

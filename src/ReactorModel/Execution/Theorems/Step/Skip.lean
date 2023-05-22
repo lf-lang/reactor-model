@@ -56,4 +56,16 @@ theorem comm
     simp [h₁, h₂]
     apply Set.insert_comm
 
+theorem unprocessed_eq (e : s₁ ↓ₛ s₂) : s₂.unprocessed = s₁.unprocessed \ {e.rcn} := by
+  ext i
+  simp [State.unprocessed, Equivalent.obj?_rcn_eq e.equiv, and_assoc, e.progress_eq]
+  intro _; simp [Set.insert]; push_neg; simp [and_comm]
+
+theorem rcn_mem_unprocessed (e : s₁ ↓ₛ s₂) : e.rcn ∈ s₁.unprocessed := 
+  ⟨e.allows_rcn.mem, e.allows_rcn.unprocessed⟩ 
+
+theorem unprocessed_ssubset (e : s₁ ↓ₛ s₂) : s₂.unprocessed ⊂ s₁.unprocessed := by
+  simp [e.unprocessed_eq, Set.ssubset_iff_subset_ne]
+  exact e.rcn_mem_unprocessed
+
 end Execution.Step.Skip

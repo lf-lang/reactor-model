@@ -1,188 +1,27 @@
-import ReactorModel.Execution.Theorems.Reactor
-import ReactorModel.Execution.Theorems.Trivial
+import ReactorModel.Execution.Theorems.StateOver
 
 noncomputable section
 open ReactorType Classical
 
 namespace Execution
-namespace State
 
-variable [Proper α] [ReactorType.Finite α]
+variable [Proper α] [ReactorType.Finite α] {rtr : α} {s : State.Over rtr} 
 
-def unprocessed (s : State α) : Set ID :=
-  { i ∈ s.rtr[.rcn] | i ∉ s.progress }
+def Step.Time.construct (ht : ¬s.Terminal) (hc : s.Closed) : (s' : State α) × (s ↓ₜ s') :=
+  let g := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
+  let s' := ⟨refresh s.rtr (s.actions g.choose), g.choose, ∅, s.events⟩
+  ⟨s', hc, g.choose_spec, refresh_correct _ $ Partial.mapIdx_ids ..⟩
 
-protected structure Over (over : α) extends State α where 
-  rtr_eq       : rtr = over := by rfl
-  progress_sub : progress ⊆ rtr[.rcn].ids
-  events_sub   : events.ids ⊆ rtr[.act].ids
-
-namespace Over
-
-variable {rtr rtr₁ : α} {s : State.Over rtr}
-
-instance : CoeOut (State.Over rtr) (State α) where
-  coe := State.Over.toState
-
-theorem progress_finite (s : State.Over rtr) : s.progress.Finite :=
-  Finite.fin s.rtr .rcn |>.subset s.progress_sub
-
-theorem unprocessed_finite (s : State.Over rtr) : s.unprocessed.Finite := by
-  simp [unprocessed, Set.setOf_and, s.rtr_eq]
-  apply Set.Finite.inter_of_left $ Finite.fin rtr .rcn
-
-theorem actions_finite (s : State.Over rtr) (g : Time.Tag) : (s.actions g).Finite := by 
-  apply Set.Finite.subset (Finite.fin s.rtr .act)
-  intro i h
-  simp [actions, bind, ←Partial.mem_def, Partial.mem_iff] at h
-  obtain ⟨v, _, h, _⟩ := h
-  exact s.events_sub $ Partial.mem_iff.mp ⟨_, h⟩
-
-theorem unprocessed_empty_iff_closed : (s.unprocessed = ∅) ↔ s.Closed := by
-  simp [unprocessed, Closed]
-  constructor <;> (intro h₁; ext1 i; constructor) <;> intro h₂
-  · exact s.progress_sub h₂
-  · simp [Set.ext_iff, Partial.mem_def] at h₁; exact h₁ _ h₂
-  · simp [h₁, Partial.mem_def] at h₂
-  · contradiction   
-
-theorem not_closed_to_nontrivial (h : ¬s.Closed) : s.Nontrivial := by
-  by_contra hn
-  have ht' := State.Trivial.of_not_nontrivial hn
-  have hp := s.progress_sub
-  simp [State.Closed, ht', Partial.empty_ids, Set.subset_empty_iff] at h hp
-  contradiction
-
-theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[.rcn].ids :=
-  Set.ssubset_iff_subset_ne.mpr ⟨s.progress_sub, hc⟩
-
-theorem exists_unprocessed_of_not_closed (hc : ¬s.Closed) : ∃ i ∈ s.rtr[.rcn], i ∉ s.progress := by
-  have ⟨i, _, _⟩ := Set.exists_of_ssubset $ s.progress_ssubset_of_not_closed hc
-  exists i
-
-theorem exists_allowed_of_acyclic_has_unprocessed 
-    (a : Dependency.Acyclic rtr) (h₁ : i ∈ s.rtr[.rcn]) (h₂ : i ∉ s.progress) : ∃ i, s.Allows i :=
-  if h : dependencies s.rtr i \ s.progress = ∅ then
-    ⟨i, ‹_›, Set.diff_eq_empty.mp h, ‹_›⟩
-  else
-    have ⟨_, hd⟩ := Set.nonempty_iff_ne_empty.mpr h
-    have ⟨h₁, h₂⟩ := Set.mem_diff _ |>.mp hd
-    have := inferInstanceAs $ ReactorType.Finite α
-    exists_allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
-termination_by exists_allowed_of_acyclic_has_unprocessed s i _ _ _ => 
-  have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset $ dependencies_subset _ i) s.progress
-  fin.toFinset.card
-decreasing_by
-  simp_wf
-  refine Finset.card_lt_card $ Set.Finite.toFinset_strictMono ?_
-  have h := mem_dependencies_ssubset a $ s.rtr_eq ▸ h₁
-  simp [ssubset_iff_subset_ne, s.rtr_eq] at h ⊢ 
-  refine ⟨?subset, ?ne⟩
-  case subset =>
-    intro x hx
-    simp [Set.mem_diff] at hx ⊢ 
-    exact ⟨h.left hx.left, hx.right⟩
-  case ne =>
-    simp [Set.ext_iff]
-    refine ⟨_, h₂, ?_⟩
-    rw [iff_true_right $ s.rtr_eq ▸ h₁]
-    exact a _
-
-theorem exists_allowed_of_acyclic_not_closed (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
-    ∃ i, s.Allows i :=
-  have ⟨_, hi₁, hi₂⟩ := s.exists_unprocessed_of_not_closed hc
-  exists_allowed_of_acyclic_has_unprocessed a hi₁ hi₂
-
-def ofStep {s₁ : State.Over rtr₁} {s₂ : State α} (e : s₁ ↓ s₂) : State.Over s₂.rtr := 
-  { s₂ with 
-    progress_sub := by 
-      sorry
-      -- simp [e.progress_eq, ←Equivalent.obj?_rcn_eq e.equiv]
-      -- exact Set.insert_subset.mpr ⟨e.allows_rcn.mem, s₁.progress_sub⟩ 
-    events_sub := by
-      sorry
-  }
-
-end Over
-
-structure Terminal (s : State α) : Prop where
-  closed  : s.Closed
-  no_next : ∀ g, ¬s.NextTag g
-
-namespace Terminal
-
-variable {s : State α}
-
-theorem not_of_not_closed (h : ¬s.Closed) : ¬State.Terminal s :=
-  (h ·.closed)
-
-theorem not_of_next_tag (h : s.NextTag g) : ¬State.Terminal s :=
-  (·.no_next g h)
-
-theorem not_elim (t : ¬s.Terminal) : ¬s.Closed ∨ (∃ g, s.NextTag g) := by
-  by_contra h
-  push_neg at h
-  exact t ⟨h.left, h.right⟩ 
-
-end Terminal
-end State
-
-variable [Proper α] {rtr : α}
-
-namespace Instantaneous
-namespace Step
-
-variable {s₁ s₂ : State α}
-
-theorem of_acyclic_not_closed {s : State.Over rtr} (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : 
-    ∃ s' : State α, Nonempty (s ⇓ᵢ s') := 
-  let ⟨rcn, ha⟩ := s.exists_allowed_of_acyclic_not_closed a hc
+def Step.construct (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : (s' : State α) × (s ↓ s') := 
+  let rcn := s.allowed a hc
   if h : s.Triggers rcn
-  then ⟨s.exec rcn |>.record rcn, ⟨.exec ha h⟩⟩
-  else ⟨s.record rcn, ⟨.skip ha h⟩⟩  
-
-theorem unprocessed_eq (e : s₁ ⇓ᵢ s₂) : s₂.unprocessed = s₁.unprocessed \ {e.rcn} := by
-  ext i
-  simp [State.unprocessed, Equivalent.obj?_rcn_eq e.equiv, and_assoc]
-  intro _
-  have h := e.mem_progress_iff (rcn' := i) |>.not
-  push_neg at h
-  simp [and_comm, h]
-
-theorem rcn_mem_unprocessed (e : s₁ ⇓ᵢ s₂) : e.rcn ∈ s₁.unprocessed := 
-  ⟨e.allows_rcn.mem, e.allows_rcn.unprocessed⟩ 
-
-theorem unprocessed_ssubset (e : s₁ ⇓ᵢ s₂) : s₂.unprocessed ⊂ s₁.unprocessed := by
-  simp [e.unprocessed_eq, Set.ssubset_iff_subset_ne]
-  exact e.rcn_mem_unprocessed
-
-end Step
-
-theorem ClosedExecution.of_acyclic_not_closed {rtr : α} {s : State.Over rtr} 
-    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ s' : State α, Nonempty (s ⇓| s') :=
-  have ⟨sₑ, ⟨e⟩⟩ := Instantaneous.Step.of_acyclic_not_closed a hc
-  if hc' : sₑ.Closed then
-    ⟨_, ⟨.single e, hc'⟩⟩ 
-  else
-    have a' := Dependency.Acyclic.equiv e.equiv (s.rtr_eq.symm ▸ a)
-    have ⟨_, ⟨e'⟩⟩ := of_acyclic_not_closed (s := s.ofStep e) a' hc'
-    ⟨_, ⟨.trans e e'.exec, e'.closed⟩⟩   
-termination_by of_acyclic_not_closed s _ _ _ => s.unprocessed_finite.toFinset.card
-decreasing_by
-  simp_wf
-  exact Finset.card_lt_card $ Set.Finite.toFinset_strictMono $ e.unprocessed_ssubset
-
-end Instantaneous
-
-theorem Advance.of_nonterminal_closed {s : State.Over rtr} 
-    (ht : ¬s.Terminal) (hc : s.Closed) : ∃ s' : State α, s ⇓- s' := by
-  have ⟨g, hg⟩ := State.Terminal.not_elim ht |>.resolve_left (not_not.mpr hc)
-  exact ⟨⟨refresh s.rtr (s.actions g), g, ∅, s.events⟩, hc, hg, refresh_correct _ sorry⟩
+  then ⟨_, .exec ⟨rcn.property, h, Step.Apply.RTC.construct s.toState (s.output rcn) |>.snd⟩⟩
+  else ⟨_, .skip ⟨rcn.property, h⟩⟩ 
 
 -- A reactor has the progress property, if from any nonterminal state based at that reactor, we can 
 -- perform an execution step.
-def Progress [Practical α] (rtr : α) : Prop :=
-  ∀ (s : State.Over rtr), ¬s.Terminal → (∃ s' : State α, s ⇓ s')    
+def Progress [Indexable α] (rtr : α) : Prop :=
+  ∀ (s : State.Over rtr), ¬s.Terminal → ∃ s' : State α, Nonempty (s ↓ s')    
 
 namespace Progress
 

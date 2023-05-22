@@ -41,7 +41,10 @@ def scheduledTags (s : State α) : Set Time.Tag :=
   { g | ∃ i a, (s.events i = some a) ∧ (g ∈ a.keys) }
 
 def actions (s : State α) (g : Time.Tag) : ID ⇀ Value := 
-  fun i => s.events i >>= (· g)
+  s.rtr[.act].mapIdx fun i => s.events i >>= (· g) |>.getD .absent
+
+def unprocessed (s : State α) : Set ID :=
+  { i ∈ s.rtr[.rcn] | i ∉ s.progress }
 
 structure Allows (s : State α) (rcn : ID) : Prop where
   mem         : rcn ∈ s.rtr[.rcn] 
@@ -61,5 +64,17 @@ def Closed (s : State α) : Prop :=
 
 def Nontrivial (s : State α) : Prop :=
   s.rtr[.rcn].Nonempty
+
+structure Terminal (s : State α) : Prop where
+  closed  : s.Closed
+  no_next : ∀ g, ¬s.NextTag g
+
+protected structure Over (over : α) extends State α where 
+  rtr_eq       : rtr = over := by rfl
+  progress_sub : progress ⊆ rtr[.rcn].ids
+  events_sub   : events.ids ⊆ rtr[.act].ids
+
+instance {rtr : α} : CoeOut (State.Over rtr) (State α) where
+  coe := State.Over.toState
 
 end Execution.State

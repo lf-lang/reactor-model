@@ -34,6 +34,18 @@ theorem indep_allows_iff (e : s₁ ↓ₑ s₂) (hi : i ≮[s₁.rtr]≯ e.rcn) 
   have a := e.apply
   simp [e.dst_eq, ←Allows.iff_record_indep (a.preserves_independent hi).symm, a.allows_iff]
   
+theorem unprocessed_eq (e : s₁ ↓ₑ s₂) : s₂.unprocessed = s₁.unprocessed \ {e.rcn} := by
+  ext i
+  simp [State.unprocessed, Equivalent.obj?_rcn_eq e.equiv, and_assoc, e.progress_eq]
+  intro _; simp [Set.insert]; push_neg; simp [and_comm]
+
+theorem rcn_mem_unprocessed (e : s₁ ↓ₑ s₂) : e.rcn ∈ s₁.unprocessed := 
+  ⟨e.allows_rcn.mem, e.allows_rcn.unprocessed⟩ 
+
+theorem unprocessed_ssubset (e : s₁ ↓ₑ s₂) : s₂.unprocessed ⊂ s₁.unprocessed := by
+  simp [e.unprocessed_eq, Set.ssubset_iff_subset_ne]
+  exact e.rcn_mem_unprocessed
+
 end Execution.Step.Exec
 
 namespace Execution.Step.Exec

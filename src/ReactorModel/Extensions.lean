@@ -149,6 +149,13 @@ theorem const_eq_map_const (f : α ⇀ β) (b : b) : f.map (fun _ => b) = const 
     cases hb : f a <;> simp
     case some b => push_neg at h; have := hb ▸ h b; contradiction
 
+def mapIdx (g : α → β) (f : α ⇀ β) [DecidablePred (· ∈ f)] : α ⇀ β :=
+  fun a => if a ∈ f then g a else none
+
+theorem mapIdx_ids (g : α → β) (f : α ⇀ β) : (f.mapIdx g).ids = f.ids := by
+  simp [mapIdx, mem_iff, ids]
+  ext; simp; split <;> simp_all
+
 def Finite (f : α ⇀ β) : Prop :=
   f.ids.Finite
 
