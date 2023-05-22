@@ -351,9 +351,9 @@ theorem rcns_perm_deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) 
       split at h <;> try assumption
       simp [←h] at hp
 
-theorem deterministic 
-    (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) : 
+theorem deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : s₁.progress = s₂.progress) : 
     s₁ = s₂ := by
+  have := e₁.preserves_tag ▸ e₂.preserves_tag
   have ⟨_, _⟩ := rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
   ext1 <;> try assumption
 
@@ -416,6 +416,6 @@ end Closed
 
 theorem Closed.deterministic [Proper α] {s s₁ s₂ : State α} 
     (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : s₁ = s₂ :=
-  e₁.exec.deterministic e₂.exec (e₁.tag_eq e₂) (e₁.progress_eq e₂)
+  e₁.exec.deterministic e₂.exec (e₁.progress_eq e₂)
 
 end Execution.Instantaneous

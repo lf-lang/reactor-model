@@ -13,15 +13,36 @@ structure Grouped [Indexable α] (s₁ s₂ : State α) where
 
 namespace Grouped
 
+-- TODO: Most of the case bashing is copied from `Steps.deterministic`. What is the underlying lemma?
 theorem deterministic [Proper α] {s s₁ s₂ : State α} 
     (n : s.Nontrivial) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) :
     (Grouped s s₁) → (Grouped s s₂) → s₁ = s₂
   | mk (tl := tl₁) steps₁ tail₁, mk (tl := tl₂) steps₂ tail₂ => by
     replace ht : tl₁.tag = tl₂.tag := tail₁.preserves_tag ▸ ht ▸ tail₂.preserves_tag.symm
-    have hp' : tl₁.progress = tl₂.progress := by
-      sorry
-    replace tail₁ := steps₁.deterministic steps₂ n ht hp' ▸ tail₁
-    exact tail₁.deterministic hp tail₂
+    induction steps₁ <;> cases steps₂
+    case refl.refl => exact tail₁.deterministic hp tail₂
+    case step.step e₁ _ hi _ e₂ e₂' => 
+      cases e₁.deterministic e₂
+      exact hi (e₁.preserves_nontrivial n) tail₁ e₂' ht
+    all_goals cases ‹Step _ _›
+    case refl.step.time e' e   => exact absurd ht $ ne_of_lt $ lt_of_lt_of_le e.tag_lt e'.tag_le
+    case step.refl.time e' _ e => exact absurd ht.symm $ ne_of_lt $ lt_of_lt_of_le e.tag_lt e'.tag_le
+    all_goals cases ‹Steps _ _›
+    case refl.step.inst.refl e =>
+      cases tail₂.closed_to_none e.closed
+      cases tail₁
+      case none   => exact absurd hp $ ne_of_ssubset e.progress_ssubset
+      case some f => exact f.deterministic e.exec hp
+    case step.refl.inst.refl e _  =>
+      cases tail₁.closed_to_none e.closed
+      cases tail₂
+      case none   => exact absurd hp.symm $ ne_of_ssubset e.progress_ssubset
+      case some f => exact e.exec.deterministic f hp
+    all_goals cases ‹Step _ _›
+    case refl.step.inst.step.time e _ f' f => exact absurd ht $ ne_of_lt $ e.preserves_tag ▸ lt_of_lt_of_le f.tag_lt f'.tag_le
+    case step.refl.inst.step.time e _ f' f => exact absurd ht.symm $ ne_of_lt $ e.preserves_tag ▸ lt_of_lt_of_le f.tag_lt f'.tag_le
+    case refl.step.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
+    case step.refl.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
 
 end Grouped
 

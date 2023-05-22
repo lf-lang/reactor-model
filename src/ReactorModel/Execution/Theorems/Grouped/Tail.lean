@@ -11,14 +11,23 @@ inductive Tail [Indexable α] : State α → State α → Type
 
 namespace Tail
 
-theorem preserves_tag [Indexable α] {s₁ s₂ : State α} : (Tail s₁ s₂) → s₁.tag = s₂.tag
-  | none => rfl
-  | some e => e.preserves_tag
+variable [Indexable α] {s₁ s₂ : State α}
 
-theorem deterministic [Proper α] {s s₁ s₂ : State α} (hp : s₁.progress = s₂.progress) :
+theorem preserves_tag  : (Tail s₁ s₂) → s₁.tag = s₂.tag
+  | none => rfl
+  | some e => e.preserves_tag 
+
+theorem closed_to_none (h : s₁.Closed) (e : Tail s₁ s₂) : s₁ = s₂ := by
+  cases e
+  case none => rfl
+  case some e => exact absurd h e.not_closed 
+
+end Tail
+
+theorem Tail.deterministic [Proper α] {s s₁ s₂ : State α} (hp : s₁.progress = s₂.progress) :
     (Tail s s₁) → (Tail s s₂) → s₁ = s₂
   | none, none                  => rfl
-  | some e₁, some e₂            => e₁.deterministic e₂ (e₁.preserves_tag ▸ e₂.preserves_tag) hp
+  | some e₁, some e₂            => e₁.deterministic e₂ hp
   | none, some e | some e, none => e.progress_ne (by simp [hp]) |>.elim 
 
-end Execution.Grouped.Tail
+end Execution.Grouped
