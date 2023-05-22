@@ -13,15 +13,18 @@ namespace Step
 
 variable [Indexable α] {s₁ s₂ : State α}
 
-theorem tag_le : (Step s₁ s₂) → s₁.tag ≤ s₂.tag
-  | inst e => e.preserves_tag ▸ le_refl _
-  | time e => le_of_lt e.tag_lt
-
 instance : Coe (s₁ ↓ᵢ| s₂) (Step s₁ s₂) where
   coe := inst
 
 instance : Coe (s₁ ↓ₜ s₂) (Step s₁ s₂) where
   coe := time
+
+theorem tag_le : (Step s₁ s₂) → s₁.tag ≤ s₂.tag
+  | inst e => e.preserves_tag ▸ le_refl _
+  | time e => le_of_lt e.tag_lt
+
+theorem preserves_nontrivial (n : s₁.Nontrivial) : (Step s₁ s₂) → s₂.Nontrivial
+  | inst e | time e => e.preserves_nontrivial n
 
 end Step
 
@@ -47,17 +50,17 @@ theorem deterministic [Proper α] {s s₁ s₂ : State α}
   induction e₁ <;> cases e₂
   case refl.refl => rfl
   case step.step e₁ _ hi _ e₂ e₂' => 
-    exact hi (e₁.deterministic e₂ ▸ e₂') sorry ht hp
+    exact hi (e₁.deterministic e₂ ▸ e₂') (e₁.preserves_nontrivial n) ht hp
   all_goals cases ‹Step _ _›
-  case refl.step.time e' e =>
-    have := e.tag_lt
-    sorry -- s.tag < tl₂.tag
-  case step.refl.time e' _ e =>
-    have := e.tag_lt
-    sorry -- tl₂.tag < s.tag
-  case refl.step.inst =>
-    sorry -- s.progress ⊂ tl₂.progress 
-  case step.refl.inst =>
-    sorry -- tl₂.progress ⊂ s.progress 
+  case refl.step.time e' e   => exact absurd ht $ ne_of_lt $ lt_of_lt_of_le e.tag_lt e'.tag_le
+  case step.refl.time e' _ e => exact absurd ht.symm $ ne_of_lt $ lt_of_lt_of_le e.tag_lt e'.tag_le
+  all_goals cases ‹Steps _ _›
+  case refl.step.inst.refl e' e => exact absurd hp $ ne_of_ssubset e.progress_ssubset
+  case step.refl.inst.refl e _  => exact absurd hp.symm $ ne_of_ssubset e.progress_ssubset
+  all_goals cases ‹Step _ _›
+  case refl.step.inst.step.time e _ f' f => exact absurd ht $ ne_of_lt $ e.preserves_tag ▸ lt_of_lt_of_le f.tag_lt f'.tag_le
+  case step.refl.inst.step.time e _ f' f => exact absurd ht.symm $ ne_of_lt $ e.preserves_tag ▸ lt_of_lt_of_le f.tag_lt f'.tag_le
+  case refl.step.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
+  case step.refl.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
 
 end Execution.Grouped.Steps

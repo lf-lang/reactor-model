@@ -46,6 +46,9 @@ theorem preserves_tag : (s₁ ↓ᵢ s₂) → s₁.tag = s₂.tag
 theorem equiv : (s₁ ↓ᵢ s₂) → s₁.rtr ≈ s₂.rtr
   | skip e | exec e => e.equiv
 
+theorem preserves_nontrivial (n : s₁.Nontrivial) : (s₁ ↓ᵢ s₂) → s₂.Nontrivial
+  | skip e | exec e => e.preserves_nontrivial n
+
 theorem progress_eq : (e : s₁ ↓ᵢ s₂) → s₂.progress = s₁.progress.insert e.rcn
   | skip e | exec e => e.progress_eq
 
@@ -179,6 +182,11 @@ variable [Indexable α] {s₁ s₂ : State α} {rcn : ID}
 def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List ID 
   | single e => [e.rcn]
   | trans e e' => e.rcn :: e'.rcns
+
+theorem preserves_nontrivial (n : s₁.Nontrivial) (e : s₁ ↓ᵢ+ s₂) : s₂.Nontrivial := by
+  induction e
+  case single e     => exact e.preserves_nontrivial n
+  case trans e _ hi => exact hi $ e.preserves_nontrivial n
 
 theorem acyclic (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn := by
   induction e <;> simp [rcns] at h <;> try cases ‹_ ∨ _›   
@@ -357,6 +365,9 @@ variable [Indexable α] {s s₁ s₂ : State α}
 
 abbrev rcns (e : s₁ ↓ᵢ| s₂) : List ID :=
   e.exec.rcns
+
+theorem preserves_nontrivial (n : s₁.Nontrivial) (e : s₁ ↓ᵢ| s₂) : s₂.Nontrivial :=
+  e.exec.preserves_nontrivial n
 
 theorem not_closed (e : s₁ ↓ᵢ| s₂) : ¬s₁.Closed := 
   e.exec.not_closed
