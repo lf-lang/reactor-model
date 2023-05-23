@@ -6,7 +6,14 @@ open Reactor Classical
 
 namespace Execution.State.Over
 
-variable [Proper α] [Reactor.Finite α]{rtr rtr₁ : α} {s : State.Over rtr}
+variable [Indexable α] [Reactor.Finite α] {rtr rtr₁ : α} {s : State.Over rtr}
+
+theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[.rcn].ids :=
+  Set.ssubset_iff_subset_ne.mpr ⟨s.progress_sub, hc⟩
+
+theorem exists_unprocessed_of_not_closed (hc : ¬s.Closed) : ∃ i ∈ s.rtr[.rcn], i ∉ s.progress := by
+  have ⟨i, _, _⟩ := Set.exists_of_ssubset $ s.progress_ssubset_of_not_closed hc
+  exists i 
 
 theorem exists_allowed_of_acyclic_has_unprocessed 
     (a : Dependency.Acyclic rtr) (h₁ : i ∈ s.rtr[.rcn]) (h₂ : i ∉ s.progress) : ∃ i, s.Allows i :=
@@ -36,26 +43,44 @@ decreasing_by
     rw [iff_true_right $ s.rtr_eq ▸ h₁]
     exact a _
 
-theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[.rcn].ids :=
-  Set.ssubset_iff_subset_ne.mpr ⟨s.progress_sub, hc⟩
+theorem exists_allowed_of_acyclic_not_closed 
+    (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : ∃ i, s.Allows i :=
+  have ⟨_, hi₁, hi₂⟩ := s.exists_unprocessed_of_not_closed hc
+  exists_allowed_of_acyclic_has_unprocessed a hi₁ hi₂
 
-theorem exists_unprocessed_of_not_closed (hc : ¬s.Closed) : ∃ i ∈ s.rtr[.rcn], i ∉ s.progress := by
-  have ⟨i, _, _⟩ := Set.exists_of_ssubset $ s.progress_ssubset_of_not_closed hc
-  exists i 
+-- A forcing state for `rcn` is a state over `rtr` where the only possible next execution step
+-- involves `rcn`. This construction is only sensible for `rcn ∈ rtr[.rcn]`.
+def forcing (rtr : α) (rcn : ID) : State.Over rtr where
+  rtr := rtr
+  tag := 0
+  progress := rtr[.rcn].ids \ {rcn}
+  events := ∅
+  progress_sub := by simp
+  events_sub := by simp [Partial.empty_ids]
 
--- TODO: separate proof and definitions here
-def allowed (a : Dependency.Acyclic rtr) (hc : ¬s.Closed) : { i : ID // s.Allows i } :=
-  -- have ⟨_, hi₁, hi₂⟩ := s.exists_unprocessed_of_not_closed hc
-  sorry -- exists_allowed_of_acyclic_has_unprocessed a hi₁ hi₂
+variable {rtr : α} {rcn : ID}
 
-def ofStep {s₁ : State.Over rtr₁} {s₂ : State α} (e : s₁ ↓ s₂) : State.Over s₂.rtr := 
-  { s₂ with 
-    progress_sub := by 
-      sorry
-      -- simp [e.progress_eq, ←Equivalent.obj?_rcn_eq e.equiv]
-      -- exact Set.insert_subset.mpr ⟨e.allows_rcn.mem, s₁.progress_sub⟩ 
-    events_sub := by
-      sorry
-  }
+theorem forcing_not_closed (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Closed := by
+  simp [State.Closed, forcing]
+  exact h
+
+theorem forcing_not_terminal (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Terminal :=
+  State.Terminal.not_of_not_closed $ State.Over.forcing_not_closed h
+
+theorem forcing_not_time_step {s : State α} (e : (forcing rtr rcn) ↓ₜ s) (h : rcn ∈ rtr[.rcn]) : 
+    False := 
+  absurd e.closed $ forcing_not_closed h
+
+theorem forcing_skip_step_rcn_eq {s : State α} (e : (forcing rtr rcn) ↓ₛ s) : 
+    e.rcn = rcn := by
+  have h := e.allows_rcn.unprocessed
+  simp [forcing] at h
+  exact h e.allows_rcn.mem
+
+theorem forcing_exec_step_rcn_eq {s : State α} (e : (forcing rtr rcn) ↓ₑ s) :
+    e.rcn = rcn := by
+  have h := e.allows_rcn.unprocessed
+  simp [forcing] at h
+  exact h e.allows_rcn.mem
 
 end Execution.State.Over

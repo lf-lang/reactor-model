@@ -75,6 +75,8 @@ theorem ne_target_comm (ht : c₁.target ≠ c₂.target ∨ c₁.target = none)
     try case _ u₁ _ _ _ u₂ _ u₃ _ u₄ => exact LawfulUpdate.ne_comm u₁ u₂ u₃ u₄ $ by simp [ht]
 
 -- TODO: Formalize this a bit nicer. Add an `apply` function to `State` when `Proper α`.
+--       Also, this doesn't actually require `Proper` does it? If you trim down the requirements,
+--       this could have implications on the generality of the progress theorem.
 open Updatable in
 def construct (s : State α) : (c : Change) → (s' : State α) × (s -[c]→ s')
   | .inp i v   => ⟨{ s with rtr := update s.rtr .inp i v }, inp $ LawfulUpdatable.lawful ..⟩ 

@@ -393,10 +393,6 @@ theorem progress_def (e : s₁ ↓ᵢ| s₂) : s₂.progress = s₁.rtr[.rcn].id
 theorem mem_rcns_iff (e : s₁ ↓ᵢ| s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₁.rtr[.rcn] ∧ rcn ∉ s₁.progress) := by
   simp [Partial.mem_def, e.progress_def ▸ e.exec.mem_rcns_iff (rcn := rcn)]
 
-theorem progress_empty_mem_rcns_iff (e : s₁ ↓ᵢ| s₂) (h : s₁.progress = ∅) : 
-    (rcn ∈ e.rcns) ↔ rcn ∈ s₁.rtr[.rcn] := by
-  simp [e.mem_rcns_iff, h]
-
 theorem rcns_perm (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : e₁.rcns ~ e₂.rcns := by
   simp [List.perm_ext e₁.rcns_nodup e₂.rcns_nodup, e₁.mem_rcns_iff, e₂.mem_rcns_iff]
 

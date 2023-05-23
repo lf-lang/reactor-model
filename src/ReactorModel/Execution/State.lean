@@ -71,7 +71,7 @@ structure Terminal (s : State α) : Prop where
 
 protected structure Over (over : α) extends State α where 
   rtr_eq       : rtr = over := by rfl
-  progress_sub : progress ⊆ rtr[.rcn].ids
+  progress_sub : progress ⊆ rtr[.rcn].ids 
   events_sub   : events.ids ⊆ rtr[.act].ids
 
 instance {rtr : α} : CoeOut (State.Over rtr) (State α) where
