@@ -6,6 +6,3 @@ import ReactorModel.Objects.Reactor.Proper
 import ReactorModel.Objects.Reactor.Theorems
 import ReactorModel.Objects.Reactor.Updatable
 import ReactorModel.Objects.Reactor.WellFounded
--- import ReactorModel.Objects.Reactor.Instances.Basic
--- import ReactorModel.Objects.Reactor.Instances.Core
--- import ReactorModel.Objects.Reactor.Instances.Raw
