@@ -60,39 +60,42 @@ theorem set.go_preserves {c : Component.Valued} {o vs}
   case _ hi _ _ h => exact hi ho $ .inl h
   case _ hi _ _ h => exact hi ho $ .inr $ .inl (not_or.mp h).right
   case _ hi _ _ h => exact hi ho $ .inr $ .inr h
-  all_goals
-    case' _ hi _ v _ _ => 
-      -- TODO: Perhaps you need to do this later, so that we're not fixed on `v`.
-      have e := @LawfulUpdatable.equiv _ cpt ‹_› v _ rtr
-      have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
-  case inl hd tl _ _ h _ =>
+  case inl hd tl hi _ v _ h =>
+    have e := @LawfulUpdatable.equiv _ cpt ‹_› v _ rtr
+    have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
     simp [hi ho' $ .inl h]
     injection ho' ▸ ho ▸ obj?_preserved_cpt h
-  case inr.inl hd tl _ _ h _ =>
+  case inr.inl hd tl hi _ v _ h =>
+    have e := @LawfulUpdatable.equiv _ cpt ‹_› v _ rtr
+    have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
     push_neg at h
     simp [hi ho' $ .inr $ .inl h.right]
     injection ho' ▸ ho ▸ obj?_preserved_id h.left
-  case inr.inr hd tl _ _ h _ =>
-    sorry
+  case inr.inr hd tl hi _ v _ h =>
+    have hh : i ≠ hd := by by_contra; simp_all
+    have ho' := ho ▸ (@LawfulUpdatable.lawful _ _ rtr cpt hd v).obj?_preserved (c := c) (.inr hh)
+    exact hi ho' (.inr $ .inr h)
 
 theorem set.go_updated {cpt : Component.Valued} {o vs} 
     (ho : rtr[cpt][i] = some o) (hv : vs i = some v) (h : i ∈ ids) : 
     (set.go rtr cpt vs ids)[cpt][i] = v := by
-  induction ids generalizing rtr o v i <;> simp [go] <;> simp at h; cases h
-  all_goals
-    try subst ‹_ = _›  
-    simp [hv]
-    -- TODO: Perhaps you need to do this later, so that we're not fixed on `v`.
-    have e := @LawfulUpdatable.equiv _ cpt ‹_› v _ rtr
+  induction ids generalizing rtr o v i <;> simp at h; cases h
+  case cons.inl tl hi h =>
+    subst h
+    simp [go, hv]
+    have e := @LawfulUpdatable.equiv _ cpt i v _ rtr
     have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
-  case' cons.inl hd tl hi _ =>
     by_cases ht : i ∈ tl
+    case pos => exact hi ho' hv ht
     case neg => simp [set.go_preserves ho' (.inr $ .inl ht), ho' ▸ obj?_updated, ho]
-  all_goals
-    have hi := ‹∀ {_} {_}, _›
-    try split
-    try exact hi ‹_› hv ‹_›
-  · sorry 
+  case cons.inr hd _ hi ht =>
+    simp [go]
+    split
+    · exact hi ho hv ht
+    case _ v _ => 
+      have e := @LawfulUpdatable.equiv _ cpt hd v _ rtr
+      have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
+      exact hi ho' hv ht
 
 theorem set_updated' : (set rtr cpt vs)[cpt] = fun i => rtr[cpt][i] >>= (vs i |>.getD ·) := by
   ext1 i

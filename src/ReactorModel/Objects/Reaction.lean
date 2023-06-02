@@ -20,7 +20,6 @@ structure Input where
 
 abbrev Output := List Change
 
--- TODO: Are these definitions/theorems being used?
 namespace Output
 
 def targets (out : Output) :=
