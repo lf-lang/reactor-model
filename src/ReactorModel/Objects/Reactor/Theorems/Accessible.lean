@@ -1,5 +1,6 @@
 import ReactorModel.Objects.Reactor.Finite
 import ReactorModel.Objects.Reactor.Theorems.Indexable
+import ReactorModel.Objects.Reactor.Theorems.Finite
 
 noncomputable section
 
@@ -93,16 +94,25 @@ theorem set.go_updated {cpt : Component.Valued} {o vs}
     try exact hi ‹_› hv ‹_›
   · sorry 
 
-theorem set_updated : (set rtr cpt vs)[cpt] = fun i => rtr[cpt][i] >>= (vs i |>.getD ·) := by
+theorem set_updated' : (set rtr cpt vs)[cpt] = fun i => rtr[cpt][i] >>= (vs i |>.getD ·) := by
   ext1 i
   cases ho : rtr[cpt][i] <;> simp [bind, ho, Option.getD] <;> try split
   · exact Equivalent.obj?_none_iff set_equiv |>.mp ho
-  · exact set.go_updated ho ‹_› $ sorry -- mem_ids_iff.mpr ⟨_, ho⟩
+  · exact set.go_updated ho ‹_› $ mem_ids_iff.mpr ⟨_, ho⟩
   · exact set.go_preserves ho $ .inr $ .inr ‹_›
 
-theorem set_updated' {cpt : Component.Valued} (h : vs.ids = rtr[cpt].ids) : 
+theorem set_updated {cpt : Component.Valued} (h : vs.ids = rtr[cpt].ids) : 
     (set rtr cpt vs)[cpt] = vs := by
-  sorry
+  simp [set_updated', bind, Option.bind]
+  ext1 i
+  split
+  all_goals
+    case' _ hn =>
+      simp [Partial.ids, Set.ext_iff] at h
+      specialize h i
+      simp [hn] at h
+  · exact Option.eq_none_iff_forall_not_mem.mpr h |>.symm
+  · obtain ⟨_, h⟩ := h; simp [h]
 
 theorem set_preserves (h : c ≠ cpt) : (set rtr cpt vs)[c] = rtr[c] := by
   ext1 i

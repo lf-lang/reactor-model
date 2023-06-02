@@ -50,16 +50,16 @@ theorem refresh_correct (rtr : α) (h : acts.ids = rtr[.act].ids) :
       set_preserves (by simp : .stv ≠ .inp)
     ]
   acts := by 
-    rw [refresh, set_updated' $ h ▸ (Equivalent.ids_eq $ Equivalent.trans set_equiv set_equiv)]
+    rw [refresh, set_updated $ h ▸ (Equivalent.ids_eq $ Equivalent.trans set_equiv set_equiv)]
   inputs := by 
     rw [
       refresh, set_preserves (by simp : .inp ≠ .act), set_preserves (by simp : .inp ≠ .out), 
-      set_updated' $ Partial.const_ids _ _, Partial.const_eq_map_const
+      set_updated $ Partial.const_ids _ _, Partial.const_eq_map_const
     ]
   outputs := by 
     rw [
       refresh, set_preserves (by simp : .out ≠ .act),
-      set_updated' $ by rw [Equivalent.ids_eq set_equiv, Partial.const_ids _ _],
+      set_updated $ by rw [Equivalent.ids_eq set_equiv, Partial.const_ids _ _],
       Partial.const_eq_map_const
     ]
 
