@@ -2,6 +2,8 @@ import ReactorModel.Execution.State
 
 open Classical Reactor Execution State
 
+-- TODO: Try to move these types into `Prop`.
+
 variable [Indexable α]
 
 namespace Execution
