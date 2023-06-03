@@ -40,8 +40,8 @@ where
 def scheduledTags (s : State α) : Set Time.Tag := 
   { g | ∃ i a, (s.events i = some a) ∧ (g ∈ a.keys) }
 
-def actions (s : State α) (g : Time.Tag) : ID ⇀ Value := 
-  s.rtr[.act].mapIdx fun i => s.events i >>= (· g) |>.getD .absent
+def logicals (s : State α) (g : Time.Tag) : ID ⇀ Value := 
+  s.rtr[.log].mapIdx fun i => s.events i >>= (· g) |>.getD .absent
 
 def unprocessed (s : State α) : Set ID :=
   { i ∈ s.rtr[.rcn] | i ∉ s.progress }
@@ -72,7 +72,7 @@ structure Terminal (s : State α) : Prop where
 protected structure Over (over : α) extends State α where 
   rtr_eq       : rtr = over := by rfl
   progress_sub : progress ⊆ rtr[.rcn].ids 
-  events_sub   : events.ids ⊆ rtr[.act].ids
+  events_sub   : events.ids ⊆ rtr[.log].ids
 
 instance {rtr : α} : CoeOut (State.Over rtr) (State α) where
   coe := State.Over.toState

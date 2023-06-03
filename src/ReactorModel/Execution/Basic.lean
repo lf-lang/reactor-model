@@ -33,7 +33,7 @@ inductive Exec : State α → State α → Type
 notation s₁:max " ↓ₑ " s₂:max => Exec s₁ s₂
 
 inductive Time : State α → State α → Type
-  | mk : (Closed s) → (NextTag s g) → (Refresh s.rtr ref $ s.actions g) → 
+  | mk : (Closed s) → (NextTag s g) → (Refresh s.rtr ref $ s.logicals g) → 
          Time s { s with rtr := ref, tag := g, progress := ∅ }
 
 notation s₁:max " ↓ₜ " s₂:max => Time s₁ s₂

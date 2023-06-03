@@ -133,7 +133,7 @@ namespace Execution.State
 
 variable [Proper α] {s : State α}
 
-theorem target_not_mem_indep_output 
+theorem target_not_mem_indep_output {cpt : Component.Valued}
     (h₂ : s.rtr[.rcn][i₂] = some rcn₂) (hi : i₁ ≮[s.rtr]≯ i₂) (hd : ⟨cpt, i⟩ ∈ rcn₂.deps .in) : 
     (s.output i₁).All₂ (¬·.Targets cpt i) := by
   apply List.all₂_iff_forall.mpr
@@ -141,7 +141,8 @@ theorem target_not_mem_indep_output
   simp [output] at hc
   split at hc <;> try contradiction
   case _ rcn₁ h₁ =>
-    cases cpt
+    cases cpt <;> try cases ‹Component.Writable›   
+    case phy => by_contra; contradiction
     all_goals
       intro ⟨⟩
       apply absurd hd

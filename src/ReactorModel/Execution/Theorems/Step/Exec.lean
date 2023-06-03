@@ -57,8 +57,8 @@ theorem indep_restriction_eq
     input.restriction s₁ rcn cpt = input.restriction s₂ rcn cpt := by 
   simp [input.restriction]
   apply Partial.ext_restrict 
-  intro _ hd
-  exact e.applied_rtr_eq ▸ e.apply.preserves_unchanged $ State.target_not_mem_indep_output ho hi hd  
+  intro d hd
+  exact e.applied_rtr_eq ▸ e.apply.preserves_unchanged $ State.target_not_mem_indep_output ho hi hd
 
 theorem indep_input_eq 
     (e : s₁ ↓ₑ s₂) (hi : e.rcn ≮[s₁.rtr]≯ i) (h₁ : s₁.rtr[.rcn][i] = some rcn)

@@ -23,7 +23,7 @@ abbrev Output := List Change
 namespace Output
 
 def targets (out : Output) :=
-  { t : Component.Valued × ID | ∃ c ∈ out, c.Targets t.fst t.snd }
+  { t : Component.Writable × ID | ∃ c ∈ out, c.Targets t.fst t.snd }
 
 theorem mem_targets_cons (h : t ∈ targets tl) : t ∈ targets (hd :: tl) := by
   have ⟨c, hm, _⟩ := h 
@@ -46,8 +46,6 @@ end Output
 --
 -- A reaction's `triggers` are a subset of its input ports (by `triggers_sub_in_deps`).
 -- This field is used to define when a reaction triggers (cf. `triggersOn`).
---
--- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
 structure _root_.Reaction where
   deps                 : Kind → Set Reaction.Dependency
@@ -55,7 +53,7 @@ structure _root_.Reaction where
   prio                 : Priority
   body                 : Input → Output
   triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv } 
-  target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
+  target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.

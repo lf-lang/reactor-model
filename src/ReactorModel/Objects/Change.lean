@@ -1,13 +1,13 @@
 import ReactorModel.Objects.Component
 
-abbrev Component.Valued.changeType : Component.Valued → Type
+abbrev Component.Writable.changeType : Component.Writable → Type
   | inp | out | stv  => Value
-  | act => Time × Value 
+  | log => Time × Value 
 
 namespace Change
 
 protected structure Normal where
-  cpt   : Component.Valued
+  cpt   : Component.Writable
   id    : ID
   value : cpt.changeType
 
@@ -47,7 +47,7 @@ abbrev stv (i : ID) (v : Value) : Change :=
 
 @[match_pattern]
 abbrev act (i : ID) (t : Time) (v : Value) : Change :=
-  .norm $ { cpt := .act, id := i, value := (t, v) }
+  .norm $ { cpt := .log, id := i, value := (t, v) }
 
 inductive Targets : Change → Component.Valued → ID → Prop
   | intro : Targets (norm ⟨cpt, i, v⟩) cpt i
@@ -57,7 +57,7 @@ theorem Targets.norm_not (h : ¬Targets (norm ⟨c, j, v⟩) cpt i) : cpt ≠ c 
   simp [not_or] at hc
   exact hc.left ▸ hc.right ▸ h $ .intro 
 
-def target : Change → Option (Component.Valued × ID)
+def target : Change → Option (Component.Writable × ID)
   | norm ⟨cpt, i, _⟩ => (cpt, i)
   | «mut» ..         => none
 

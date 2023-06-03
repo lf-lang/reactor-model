@@ -35,5 +35,5 @@ theorem of_deps_acyclic (a : Dependency.Acyclic rtr) : Progress rtr :=
 
 theorem iff_deps_acyclic : (Progress rtr) ↔ (Dependency.Acyclic rtr) :=
   ⟨to_deps_acyclic, of_deps_acyclic⟩
-
+ 
 end Execution.Progress

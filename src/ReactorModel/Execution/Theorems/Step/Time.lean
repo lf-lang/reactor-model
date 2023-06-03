@@ -8,11 +8,11 @@ namespace Execution.Step.Time
 
 variable [Indexable α] {s₁ : State α}
 
-theorem closed :         (e : s₁ ↓ₜ s₂) → Closed s₁                                 | mk c .. => c
-theorem next_tag :       (e : s₁ ↓ₜ s₂) → NextTag s₁ s₂.tag                         | mk _ n _ => n
-theorem refreshed :      (e : s₁ ↓ₜ s₂) → Refresh s₁.rtr s₂.rtr (s₁.actions s₂.tag) | mk _ _ r => r
-theorem progress_empty : (e : s₁ ↓ₜ s₂) → s₂.progress = ∅                           | mk .. => rfl
-theorem events_eq :      (e : s₁ ↓ₜ s₂) → s₂.events = s₁.events                     | mk .. => rfl
+theorem closed :         (e : s₁ ↓ₜ s₂) → Closed s₁                                  | mk c .. => c
+theorem next_tag :       (e : s₁ ↓ₜ s₂) → NextTag s₁ s₂.tag                          | mk _ n _ => n
+theorem refreshed :      (e : s₁ ↓ₜ s₂) → Refresh s₁.rtr s₂.rtr (s₁.logicals s₂.tag) | mk _ _ r => r
+theorem progress_empty : (e : s₁ ↓ₜ s₂) → s₂.progress = ∅                            | mk .. => rfl
+theorem events_eq :      (e : s₁ ↓ₜ s₂) → s₂.events = s₁.events                      | mk .. => rfl
 
 theorem tag_lt (e : s₁ ↓ₜ s₂) : s₁.tag < s₂.tag := 
   e.next_tag.bound

@@ -33,7 +33,8 @@ theorem ValidDependency.equiv
   | inp h           => equiv_local_proof inp
   | out h           => equiv_local_proof out
   | stv h           => equiv_local_proof stv
-  | act h           => equiv_local_proof act
+  | log h           => equiv_local_proof log
+  | phy h           => equiv_local_proof phy
   | nestedIn  hc hp => (equiv_nested_proof nestedIn) hc hp
   | nestedOut hc hp => (equiv_nested_proof nestedOut) hc hp
 
@@ -64,12 +65,12 @@ theorem shared_dep_local
   case neg =>
     have hv₁ := wf.valid_deps hc₁ hr₁ hd₁
     have hv₂ := wf.valid_deps hc₂ hr₂ hd₂
-    cases k <;> cases cpt <;> try cases ‹Kind› 
+    cases k <;> cases cpt <;> try cases ‹Component.Writable› <;> try cases ‹Kind› 
     have := obj?_some_extend hc₁ hr₁
-    case out.inp => 
+    case out.wrt.inp => 
       have hd₂' := wf.unique_inputs (obj?_some_extend hc₁ hr₁) (obj?_some_extend hc₂ hr₂) hi hd₁
       exact absurd hd₂ hd₂'
-    case in.out =>
+    case in.wrt.out =>
       cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
       case _ hn₁ hj₁ _ _ hn₂ hj₂ =>
         have hc₁' := obj?_some_extend hc₁ hn₁

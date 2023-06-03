@@ -16,7 +16,8 @@ inductive ValidDependency [Reactor α] (rtr : α) :
   | inp       : (i ∈ rtr{.inp})                             → ValidDependency _ _     .in  ⟨.inp, i⟩   
   | out       : (i ∈ rtr{.out})                             → ValidDependency _ _     .out ⟨.out, i⟩   
   | stv       : (i ∈ rtr{.stv})                             → ValidDependency _ _     _    ⟨.stv, i⟩  
-  | act       : (i ∈ rtr{.act})                             → ValidDependency _ _     _    ⟨.act, i⟩
+  | log       : (i ∈ rtr{.log})                             → ValidDependency _ _     _    ⟨.log, i⟩
+  | phy       : (i ∈ rtr{.phy})                             → ValidDependency _ _     .in  ⟨.phy, i⟩
   | nestedIn  : (rtr{.rtr}{j} = some con) → (i ∈ con{.inp}) → ValidDependency _ _     .out ⟨.inp, i⟩
   | nestedOut : (rtr{.rtr}{j} = some con) → (i ∈ con{.out}) → ValidDependency _ .norm .in  ⟨.out, i⟩ 
 
