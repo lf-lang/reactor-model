@@ -11,10 +11,8 @@ structure Grouped [Indexable α] (s₁ s₂ : State α) where
   steps : Grouped.Steps s₁ tl
   tail  : Grouped.Tail  tl s₂
 
-namespace Grouped
-
 -- TODO: Most of the case bashing is copied from `Steps.deterministic`. What is the underlying lemma?
-theorem deterministic [Proper α] {s s₁ s₂ : State α} 
+theorem Grouped.deterministic [Proper α] {s s₁ s₂ : State α} 
     (n : s.Nontrivial) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) :
     (Grouped s s₁) → (Grouped s s₂) → s₁ = s₂
   | mk (tl := tl₁) steps₁ tail₁, mk (tl := tl₂) steps₂ tail₂ => by
@@ -44,21 +42,22 @@ theorem deterministic [Proper α] {s s₁ s₂ : State α}
     case refl.step.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
     case step.refl.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
 
-end Grouped
-
-def grouped [Indexable α] : {s₁ s₂ : State α} → (n : s₁.Nontrivial) → (s₁ ⇓ s₂) → Grouped s₁ s₂
-  | _, _, _, .refl => ⟨.refl, .none⟩ 
-  | _, _, n, .trans (.skip e) e' | _, _, n, .trans (.exec e) e' =>
-    let ⟨steps, tail⟩ := e'.grouped $ e.preserves_nontrivial n
-    match steps, tail with
-    | .refl,                   .none    => ⟨.refl, .some $ .single e⟩ 
-    | .refl,                   .some e' => ⟨.refl, .some $ .trans e e'⟩
-    | .step (.inst ⟨f, h⟩) f', tl       => ⟨.step (.inst ⟨.trans e f, h⟩) f', tl⟩
-    | .step (.time f) f',      tl       => ⟨.step (.inst ⟨.single e, f.closed⟩) $ .step f f', tl⟩
-  | _, _, n, .trans (.time e) e' => 
-    match e'.grouped $ e.preserves_nontrivial n with
+theorem to_grouped [Indexable α] {s₁ s₂ : State α} (n : s₁.Nontrivial) (e : s₁ ⇓ s₂) : 
+    Nonempty (Grouped s₁ s₂) := by
+  induction e <;> try cases ‹_ ↓ _›  
+  case refl => exact ⟨.refl, .none⟩ 
+  case trans.time hi e => 
+    exact match hi $ e.preserves_nontrivial n with
     | ⟨.refl, tl⟩              => ⟨.step e .refl, tl⟩ 
     | ⟨.step (.inst f) f', tl⟩ => ⟨.step (.time e) $ .step f f', tl⟩
     | ⟨.step (.time f) _, _⟩   => e.nonrepeatable f n |>.elim
+  all_goals
+    case _ hi e =>
+      let ⟨steps, tail⟩ := hi $ e.preserves_nontrivial n
+      exact match steps, tail with
+      | .refl,                   .none    => ⟨.refl, .some $ .single e⟩ 
+      | .refl,                   .some e' => ⟨.refl, .some $ .trans e e'⟩
+      | .step (.inst ⟨f, h⟩) f', tl       => ⟨.step (.inst ⟨.trans e f, h⟩) f', tl⟩
+      | .step (.time f) f',      tl       => ⟨.step (.inst ⟨.single e, f.closed⟩) $ .step f f', tl⟩
 
 end Execution

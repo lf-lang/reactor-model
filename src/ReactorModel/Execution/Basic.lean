@@ -2,8 +2,6 @@ import ReactorModel.Execution.State
 
 open Classical Reactor Execution State
 
--- TODO: Try to move these types into `Prop`.
-
 variable [Indexable α]
 
 namespace Execution
@@ -42,7 +40,7 @@ notation s₁:max " ↓ₜ " s₂:max => Time s₁ s₂
 
 end Step
 
-inductive Step (s₁ s₂ : State α)
+inductive Step (s₁ s₂ : State α) : Prop
   | skip (s : s₁ ↓ₛ s₂)
   | exec (e : s₁ ↓ₑ s₂)
   | time (t : s₁ ↓ₜ s₂)
@@ -51,7 +49,7 @@ notation s₁:max " ↓ " s₂:max => Step s₁ s₂
 
 end Execution
 
-inductive Execution : State α → State α → Type
+inductive Execution : State α → State α → Prop
   | refl  : Execution s s
   | trans : (s₁ ↓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 
