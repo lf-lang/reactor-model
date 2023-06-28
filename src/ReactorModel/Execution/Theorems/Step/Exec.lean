@@ -4,7 +4,7 @@ open Classical Reactor Execution State
 
 namespace Execution.Step.Exec
 
-variable [Indexable α] {s₁ : State α}
+variable [Hierarchical α] {s₁ : State α}
 
 def rcn :                  (s₁ ↓ₑ s₂) → ID                               | mk (rcn := r) .. => r
 def applied :              (s₁ ↓ₑ s₂) → State α                          | mk (s₂ := s) .. => s

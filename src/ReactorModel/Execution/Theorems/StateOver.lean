@@ -6,7 +6,7 @@ open Reactor Classical
 
 namespace Execution.State.Over
 
-variable [Indexable α] [Reactor.Finite α] {rtr rtr₁ : α} {s : State.Over rtr}
+variable [Hierarchical α] [Reactor.Finite α] {rtr rtr₁ : α} {s : State.Over rtr}
 
 theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[.rcn].ids :=
   Set.ssubset_iff_subset_ne.mpr ⟨s.progress_sub, hc⟩

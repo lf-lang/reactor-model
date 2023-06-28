@@ -5,7 +5,7 @@ open Classical Reactor
 
 namespace Execution
 
-variable [Indexable α]
+variable [Hierarchical α]
 
 @[ext]
 structure State (α) where

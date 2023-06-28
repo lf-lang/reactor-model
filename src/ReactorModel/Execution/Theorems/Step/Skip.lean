@@ -5,7 +5,7 @@ open Classical Reactor Execution State
 
 namespace Execution.Step.Skip
 
-variable [Indexable α] {s₁ : State α}
+variable [Hierarchical α] {s₁ : State α}
 
 def rcn :                      (s₁ ↓ₛ s₂) → ID                   | mk (rcn := rcn) .. => rcn
 theorem allows_rcn :       (e : s₁ ↓ₛ s₂) → Allows s₁ e.rcn      | mk a _ => a

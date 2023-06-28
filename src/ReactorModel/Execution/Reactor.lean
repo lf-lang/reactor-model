@@ -5,7 +5,7 @@ open Classical
 
 namespace Reactor
 
-variable [Indexable α] in section
+variable [Hierarchical α] in section
 
 def dependencies (rtr : α) (rcn : ID) : Set ID := 
   { rcn' | rcn' <[rtr] rcn }

@@ -13,8 +13,8 @@ instance [Proper α] : Accessible α where
 
 namespace Wellformed
 
-open Indexable Equivalent
-variable [Indexable α] {rtr rtr₁ : α}
+open Hierarchical Equivalent
+variable [Hierarchical α] {rtr rtr₁ : α}
 
 scoped macro "equiv_local_proof " dep:ident : term => 
   `($dep $ mem_get?_iff (obj?_rtr_equiv ‹_› ‹_› ‹_›) |>.mp ‹_›)
@@ -94,7 +94,7 @@ theorem shared_state_local
 
 end Wellformed
 
-open Indexable in
+open Hierarchical in
 theorem ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂) 
     (h : ∀ {c : Component.Valued} {i o₁ o₂}, 
           (rtr₁[c][i] = some o₁) → (rtr₂[c][i] = some o₂) → o₁ = o₂) : 

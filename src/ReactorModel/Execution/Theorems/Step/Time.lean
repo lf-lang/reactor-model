@@ -6,7 +6,7 @@ open Reactor Execution State
 
 namespace Execution.Step.Time
 
-variable [Indexable α] {s₁ : State α}
+variable [Hierarchical α] {s₁ : State α}
 
 theorem closed :         (e : s₁ ↓ₜ s₂) → Closed s₁                                  | mk c .. => c
 theorem next_tag :       (e : s₁ ↓ₜ s₂) → NextTag s₁ s₂.tag                          | mk _ n _ => n

@@ -1,13 +1,13 @@
 import ReactorModel.Execution.Dependency
 
-open Classical Reactor Indexable
+open Classical Reactor Hierarchical
 
 namespace Dependency
 
 section
 
 open Equivalent
-variable [Indexable α] {rtr rtr₁ : α}
+variable [Hierarchical α] {rtr rtr₁ : α}
 
 theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁] j₂ := by
   induction d with
@@ -93,25 +93,25 @@ theorem shared_out_dep
 end Dependency
 
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
-abbrev NotDependent [Indexable α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop :=
+abbrev NotDependent [Hierarchical α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop :=
   ¬(rcn₁ <[rtr] rcn₂)
 
 namespace NotDependent
 
 notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => NotDependent rtr rcn₁ rcn₂
 
-theorem equiv [Indexable α] {rtr₁ rtr₂ : α} (h : i₁ ≮[rtr₁] i₂) (e : rtr₁ ≈ rtr₂) : 
+theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} (h : i₁ ≮[rtr₁] i₂) (e : rtr₁ ≈ rtr₂) : 
     i₁ ≮[rtr₂] i₂ :=
   (h $ ·.equiv e)
 
-theorem deps_disjoint [Indexable α] {rtr : α} {d} (hi : i₁ ≮[rtr] i₂) 
+theorem deps_disjoint [Hierarchical α] {rtr : α} {d} (hi : i₁ ≮[rtr] i₂) 
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (h : d ∈ rcn₁.deps .out) 
     (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
   byContradiction fun hd => hi $ .depOverlap h₁ h₂ h (not_not.mp hd) hs
 
 end NotDependent
 
-structure Independent [Indexable α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop where
+structure Independent [Hierarchical α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop where
   not_eq : rcn₁ ≠ rcn₂  
   left   : rcn₁ ≮[rtr] rcn₂
   right  : rcn₂ ≮[rtr] rcn₁
@@ -120,12 +120,12 @@ namespace Independent
 
 notation:50 rcn₁ " ≮[" rtr "]≯ " rcn₂ => Independent rtr rcn₁ rcn₂
 
-theorem symm [Indexable α] {rtr : α} (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[rtr]≯ i₁ where
+theorem symm [Hierarchical α] {rtr : α} (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[rtr]≯ i₁ where
   not_eq := hi.not_eq.symm
   left   := hi.right
   right  := hi.left
 
-theorem equiv [Indexable α] {rtr₁ rtr₂ : α} (hi : i₁ ≮[rtr₁]≯ i₂) (e : rtr₁ ≈ rtr₂) : 
+theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} (hi : i₁ ≮[rtr₁]≯ i₂) (e : rtr₁ ≈ rtr₂) : 
     i₁ ≮[rtr₂]≯ i₂ where
   not_eq := hi.not_eq
   left   := hi.left.equiv e
@@ -147,12 +147,12 @@ theorem no_shared_state_deps [Proper α] {rtr : α}
 end Independent
 
 -- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
-def Minimal [Indexable α] (rtr : α) (rcns : List ID) (rcn : ID) : Prop :=
+def Minimal [Hierarchical α] (rtr : α) (rcns : List ID) (rcn : ID) : Prop :=
   ∀ i ∈ rcns, i ≮[rtr] rcn
 
 namespace Minimal
 
-variable [Indexable α] {rtr rtr₁ rtr₂ : α}
+variable [Hierarchical α] {rtr rtr₁ rtr₂ : α}
 
 notation:50 rcns " ≮[" rtr "] " rcn => Minimal rtr rcns rcn
 

@@ -2,7 +2,7 @@ import ReactorModel.Objects
 
 open Reactor
 
-variable [Indexable α]
+variable [Hierarchical α]
 
 -- About the `↔`-condition in `prio`:  We want to establish a dependency between mutations with 
 -- priorities as well normal reactions with priorities, but not between normal reactions and

@@ -7,11 +7,11 @@ namespace Execution
 
 -- A reactor `rtr` has the progress property, if from any nonterminal state based at `rtr`, we can 
 -- perform an execution step.
-def Progress [Indexable α] (rtr : α) : Prop :=
+def Progress [Hierarchical α] (rtr : α) : Prop :=
   ∀ (s : State.Over rtr), ¬s.Terminal → ∃ s' : State α, s ↓ s'    
 
 namespace Progress
-theorem to_deps_acyclic [Indexable α] {rtr : α} (p : Progress rtr) : Dependency.Acyclic rtr := by
+theorem to_deps_acyclic [Hierarchical α] {rtr : α} (p : Progress rtr) : Dependency.Acyclic rtr := by
   simp [Dependency.Acyclic.iff_mem_acyclic]
   intro rcn hm
   have ⟨_, e⟩ := p _ $ State.Over.forcing_not_terminal hm
