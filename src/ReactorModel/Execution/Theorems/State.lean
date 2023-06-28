@@ -38,26 +38,27 @@ theorem record_comm {s : State α} {rcn₁ rcn₂ : ID} :
   simp [record]
   apply Set.insert_comm 
 
-theorem schedule_preserves_rtr (s : State α) (i : ID) (t : Time) (v : Value) : 
-    (s.schedule i t v).rtr = s.rtr := 
+theorem schedule_preserves_rtr (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : 
+    (s.schedule cpt i t v).rtr = s.rtr := 
   rfl
 
-theorem schedule_preserves_tag (s : State α) (i : ID) (t : Time) (v : Value) : 
-    (s.schedule i t v).tag = s.tag := 
+theorem schedule_preserves_tag (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : 
+    (s.schedule cpt i t v).tag = s.tag := 
   rfl
 
-theorem schedule_preserves_progress (s : State α) (i : ID) (t : Time) (v : Value) : 
-    (s.schedule i t v).progress = s.progress := 
+theorem schedule_preserves_progress (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : 
+    (s.schedule cpt i t v).progress = s.progress := 
   rfl
 
-theorem schedule_events_congr {s₁ s₂ : State α} {i : ID} {t : Time} {v : Value}
-    (h : s₁.events = s₂.events) : (s₁.schedule i t v).events = (s₂.schedule i t v).events := by 
-  simp [schedule, h]
+theorem schedule_events_congr {s₁ s₂ : State α} {cpt : Component} {i : ID} {t : Time} {v : Value}
+    (h : s₁.events = s₂.events) : (s₁.schedule cpt i t v).events = (s₂.schedule cpt i t v).events := 
+    by simp [schedule, h]
 
-theorem schedule_ne_comm {s : State α} {i₁ i₂ : ID} {t₁ t₂ : Time} {v₁ v₂ : Value} (h : i₁ ≠ i₂) :
-    (s.schedule i₁ t₁ v₁).schedule i₂ t₂ v₂ = (s.schedule i₂ t₂ v₂).schedule i₁ t₁ v₁ := by
+theorem schedule_ne_comm {s : State α}  (h : i₁ ≠ i₂) : 
+    (s.schedule cpt₁ i₁ t₁ v₁).schedule cpt₂ i₂ t₂ v₂ = 
+    (s.schedule cpt₂ i₂ t₂ v₂).schedule cpt₂ i₁ t₁ v₁ := by
   simp [schedule]
-  apply Partial.update_ne_comm _ h
+  -- sorry -- apply Partial.update_ne_comm _ h
 
 theorem Allows.«def» : 
     (s.Allows i) ↔ (i ∈ s.rtr[.rcn]) ∧ (dependencies s.rtr i ⊆ s.progress) ∧ (i ∉ s.progress) where

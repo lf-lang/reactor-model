@@ -11,8 +11,9 @@ variable [Indexable α]
 structure State (α) where
   rtr      : α 
   tag      : Time.Tag
+  clock    : Time
   progress : Set ID
-  events   : ID ⇀ Time.Tag ⇉ Value
+  events   : Component → ID ⇀ Time.Tag ⇉ Value 
 
 namespace State
 
@@ -29,8 +30,11 @@ def output (s : State α) (rcn : ID) : Reaction.Output :=
 def record (s : State α) (rcn : ID) : State α := 
   { s with progress := s.progress.insert rcn }
 
-def schedule (s : State α) (i : ID) (t : Time) (v : Value) : State α := 
-  { s with events := s.events.update i (go · t v) }
+def «at» (s : State α) (t : Time) : State α := 
+  { s with clock := t }
+
+def schedule (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : State α := 
+  { s with events := sorry } --  s.events.update cpt (·.update i (go · t v)) }
 where 
   go (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
     match a.keys.filter (·.time = t) |>.max with
@@ -38,10 +42,13 @@ where
     | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
 
 def scheduledTags (s : State α) : Set Time.Tag := 
-  { g | ∃ i a, (s.events i = some a) ∧ (g ∈ a.keys) }
+  { g | ∃ cpt i a, (s.events cpt i = some a) ∧ (g ∈ a.keys) }
 
 def logicals (s : State α) (g : Time.Tag) : ID ⇀ Value := 
-  s.rtr[.log].mapIdx fun i => s.events i >>= (· g) |>.getD .absent
+  s.rtr[.log].mapIdx fun i => s.events .log i >>= (· g) |>.getD .absent
+
+def physicals (s : State α) (g : Time.Tag) : ID ⇀ Value := 
+  s.rtr[.phy].mapIdx fun i => s.events .phy i >>= (· g) |>.getD .absent
 
 def unprocessed (s : State α) : Set ID :=
   { i ∈ s.rtr[.rcn] | i ∉ s.progress }
@@ -70,9 +77,10 @@ structure Terminal (s : State α) : Prop where
   no_next : ∀ g, ¬s.NextTag g
 
 protected structure Over (over : α) extends State α where 
-  rtr_eq       : rtr = over := by rfl
-  progress_sub : progress ⊆ rtr[.rcn].ids 
-  events_sub   : events.ids ⊆ rtr[.log].ids
+  rtr_eq         : rtr = over := by rfl
+  progress_sub   : progress ⊆ rtr[.rcn].ids 
+  log_events_sub : (events .log).ids ⊆ rtr[.log].ids
+  phy_events_sub : (events .phy).ids ⊆ rtr[.phy].ids
 
 instance {rtr : α} : CoeOut (State.Over rtr) (State α) where
   coe := State.Over.toState
