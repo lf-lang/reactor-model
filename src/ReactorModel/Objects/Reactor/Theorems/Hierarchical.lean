@@ -1,12 +1,12 @@
-import ReactorModel.Objects.Reactor.Indexable
+import ReactorModel.Objects.Reactor.Hierarchical
 import ReactorModel.Objects.Reactor.Updatable
 import ReactorModel.Objects.Reactor.Theorems.Basic
 
 namespace Reactor
 namespace StrictMember
 
-open Indexable
-variable [Indexable α] {rtr rtr₁ : α}
+open Hierarchical
+variable [Hierarchical α] {rtr rtr₁ : α}
 
 theorem unique (s₁ s₂ : StrictMember cpt i rtr) : s₁ = s₂ := by
   injection unique_ids.allEq (.strict s₁) (.strict s₂)
@@ -104,8 +104,8 @@ end StrictMember
 /- ---------------------------------------------------------------------------------------------- -/
 namespace Member
 
-open Indexable
-variable [Indexable α] {rtr rtr₁ : α}
+open Hierarchical
+variable [Hierarchical α] {rtr rtr₁ : α}
 
 theorem unique (m₁ m₂ : Member cpt i rtr) : m₁ = m₂ :=
   unique_ids.allEq m₁ m₂
@@ -129,8 +129,8 @@ end Member
 /- ---------------------------------------------------------------------------------------------- -/
 namespace Object
 
-open Indexable
-variable [Indexable α] {rtr : α}
+open Hierarchical
+variable [Hierarchical α] {rtr : α}
 
 theorem unique : (Object rtr cpt i o₁) → (Object rtr cpt i o₂) → o₁ = o₂
   | ⟨m₁⟩, ⟨m₂⟩ => m₁.unique m₂ ▸ rfl
@@ -161,9 +161,9 @@ theorem not_iff_obj?_none : (∀ o, ¬Object rtr cpt i o) ↔ (rtr[cpt][i] = non
 end Object
 
 /- ---------------------------------------------------------------------------------------------- -/
-namespace Indexable
+namespace Hierarchical
 
-variable [Indexable α] {rtr : α}
+variable [Hierarchical α] {rtr : α}
 
 theorem get?_some_to_obj?_some (h : rtr{cpt}{i} = some o) : rtr[cpt][i] = some o :=
   Object.iff_obj?_some.mp ⟨.final h⟩ 
@@ -218,12 +218,12 @@ theorem obj?_none_to_get?_none {i : ID} (ho : rtr[cpt][i] = none) : rtr{cpt}{i} 
   by_contra h
   exact ho _ ⟨.final $ Option.ne_none_iff_exists.mp h |>.choose_spec.symm⟩ 
 
-end Indexable
+end Hierarchical
 
 /- ---------------------------------------------------------------------------------------------- -/
 namespace Equivalent
 
-variable [Indexable α] {rtr₁ : α}
+variable [Hierarchical α] {rtr₁ : α}
 
 theorem obj?_some_iff (e : rtr₁ ≈ rtr₂) :
     (∃ o₁, rtr₁[cpt][i] = some o₁) ↔ (∃ o₂, rtr₂[cpt][i] = some o₂) := by
@@ -271,8 +271,8 @@ end Equivalent
 /- ---------------------------------------------------------------------------------------------- -/
 namespace LawfulMemUpdate
 
-open Indexable
-variable [Indexable α] {rtr₁ : α}
+open Hierarchical
+variable [Hierarchical α] {rtr₁ : α}
 
 theorem obj?_some₁ (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : ∃ o, rtr₁[cpt][i] = some o := by
   induction u 
@@ -318,8 +318,8 @@ end LawfulMemUpdate
 /- ---------------------------------------------------------------------------------------------- -/
 namespace LawfulUpdate
 
-open Indexable
-variable [Indexable α] {rtr₁ : α}
+open Hierarchical
+variable [Hierarchical α] {rtr₁ : α}
 
 theorem obj?_preserved (h : c ≠ cpt ∨ j ≠ i) : 
     (LawfulUpdate cpt i v rtr₁ rtr₂) → rtr₂[c][j] = rtr₁[c][j]

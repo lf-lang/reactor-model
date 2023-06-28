@@ -1,5 +1,5 @@
 import ReactorModel.Objects.Reactor.Updatable
-import ReactorModel.Objects.Reactor.Indexable
+import ReactorModel.Objects.Reactor.Hierarchical
 
 noncomputable section
 open Classical

@@ -5,13 +5,13 @@ open Reactor
 
 namespace Execution.Grouped
 
-inductive Step [Indexable α] (s₁ s₂ : State α)
+inductive Step [Hierarchical α] (s₁ s₂ : State α)
   | inst : (s₁ ↓ᵢ| s₂) → Step s₁ s₂
   | time : (s₁ ↓ₜ s₂) → Step s₁ s₂
 
 namespace Step
 
-variable [Indexable α] {s₁ s₂ : State α}
+variable [Hierarchical α] {s₁ s₂ : State α}
 
 instance : Coe (s₁ ↓ᵢ| s₂) (Step s₁ s₂) where
   coe := inst
@@ -33,13 +33,13 @@ theorem Step.deterministic [Proper α] {s s₁ s₂ : State α} : (Step s s₁) 
   | time e₁, time e₂                    => e₁.deterministic e₂
   | inst e₁, time e₂ | time e₂, inst e₁ => e₁.not_closed e₂.closed |>.elim
 
-inductive Steps [Indexable α] : State α → State α → Type 
+inductive Steps [Hierarchical α] : State α → State α → Type 
   | refl : Steps s s
   | step : (Step s₁ s₂) → (Steps s₂ s₃) → Steps s₁ s₃ 
 
 namespace Steps
 
-theorem tag_le [Indexable α] {s₁ s₂ : State α} (e : Steps s₁ s₂) : s₁.tag ≤ s₂.tag := by
+theorem tag_le [Hierarchical α] {s₁ s₂ : State α} (e : Steps s₁ s₂) : s₁.tag ≤ s₂.tag := by
   induction e
   case refl => rfl
   case step e _ hi => exact le_trans e.tag_le hi

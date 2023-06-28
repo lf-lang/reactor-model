@@ -1,14 +1,14 @@
 import ReactorModel.Objects.Reactor.Finite
-import ReactorModel.Objects.Reactor.Theorems.Indexable
+import ReactorModel.Objects.Reactor.Theorems.Hierarchical
 import ReactorModel.Objects.Reactor.Theorems.Finite
 
 noncomputable section
 
 namespace Reactor
 
-class Accessible (α) extends LawfulUpdatable α, Indexable α 
+class Accessible (α) extends LawfulUpdatable α, Hierarchical α 
 
-open Updatable LawfulUpdatable Indexable
+open Updatable LawfulUpdatable Hierarchical
 
 variable [Accessible α] {rtr : α}
 

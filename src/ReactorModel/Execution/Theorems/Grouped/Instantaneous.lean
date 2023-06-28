@@ -6,19 +6,19 @@ open Classical Reactor
 
 namespace Execution.Instantaneous
 
-inductive Step [Indexable α] (s₁ s₂ : State α)
+inductive Step [Hierarchical α] (s₁ s₂ : State α)
   | skip (s : s₁ ↓ₛ s₂)
   | exec (e : s₁ ↓ₑ s₂)
 
 notation s₁:max " ↓ᵢ " s₂:max => Step s₁ s₂
 
-inductive Step.TC [Indexable α] : State α → State α → Type
+inductive Step.TC [Hierarchical α] : State α → State α → Type
   | single : (s₁ ↓ᵢ s₂) → TC s₁ s₂
   | trans  : (s₁ ↓ᵢ s₂) → (TC s₂ s₃) → TC s₁ s₃
 
 notation s₁:max " ↓ᵢ+ " s₂:max => Step.TC s₁ s₂
 
-structure Closed [Indexable α] (s₁ s₂ : State α) where
+structure Closed [Hierarchical α] (s₁ s₂ : State α) where
   exec   : s₁ ↓ᵢ+ s₂ 
   closed : s₂.Closed
 
@@ -26,7 +26,7 @@ notation s₁:max " ↓ᵢ| " s₂:max => Closed s₁ s₂
 
 namespace Step
 
-variable [Indexable α] {s₁ s₂ : State α}
+variable [Hierarchical α] {s₁ s₂ : State α}
 
 instance : Coe (s₁ ↓ₛ s₂) (Step s₁ s₂) where
   coe := Step.skip
@@ -177,7 +177,7 @@ end Step
 
 namespace Step.TC
 
-variable [Indexable α] {s₁ s₂ : State α} {rcn : ID}
+variable [Hierarchical α] {s₁ s₂ : State α} {rcn : ID}
 
 def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List ID 
   | single e => [e.rcn]
@@ -361,7 +361,7 @@ end Step.TC
 
 namespace Closed
 
-variable [Indexable α] {s s₁ s₂ : State α}
+variable [Hierarchical α] {s s₁ s₂ : State α}
 
 abbrev rcns (e : s₁ ↓ᵢ| s₂) : List ID :=
   e.exec.rcns

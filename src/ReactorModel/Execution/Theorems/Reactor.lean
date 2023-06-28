@@ -3,7 +3,7 @@ import ReactorModel.Execution.Theorems.Dependency
 
 namespace Reactor
 
-variable [Indexable α]
+variable [Hierarchical α]
 
 theorem dependencies_subset (rtr : α) (rcn : ID) : dependencies rtr rcn ⊆ rtr[.rcn].ids := 
   fun _ d => d.mem₁

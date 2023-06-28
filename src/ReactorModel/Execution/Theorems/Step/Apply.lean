@@ -6,7 +6,7 @@ open Classical Reactor Execution State
 
 namespace Execution.Step.Apply
 
-variable [Indexable α] {s s₁ s₁' s₂ s₂' s₁₂ s₂₁ : State α} {c : Change}
+variable [Hierarchical α] {s s₁ s₁' s₂ s₂' s₁₂ s₂₁ : State α} {c : Change}
 
 theorem preserves_tag (e : s₁ -[c]→ s₂) : s₁.tag = s₂.tag := by
   cases e <;> simp [schedule_preserves_tag]
@@ -89,7 +89,7 @@ end Execution.Step.Apply
 
 namespace Execution.Step.Apply.RTC
 
-variable [Indexable α] {s₁ : State α} {out : Reaction.Output}
+variable [Hierarchical α] {s₁ : State α} {out : Reaction.Output}
 
 theorem preserves_tag (e : s₁ -[out]→ s₂) : s₁.tag = s₂.tag := by 
   induction e

@@ -2,7 +2,7 @@ import ReactorModel.Execution.State
 
 open Classical Reactor Execution State
 
-variable [Indexable α]
+variable [Hierarchical α]
 
 namespace Execution
 namespace Step 

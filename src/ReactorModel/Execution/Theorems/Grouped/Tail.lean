@@ -5,13 +5,13 @@ open Reactor
 
 namespace Execution.Grouped
 
-inductive Tail [Indexable α] : State α → State α → Type
+inductive Tail [Hierarchical α] : State α → State α → Type
   | none : Tail s s
   | some : (s₁ ↓ᵢ+ s₂) → Tail s₁ s₂
 
 namespace Tail
 
-variable [Indexable α] {s₁ s₂ : State α}
+variable [Hierarchical α] {s₁ s₂ : State α}
 
 theorem preserves_tag  : (Tail s₁ s₂) → s₁.tag = s₂.tag
   | none => rfl

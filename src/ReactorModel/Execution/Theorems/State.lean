@@ -6,7 +6,7 @@ open Classical Reactor
 
 namespace Execution.State
 
-variable [Indexable α] {s s₁ s₂ : State α}
+variable [Hierarchical α] {s s₁ s₂ : State α}
 
 theorem input_congr (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
     s₁.input i = s₂.input i := by

@@ -55,7 +55,7 @@ def object {rtr : α} : (Member cpt i rtr) → cpt.type α
 end Member
 
 -- The relation lifts the notion of a member having an objects to the notion of an identified 
--- component having an object. When `α` is `Indexable` there exists at most one objects for any 
+-- component having an object. When `α` is `Hierarchical` there exists at most one objects for any 
 -- given identified component. 
 inductive Object [Reactor α] (rtr : α) (cpt : Component) (i : cpt.idType) : cpt.type α → Prop
   | intro (m : Member cpt i rtr) : Object rtr cpt i m.object

@@ -1,5 +1,5 @@
 import ReactorModel.Objects.Reactor.Extensional
-import ReactorModel.Objects.Reactor.Indexable
+import ReactorModel.Objects.Reactor.Hierarchical
 import ReactorModel.Objects.Reactor.WellFounded
 import ReactorModel.Objects.Reactor.Updatable
 
@@ -31,7 +31,7 @@ end Wellformed
 
 open Wellformed
 
-structure Wellformed [idx : Indexable α] (rtr : α) : Prop where
+structure Wellformed [idx : Hierarchical α] (rtr : α) : Prop where
   unique_inputs : (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → 
                   (⟨.inp, i⟩ ∈ rcn₁.deps .out) → (⟨.inp, i⟩ ∉ rcn₂.deps .out)  
   ordered_prio  : (rtr[.rtr][i] = some con) → (con{.rcn}{i₁} = some rcn₁) → 
@@ -40,7 +40,7 @@ structure Wellformed [idx : Indexable α] (rtr : α) : Prop where
   valid_deps    : (rtr[.rtr][i] = some con) → (con{.rcn}{j} = some rcn) → (d ∈ rcn.deps k) → 
                   (ValidDependency con rcn.kind k d) 
 
-class Proper (α) extends Extensional α, Indexable α, WellFounded α, LawfulUpdatable α where
-  wellformed : ∀ rtr : α, Wellformed rtr (idx := toIndexable)
+class Proper (α) extends Extensional α, Hierarchical α, WellFounded α, LawfulUpdatable α where
+  wellformed : ∀ rtr : α, Wellformed rtr (idx := toHierarchical)
 
 end Reactor

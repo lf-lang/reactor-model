@@ -6,7 +6,7 @@ open Reactor
 
 namespace Execution
 
-structure Grouped [Indexable α] (s₁ s₂ : State α) where
+structure Grouped [Hierarchical α] (s₁ s₂ : State α) where
   {tl   : State α}
   steps : Grouped.Steps s₁ tl
   tail  : Grouped.Tail  tl s₂
@@ -42,7 +42,7 @@ theorem Grouped.deterministic [Proper α] {s s₁ s₂ : State α}
     case refl.step.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
     case step.refl.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
 
-theorem to_grouped [Indexable α] {s₁ s₂ : State α} (n : s₁.Nontrivial) (e : s₁ ⇓ s₂) : 
+theorem to_grouped [Hierarchical α] {s₁ s₂ : State α} (n : s₁.Nontrivial) (e : s₁ ⇓ s₂) : 
     Nonempty (Grouped s₁ s₂) := by
   induction e <;> try cases ‹_ ↓ _›  
   case refl => exact ⟨.refl, .none⟩ 

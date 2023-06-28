@@ -1,9 +1,9 @@
-import ReactorModel.Objects.Reactor.Theorems.Indexable
+import ReactorModel.Objects.Reactor.Theorems.Hierarchical
 import ReactorModel.Objects.Reactor.Theorems.Extensional
 
 namespace Reactor
 
-class Readable (α) extends Indexable α, Extensional α  
+class Readable (α) extends Hierarchical α, Extensional α  
 
 variable [Readable α] {rtr rtr₁ : α}
 
