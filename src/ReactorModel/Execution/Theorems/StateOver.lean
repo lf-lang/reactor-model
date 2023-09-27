@@ -67,17 +67,17 @@ theorem forcing_not_closed (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Closed 
 theorem forcing_not_terminal (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Terminal :=
   State.Terminal.not_of_not_closed $ State.Over.forcing_not_closed h
 
-theorem forcing_not_time_step {s : State α} (e : (forcing rtr rcn) ↓ₜ s) (h : rcn ∈ rtr[.rcn]) : 
+theorem forcing_not_time_step {s : State α} (e : (forcing rtr rcn) ↓ᵗ s) (h : rcn ∈ rtr[.rcn]) : 
     False := 
   absurd e.closed $ forcing_not_closed h
 
-theorem forcing_skip_step_rcn_eq {s : State α} (e : (forcing rtr rcn) ↓ₛ s) : 
+theorem forcing_skip_step_rcn_eq {s : State α} (e : (forcing rtr rcn) ↓ˢ s) : 
     e.rcn = rcn := by
   have h := e.allows_rcn.unprocessed
   simp [forcing] at h
   exact h e.allows_rcn.mem
 
-theorem forcing_exec_step_rcn_eq {s : State α} (e : (forcing rtr rcn) ↓ₑ s) :
+theorem forcing_exec_step_rcn_eq {s : State α} (e : (forcing rtr rcn) ↓ᵉ s) :
     e.rcn = rcn := by
   have h := e.allows_rcn.unprocessed
   simp [forcing] at h

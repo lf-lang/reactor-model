@@ -7,7 +7,7 @@ namespace Execution.Grouped
 
 inductive Step [Hierarchical α] (s₁ s₂ : State α)
   | inst : (s₁ ↓ᵢ| s₂) → Step s₁ s₂
-  | time : (s₁ ↓ₜ s₂) → Step s₁ s₂
+  | time : (s₁ ↓ᵗ s₂) → Step s₁ s₂
 
 namespace Step
 
@@ -16,7 +16,7 @@ variable [Hierarchical α] {s₁ s₂ : State α}
 instance : Coe (s₁ ↓ᵢ| s₂) (Step s₁ s₂) where
   coe := inst
 
-instance : Coe (s₁ ↓ₜ s₂) (Step s₁ s₂) where
+instance : Coe (s₁ ↓ᵗ s₂) (Step s₁ s₂) where
   coe := time
 
 theorem tag_le : (Step s₁ s₂) → s₁.tag ≤ s₂.tag

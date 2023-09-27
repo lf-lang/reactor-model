@@ -1,6 +1,6 @@
 import ReactorModel.Execution.Theorems.Step.Skip
 import ReactorModel.Execution.Theorems.Step.Exec
-import ReactorModel.Execution.Theorems.Step.Time
+import ReactorModel.Execution.Theorems.Step.Tag
 
 open Reactor Classical
 
@@ -25,27 +25,27 @@ end State.Trivial
 
 namespace Step
 
-theorem Skip.not_trivial (e : s₁ ↓ₛ s₂) : ¬s₁.Trivial := by
+theorem Skip.not_trivial (e : s₁ ↓ˢ s₂) : ¬s₁.Trivial := by
   by_contra ht
   simp [State.Trivial, Partial.empty_iff] at ht
   cases (Partial.mem_iff.mp e.allows_rcn.mem).choose_spec ▸ ht e.rcn  
 
-theorem Exec.not_trivial (e : s₁ ↓ₑ s₂) : ¬s₁.Trivial := by
+theorem Exec.not_trivial (e : s₁ ↓ᵉ s₂) : ¬s₁.Trivial := by
   by_contra ht
   simp [State.Trivial, Partial.empty_iff] at ht
   cases (Partial.mem_iff.mp e.allows_rcn.mem).choose_spec ▸ ht e.rcn  
 
-theorem Time.preserves_trivial (triv : s₁.Trivial) (a : s₁ ↓ₜ s₂) : s₂.Trivial :=
+theorem Tag.preserves_trivial (triv : s₁.Trivial) (a : s₁ ↓ᵗ s₂) : s₂.Trivial :=
   triv.equiv a.equiv
 
 end Step
 end
 
-namespace Step.Time
+namespace Step.Tag
 
 inductive RTC : State α → State α → Prop
   | refl : RTC s s
-  | trans : (s₁ ↓ₜ s₂) → (RTC s₂ s₃) → RTC s₁ s₃   
+  | trans : (s₁ ↓ᵗ s₂) → (RTC s₂ s₃) → RTC s₁ s₃   
 
 theorem RTC.tag_le {s₁ s₂ : State α} (e : RTC s₁ s₂) : s₁.tag ≤ s₂.tag := by
   induction e with
@@ -60,11 +60,11 @@ theorem RTC.deterministic {s s₁ s₂ : State α}
   case trans.refl e e' _ => exact absurd ht.symm (ne_of_lt $ lt_of_lt_of_le e.tag_lt e'.tag_le)
   case trans.trans e₁ e₁' hi _ e₂ e₂' => exact hi ht (e₂.deterministic e₁ ▸ e₂')
   
-end Step.Time
+end Step.Tag
 
 variable {s s₁ s₂ : State α} 
 
-theorem to_timeStepRTC (triv : s₁.Trivial) (e : s₁ ⇓ s₂) : Step.Time.RTC s₁ s₂ := by
+theorem to_timeStepRTC (triv : s₁.Trivial) (e : s₁ ↓* s₂) : Step.Tag.RTC s₁ s₂ := by
   induction e <;> try cases ‹_ ↓ _›
   case refl            => exact .refl  
   case trans.skip e    => exact absurd triv e.not_trivial
@@ -72,7 +72,7 @@ theorem to_timeStepRTC (triv : s₁.Trivial) (e : s₁ ⇓ s₂) : Step.Time.RTC
   case trans.time hi e => exact .trans e (hi $ e.preserves_trivial triv)
 
 theorem trivial_deterministic 
-    (triv : ¬s.Nontrivial) (e₁ : s ⇓ s₁) (e₂ : s ⇓ s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
+    (triv : ¬s.Nontrivial) (e₁ : s ↓* s₁) (e₂ : s ↓* s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
   Step.Time.RTC.deterministic ht
     (e₁.to_timeStepRTC $ .of_not_nontrivial triv) 
     (e₂.to_timeStepRTC $ .of_not_nontrivial triv) 

@@ -8,6 +8,15 @@ namespace Execution.State
 
 variable [Hierarchical α] {s s₁ s₂ : State α}
 
+structure Equivalent (s₁ s₂ : State α) : Prop where
+  rtr      : s₁.rtr = s₂.rtr 
+  tag      : s₁.tag = s₂.tag
+  progress : s₁.progress = s₂.progress
+  events   : s₁.events = s₂.events
+
+instance : HasEquiv (State α) where
+  Equiv := Equivalent
+
 theorem input_congr (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) : 
     s₁.input i = s₂.input i := by
   simp [input, input.restriction, hr, ht]
@@ -22,10 +31,13 @@ theorem record_preserves_rtr (s : State α) (rcn : ID) : (s.record rcn).rtr = s.
 theorem record_preserves_tag (s : State α) (rcn : ID) : (s.record rcn).tag = s.tag := 
   rfl
 
+theorem record_preserves_clock (s : State α) (rcn : ID) : (s.record rcn).clock = s.clock := 
+  rfl
+
 theorem record_preserves_events (s : State α) (rcn : ID) : (s.record rcn).events = s.events := 
   rfl
 
-theorem record_progress_eq (s : State α) (rcn₁ rcn₂ : ID) : 
+theorem record_progress_eq (s : State α) (rcn : ID) : 
     (s.record rcn).progress = s.progress.insert rcn := 
   rfl
 
@@ -38,12 +50,31 @@ theorem record_comm {s : State α} {rcn₁ rcn₂ : ID} :
   simp [record]
   apply Set.insert_comm 
 
+theorem at_preserves_rtr (s : State α) (t : Time) : (s.at t).rtr = s.rtr := 
+  rfl
+
+theorem at_preserves_tag (s : State α) (t : Time) : (s.at t).tag = s.tag := 
+  rfl
+
+theorem at_preserves_progress (s : State α) (t : Time) : (s.at t).progress = s.progress := 
+  rfl
+
+theorem at_preserves_events (s : State α) (t : Time) : (s.at t).events = s.events := 
+  rfl
+
+theorem at_clock_eq (s : State α) (t : Time) : (s.at t).clock = t := 
+  rfl
+
 theorem schedule_preserves_rtr (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : 
     (s.schedule cpt i t v).rtr = s.rtr := 
   rfl
 
 theorem schedule_preserves_tag (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : 
     (s.schedule cpt i t v).tag = s.tag := 
+  rfl
+
+theorem schedule_preserves_clock (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : 
+    (s.schedule cpt i t v).clock = s.clock := 
   rfl
 
 theorem schedule_preserves_progress (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : 
@@ -56,9 +87,11 @@ theorem schedule_events_congr {s₁ s₂ : State α} {cpt : Component} {i : ID} 
 
 theorem schedule_ne_comm {s : State α}  (h : i₁ ≠ i₂) : 
     (s.schedule cpt₁ i₁ t₁ v₁).schedule cpt₂ i₂ t₂ v₂ = 
-    (s.schedule cpt₂ i₂ t₂ v₂).schedule cpt₂ i₁ t₁ v₁ := by
+    (s.schedule cpt₂ i₂ t₂ v₂).schedule cpt₁ i₁ t₁ v₁ := by
   simp [schedule]
-  -- sorry -- apply Partial.update_ne_comm _ h
+  funext c
+  split <;> split <;> simp_all
+  apply Partial.update_ne_comm _ h  
 
 theorem Allows.«def» : 
     (s.Allows i) ↔ (i ∈ s.rtr[.rcn]) ∧ (dependencies s.rtr i ⊆ s.progress) ∧ (i ∉ s.progress) where
@@ -92,6 +125,10 @@ theorem Allows.iff_record_indep (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ �
     · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left (hi.left $ · ▸ d)
     · exact not_or.mp (Set.mem_insert_iff.not.mp hp) |>.right
 
+theorem Allows.iff_at : s.Allows i ↔ (s.at t).Allows i := by
+  apply Allows.congr <;> simp [at_preserves_rtr, at_preserves_progress]
+  apply Equivalent.refl
+
 theorem Triggers.def {s : State α} : 
     (s.Triggers i) ↔ (∃ rcn, (s.rtr[.rcn][i] = some rcn) ∧ rcn.TriggersOn (s.input i)) where
   mp  := fun ⟨mem, triggers⟩ => ⟨_, mem, triggers⟩   
@@ -103,6 +140,9 @@ theorem Triggers.congr {s₁ s₂ : State α}
   simp [Triggers.def, hr, input_congr hr ht]   
 
 theorem Triggers.iff_record : s.Triggers i₂ ↔ (s.record i₁).Triggers i₂ :=
+  Triggers.congr
+
+theorem Triggers.iff_at : s.Triggers i ↔ (s.at t).Triggers i :=
   Triggers.congr
 
 theorem NextTag.isLeast {s : State α} (n : NextTag s g) : 

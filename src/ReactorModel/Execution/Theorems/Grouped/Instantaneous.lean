@@ -1,14 +1,14 @@
 import ReactorModel.Execution.Theorems.Step.Skip
 import ReactorModel.Execution.Theorems.Step.Exec
-import ReactorModel.Execution.Theorems.Step.Time
+import ReactorModel.Execution.Theorems.Step.Tag
 
 open Classical Reactor
 
 namespace Execution.Instantaneous
 
 inductive Step [Hierarchical α] (s₁ s₂ : State α)
-  | skip (s : s₁ ↓ₛ s₂)
-  | exec (e : s₁ ↓ₑ s₂)
+  | skip (s : s₁ ↓ˢ s₂)
+  | exec (e : s₁ ↓ᵉ s₂)
 
 notation s₁:max " ↓ᵢ " s₂:max => Step s₁ s₂
 
@@ -28,10 +28,10 @@ namespace Step
 
 variable [Hierarchical α] {s₁ s₂ : State α}
 
-instance : Coe (s₁ ↓ₛ s₂) (Step s₁ s₂) where
+instance : Coe (s₁ ↓ˢ s₂) (Step s₁ s₂) where
   coe := Step.skip
 
-instance : Coe (s₁ ↓ₑ s₂) (Step s₁ s₂) where
+instance : Coe (s₁ ↓ᵉ s₂) (Step s₁ s₂) where
   coe := Step.exec
   
 def rcn : (s₁ ↓ᵢ s₂) → ID 
@@ -89,8 +89,8 @@ theorem Step.deterministic [Readable α] {s s₁ s₂ : State α}
   case skip.skip e₁ e₂ => simp [e₁.dst_eq, e₂.dst_eq, h]
   case exec.exec e₁ e₂ => simp [e₁.dst_eq, e₂.dst_eq, h, e₁.apply.deterministic (h.symm ▸ e₂.apply)]
   all_goals
-    have := ‹_ ↓ₛ _›.not_triggers_rcn
-    have := ‹_ ↓ₑ _›.triggers_rcn
+    have := ‹_ ↓ˢ _›.not_triggers_rcn
+    have := ‹_ ↓ᵉ _›.triggers_rcn
     simp_all
 
 namespace Step
@@ -109,11 +109,11 @@ theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : 
     have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
     have ht₁ := e₁.triggers_iff.not.mpr e₂.not_triggers_rcn
     let s₂' := s₁.record e₂.rcn
-    let f₁ : s₁ ↓ₛ s₂' := ⟨ha₁, ht₁⟩ 
+    let f₁ : s₁ ↓ˢ s₂' := ⟨ha₁, ht₁⟩ 
     have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
     have ht₂ := f₁.triggers_iff.not.mp e₁.not_triggers_rcn
     let s₃' := s₂'.record e₁.rcn
-    let f₂ : s₂' ↓ₛ s₃' := ⟨ha₂, ht₂⟩ 
+    let f₂ : s₂' ↓ˢ s₃' := ⟨ha₂, ht₂⟩ 
     refine ⟨_, _, .skip f₁, .skip f₂, rfl, rfl, ?_⟩
     exact Step.Skip.comm e₁ e₂ f₁ f₂ rfl rfl |>.symm
   case skip.exec e₁ e₂ =>
@@ -121,11 +121,11 @@ theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : 
     have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
     have ht₁ := e₁.triggers_iff.mpr e₂.triggers_rcn
     let s₂' := z₂.record e₂.rcn
-    let f₁ : s₁ ↓ₑ s₂' := ⟨ha₁, ht₁, a₁⟩ 
+    let f₁ : s₁ ↓ᵉ s₂' := ⟨ha₁, ht₁, a₁⟩ 
     have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
     have ht₂ := f₁.indep_triggers_iff h |>.not.mp e₁.not_triggers_rcn
     let s₃' := s₂'.record e₁.rcn
-    let f₂ : s₂' ↓ₛ s₃' := ⟨ha₂, ht₂⟩ 
+    let f₂ : s₂' ↓ˢ s₃' := ⟨ha₂, ht₂⟩ 
     refine ⟨_, _, .exec f₁, .skip f₂, rfl, rfl, ?_⟩
     --
     simp [e₂.dst_eq]
@@ -138,12 +138,12 @@ theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : 
     have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
     have ht₁ := e₁.indep_triggers_iff h.symm |>.not.mpr e₂.not_triggers_rcn
     let s₂' := s₁.record e₂.rcn
-    let f₁ : s₁ ↓ₛ s₂' := ⟨ha₁, ht₁⟩ 
+    let f₁ : s₁ ↓ˢ s₂' := ⟨ha₁, ht₁⟩ 
     have ⟨z₃, a₂⟩ := Step.Apply.RTC.construct s₂' (s₂'.output e₁.rcn)
     have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
     have ht₂ := f₁.triggers_iff.mp e₁.triggers_rcn
     let s₃' := z₃.record e₁.rcn
-    let f₂ : s₂' ↓ₑ s₃' := ⟨ha₂, ht₂, a₂⟩ 
+    let f₂ : s₂' ↓ᵉ s₃' := ⟨ha₂, ht₂, a₂⟩ 
     refine ⟨_, _, .skip f₁, .exec f₂, rfl, rfl, ?_⟩
     --
     simp [e₂.dst_eq, e₁.dst_eq]
@@ -158,12 +158,12 @@ theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : 
     have ha₁ := e₁.indep_allows_iff h.symm |>.mpr e₂.allows_rcn
     have ht₁ := e₁.indep_triggers_iff h.symm |>.mpr e₂.triggers_rcn
     let s₂' := z₂.record e₂.rcn
-    let f₁ : s₁ ↓ₑ s₂' := ⟨ha₁, ht₁, a₁⟩ 
+    let f₁ : s₁ ↓ᵉ s₂' := ⟨ha₁, ht₁, a₁⟩ 
     have ⟨z₃, a₂⟩ := Step.Apply.RTC.construct s₂' (s₂'.output e₁.rcn)
     have ha₂ := f₁.indep_allows_iff h |>.mp e₁.allows_rcn
     have ht₂ := f₁.indep_triggers_iff h |>.mp e₁.triggers_rcn
     let s₃' := z₃.record e₁.rcn
-    let f₂ : s₂' ↓ₑ s₃' := ⟨ha₂, ht₂, a₂⟩ 
+    let f₂ : s₂' ↓ᵉ s₃' := ⟨ha₂, ht₂, a₂⟩ 
     refine ⟨_, _, .exec f₁, .exec f₂, rfl, rfl, ?_⟩
     exact Step.Exec.indep_comm e₁ e₂ f₁ f₂ rfl rfl h |>.symm
   
@@ -402,7 +402,7 @@ theorem tag_eq (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : s₁.tag = s₂
 theorem progress_eq (e₁ : s ↓ᵢ| s₁) (e₂ : s ↓ᵢ| s₂) : s₁.progress = s₂.progress := by
   simp [e₁.progress_def, e₂.progress_def]
 
-theorem step_determined (e : s ↓ᵢ| s₁) (a : s ↓ₜ s₂) : False :=
+theorem step_determined (e : s ↓ᵢ| s₁) (a : s ↓ᵗ s₂) : False :=
   e.not_closed a.closed
 
 theorem progress_ssubset (e : s₁ ↓ᵢ| s₂) : s₁.progress ⊂ s₂.progress :=

@@ -34,7 +34,7 @@ def «at» (s : State α) (t : Time) : State α :=
   { s with clock := t }
 
 def schedule (s : State α) (cpt : Component) (i : ID) (t : Time) (v : Value) : State α := 
-  { s with events := sorry } --  s.events.update cpt (·.update i (go · t v)) }
+  { s with events := fun c => if c = cpt then (s.events cpt).update i (go · t v) else s.events c }
 where 
   go (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
     match a.keys.filter (·.time = t) |>.max with

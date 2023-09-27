@@ -11,6 +11,9 @@ variable [Hierarchical α] {s s₁ s₁' s₂ s₂' s₁₂ s₂₁ : State α} 
 theorem preserves_tag (e : s₁ -[c]→ s₂) : s₁.tag = s₂.tag := by
   cases e <;> simp [schedule_preserves_tag]
 
+theorem preserves_clock (e : s₁ -[c]→ s₂) : s₁.clock = s₂.clock := by
+  cases e <;> simp [schedule_preserves_clock]
+
 theorem preserves_progress (e : s₁ -[c]→ s₂) : s₁.progress = s₂.progress := by 
   cases e <;> simp [schedule_preserves_progress]
 
@@ -48,6 +51,7 @@ theorem comm_record (e₁ : s -[c]→ s₁) (e₂ : (s.record rcn) -[c]→ s₂)
   ext1
   case rtr      => exact e₁.rtr_congr e₂ (s.record_preserves_rtr rcn)
   case tag      => simp [record_preserves_tag, ←e₁.preserves_tag, ←e₂.preserves_tag]
+  case clock    => simp [record_preserves_clock, ←e₁.preserves_clock, ←e₂.preserves_clock]
   case progress => simp [record_progress_eq, ←e₂.preserves_progress, e₁.preserves_progress]
   case events   => exact e₁.events_congr e₂ (s.record_preserves_events rcn)
 
@@ -82,7 +86,7 @@ def construct (s : State α) : (c : Change) → (s' : State α) × (s -[c]→ s'
   | .inp i v   => ⟨{ s with rtr := update s.rtr .inp i v }, inp $ LawfulUpdatable.lawful ..⟩ 
   | .out i v   => ⟨{ s with rtr := update s.rtr .out i v }, out $ LawfulUpdatable.lawful ..⟩ 
   | .stv i v   => ⟨{ s with rtr := update s.rtr .stv i v }, stv $ LawfulUpdatable.lawful ..⟩ 
-  | .act i t v => ⟨s.schedule i t v, act⟩  
+  | .act i t v => ⟨s.schedule .log i t v, act⟩  
   | .mut _     => ⟨s, «mut»⟩
 
 end Execution.Step.Apply
