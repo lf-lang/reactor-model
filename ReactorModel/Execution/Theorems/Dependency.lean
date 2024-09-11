@@ -147,14 +147,14 @@ theorem no_shared_state_deps [Proper α] {rtr : α}
 end Independent
 
 -- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
-def Minimal [Hierarchical α] (rtr : α) (rcns : List ID) (rcn : ID) : Prop :=
+def MinimalReaction [Hierarchical α] (rtr : α) (rcns : List ID) (rcn : ID) : Prop :=
   ∀ i ∈ rcns, i ≮[rtr] rcn
 
-namespace Minimal
+namespace MinimalReaction
 
 variable [Hierarchical α] {rtr rtr₁ rtr₂ : α}
 
-notation:50 rcns " ≮[" rtr "] " rcn => Minimal rtr rcns rcn
+notation:50 rcns " ≮[" rtr "] " rcn => MinimalReaction rtr rcns rcn
 
 theorem cons_head (m : (hd :: tl) ≮[rtr] rcn) : hd ≮[rtr] rcn :=
   m hd $ List.mem_cons_self _ _
@@ -168,4 +168,4 @@ theorem perm {rcns : List ID} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns'
 theorem equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (e : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
   fun i h d => absurd (d.equiv e) (m i h)
 
-end Minimal
+end MinimalReaction

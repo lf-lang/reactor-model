@@ -6,7 +6,7 @@ open Reactor Classical
 
 namespace Execution.State.Over
 
-variable [Hierarchical α] [Reactor.Finite α] {rtr rtr₁ : α} {s : State.Over rtr}
+variable [Hierarchical α] {rtr rtr₁ : α} {s : State.Over rtr}
 
 theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[.rcn].ids :=
   Set.ssubset_iff_subset_ne.mpr ⟨s.progress_sub, hc⟩
@@ -14,6 +14,8 @@ theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[
 theorem exists_unprocessed_of_not_closed (hc : ¬s.Closed) : ∃ i ∈ s.rtr[.rcn], i ∉ s.progress := by
   have ⟨i, _, _⟩ := Set.exists_of_ssubset $ s.progress_ssubset_of_not_closed hc
   exists i
+
+variable [Reactor.Finite α]
 
 theorem exists_allowed_of_acyclic_has_unprocessed
     (a : Dependency.Acyclic rtr) (h₁ : i ∈ s.rtr[.rcn]) (h₂ : i ∉ s.progress) : ∃ i, s.Allows i :=
@@ -59,6 +61,7 @@ def forcing (rtr : α) (rcn : ID) : State.Over rtr where
   events_sub := by simp [Partial.empty_ids]
 
 variable {rtr : α} {rcn : ID}
+omit [Reactor.Finite α]
 
 theorem forcing_not_closed (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Closed := by
   simp [State.Closed, forcing]

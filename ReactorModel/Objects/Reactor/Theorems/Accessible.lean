@@ -42,6 +42,7 @@ where
       | none   => go rtr cpt vs tl
       | some v => go (Updatable.update rtr cpt hd v) cpt vs tl
 
+omit [Finite α] in
 theorem set.go_equiv : rtr ≈ set.go rtr cpt vs ids := by
   induction ids generalizing rtr <;> simp [go]
   case nil     => exact .refl _
@@ -53,12 +54,13 @@ theorem set.go_equiv : rtr ≈ set.go rtr cpt vs ids := by
 theorem set_equiv : rtr ≈ set rtr cpt vs :=
   set.go_equiv
 
+omit [Finite α] in
 theorem set.go_preserves {c : Component.Valued} {o vs}
     (ho : rtr[c][i] = some o) (h : c ≠ cpt ∨ i ∉ ids ∨ vs i = none) :
     (set.go rtr cpt vs ids)[c][i] = some o := by
   induction ids generalizing rtr o <;> simp_all [go]; split <;> cases h <;> try cases ‹_ ∨ _›
   case _ hi _ _ h => exact hi ho $ .inl h
-  case _ hi _ _ h => exact hi ho $ .inr $ .inl (not_or.mp h).right
+  case _ hi _ _ h => exact hi ho $ .inr $ .inl h.right
   case _ hi _ _ h => exact hi ho $ .inr $ .inr h
   case inl hd tl hi _ v _ h =>
     have e := @LawfulUpdatable.equiv _ cpt ‹_› v _ rtr
@@ -76,6 +78,7 @@ theorem set.go_preserves {c : Component.Valued} {o vs}
     have ho' := ho ▸ (@LawfulUpdatable.lawful _ _ rtr cpt hd v).obj?_preserved (c := c) (.inr hh)
     exact hi ho' (.inr $ .inr h)
 
+omit [Finite α] in
 theorem set.go_updated {cpt : Component.Valued} {o vs}
     (ho : rtr[cpt][i] = some o) (hv : vs i = some v) (h : i ∈ ids) :
     (set.go rtr cpt vs ids)[cpt][i] = v := by

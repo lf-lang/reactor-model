@@ -27,7 +27,7 @@ namespace Partial
 def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
 instance : Membership α (α ⇀ β) where
-  mem a f := a ∈ f.ids
+  mem f a := a ∈ f.ids
 
 theorem mem_def {f : α ⇀ β} : (a ∈ f) ↔ (a ∈ f.ids) := by
   rfl
@@ -137,8 +137,8 @@ theorem const_eq_map_const (f : α ⇀ β) (b : b) : f.map (fun _ => b) = const 
   ext1 a
   simp [const, map_val, ids]
   split <;> simp [Option.map]
-  case inl h => have ⟨_, h⟩ := h; simp [h]
-  case inr h =>
+  case isTrue h => have ⟨_, h⟩ := h; simp [h]
+  case isFalse h =>
     cases hb : f a <;> simp
     case some b => push_neg at h; have := hb ▸ h b; contradiction
 
