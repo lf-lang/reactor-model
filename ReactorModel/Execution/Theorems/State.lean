@@ -69,7 +69,7 @@ theorem Allows.«def» :
   mpr := fun ⟨mem, deps, unprocessed⟩ => ⟨mem, deps, unprocessed⟩
 
 theorem Allows.acyclic (a : s.Allows rcn) : ¬(rcn <[s.rtr] rcn) :=
-  (a.unprocessed $ a.deps ·)
+  (a.unprocessed <| a.deps ·)
 
 theorem Allows.congr {s₁ s₂ : State α}
     (hr : s₁.rtr ≈ s₂.rtr) (hp : s₁.progress = s₂.progress := by rfl) :
@@ -88,11 +88,11 @@ theorem Allows.iff_record_indep (hi : i₁ ≮[s.rtr]≯ i₂) : s.Allows i₂ �
   constructor <;> intro ⟨hd, hp⟩
   case mp =>
     constructor
-    · exact hd.trans $ Set.subset_insert i₁ s.progress
-    · exact Set.mem_insert_iff.not.mpr $ not_or.mpr ⟨hi.not_eq.symm, hp⟩
+    · exact hd.trans <| Set.subset_insert i₁ s.progress
+    · exact Set.mem_insert_iff.not.mpr <| not_or.mpr ⟨hi.not_eq.symm, hp⟩
   case mpr =>
     constructor
-    · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left (hi.left $ · ▸ d)
+    · exact fun _ d => Set.mem_insert_iff.mp (hd d) |>.resolve_left (hi.left <| · ▸ d)
     · exact not_or.mp (Set.mem_insert_iff.not.mp hp) |>.right
 
 theorem Triggers.def {s : State α} :
@@ -154,7 +154,7 @@ theorem target_not_mem_indep_output
     case stv =>
       exact hi.no_shared_state_deps h₁ h₂ hc
     all_goals
-      exact hi.left.deps_disjoint h₁ h₂ (rcn₁.target_mem_deps hc) $ by simp [Change.Normal.target]
+      exact hi.left.deps_disjoint h₁ h₂ (rcn₁.target_mem_deps hc) <| by simp [Change.Normal.target]
 
 theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
     Disjoint (s.output i₁).targets (s.output i₂).targets := by

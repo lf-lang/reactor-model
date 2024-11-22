@@ -72,16 +72,16 @@ theorem ne_target_comm (ht : c₁.target ≠ c₂.target ∨ c₁.target = none)
   case act.stv.stv.act u₁ _ u₂       => cases LawfulUpdate.unique u₁ u₂; rfl
   all_goals
     try exact LawfulUpdate.unique ‹_› ‹_›
-    try case _ u₁ _ _ _ u₂ _ u₃ _ u₄ => exact LawfulUpdate.ne_comm u₁ u₂ u₃ u₄ $ by simp [ht]
+    try case _ u₁ _ _ _ u₂ _ u₃ _ u₄ => exact LawfulUpdate.ne_comm u₁ u₂ u₃ u₄ <| by simp [ht]
 
 -- TODO: Formalize this a bit nicer. Add an `apply` function to `State` when `Proper α`.
 --       Also, this doesn't actually require `Proper` does it? If you trim down the requirements,
 --       this could have implications on the generality of the progress theorem.
 open Updatable in
 def construct (s : State α) : (c : Change) → (s' : State α) × (s -[c]→ s')
-  | .inp i v   => ⟨{ s with rtr := update s.rtr .inp i v }, inp $ LawfulUpdatable.lawful ..⟩
-  | .out i v   => ⟨{ s with rtr := update s.rtr .out i v }, out $ LawfulUpdatable.lawful ..⟩
-  | .stv i v   => ⟨{ s with rtr := update s.rtr .stv i v }, stv $ LawfulUpdatable.lawful ..⟩
+  | .inp i v   => ⟨{ s with rtr := update s.rtr .inp i v }, inp <| LawfulUpdatable.lawful ..⟩
+  | .out i v   => ⟨{ s with rtr := update s.rtr .out i v }, out <| LawfulUpdatable.lawful ..⟩
+  | .stv i v   => ⟨{ s with rtr := update s.rtr .stv i v }, stv <| LawfulUpdatable.lawful ..⟩
   | .act i t v => ⟨s.schedule i t v, act⟩
   | .mut _     => ⟨s, «mut»⟩
 
@@ -132,12 +132,12 @@ variable [Readable α] {s s₁ s₂ : State α} {out : Reaction.Output}
 theorem comm_record (e₁ : s -[out]→ s₁) (e₂ : (s.record rcn) -[out]→ s₂) : s₁.record rcn = s₂ := by
   induction e₁ <;> cases e₂
   case refl.refl => rfl
-  case trans.trans e₁ _ hi _ e₂ e₂' => exact hi $ (e₁.comm_record e₂).symm ▸ e₂'
+  case trans.trans e₁ _ hi _ e₂ e₂' => exact hi <| (e₁.comm_record e₂).symm ▸ e₂'
 
 theorem deterministic (e₁ : s -[out]→ s₁) (e₂ : s -[out]→ s₂) : s₁ = s₂ := by
   induction e₁ generalizing s₂ <;> cases e₂
   case refl.refl => rfl
-  case trans.trans e₁ _ hi _ e₂ e₂' => exact hi $ (e₁.deterministic e₂) ▸ e₂'
+  case trans.trans e₁ _ hi _ e₂ e₂' => exact hi <| (e₁.deterministic e₂) ▸ e₂'
 
 end Execution.Step.Apply.RTC
 
@@ -159,10 +159,10 @@ theorem ne_targets_comm_apply
       by_contra hc
       push_neg at hc
       have ⟨_, h⟩ := Option.ne_none_iff_exists.mp hc.right
-      exact ht (hc.left ▸ h.symm) $ Reaction.Output.target_mem_targets (by simp) h.symm
+      exact ht (hc.left ▸ h.symm) <| Reaction.Output.target_mem_targets (by simp) h.symm
     have ⟨_, e'⟩ := Apply.construct s' c
     cases Apply.ne_target_comm h eₒ e' e₁ e₁ₒ
-    exact hi (ht · $ Reaction.Output.mem_targets_cons ·) ‹_› ‹_› ‹_›
+    exact hi (ht · <| Reaction.Output.mem_targets_cons ·) ‹_› ‹_› ‹_›
 
 theorem disjoint_targets_comm
     (ht : Disjoint out₁.targets out₂.targets) (e₁ : s -[out₁]→ s₁) (e₁₂ : s₁ -[out₂]→ s₁₂)
@@ -173,8 +173,8 @@ theorem disjoint_targets_comm
     have h₁ : ∀ {t}, hd₁.target = some t → ¬t ∈ Reaction.Output.targets (hd₂ :: tl₂) := by
       intro _ h hm₂
       have hm₁ := Reaction.Output.target_mem_targets (out := hd₁ :: tl₁) (by simp) h
-      exact absurd rfl $ Set.disjoint_iff_forall_ne.mp ht hm₁ hm₂
-    have h₂ : Disjoint tl₁.targets $ Reaction.Output.targets (hd₂ :: tl₂) := by
+      exact absurd rfl <| Set.disjoint_iff_forall_ne.mp ht hm₁ hm₂
+    have h₂ : Disjoint tl₁.targets <| Reaction.Output.targets (hd₂ :: tl₂) := by
       simp [Set.disjoint_iff_forall_ne]
       intro _ _ hm₁ _ _ hm₂ h₁ h₂
       subst h₁ h₂

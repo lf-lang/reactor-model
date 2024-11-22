@@ -17,7 +17,7 @@ open Hierarchical Equivalent
 variable [Hierarchical α] {rtr rtr₁ : α}
 
 local macro "equiv_local_proof " dep:ident : term =>
-  `($dep $ mem_get?_iff (obj?_rtr_equiv ‹_› ‹_› ‹_›) |>.mp ‹_›)
+  `($dep <| mem_get?_iff (obj?_rtr_equiv ‹_› ‹_› ‹_›) |>.mp ‹_›)
 
 set_option hygiene false in section
 
@@ -25,7 +25,7 @@ local macro "equiv_nested_proof " dep:ident : term => `(
   fun hc hp =>
     have e        := obj?_rtr_equiv ‹_› h₁ h₂
     have ⟨_, hc'⟩ := get?_some_iff e |>.mp ⟨_, hc⟩
-    $dep hc' $ (mem_get?_iff $ get?_rtr_some_equiv e hc hc').mp hp
+    $dep hc' <| (mem_get?_iff <| get?_rtr_some_equiv e hc hc').mp hp
 )
 
 theorem ValidDependency.equiv
@@ -114,7 +114,7 @@ theorem ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂)
         cases cpt
         case rcn => exact Equivalent.get?_rcn_some_eq e hc₁ hc₂
         case rtr =>
-          apply hi n₁ ⟨_, hc₁⟩ $ Equivalent.get?_rtr_some_equiv e hc₁ hc₂
+          apply hi n₁ ⟨_, hc₁⟩ <| Equivalent.get?_rtr_some_equiv e hc₁ hc₂
           intro c _ _ _ ho₁ ho₂
           exact h (obj?_some_nested hc₁ ho₁) (obj?_some_nested hc₂ ho₂)
         all_goals

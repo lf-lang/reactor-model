@@ -7,13 +7,13 @@ def Nested [Reactor α] (rtr₁ rtr₂ : α) : Prop :=
   ∃ i, rtr₂{.rtr}{i} = some rtr₁
 
 class WellFounded (α) extends Reactor α where
-  wf : WellFounded $ Nested (α := α)
+  wf : _root_.WellFounded <| Nested (α := α)
 
 variable [WellFounded α]
 
-theorem WellFounded.induction {motive : α → Prop} 
-    (nested : ∀ rtr, (∀ n, (∃ i, rtr{.rtr}{i} = some n) → motive n) → motive rtr) : 
-    ∀ rtr, motive rtr := 
+theorem WellFounded.induction {motive : α → Prop}
+    (nested : ∀ rtr, (∀ n, (∃ i, rtr{.rtr}{i} = some n) → motive n) → motive rtr) :
+    ∀ rtr, motive rtr :=
   (wf.induction · nested)
 
 namespace Reactor

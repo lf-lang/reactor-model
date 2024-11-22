@@ -2,7 +2,7 @@ import ReactorModel.Objects.Component
 
 abbrev Component.Valued.changeType : Component.Valued → Type
   | inp | out | stv  => Value
-  | act => Time × Value 
+  | act => Time × Value
 
 namespace Change
 
@@ -23,7 +23,7 @@ end Change
 
 inductive Change
   | norm  : Change.Normal → Change
-  | «mut» : Change.Mutation → Change 
+  | «mut» : Change.Mutation → Change
 
 namespace Change
 
@@ -35,19 +35,19 @@ instance : Coe Change.Mutation Change where
 
 @[match_pattern]
 abbrev inp (i : ID) (v : Value) : Change :=
-  .norm $ { cpt := .inp, id := i, value := v }
+  .norm <| { cpt := .inp, id := i, value := v }
 
 @[match_pattern]
 abbrev out (i : ID) (v : Value) : Change :=
-  .norm $ { cpt := .out, id := i, value := v }
+  .norm <| { cpt := .out, id := i, value := v }
 
 @[match_pattern]
 abbrev stv (i : ID) (v : Value) : Change :=
-  .norm $ { cpt := .stv, id := i, value := v }
+  .norm <| { cpt := .stv, id := i, value := v }
 
 @[match_pattern]
 abbrev act (i : ID) (t : Time) (v : Value) : Change :=
-  .norm $ { cpt := .act, id := i, value := (t, v) }
+  .norm <| { cpt := .act, id := i, value := (t, v) }
 
 inductive Targets : Change → Component.Valued → ID → Prop
   | intro : Targets (norm ⟨cpt, i, v⟩) cpt i
@@ -55,7 +55,7 @@ inductive Targets : Change → Component.Valued → ID → Prop
 theorem Targets.norm_not (h : ¬Targets (norm ⟨c, j, v⟩) cpt i) : cpt ≠ c ∨ i ≠ j := by
   by_contra hc
   simp [not_or] at hc
-  exact hc.left ▸ hc.right ▸ h $ .intro 
+  exact hc.left ▸ hc.right ▸ h <| .intro
 
 def target : Change → Option (Component.Valued × ID)
   | norm ⟨cpt, i, _⟩ => (cpt, i)
@@ -70,7 +70,7 @@ inductive IsMutation : Change → Prop
 inductive IsPort : Change → Prop
   | intro : IsPort (prt ..)
 
-inductive IsAction : Change → Prop 
+inductive IsAction : Change → Prop
   | intro : IsAction (act ..)
 
 end Change

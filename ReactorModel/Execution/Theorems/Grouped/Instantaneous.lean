@@ -64,7 +64,7 @@ theorem rcn_not_mem_progress (e : s₁ ↓ᵢ s₂) : e.rcn ∉ s₁.progress :=
   e.allows_rcn.unprocessed
 
 theorem not_closed (e : s₁ ↓ᵢ s₂) : ¬s₁.Closed :=
-  (· ▸ e.allows_rcn.unprocessed $ e.allows_rcn.mem)
+  (· ▸ e.allows_rcn.unprocessed <| e.allows_rcn.mem)
 
 theorem acyclic (e : s₁ ↓ᵢ s₂) : e.rcn ≮[s₁.rtr] e.rcn :=
   e.allows_rcn.acyclic
@@ -75,7 +75,7 @@ theorem progress_ssubset (e : s₁ ↓ᵢ s₂) : s₁.progress ⊂ s₂.progres
 
 theorem seq_wellordered (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) : e₂.rcn ≮[s₁.rtr] e₁.rcn := by
   by_contra d
-  exact e₂.allows_rcn.unprocessed $ e₁.progress_monotonic $ e₁.allows_rcn.deps d
+  exact e₂.allows_rcn.unprocessed <| e₁.progress_monotonic <| e₁.allows_rcn.deps d
 
 theorem seq_rcn_ne (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) : e₁.rcn ≠ e₂.rcn := by
   by_contra he
@@ -185,7 +185,7 @@ def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List ID
 theorem preserves_nontrivial (n : s₁.Nontrivial) (e : s₁ ↓ᵢ+ s₂) : s₂.Nontrivial := by
   induction e
   case single e     => exact e.preserves_nontrivial n
-  case trans e _ hi => exact hi $ e.preserves_nontrivial n
+  case trans e _ hi => exact hi <| e.preserves_nontrivial n
 
 theorem acyclic (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr] rcn := by
   induction e <;> simp [rcns] at h <;> try cases ‹_ ∨ _›
@@ -195,8 +195,8 @@ theorem acyclic (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ≮[s₁.rtr]
 
 theorem progress_not_mem_rcns (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ s₁.progress) : rcn ∉ e.rcns := by
   induction e <;> simp [rcns]
-  case' trans e e' hi => simp [hi $ e.progress_monotonic h]
-  all_goals exact (Step.rcn_not_mem_progress ‹_› $ · ▸ h)
+  case' trans e e' hi => simp [hi <| e.progress_monotonic h]
+  all_goals exact (Step.rcn_not_mem_progress ‹_› <| · ▸ h)
 
 theorem progress_eq (e : s₁ ↓ᵢ+ s₂) : s₂.progress = s₁.progress ∪ e.rcns := by
   induction e <;> simp [rcns]
@@ -260,8 +260,8 @@ theorem head_minimal (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) : (e.rcn ::
   simp only [MinimalReaction, mem_cons, forall_eq_or_imp, not_and, not_forall, Classical.not_imp,
     Decidable.not_not] at hc
   have ⟨_, hm, h⟩ := hc e.acyclic
-  replace hc := mt e.progress_monotonic $ e'.mem_rcns_not_mem_progress hm
-  exact hc $ e.allows_rcn.deps h
+  replace hc := mt e.progress_monotonic <| e'.mem_rcns_not_mem_progress hm
+  exact hc <| e.allows_rcn.deps h
 
 theorem head_not_mem_tail (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) (h : i ∈ e'.rcns) : e.rcn ≠ i := by
   intro hc
@@ -292,7 +292,7 @@ theorem cons_prepend_minimal
     ∃ f : s₁ ↓ᵢ+ s₃, f.rcns = i :: e.rcn :: (e'.rcns.erase i) := by
   induction e' generalizing s₁ <;> simp [rcns] at *
   case single e' =>
-    have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' $ hm ▸ hr.cons_head
+    have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' <| hm ▸ hr.cons_head
     exists trans f (single f')
     simp [hm, rcns, ←hf₁, ←hf₂]
   case trans s₁ s₂ s₄ e' e'' hi =>
@@ -300,15 +300,15 @@ theorem cons_prepend_minimal
     case inl hm =>
       simp [hm] at hr
       have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' hr.cons_head
-      exists trans f $ trans f' e''
+      exists trans f <| trans f' e''
       simp [hm, rcns, ←hf₁, ←hf₂]
     case inr hm =>
-      have ⟨f, hf⟩ :=  hi e' hm $ hr.cons_tail.equiv e.equiv
+      have ⟨f, hf⟩ :=  hi e' hm <| hr.cons_tail.equiv e.equiv
       cases f <;> simp [rcns] at hf
       case trans f f'' =>
         have ⟨h₁, h₂⟩ := hf
-        have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep f $ h₁.symm ▸ hr |>.cons_head
-        exists trans f $ trans f' f''
+        have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep f <| h₁.symm ▸ hr |>.cons_head
+        exists trans f <| trans f' f''
         have h₃ := e''.rcns.erase_cons_tail <| by
           simp only [beq_iff_eq]; exact head_not_mem_tail e' e'' hm
         simp [rcns, hf₁, h₁, hf₂, h₂, h₃]
@@ -334,7 +334,7 @@ theorem rcns_perm_deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) 
     case single e' => simp [e.deterministic e' hp]
     case trans e'  => exact absurd rfl (hp.right ▸ e'.rcns_ne_nil)
   case trans s sₘ₁ s₁ e₁ e₁' hi =>
-    have hm := hp.mem_iff.mp $ List.mem_cons_self _ _
+    have hm := hp.mem_iff.mp <| List.mem_cons_self _ _
     have hm' := e₁'.head_minimal e₁ |>.perm hp
     have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
     cases e₂ <;> simp [rcns] at he₂
@@ -343,7 +343,7 @@ theorem rcns_perm_deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) 
       cases e₁.deterministic e₂ h.symm
       apply hi e₂'
       rw [h']
-      exact List.perm_cons _ |>.mp (hp.trans $ List.perm_cons_erase hm)
+      exact List.perm_cons _ |>.mp (hp.trans <| List.perm_cons_erase hm)
     case single =>
       exfalso
       simp [rcns] at hp
@@ -355,7 +355,7 @@ theorem rcns_perm_deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) 
 theorem deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : s₁.progress = s₂.progress) :
     s₁ = s₂ := by
   have := e₁.preserves_tag ▸ e₂.preserves_tag
-  have ⟨_, _⟩ := rcns_perm_deterministic e₁ e₂ $ progress_eq_rcns_perm e₁ e₂ hp
+  have ⟨_, _⟩ := rcns_perm_deterministic e₁ e₂ <| progress_eq_rcns_perm e₁ e₂ hp
   ext1 <;> try assumption
 
 end Step.TC

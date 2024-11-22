@@ -18,7 +18,7 @@ theorem equiv
   case nested.nested rtr₁ j₁ _ h₁ s₁ hi j₂ _ s₂ h₂ =>
     suffices hj : j₁ = j₂ by
       subst hj
-      exact Equivalent.nested h₁ h₂ $ hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) s₂
+      exact Equivalent.nested h₁ h₂ <| hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) s₂
     have hs := (nested h₁ s₁ |>.fromEquiv e).unique (nested h₂ s₂)
     simp [fromEquiv] at hs
     exact hs.left
@@ -26,7 +26,7 @@ theorem equiv
     have h := (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
     simp [fromEquiv] at h
   case nested.final h₁ s₁ _ _ h₂ =>
-    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm e)
+    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv <| Reactor.Equivalent.symm e)
     simp [fromEquiv] at h
 
 -- TODO: In all three of the following theorems, the `final.nested` and `nested.final` cases could
@@ -54,7 +54,7 @@ theorem rtr_equiv
     have h := (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
     simp [fromEquiv] at h
   case nested.final h₁ s₁ _ _ h₂ =>
-    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm e)
+    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv <| Reactor.Equivalent.symm e)
     simp [fromEquiv] at h
 
 theorem equiv_rcn_eq
@@ -71,7 +71,7 @@ theorem equiv_rcn_eq
     have h := (final h₁ |>.fromEquiv e).unique (nested h₂ s₂)
     simp [fromEquiv] at h
   case nested.final h₁ s₁ _ _ h₂ =>
-    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm e)
+    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv <| Reactor.Equivalent.symm e)
     simp [fromEquiv] at h
 
 theorem lawfulMemUpdate_object_preserved
@@ -81,7 +81,7 @@ theorem lawfulMemUpdate_object_preserved
   case final.final h₁ _ h₂ =>
     cases u
     case final e => simp_all [e.valued h]
-    case nested e => simp_all [e (c := c) (.inl $ by simp)]
+    case nested e => simp_all [e (c := c) (.inl <| by simp)]
   case nested.nested j₁ _ h₁ s₁ hi j₂ _ s₂ h₂ =>
     have hj : j₁ = j₂ := by
       have hs := (nested h₁ s₁ |>.fromEquiv u.equiv).unique (nested h₂ s₂)
@@ -90,7 +90,7 @@ theorem lawfulMemUpdate_object_preserved
     subst hj
     cases u
     case final e =>
-      cases h₂ ▸ (e (c := .rtr) (j := j₁) (.inl $ by simp)) ▸ h₁
+      cases h₂ ▸ (e (c := .rtr) (j := j₁) (.inl <| by simp)) ▸ h₁
       simp [s₁.unique s₂]
     case nested j' _ _ u _ _ e =>
       by_cases hj : j₁ = j'
@@ -104,7 +104,7 @@ theorem lawfulMemUpdate_object_preserved
     have h := (final h₁ |>.fromEquiv u.equiv).unique (nested h₂ s₂)
     simp [fromEquiv] at h
   case nested.final h₁ s₁ _ _ h₂ =>
-    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv $ Reactor.Equivalent.symm u.equiv)
+    have h := (nested h₁ s₁).unique (final h₂ |>.fromEquiv <| Reactor.Equivalent.symm u.equiv)
     simp [fromEquiv] at h
 
 end StrictMember
@@ -184,38 +184,38 @@ theorem obj?_root_some (ho : rtr[.rtr][⊤] = some o) : o = rtr :=
 --       `obj?_some_nested'`.
 theorem obj?_some_nested {i' : ID} (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = some o) :
     rtr[cpt][i'] = some o := by
-  have ⟨s, hs⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
-  exact Object.iff_obj?_some.mp $ hs ▸ ⟨.nested h s⟩
+  have ⟨s, hs⟩ := Object.strict_elim <| Object.iff_obj?_some.mpr ho
+  exact Object.iff_obj?_some.mp <| hs ▸ ⟨.nested h s⟩
 
 theorem obj?_some_nested' (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = some o) :
     ∃ j, rtr[cpt][j] = some o := by
   cases cpt <;> try cases i'
   case rtr.none =>
     exists i
-    exact Object.iff_obj?_some.mp $ obj?_root_some ho ▸ ⟨.final h⟩
+    exact Object.iff_obj?_some.mp <| obj?_root_some ho ▸ ⟨.final h⟩
   all_goals
     exact ⟨_, obj?_some_nested h ho⟩
 
 theorem obj?_some_extend (ho : rtr[.rtr][c] = some con) (hc : con{cpt}{i} = some o) :
     rtr[cpt][i] = some o := by
   have ⟨m⟩ := Object.iff_obj?_some.mpr ho
-  exact Object.iff_obj?_some.mp $ m.extend_object hc ▸ ⟨m.extend hc⟩
+  exact Object.iff_obj?_some.mp <| m.extend_object hc ▸ ⟨m.extend hc⟩
 
 -- Note: This theorem does not hold for `i = ⊤`.
 theorem obj?_some_split {i : ID} (ho : rtr[cpt][i] = some o) :
     ∃ c con, (rtr[.rtr][c] = some con) ∧ (con{cpt}{i} = some o) := by
-  have ⟨s, hs⟩ := Object.strict_elim $ Object.iff_obj?_some.mpr ho
+  have ⟨s, hs⟩ := Object.strict_elim <| Object.iff_obj?_some.mpr ho
   have ⟨c, ⟨m, hm⟩⟩ := s.split'
   exact ⟨c, m.object, Object.iff_obj?_some.mp ⟨m⟩, hs ▸ hm⟩
 
-theorem member_isEmpty_obj?_none (h : IsEmpty $ Member cpt i rtr) : rtr[cpt][i] = none :=
+theorem member_isEmpty_obj?_none (h : IsEmpty <| Member cpt i rtr) : rtr[cpt][i] = none :=
   Object.not_iff_obj?_none.mp (Object.not_of_member_isEmpty h ·)
 
 theorem get?_some_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂)
     (hc₁ : con₁{cpt}{j} = some o₁) (hc₂ : con₂{cpt}{j} = some o₂) : c₁ = c₂ := by
   have ⟨m₁⟩ := Object.iff_obj?_some.mpr ho₁
   have ⟨m₂⟩ := Object.iff_obj?_some.mpr ho₂
-  exact Member.extend_inj $ (m₁.extend hc₁).unique (m₂.extend hc₂)
+  exact Member.extend_inj <| (m₁.extend hc₁).unique (m₂.extend hc₂)
 
 theorem mem_get?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂)
     (hc₁ : j ∈ con₁{cpt}) (hc₂ : j ∈ con₂{cpt}) : c₁ = c₂ :=
@@ -224,7 +224,7 @@ theorem mem_get?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rt
 theorem obj?_none_to_get?_none {i : ID} (ho : rtr[cpt][i] = none) : rtr{cpt}{i} = none := by
   replace ho := Object.not_iff_obj?_none.mpr ho
   by_contra h
-  exact ho _ ⟨.final $ Option.ne_none_iff_exists.mp h |>.choose_spec.symm⟩
+  exact ho _ ⟨.final <| Option.ne_none_iff_exists.mp h |>.choose_spec.symm⟩
 
 end Hierarchical
 

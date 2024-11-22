@@ -1,5 +1,5 @@
 import Mathlib.Data.Finmap
-import Mathlib.Data.Set.Finite
+import Mathlib.Data.Finite.Defs
 
 open Classical
 

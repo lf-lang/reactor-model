@@ -58,7 +58,7 @@ theorem indep_restriction_eq
   simp [input.restriction]
   apply Partial.ext_restrict
   intro _ hd
-  exact e.applied_rtr_eq ▸ e.apply.preserves_unchanged $ State.target_not_mem_indep_output ho hi hd
+  exact e.applied_rtr_eq ▸ e.apply.preserves_unchanged <| State.target_not_mem_indep_output ho hi hd
 
 theorem indep_input_eq
     (e : s₁ ↓ₑ s₂) (hi : e.rcn ≮[s₁.rtr]≯ i) (h₁ : s₁.rtr[.rcn][i] = some rcn)
@@ -72,7 +72,7 @@ theorem indep_output_eq (e : s₁ ↓ₑ s₂) (hi : e.rcn ≮[s₁.rtr]≯ i) :
   simp [output]
   have he := Equivalent.obj?_rcn_eq e.equiv
   cases h : s₁.rtr[.rcn][i] <;> simp [he ▸ h]
-  simp [e.indep_input_eq hi h $ he ▸ h]
+  simp [e.indep_input_eq hi h <| he ▸ h]
 
 theorem indep_comm
     (e₁ : s ↓ₑ s₁) (e₁₂ : s₁ ↓ₑ s₁₂) (e₂ : s ↓ₑ s₂) (e₂₁ : s₂ ↓ₑ s₂₁)

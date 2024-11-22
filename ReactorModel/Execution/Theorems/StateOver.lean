@@ -12,7 +12,7 @@ theorem progress_ssubset_of_not_closed (hc : ¬s.Closed) : s.progress ⊂ s.rtr[
   Set.ssubset_iff_subset_ne.mpr ⟨s.progress_sub, hc⟩
 
 theorem exists_unprocessed_of_not_closed (hc : ¬s.Closed) : ∃ i ∈ s.rtr[.rcn], i ∉ s.progress := by
-  have ⟨i, _, _⟩ := Set.exists_of_ssubset $ s.progress_ssubset_of_not_closed hc
+  have ⟨i, _, _⟩ := Set.exists_of_ssubset <| s.progress_ssubset_of_not_closed hc
   exists i
 
 variable [Reactor.Finite α]
@@ -24,15 +24,15 @@ theorem exists_allowed_of_acyclic_has_unprocessed
   else
     have ⟨_, hd⟩ := Set.nonempty_iff_ne_empty.mpr h
     have ⟨h₁, h₂⟩ := Set.mem_diff _ |>.mp hd
-    have := inferInstanceAs $ Reactor.Finite α
+    have := inferInstanceAs <| Reactor.Finite α
     exists_allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
 termination_by
-  have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset $ dependencies_subset _ i) s.progress
+  have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset <| dependencies_subset _ i) s.progress
   fin.toFinset.card
 decreasing_by
   simp_wf
-  refine Finset.card_lt_card $ Set.Finite.toFinset_strictMono ?_
-  have h := mem_dependencies_ssubset a $ s.rtr_eq ▸ h₁
+  refine Finset.card_lt_card <| Set.Finite.toFinset_strictMono ?_
+  have h := mem_dependencies_ssubset a <| s.rtr_eq ▸ h₁
   simp [ssubset_iff_subset_ne, s.rtr_eq] at h ⊢
   refine ⟨?subset, ?ne⟩
   case subset =>
@@ -42,7 +42,7 @@ decreasing_by
   case ne =>
     simp [Set.ext_iff]
     refine ⟨_, h₂, ?_⟩
-    rw [iff_true_right $ s.rtr_eq ▸ h₁]
+    rw [iff_true_right <| s.rtr_eq ▸ h₁]
     exact a _
 
 theorem exists_allowed_of_acyclic_not_closed
@@ -68,11 +68,11 @@ theorem forcing_not_closed (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Closed 
   exact h
 
 theorem forcing_not_terminal (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Terminal :=
-  State.Terminal.not_of_not_closed $ State.Over.forcing_not_closed h
+  State.Terminal.not_of_not_closed <| State.Over.forcing_not_closed h
 
 theorem forcing_not_time_step {s : State α} (e : (forcing rtr rcn) ↓ₜ s) (h : rcn ∈ rtr[.rcn]) :
     False :=
-  absurd e.closed $ forcing_not_closed h
+  absurd e.closed <| forcing_not_closed h
 
 theorem forcing_skip_step_rcn_eq {s : State α} (e : (forcing rtr rcn) ↓ₛ s) :
     e.rcn = rcn := by

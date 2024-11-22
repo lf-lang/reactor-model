@@ -35,7 +35,7 @@ theorem mem₁ (d : rcn₁ <[rtr] rcn₂) : rcn₁ ∈ rtr[.rcn] := by
 namespace Acyclic
 
 theorem equiv (e : rtr₁ ≈ rtr₂) (a : Acyclic rtr₁) : Acyclic rtr₂ :=
-  (a · $ ·.equiv e)
+  (a · <| ·.equiv e)
 
 theorem iff_mem_acyclic {rtr : α} : (Acyclic rtr) ↔ (∀ i ∈ rtr[.rcn], ¬(i <[rtr] i)) := by
   apply not_iff_not.mp
@@ -60,12 +60,12 @@ theorem same_con_needOrderedPriority
     (i₁ <[rtr] i₂) ∨ (i₂ <[rtr] i₁) := by
   by_cases hm₁ : rcn₁.Mutates <;> by_cases hm₂ : rcn₂.Mutates
   rotate_left
-  · exact .inl $ .mutNorm hc h₁ h₂ hm₁ (by simp_all [Reaction.Mutates])
-  · exact .inr $ .mutNorm hc h₂ h₁ hm₂ (by simp_all [Reaction.Mutates])
+  · exact .inl <| .mutNorm hc h₁ h₂ hm₁ (by simp_all [Reaction.Mutates])
+  · exact .inr <| .mutNorm hc h₂ h₁ hm₂ (by simp_all [Reaction.Mutates])
   all_goals
     cases Proper.wellformed rtr |>.ordered_prio hc h₁ h₂ hn hp
-    · exact .inr $ .prio hc h₂ h₁ (by simp_all) ‹_›
-    · exact .inl $ .prio hc h₁ h₂ (by simp_all) ‹_›
+    · exact .inr <| .prio hc h₂ h₁ (by simp_all) ‹_›
+    · exact .inl <| .prio hc h₁ h₂ (by simp_all) ‹_›
 
 theorem hazard
     (hc : rtr[.rtr][c] = some con) (h₁ : con{.rcn}{i₁} = some rcn₁) (h₂ : con{.rcn}{i₂} = some rcn₂)
@@ -102,12 +102,12 @@ notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => NotDependent rtr rcn₁ rcn₂
 
 theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} (h : i₁ ≮[rtr₁] i₂) (e : rtr₁ ≈ rtr₂) :
     i₁ ≮[rtr₂] i₂ :=
-  (h $ ·.equiv e)
+  (h <| ·.equiv e)
 
 theorem deps_disjoint [Hierarchical α] {rtr : α} {d} (hi : i₁ ≮[rtr] i₂)
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (h : d ∈ rcn₁.deps .out)
     (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
-  byContradiction fun hd => hi $ .depOverlap h₁ h₂ h (not_not.mp hd) hs
+  byContradiction fun hd => hi <| .depOverlap h₁ h₂ h (not_not.mp hd) hs
 
 end NotDependent
 
@@ -157,13 +157,13 @@ variable [Hierarchical α] {rtr rtr₁ rtr₂ : α}
 notation:50 rcns " ≮[" rtr "] " rcn => MinimalReaction rtr rcns rcn
 
 theorem cons_head (m : (hd :: tl) ≮[rtr] rcn) : hd ≮[rtr] rcn :=
-  m hd $ List.mem_cons_self _ _
+  m hd <| List.mem_cons_self _ _
 
 theorem cons_tail (m : (hd :: tl) ≮[rtr] rcn) : tl ≮[rtr] rcn :=
-  (m · $ List.mem_cons_of_mem _ ·)
+  (m · <| List.mem_cons_of_mem _ ·)
 
 theorem perm {rcns : List ID} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
-  (m · $ h.mem_iff.mpr ·)
+  (m · <| h.mem_iff.mpr ·)
 
 theorem equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (e : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
   fun i h d => absurd (d.equiv e) (m i h)

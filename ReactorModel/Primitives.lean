@@ -63,13 +63,13 @@ namespace Time.Tag
 instance : LE Time.Tag where
   le g₁ g₂ := (g₁.time < g₂.time) ∨ (g₁.time = g₂.time ∧ g₁.microstep ≤ g₂.microstep)
 
--- TODO: Use deriving one this once the feature lands in mathlib:
---       https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/Lexicographical.20LinearOrder
+-- TODO: Use `deriving LinearOrder` once this PR lands:
+--       https://github.com/leanprover-community/mathlib4/pull/3251
 instance : LinearOrder Time.Tag where
   le_refl g := .inr ⟨rfl, le_refl _⟩
   le_trans _ _ _
-    | .inl h₁, .inl h₂ => .inl $ h₁.trans h₂
-    | .inl h₁, .inr ⟨h₂, _⟩ | .inr ⟨h₂, _⟩, .inl h₁ => .inl $ h₂ ▸ h₁
+    | .inl h₁, .inl h₂ => .inl <| h₁.trans h₂
+    | .inl h₁, .inr ⟨h₂, _⟩ | .inr ⟨h₂, _⟩, .inl h₁ => .inl <| h₂ ▸ h₁
     | .inr ⟨h₁, h₁'⟩, .inr ⟨h₂, h₂'⟩ => .inr ⟨h₁.trans h₂, h₁'.trans h₂'⟩
   le_antisymm := by
     intro _ _; intro
@@ -81,12 +81,12 @@ instance : LinearOrder Time.Tag where
     by_cases ht : t₁ = t₂ <;> by_cases hm : m₁ = m₂ <;> simp_all
     · exact .inr ⟨rfl, le_rfl⟩
     · cases Nat.le_total m₁ m₂
-      · exact .inl $ .inr ⟨rfl, ‹_›⟩
-      · exact .inr $ .inr ⟨rfl, ‹_›⟩
+      · exact .inl <| .inr ⟨rfl, ‹_›⟩
+      · exact .inr <| .inr ⟨rfl, ‹_›⟩
     all_goals
       cases Nat.le_total t₁ t₂
-      · exact .inl $ .inl $ lt_of_le_of_ne ‹_› ht
-      · exact .inr $ .inl $ lt_of_le_of_ne ‹_› (ht ·.symm)
+      · exact .inl <| .inl <| lt_of_le_of_ne ‹_› ht
+      · exact .inr <| .inl <| lt_of_le_of_ne ‹_› (ht ·.symm)
   decidableLE := inferInstance
   decidableEq := inferInstance
 
