@@ -49,7 +49,7 @@ notation s₁:max " ↓ " s₂:max => Step s₁ s₂
 
 end Execution
 
-inductive Execution : State α → State α → Prop
+inductive Execution : State α → State α → Type
   | refl  : Execution s s
   | trans : (s₁ ↓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
 
