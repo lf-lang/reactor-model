@@ -42,6 +42,9 @@ theorem Grouped.deterministic [Proper α] {s s₁ s₂ : State α}
     case refl.step.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
     case step.refl.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
 
+theorem Grouped.tag_le [Hierarchical α] {s₁ s₂ : State α} (e : Grouped s₁ s₂) : s₁.tag ≤ s₂.tag :=
+  e.tail.preserves_tag ▸ e.steps.tag_le
+
 theorem to_grouped [Hierarchical α] {s₁ s₂ : State α} (n : s₁.Nontrivial) (e : s₁ ⇓ s₂) :
     Nonempty (Grouped s₁ s₂) := by
   induction e <;> try cases ‹_ ↓ _›

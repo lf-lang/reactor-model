@@ -77,4 +77,7 @@ theorem trivial_deterministic
     (e₁.to_timeStepRTC <| .of_not_nontrivial triv)
     (e₂.to_timeStepRTC <| .of_not_nontrivial triv)
 
+theorem trivial_tag_le (triv : ¬s₁.Nontrivial) (e : s₁ ⇓ s₂) : s₁.tag ≤ s₂.tag :=
+  e.to_timeStepRTC (.of_not_nontrivial triv) |>.tag_le
+
 end Execution

@@ -3,8 +3,8 @@ defaultTargets = ["ReactorModel"]
 
 [[require]]
 name = "mathlib"
-git = "https://github.com/leanprover-community/mathlib4"
-rev = "master"
+git  = "https://github.com/leanprover-community/mathlib4"
+rev  = "9837ca9d65d9de6fad1ef4381750ca688774e608"
 
 [[lean_lib]]
 name = "ReactorModel"
