@@ -45,8 +45,6 @@ inductive Step (s₁ s₂ : State α) : Type
   | exec (e : s₁ ↓ₑ s₂)
   | time (t : s₁ ↓ₜ s₂)
 
-notation s₁:max " ↓ " s₂:max => Nonempty (Step s₁ s₂)
-
 end Execution
 
 -- An execution trace connecting two given states.
