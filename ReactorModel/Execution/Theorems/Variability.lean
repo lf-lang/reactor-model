@@ -5,7 +5,7 @@ open Classical Reactor
 
 namespace Execution
 
-def length [Hierarchical α] {s₁ s₂ : State α} : (s₁ ⇓ s₂) → Nat
+def length [Hierarchical α] {s₁ s₂ : State α} : (Execution s₁ s₂) → Nat
   | .refl      => 0
   | .trans _ e => e.length + 1
 
@@ -19,7 +19,8 @@ def length [Hierarchical α] {s₁ s₂ : State α} : (s₁ ⇓ s₂) → Nat
 --       property of the *model* of Reactors, and the given reactor type (or rather its accompanying
 --       type class instances) defines the model.
 def FiniteVariability (α) [Hierarchical α] : Prop :=
-  ∀ g, ∃ b, ∀ {s₁ s₂ : State α} (e : s₁ ⇓ s₂), (s₂.tag < g) → e.length < b
+  ∀ g, ∃ b, ∀ {s₁ s₂ : State α} (e : Execution s₁ s₂),
+    (s₂.tag < g) → e.length < b
 
 -- Proper reactors do not satisfy finite variability as logical tags are super-dense.
 theorem not_finitely_variable [Proper α] : ¬(FiniteVariability α) := by
@@ -37,7 +38,8 @@ theorem not_finitely_variable [Proper α] : ¬(FiniteVariability α) := by
 -- TODO: This gives me ε/δ vibes. Does this alternation of ∃ and ∀ correspond to some existing
 --       notion like limits or convergence?
 def WeakFiniteVariability (α) [Hierarchical α] : Prop :=
-  ∀ t m, ∃ b, ∀ {s₁ s₂ : State α} (e : s₁ ⇓ s₂), (s₁.tag.time = t) → (s₂.tag < ⟨t, m⟩) → e.length < b
+  ∀ t m, ∃ b, ∀ {s₁ s₂ : State α} (e : Execution s₁ s₂),
+    (s₁.tag.time = t) → (s₂.tag < ⟨t, m⟩) → e.length < b
 
 theorem weakly_finitely_variable [Proper α] : WeakFiniteVariability α := by
   sorry

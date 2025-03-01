@@ -40,17 +40,16 @@ notation s₁:max " ↓ₜ " s₂:max => Time s₁ s₂
 
 end Step
 
-inductive Step (s₁ s₂ : State α) : Prop
+inductive Step (s₁ s₂ : State α) : Type
   | skip (s : s₁ ↓ₛ s₂)
   | exec (e : s₁ ↓ₑ s₂)
   | time (t : s₁ ↓ₜ s₂)
 
-notation s₁:max " ↓ " s₂:max => Step s₁ s₂
+notation s₁:max " ↓ " s₂:max => Nonempty (Step s₁ s₂)
 
 end Execution
 
+-- An execution trace connecting two given states.
 inductive Execution : State α → State α → Type
   | refl  : Execution s s
-  | trans : (s₁ ↓ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
-
-notation s₁ " ⇓ " s₂ => Execution s₁ s₂
+  | trans : (Step s₁ s₂) → (Execution s₂ s₃) → Execution s₁ s₃

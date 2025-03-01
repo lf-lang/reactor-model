@@ -45,22 +45,19 @@ theorem Grouped.deterministic [Proper α] {s s₁ s₂ : State α}
 theorem Grouped.tag_le [Hierarchical α] {s₁ s₂ : State α} (e : Grouped s₁ s₂) : s₁.tag ≤ s₂.tag :=
   e.tail.preserves_tag ▸ e.steps.tag_le
 
-theorem to_grouped [Hierarchical α] {s₁ s₂ : State α} (n : s₁.Nontrivial) (e : s₁ ⇓ s₂) :
-    Nonempty (Grouped s₁ s₂) := by
-  induction e <;> try cases ‹_ ↓ _›
-  case refl => exact ⟨.refl, .none⟩
-  case trans.time hi e =>
-    exact match hi <| e.preserves_nontrivial n with
+def to_grouped [Hierarchical α] {s₁ s₂ : State α} (n : s₁.Nontrivial) : (Execution s₁ s₂) → Grouped s₁ s₂
+  | .refl => ⟨.refl, .none⟩
+  | .trans (.time e) tl =>
+    match tl.to_grouped (e.preserves_nontrivial n) with
     | ⟨.refl, tl⟩              => ⟨.step e .refl, tl⟩
     | ⟨.step (.inst f) f', tl⟩ => ⟨.step (.time e) <| .step f f', tl⟩
     | ⟨.step (.time f) _, _⟩   => e.nonrepeatable f n |>.elim
-  all_goals
-    case _ hi e =>
-      let ⟨steps, tail⟩ := hi <| e.preserves_nontrivial n
-      exact match steps, tail with
-      | .refl,                   .none    => ⟨.refl, .some <| .single e⟩
-      | .refl,                   .some e' => ⟨.refl, .some <| .trans e e'⟩
-      | .step (.inst ⟨f, h⟩) f', tl       => ⟨.step (.inst ⟨.trans e f, h⟩) f', tl⟩
-      | .step (.time f) f',      tl       => ⟨.step (.inst ⟨.single e, f.closed⟩) <| .step f f', tl⟩
+  | .trans (.skip e) tl | .trans (.exec e) tl =>
+    let ⟨steps, tail⟩ := tl.to_grouped (e.preserves_nontrivial n)
+    match steps, tail with
+    | .refl,                   .none    => ⟨.refl, .some <| .single e⟩
+    | .refl,                   .some e' => ⟨.refl, .some <| .trans e e'⟩
+    | .step (.inst ⟨f, h⟩) f', tl       => ⟨.step (.inst ⟨.trans e f, h⟩) f', tl⟩
+    | .step (.time f) f',      tl       => ⟨.step (.inst ⟨.single e, f.closed⟩) <| .step f f', tl⟩
 
 end Execution

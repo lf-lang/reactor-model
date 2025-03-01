@@ -43,8 +43,8 @@ end
 
 namespace Step.Time
 
-inductive RTC : State α → State α → Prop
-  | refl : RTC s s
+inductive RTC : State α → State α → Type
+  | refl  : RTC s s
   | trans : (s₁ ↓ₜ s₂) → (RTC s₂ s₃) → RTC s₁ s₃
 
 theorem RTC.tag_le {s₁ s₂ : State α} (e : RTC s₁ s₂) : s₁.tag ≤ s₂.tag := by
@@ -62,22 +62,21 @@ theorem RTC.deterministic {s s₁ s₂ : State α}
 
 end Step.Time
 
+def to_timeStepRTC {s₁ s₂ : State α} (triv : s₁.Trivial) : (Execution s₁ s₂) → Step.Time.RTC s₁ s₂
+ | .refl => .refl
+ | .trans (.time e) tl => .trans e (tl.to_timeStepRTC <| e.preserves_trivial triv)
+ | .trans (.skip e) _ | .trans (.exec e) _ => absurd triv e.not_trivial
+
 variable {s s₁ s₂ : State α}
 
-theorem to_timeStepRTC (triv : s₁.Trivial) (e : s₁ ⇓ s₂) : Step.Time.RTC s₁ s₂ := by
-  induction e <;> try cases ‹_ ↓ _›
-  case refl            => exact .refl
-  case trans.skip e    => exact absurd triv e.not_trivial
-  case trans.exec e    => exact absurd triv e.not_trivial
-  case trans.time hi e => exact .trans e (hi <| e.preserves_trivial triv)
-
 theorem trivial_deterministic
-    (triv : ¬s.Nontrivial) (e₁ : s ⇓ s₁) (e₂ : s ⇓ s₂) (ht : s₁.tag = s₂.tag) : s₁ = s₂ :=
+    (triv : ¬s.Nontrivial) (e₁ : Execution s s₁) (e₂ : Execution s s₂) (ht : s₁.tag = s₂.tag) :
+    s₁ = s₂ :=
   Step.Time.RTC.deterministic ht
     (e₁.to_timeStepRTC <| .of_not_nontrivial triv)
     (e₂.to_timeStepRTC <| .of_not_nontrivial triv)
 
-theorem trivial_tag_le (triv : ¬s₁.Nontrivial) (e : s₁ ⇓ s₂) : s₁.tag ≤ s₂.tag :=
+theorem trivial_tag_le (triv : ¬s₁.Nontrivial) (e : Execution s₁ s₂) : s₁.tag ≤ s₂.tag :=
   e.to_timeStepRTC (.of_not_nontrivial triv) |>.tag_le
 
 end Execution
