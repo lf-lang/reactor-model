@@ -232,7 +232,7 @@ theorem extend_inj
 
 theorem extend_split (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
     extend (split s h).snd.val (split s h).snd.property = nested h s := by
-  induction s generalizing rtr i <;> simp [extend]
+  induction s generalizing rtr i <;> simp [extend, split]
   case nested h' _ hi => exact hi h'
 
 def fromLawfulMemUpdate {rtr₁ : α} :

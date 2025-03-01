@@ -27,8 +27,8 @@ theorem exists_allowed_of_acyclic_has_unprocessed
     have := inferInstanceAs <| Reactor.Finite α
     exists_allowed_of_acyclic_has_unprocessed a h₁.mem₁ h₂
 termination_by
-  have fin := Set.Finite.diff (Finite.fin s.rtr .rcn |>.subset <| dependencies_subset _ i) s.progress
-  fin.toFinset.card
+  have fin := Finite.fin s.rtr .rcn |>.subset <| dependencies_subset _ i
+  fin.diff (t := s.progress) |>.toFinset.card
 decreasing_by
   simp_wf
   refine Finset.card_lt_card <| Set.Finite.toFinset_strictMono ?_
