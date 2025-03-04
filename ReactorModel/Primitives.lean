@@ -48,8 +48,8 @@ abbrev Kind.opposite : Kind → Kind
 def Time := Nat
 deriving LinearOrder
 
-instance : OfNat Time 0 where
-  ofNat := .zero
+instance : OfNat Time n where
+  ofNat := n
 
 -- A `Time.Tag` is used to represent a logical time tag.
 -- The order of these tags is lexicographical with the `time` taking priority.
@@ -92,5 +92,10 @@ instance : LinearOrder Time.Tag where
 
 instance : OfNat Time.Tag 0 where
   ofNat := ⟨0, 0⟩
+
+theorem lt_of_lt_time (h : t₁ < t₂ := by decide) : (⟨t₁, m₁⟩ : Time.Tag) < ⟨t₂, m₂⟩ := by
+  simp only [(· < ·), (· ≤ ·)]
+  simp_all only [gt_iff_lt, Nat.lt_eq, Nat.le_eq, true_or, not_or, not_lt, not_and, not_le, true_and]
+  exact ⟨le_of_lt h, (ne_of_lt h ·.symm |>.elim)⟩
 
 end Time.Tag
