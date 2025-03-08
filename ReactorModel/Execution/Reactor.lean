@@ -7,10 +7,10 @@ namespace Reactor
 
 variable [Hierarchical α] in section
 
-def dependencies (rtr : α) (rcn : ID) : Set ID :=
+def dependencies (rtr : α) (rcn : α✦) : Set α✦ :=
   { rcn' | rcn' <[rtr] rcn }
 
-structure Refresh (rtr₁ rtr₂ : α) (acts : ID ⇀ Value) : Prop where
+structure Refresh (rtr₁ rtr₂ : α) (acts : α✦ ⇀ Value) : Prop where
   equiv    : rtr₁ ≈ rtr₂
   eq_state : rtr₂[.stv] = rtr₁[.stv]
   acts     : rtr₂[.act] = acts
@@ -21,9 +21,9 @@ end
 
 variable [Proper α] [Finite α]
 
-def refresh (rtr : α) (acts : ID ⇀ Value) : α :=
-  let rtr₁ := set rtr  .inp <| Partial.const (rtr[.inp].ids : Set ID) .absent
-  let rtr₂ := set rtr₁ .out <| Partial.const (rtr[.out].ids : Set ID) .absent
+def refresh (rtr : α) (acts : α✦ ⇀ Value) : α :=
+  let rtr₁ := set rtr  .inp <| Partial.const (rtr[.inp].ids : Set α✦) .absent
+  let rtr₂ := set rtr₁ .out <| Partial.const (rtr[.out].ids : Set α✦) .absent
   set rtr₂ .act acts
 
 end Reactor

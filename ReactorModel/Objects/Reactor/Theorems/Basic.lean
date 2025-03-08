@@ -3,7 +3,6 @@ import ReactorModel.Objects.Reactor.Hierarchical
 
 noncomputable section
 open Classical
-
 namespace Reactor
 
 /- ---------------------------------------------------------------------------------------------- -/
@@ -174,46 +173,48 @@ theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : rtr₁
 
 end LawfulMemUpdate
 
-theorem LawfulUpdate.equiv [Reactor α] {rtr₁ : α} :
+theorem LawfulUpdate.equiv [Reactor α] {rtr₁ : α} {i} :
     (LawfulUpdate cpt i v rtr₁ rtr₂) → rtr₁ ≈ rtr₂
   | notMem _ h => h ▸ (.refl _)
   | update u   => u.equiv
 
-theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} :
-    rtr ≈ (Updatable.update rtr cpt i f) :=
-  (lawful rtr cpt i f).equiv
+theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} {i} :
+    rtr ≈ (Updatable.update rtr cpt i v) :=
+  (lawful rtr cpt i v).equiv
 
 /- ---------------------------------------------------------------------------------------------- -/
 namespace StrictMember
 
 variable [Reactor α] {rtr : α} in section
 
-theorem nested_object (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
-    (nested h s).object = s.object :=
-  rfl
+theorem nested_object {s : StrictMember cpt i' rtr'} (h : rtr{.rtr}{i} = some rtr') :
+    (nested h s).object = s.object := by
+  rw [object]
 
 def split :
     {rtr rtr' : α} → (s : StrictMember cpt i' rtr') → (rtr{.rtr}{i} = some rtr') →
-    (j : ID) × { s' : StrictMember .rtr j rtr // s'.object{cpt}{i'} = s.object }
+    (j : α✦) × { s' : StrictMember .rtr j rtr // s'.object{cpt}{i'} = s.object }
   | _, _, final hn, h => ⟨i, ⟨final h, hn⟩⟩
-  | _, _, nested hn s, h => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨nested h s', hs'⟩⟩
+  | _, _, nested hn s, h =>
+    let ⟨j, ⟨s', hs'⟩⟩ := split s hn
+    ⟨j, ⟨nested h s', by rw [object, nested_object, hs']⟩⟩
 
 def split' :
     (s : StrictMember cpt i rtr) →
-    (j : WithTop ID) × { m : Member .rtr j rtr // m.object{cpt}{i} = s.object }
+    (j : WithTop α✦) × { m : Member .rtr j rtr // m.object{cpt}{i} = s.object }
   | final h     => ⟨⊤, ⟨.root, h⟩⟩
-  | nested hn s => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨.strict s', hs'⟩⟩
+  | nested hn s => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨.strict s', by rw [object, hs']⟩⟩
 
 def extend :
     {rtr : α} → (s : StrictMember .rtr i rtr) → (s.object{cpt}{j} = some o) → StrictMember cpt j rtr
   | _, final hn,    h => nested hn (final h)
-  | _, nested hn s, h => nested hn (extend s h)
+  | _, nested hn s, h => nested hn (extend s <| nested_object hn ▸ h)
 
 theorem extend_object :
     {rtr : α} → (s : StrictMember .rtr i rtr) → (h : s.object{cpt}{j} = some o) →
     (s.extend h).object = o
-  | _, final _,    _ => rfl
-  | _, nested _ s, h => extend_object s h
+  | _, final _,     _ => rfl
+  | _, nested hn s, h => nested_object hn ▸ (extend_object s <| nested_object hn ▸ h)
 
 theorem extend_not_final (s : StrictMember .rtr i rtr) (h : s.object{cpt}{j} = some o)
     (hf : rtr{cpt}{j} = some o') : s.extend h ≠ final hf := by
@@ -229,11 +230,6 @@ theorem extend_inj
   case nested.nested hi _ _ => exact hi <| eq_of_heq h
   case final.nested => exact absurd (eq_of_heq h).symm <| StrictMember.extend_not_final _ _ _
   case nested.final => exact absurd (eq_of_heq h) <| StrictMember.extend_not_final _ _ _
-
-theorem extend_split (s : StrictMember cpt i' rtr') (h : rtr{.rtr}{i} = some rtr') :
-    extend (split s h).snd.val (split s h).snd.property = nested h s := by
-  induction s generalizing rtr i <;> simp [extend, split]
-  case nested h' _ hi => exact hi h'
 
 def fromLawfulMemUpdate {rtr₁ : α} :
     (StrictMember c j rtr₂) → (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember c j rtr₁
@@ -259,29 +255,25 @@ def fromEquiv {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
 
 end
 
-inductive Equivalent :
-    {α : Type} → {β : Type} → [Reactor α] → [Reactor β] → {rtr₁ : α} → {rtr₂ : β} →
-    (StrictMember cpt i rtr₁) → (StrictMember cpt i rtr₂) → Prop
-  | refl [Reactor α] {rtr : α} (s : StrictMember cpt i rtr) : Equivalent s s
-  | final [Reactor α] [Reactor β] {rtr₁ : α} {rtr₂ : β}
-    (h₁ : rtr₁{cpt}{i} = some o₁) (h₂ : rtr₂{cpt}{i} = some o₂) : Equivalent (final h₁) (final h₂)
-  | nested [Reactor α] [Reactor β] {rtr₁ : α} {rtr₂ : β} {n₁ : α} {n₂ : β}
-    {s₁ : StrictMember cpt i n₁} {s₂ : StrictMember cpt i n₂} (h₁ : rtr₁{.rtr}{j} = some n₁)
-    (h₂ : rtr₂{.rtr}{j} = some n₂) : (Equivalent s₁ s₂) → Equivalent (nested h₁ s₁) (nested h₂ s₂)
+inductive Equivalent [inst : Reactor α] :
+    {rtr₁ rtr₂ : α} → {cpt : Component} → {i : α✦} → (StrictMember cpt i rtr₁) →
+    (StrictMember cpt i rtr₂) → Prop
+  | refl (s : StrictMember cpt i rtr) : Equivalent s s
+  | final (h₁ : rtr₁{cpt}{i} = some o₁) (h₂ : rtr₂{cpt}{i} = some o₂) : Equivalent (final h₁) (final h₂)
+  | nested (h₁ : rtr₁{.rtr}{j} = some n₁) (h₂ : rtr₂{.rtr}{j} = some n₂) : (Equivalent s₁ s₂) → Equivalent (nested h₁ s₁) (nested h₂ s₂)
 
 namespace Equivalent
 
-variable [Reactor α] {rtr₁ : α}
+variable [Reactor α] {rtr₁ rtr₂ rtr₃ : α}
 
-instance [Reactor β] {rtr₂ : β} :
-    HasHEquiv (StrictMember cpt i rtr₁) (StrictMember cpt i rtr₂) where
+instance : HasHEquiv (StrictMember cpt i rtr₁) (StrictMember cpt i rtr₂) where
   HEquiv := Equivalent (cpt := cpt) (i := i) (rtr₁ := rtr₁) (rtr₂ := rtr₂)
 
-theorem symm [Reactor β] {rtr₂ : β}
+theorem symm
     {s₁ : StrictMember cpt i rtr₁} {s₂ : StrictMember cpt i rtr₂} (e : s₁ ∼ s₂) : s₂ ∼ s₁ := by
   induction e <;> constructor; assumption
 
-theorem trans [Reactor β] [Reactor γ] {rtr₂ : β} {rtr₃ : γ}
+theorem trans
     {s₁ : StrictMember cpt i rtr₁} {s₂ : StrictMember cpt i rtr₂} {s₃ : StrictMember cpt i rtr₃}
     (e₁ : s₁ ∼ s₂) (e₂ : s₂ ∼ s₃) : s₁ ∼ s₃ := by
   induction e₁ generalizing rtr₃ <;> cases e₂ <;> constructor <;> try assumption
@@ -316,7 +308,7 @@ end StrictMember
 /- ---------------------------------------------------------------------------------------------- -/
 namespace Member
 
-variable [Reactor α] {rtr rtr₁ : α}
+variable [Reactor α] {rtr rtr₁ rtr₂ rtr₃ : α}
 
 def extend : (m : Member .rtr i rtr) → (m.object{cpt}{j} = some o) → Member cpt j rtr
   | root,     h => final h
@@ -351,26 +343,25 @@ def fromEquiv (e : rtr₁ ≈ rtr₂) : (Member cpt i rtr₁) → Member cpt i r
   | root     => root
   | strict s => s.fromEquiv e
 
-inductive Equivalent [Reactor β] {rtr₂ : β} : (Member cpt i rtr₁) → (Member cpt i rtr₂) → Prop
+inductive Equivalent : (Member cpt i rtr₁) → (Member cpt i rtr₂) → Prop
   | root   : Equivalent root root
   | strict : (StrictMember.Equivalent s₁ s₂) → Equivalent (strict s₁) (strict s₂)
 
 namespace Equivalent
 
-instance [Reactor β] {rtr₂ : β} : HasHEquiv (Member cpt i rtr₁) (Member cpt i rtr₂) where
+instance : HasHEquiv (Member cpt i rtr₁) (Member cpt i rtr₂) where
   HEquiv := Equivalent (cpt := cpt) (i := i) (rtr₁ := rtr₁) (rtr₂ := rtr₂)
 
 theorem refl : (m : Member cpt i rtr) → m ∼ m
   | .root     => root
   | .strict s => strict <| .refl s
 
-theorem symm [Reactor β] {rtr₂ : β} {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂}
-    (e : m₁ ∼ m₂) : m₂ ∼ m₁ := by
+theorem symm {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂} (e : m₁ ∼ m₂) : m₂ ∼ m₁ := by
   cases m₁
   case root => cases m₂; exact root
   case strict => cases cpt <;> cases e <;> exact .strict <| StrictMember.Equivalent.symm ‹_›
 
-theorem trans [Reactor β] [Reactor γ] {rtr₂ : β} {rtr₃ : γ}
+theorem trans
     {m₁ : Member cpt i rtr₁} {m₂ : Member cpt i rtr₂} {m₃ : Member cpt i rtr₃}
     (e₁ : m₁ ∼ m₂) (e₂ : m₂ ∼ m₃) : m₁ ∼ m₃ := by
   cases m₁
@@ -407,7 +398,7 @@ theorem «def» : (Object rtr cpt i o) ↔ (∃ m : Member cpt i rtr, m.object =
   mp  | ⟨m⟩    => ⟨m, rfl⟩
   mpr | ⟨m, h⟩ => h ▸ ⟨m⟩
 
-theorem strict_elim {i : ID} : (Object rtr cpt i o) → ∃ (s : StrictMember cpt i rtr), s.object = o
+theorem strict_elim {i : α✦} : (Object rtr cpt i o) → ∃ (s : StrictMember cpt i rtr), s.object = o
   | ⟨m⟩ => by cases cpt <;> cases m <;> exists ‹_›
 
 theorem not_of_member_isEmpty (h : IsEmpty <| Member cpt i rtr) (o) : ¬Object rtr cpt i o :=

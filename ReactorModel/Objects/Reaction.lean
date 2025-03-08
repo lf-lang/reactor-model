@@ -3,30 +3,30 @@ import ReactorModel.Objects.Change
 noncomputable section
 open Classical
 
-namespace Reaction 
+namespace Reaction
 
-protected structure Dependency where
+protected structure Dependency (ι) where
   cpt : Component.Valued
-  id  : ID
+  id  : ι
 
-def _root_.Change.Normal.target (c : Change.Normal) : Reaction.Dependency where
+def _root_.Change.Normal.target (c : Change.Normal ι) : Reaction.Dependency ι where
   cpt := c.cpt
   id  := c.id
 
 @[ext]
-structure Input where
-  val : Component.Valued → ID ⇀ Value
+structure Input (ι) where
+  val : Component.Valued → ι ⇀ Value
   tag : Time.Tag
 
-abbrev Output := List Change
+abbrev Output (ι : Type) := List (Change ι)
 
 namespace Output
 
-def targets (out : Output) :=
-  { t : Component.Valued × ID | ∃ c ∈ out, c.Targets t.fst t.snd }
+def targets (out : Output ι) :=
+  { t : Component.Valued × ι | ∃ c ∈ out, c.Targets t.fst t.snd }
 
 theorem mem_targets_cons (h : t ∈ targets tl) : t ∈ targets (hd :: tl) := by
-  have ⟨c, hm, _⟩ := h 
+  have ⟨c, hm, _⟩ := h
   exists c, by simp [hm]
 
 theorem target_mem_targets (hc : c ∈ out) (ht : c.target = some t) : t ∈ targets out := by
@@ -49,36 +49,36 @@ end Output
 --
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
-structure _root_.Reaction where
-  deps                 : Kind → Set Reaction.Dependency
-  triggers             : Set Reaction.Dependency
+structure _root_.Reaction (ι : Type) where
+  deps                 : Kind → Set (Reaction.Dependency ι)
+  triggers             : Set (Reaction.Dependency ι)
   prio                 : Priority
-  body                 : Input → Output
-  triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv } 
-  target_mem_deps      : ∀ {c : Change.Normal}, (↑c ∈ body i) → c.target ∈ deps .out 
+  body                 : (Input ι) → (Output ι)
+  triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv }
+  target_mem_deps      : ∀ {c : Change.Normal ι}, (↑c ∈ body i) → c.target ∈ deps .out
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
-instance : CoeFun Reaction (fun _ => Input → Output) where
+instance : CoeFun (Reaction ι) (fun _ => Input ι → Output ι) where
   coe rcn := rcn.body
 
 -- A reaction is normal if its body only produces normal changes.
-def Normal (rcn : Reaction) : Prop :=
-  ∀ {i c}, (c ∈ rcn i) → c.IsNormal 
+def Normal (rcn : Reaction ι) : Prop :=
+  ∀ {i c}, (c ∈ rcn i) → c.IsNormal
 
 -- A reaction is a mutation if its body can produce mutating changes.
-def Mutates (rcn : Reaction) : Prop := 
+def Mutates (rcn : Reaction ι) : Prop :=
   ¬rcn.Normal
 
-protected inductive Kind 
+protected inductive Kind
   | «mut»
   | norm
 
-def kind (rcn : Reaction) : Reaction.Kind :=
+def kind (rcn : Reaction ι) : Reaction.Kind :=
   if rcn.Normal then .norm else .mut
 
 -- The condition under which a given reaction triggers on a given input.
-def TriggersOn (rcn : Reaction) (i : Input) : Prop :=
+def TriggersOn (rcn : Reaction ι) (i : Input ι) : Prop :=
   ∃ t v, (t ∈ rcn.triggers) ∧ (i.val t.cpt t.id = some v) ∧ v.IsPresent
 
 end Reaction

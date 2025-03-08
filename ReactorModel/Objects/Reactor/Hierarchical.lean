@@ -11,10 +11,10 @@ def UniqueIDs [Reactor α] (rtr : α) : Prop :=
 class Hierarchical (α) extends Reactor α where
   unique_ids : ∀ {rtr : α}, UniqueIDs rtr
 
-def Hierarchical.obj? [Hierarchical α] (rtr : α) (cpt : Component) : cpt.idType ⇀ cpt.type α :=
+def Hierarchical.obj? [Hierarchical α] (rtr : α) (cpt : Component) : α✦cpt ⇀ cpt.type α :=
   fun i => if h : ∃ o, Object rtr cpt i o then h.choose else none
 
 notation (priority := 1001) rtr "[" cpt "]" => Hierarchical.obj? rtr cpt
-notation rtr "[" cpt "][" i "]"             => Hierarchical.obj? rtr cpt i 
+notation rtr "[" cpt "][" i "]"             => Hierarchical.obj? rtr cpt i
 
 end Reactor

@@ -93,25 +93,25 @@ theorem shared_out_dep
 end Dependency
 
 -- This proposition states that `rcn₂` does not depend on `rcn₁`.
-abbrev NotDependent [Hierarchical α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop :=
+abbrev NotDependent [Hierarchical α] (rtr : α) (rcn₁ rcn₂ : α✦) : Prop :=
   ¬(rcn₁ <[rtr] rcn₂)
 
 namespace NotDependent
 
 notation:50 rcn₁ " ≮[" rtr "] " rcn₂ => NotDependent rtr rcn₁ rcn₂
 
-theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} (h : i₁ ≮[rtr₁] i₂) (e : rtr₁ ≈ rtr₂) :
+theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} {i₁ i₂} (h : i₁ ≮[rtr₁] i₂) (e : rtr₁ ≈ rtr₂) :
     i₁ ≮[rtr₂] i₂ :=
   (h <| ·.equiv e)
 
-theorem deps_disjoint [Hierarchical α] {rtr : α} {d} (hi : i₁ ≮[rtr] i₂)
+theorem deps_disjoint [Hierarchical α] {rtr : α} {rcn₁ rcn₂} {i₁ i₂} {d} (hi : i₁ ≮[rtr] i₂)
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (h : d ∈ rcn₁.deps .out)
     (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
   byContradiction fun hd => hi <| .depOverlap h₁ h₂ h (not_not.mp hd) hs
 
 end NotDependent
 
-structure Independent [Hierarchical α] (rtr : α) (rcn₁ rcn₂ : ID) : Prop where
+structure Independent [Hierarchical α] (rtr : α) (rcn₁ rcn₂ : α✦) : Prop where
   not_eq : rcn₁ ≠ rcn₂
   left   : rcn₁ ≮[rtr] rcn₂
   right  : rcn₂ ≮[rtr] rcn₁
@@ -120,18 +120,18 @@ namespace Independent
 
 notation:50 rcn₁ " ≮[" rtr "]≯ " rcn₂ => Independent rtr rcn₁ rcn₂
 
-theorem symm [Hierarchical α] {rtr : α} (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[rtr]≯ i₁ where
+theorem symm [Hierarchical α] {rtr : α} {i₁ i₂} (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[rtr]≯ i₁ where
   not_eq := hi.not_eq.symm
   left   := hi.right
   right  := hi.left
 
-theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} (hi : i₁ ≮[rtr₁]≯ i₂) (e : rtr₁ ≈ rtr₂) :
+theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} {i₁ i₂} (hi : i₁ ≮[rtr₁]≯ i₂) (e : rtr₁ ≈ rtr₂) :
     i₁ ≮[rtr₂]≯ i₂ where
   not_eq := hi.not_eq
   left   := hi.left.equiv e
   right  := hi.right.equiv e
 
-theorem no_shared_state_deps [Proper α] {rtr : α}
+theorem no_shared_state_deps [Proper α] {rtr : α} {rcn₁ rcn₂} {i₁ i₂ i j}
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
     (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁.body i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
   have hd₁ := rcn₁.target_mem_deps hs
@@ -147,7 +147,7 @@ theorem no_shared_state_deps [Proper α] {rtr : α}
 end Independent
 
 -- Reaction `rcn` is maximal wrt. `rcns` if `rcn` does not depend on any reaction in `rcns`.
-def MinimalReaction [Hierarchical α] (rtr : α) (rcns : List ID) (rcn : ID) : Prop :=
+def MinimalReaction [Hierarchical α] (rtr : α) (rcns : List α✦) (rcn : α✦) : Prop :=
   ∀ i ∈ rcns, i ≮[rtr] rcn
 
 namespace MinimalReaction
@@ -162,10 +162,10 @@ theorem cons_head (m : (hd :: tl) ≮[rtr] rcn) : hd ≮[rtr] rcn :=
 theorem cons_tail (m : (hd :: tl) ≮[rtr] rcn) : tl ≮[rtr] rcn :=
   (m · <| List.mem_cons_of_mem _ ·)
 
-theorem perm {rcns : List ID} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
+theorem perm {rcns : List α✦} (m : rcns ≮[rtr] rcn) (h : rcns ~ rcns') : rcns' ≮[rtr] rcn :=
   (m · <| h.mem_iff.mpr ·)
 
-theorem equiv {rcns : List ID} (m : rcns ≮[rtr₁] rcn) (e : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
+theorem equiv {rcns : List α✦} (m : rcns ≮[rtr₁] rcn) (e : rtr₁ ≈ rtr₂) : rcns ≮[rtr₂] rcn :=
   fun i h d => absurd (d.equiv e) (m i h)
 
 end MinimalReaction

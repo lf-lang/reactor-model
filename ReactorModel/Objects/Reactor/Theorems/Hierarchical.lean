@@ -46,7 +46,10 @@ theorem rtr_equiv
   induction s₁ generalizing rtr₂ <;> cases s₂
   case final.final h₁ _ h₂ => exact Equivalent.get?_rtr_some_equiv e h₁ h₂
   case nested.nested j₁ _ h₁ s₁ hi j₂ _ s₂ h₂ =>
-    suffices hj : j₁ = j₂ by subst hj; exact hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) _
+    suffices hj : j₁ = j₂ by
+      subst hj
+      rw [object, object]
+      exact hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) _
     have hs := (nested h₁ s₁ |>.fromEquiv e).unique (nested h₂ s₂)
     simp [fromEquiv] at hs
     exact hs.left
@@ -63,7 +66,10 @@ theorem equiv_rcn_eq
   induction s₁ generalizing rtr₂ <;> cases s₂
   case final.final h₁ _ h₂ => exact Equivalent.get?_rcn_some_eq e h₁ h₂
   case nested.nested j₁ _ h₁ s₁ hi j₂ _ s₂ h₂ =>
-    suffices hj : j₁ = j₂ by subst hj; exact hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) _
+    suffices hj : j₁ = j₂ by
+      subst hj
+      rw [object, object]
+      exact hi (Equivalent.get?_rtr_some_equiv e h₁ h₂) _
     have hs := (nested h₁ s₁ |>.fromEquiv e).unique (nested h₂ s₂)
     simp [fromEquiv] at hs
     exact hs.left
@@ -77,7 +83,7 @@ theorem equiv_rcn_eq
 theorem lawfulMemUpdate_object_preserved
     (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) (h : c ≠ cpt ∨ j ≠ i) (s₁ : StrictMember c j rtr₁)
     (s₂ : StrictMember c j rtr₂) : s₁.object = s₂.object := by
-  induction s₁ generalizing rtr₂ <;> cases s₂ <;> simp [object]
+  induction s₁ generalizing rtr₂ <;> cases s₂ <;> rw [object, object]
   case final.final h₁ _ h₂ =>
     cases u
     case final e => simp_all [e.valued h]
@@ -182,10 +188,10 @@ theorem obj?_root_some (ho : rtr[.rtr][⊤] = some o) : o = rtr :=
 
 -- Note: This theorem does not hold for `i' = ⊤`. For a version that supports this case see
 --       `obj?_some_nested'`.
-theorem obj?_some_nested {i' : ID} (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = some o) :
+theorem obj?_some_nested {i' : α✦} (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = some o) :
     rtr[cpt][i'] = some o := by
   have ⟨s, hs⟩ := Object.strict_elim <| Object.iff_obj?_some.mpr ho
-  exact Object.iff_obj?_some.mp <| hs ▸ ⟨.nested h s⟩
+  exact Object.iff_obj?_some.mp <| hs ▸ StrictMember.nested_object h ▸ ⟨.nested h s⟩
 
 theorem obj?_some_nested' (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = some o) :
     ∃ j, rtr[cpt][j] = some o := by
@@ -202,7 +208,7 @@ theorem obj?_some_extend (ho : rtr[.rtr][c] = some con) (hc : con{cpt}{i} = some
   exact Object.iff_obj?_some.mp <| m.extend_object hc ▸ ⟨m.extend hc⟩
 
 -- Note: This theorem does not hold for `i = ⊤`.
-theorem obj?_some_split {i : ID} (ho : rtr[cpt][i] = some o) :
+theorem obj?_some_split {i : α✦} (ho : rtr[cpt][i] = some o) :
     ∃ c con, (rtr[.rtr][c] = some con) ∧ (con{cpt}{i} = some o) := by
   have ⟨s, hs⟩ := Object.strict_elim <| Object.iff_obj?_some.mpr ho
   have ⟨c, ⟨m, hm⟩⟩ := s.split'
@@ -221,7 +227,7 @@ theorem mem_get?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rt
     (hc₁ : j ∈ con₁{cpt}) (hc₂ : j ∈ con₂{cpt}) : c₁ = c₂ :=
   get?_some_rtr_eq ho₁ ho₂ (Partial.mem_iff.mp hc₁).choose_spec (Partial.mem_iff.mp hc₂).choose_spec
 
-theorem obj?_none_to_get?_none {i : ID} (ho : rtr[cpt][i] = none) : rtr{cpt}{i} = none := by
+theorem obj?_none_to_get?_none {i : α✦} (ho : rtr[cpt][i] = none) : rtr{cpt}{i} = none := by
   replace ho := Object.not_iff_obj?_none.mpr ho
   by_contra h
   exact ho _ ⟨.final <| Option.ne_none_iff_exists.mp h |>.choose_spec.symm⟩

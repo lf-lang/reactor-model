@@ -6,62 +6,54 @@ open Classical Reactor
 
 namespace Execution.State
 
-variable {s s₁ s₂ : State α}
+variable [Hierarchical α] {s s₁ s₂ : State α}
 
-theorem input_congr
-    [Hierarchical α] (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) :
+theorem input_congr (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) :
     s₁.input i = s₂.input i := by
   simp [input, input.restriction, hr, ht]
 
-theorem output_congr
-    [Hierarchical α] (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) :
+theorem output_congr (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.tag := by rfl) :
     s₁.output i = s₂.output i := by
   simp [output, input_congr hr ht, hr]
 
-theorem record_preserves_rtr (s : State α) (rcn : ID) : (s.record rcn).rtr = s.rtr :=
+theorem record_preserves_rtr (s : State α) (rcn) : (s.record rcn).rtr = s.rtr :=
   rfl
 
-theorem record_preserves_tag (s : State α) (rcn : ID) : (s.record rcn).tag = s.tag :=
+theorem record_preserves_tag (s : State α) (rcn) : (s.record rcn).tag = s.tag :=
   rfl
 
-theorem record_preserves_events (s : State α) (rcn : ID) : (s.record rcn).events = s.events :=
+theorem record_preserves_events (s : State α) (rcn) : (s.record rcn).events = s.events :=
   rfl
 
-theorem record_progress_eq (s : State α) (rcn : ID) :
-    (s.record rcn).progress = s.progress.insert rcn :=
+theorem record_progress_eq (s : State α) (rcn) : (s.record rcn).progress = s.progress.insert rcn :=
   rfl
 
-theorem record_preserves_output [Hierarchical α] (s : State α) (rcn₁ rcn₂ : ID) :
+theorem record_preserves_output (s : State α) (rcn₁ rcn₂) :
     (s.record rcn₁).output rcn₂ = s.output rcn₂ :=
   output_congr (s.record_preserves_rtr _) (s.record_preserves_tag _)
 
-theorem record_comm {s : State α} {rcn₁ rcn₂ : ID} :
-    (s.record rcn₁).record rcn₂ = (s.record rcn₂).record rcn₁ := by
+theorem record_comm : (s.record rcn₁).record rcn₂ = (s.record rcn₂).record rcn₁ := by
   simp [record]
   apply Set.insert_comm
 
-theorem schedule_preserves_rtr (s : State α) (i : ID) (t : Time) (v : Value) :
-    (s.schedule i t v).rtr = s.rtr :=
+theorem schedule_preserves_rtr (s : State α) (i t v) : (s.schedule i t v).rtr = s.rtr :=
   rfl
 
-theorem schedule_preserves_tag (s : State α) (i : ID) (t : Time) (v : Value) :
-    (s.schedule i t v).tag = s.tag :=
+theorem schedule_preserves_tag (s : State α) (i t v) : (s.schedule i t v).tag = s.tag :=
   rfl
 
-theorem schedule_preserves_progress (s : State α) (i : ID) (t : Time) (v : Value) :
+theorem schedule_preserves_progress (s : State α) (i t v) :
     (s.schedule i t v).progress = s.progress :=
   rfl
 
-theorem schedule_events_congr {s₁ s₂ : State α} {i : ID} {t : Time} {v : Value}
-    (h : s₁.events = s₂.events) : (s₁.schedule i t v).events = (s₂.schedule i t v).events := by
+theorem schedule_events_congr (h : s₁.events = s₂.events) :
+    (s₁.schedule i t v).events = (s₂.schedule i t v).events := by
   simp [schedule, h]
 
-theorem schedule_ne_comm {s : State α} {i₁ i₂ : ID} {t₁ t₂ : Time} {v₁ v₂ : Value} (h : i₁ ≠ i₂) :
+theorem schedule_ne_comm (h : i₁ ≠ i₂) :
     (s.schedule i₁ t₁ v₁).schedule i₂ t₂ v₂ = (s.schedule i₂ t₂ v₂).schedule i₁ t₁ v₁ := by
   simp [schedule]
   apply Partial.update_ne_comm _ h
-
-variable [Hierarchical α]
 
 theorem Allows.«def» :
     (s.Allows i) ↔ (i ∈ s.rtr[.rcn]) ∧ (dependencies s.rtr i ⊆ s.progress) ∧ (i ∉ s.progress) where
@@ -108,13 +100,10 @@ theorem Triggers.congr {s₁ s₂ : State α}
 theorem Triggers.iff_record : s.Triggers i₂ ↔ (s.record i₁).Triggers i₂ :=
   Triggers.congr
 
-omit [Hierarchical α] in
-theorem NextTag.isLeast {s : State α} (n : NextTag s g) :
-    IsLeast { g' ∈ s.scheduledTags | s.tag < g' } g where
+theorem NextTag.isLeast (n : NextTag s g) : IsLeast { g' ∈ s.scheduledTags | s.tag < g' } g where
   left := ⟨n.mem, n.bound⟩
   right := by simp [lowerBounds]; exact n.least
 
-omit [Hierarchical α] in
 theorem NextTag.deterministic {s : State α} (n₁ : NextTag s g₁) (n₂ : NextTag s g₂) : g₁ = g₂ :=
   n₁.isLeast.unique n₂.isLeast
 

@@ -6,7 +6,7 @@ open Classical Reactor Execution State
 
 namespace Execution.Step.Apply
 
-variable [Hierarchical α] {s s₁ s₁' s₂ s₂' s₁₂ s₂₁ : State α} {c : Change}
+variable [Hierarchical α] {s s₁ s₁' s₂ s₂' s₁₂ s₂₁ : State α} {c : Change α✦}
 
 theorem preserves_tag (e : s₁ -[c]→ s₂) : s₁.tag = s₂.tag := by
   cases e <;> simp [schedule_preserves_tag]
@@ -37,7 +37,7 @@ end Execution.Step.Apply
 
 namespace Execution.Step.Apply
 
-variable [Readable α] {s s₁ s₂ : State α} {c : Change}
+variable [Readable α] {s s₁ s₂ : State α} {c : Change α✦}
 
 theorem rtr_congr (e : s₁ -[c]→ s₂) (e' : s₁' -[c]→ s₂')
     (h : s₁.rtr = s₁'.rtr) : s₂.rtr = s₂'.rtr := by
@@ -58,7 +58,7 @@ end Execution.Step.Apply
 
 namespace Execution.Step.Apply
 
-variable [Proper α] {c₁ c₂ : Change} {s s₁ s₂ s₁₂ s₂₁ : State α}
+variable [Proper α] {c₁ c₂ : Change α✦} {s s₁ s₂ s₁₂ s₂₁ : State α}
 
 theorem ne_target_comm (ht : c₁.target ≠ c₂.target ∨ c₁.target = none) (e₁ : s -[c₁]→ s₁)
     (e₁₂ : s₁ -[c₂]→ s₁₂) (e₂ : s -[c₂]→ s₂) (e₂₁ : s₂ -[c₁]→ s₂₁) : s₁₂ = s₂₁ := by
@@ -78,7 +78,7 @@ theorem ne_target_comm (ht : c₁.target ≠ c₂.target ∨ c₁.target = none)
 --       Also, this doesn't actually require `Proper` does it? If you trim down the requirements,
 --       this could have implications on the generality of the progress theorem.
 open Updatable in
-def construct (s : State α) : (c : Change) → (s' : State α) × (s -[c]→ s')
+def construct (s : State α) : (c : Change α✦) → (s' : State α) × (s -[c]→ s')
   | .inp i v   => ⟨{ s with rtr := update s.rtr .inp i v }, inp <| LawfulUpdatable.lawful ..⟩
   | .out i v   => ⟨{ s with rtr := update s.rtr .out i v }, out <| LawfulUpdatable.lawful ..⟩
   | .stv i v   => ⟨{ s with rtr := update s.rtr .stv i v }, stv <| LawfulUpdatable.lawful ..⟩
@@ -89,7 +89,7 @@ end Execution.Step.Apply
 
 namespace Execution.Step.Apply.RTC
 
-variable [Hierarchical α] {s₁ : State α} {out : Reaction.Output}
+variable [Hierarchical α] {s₁ : State α} {out : Reaction.Output α✦}
 
 theorem preserves_tag (e : s₁ -[out]→ s₂) : s₁.tag = s₂.tag := by
   induction e
@@ -127,7 +127,7 @@ end Execution.Step.Apply.RTC
 
 namespace Execution.Step.Apply.RTC
 
-variable [Readable α] {s s₁ s₂ : State α} {out : Reaction.Output}
+variable [Readable α] {s s₁ s₂ : State α} {out : Reaction.Output α✦}
 
 theorem comm_record (e₁ : s -[out]→ s₁) (e₂ : (s.record rcn) -[out]→ s₂) : s₁.record rcn = s₂ := by
   induction e₁ <;> cases e₂
@@ -143,9 +143,9 @@ end Execution.Step.Apply.RTC
 
 namespace Execution.Step.Apply.RTC
 
-variable [Proper α] {s s₁ s₂ s₁₂ s₂₁ : State α} {c : Change} {out out₁ out₂ : Reaction.Output}
+variable [Proper α] {s s₁ s₂ s₁₂ s₂₁ : State α} {c : Change α✦} {out out₁ out₂ : Reaction.Output α✦}
 
-def construct (s : State α) : (out : Reaction.Output) → (s' : State α) × (s -[out]→ s')
+def construct (s : State α) : (out : Reaction.Output α✦) → (s' : State α) × (s -[out]→ s')
   | []       => ⟨s, refl⟩
   | hd :: tl => let ⟨s', e⟩ := Apply.construct s hd; let ⟨_, e'⟩ := construct s' tl; ⟨_, trans e e'⟩
 

@@ -6,31 +6,31 @@ open Classical Reactor
 
 namespace Execution
 
-variable [Hierarchical α]
-
 @[ext]
-structure State (α) where
+structure State (α) [Hierarchical α] where
   rtr      : α
   tag      : Time.Tag
-  progress : Set ID
-  events   : ID ⇀ Time.Tag ⇉ Value
+  progress : Set (α✦)
+  events   : α✦ ⇀ Time.Tag ⇉ Value
+
+variable [Hierarchical α]
 
 namespace State
 
-def input (s : State α) (rcn : ID) : Reaction.Input where
+def input (s : State α) (rcn : α✦) : Reaction.Input α✦ where
   val cpt := s.rtr[.rcn][rcn] |>.elim ∅ (restriction · cpt)
   tag := s.tag
 where
-  restriction (rcn : Reaction) (cpt : Component.Valued) :=
+  restriction (rcn : Reaction α✦) (cpt : Component.Valued) :=
     s.rtr[cpt].restrict { i | ⟨cpt, i⟩ ∈ rcn.deps .in }
 
-def output (s : State α) (rcn : ID) : Reaction.Output :=
+def output (s : State α) (rcn : α✦) : Reaction.Output α✦ :=
   s.rtr[.rcn][rcn] |>.elim [] (· <| s.input rcn)
 
-def record (s : State α) (rcn : ID) : State α :=
+def record (s : State α) (rcn : α✦) : State α :=
   { s with progress := s.progress.insert rcn }
 
-def schedule (s : State α) (i : ID) (t : Time) (v : Value) : State α :=
+def schedule (s : State α) (i : α✦) (t : Time) (v : Value) : State α :=
   { s with events := s.events.update i (go · t v) }
 where
   go (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
@@ -41,18 +41,18 @@ where
 def scheduledTags (s : State α) : Set Time.Tag :=
   { g | ∃ i a, (s.events i = some a) ∧ (g ∈ a.keys) }
 
-def actions (s : State α) (g : Time.Tag) : ID ⇀ Value :=
+def actions (s : State α) (g : Time.Tag) : α✦ ⇀ Value :=
   s.rtr[.act].mapIdx fun i => s.events i >>= (· g) |>.getD .absent
 
-def unprocessed (s : State α) : Set ID :=
+def unprocessed (s : State α) : Set α✦ :=
   { i ∈ s.rtr[.rcn] | i ∉ s.progress }
 
-structure Allows (s : State α) (rcn : ID) : Prop where
+structure Allows (s : State α) (rcn : α✦) : Prop where
   mem         : rcn ∈ s.rtr[.rcn]
   deps        : dependencies s.rtr rcn ⊆ s.progress
   unprocessed : rcn ∉ s.progress
 
-inductive Triggers (s : State α) (i : ID) : Prop
+inductive Triggers (s : State α) (i : α✦) : Prop
   | intro (mem : s.rtr[.rcn][i] = some rcn) (triggers : rcn.TriggersOn (s.input i))
 
 structure NextTag (s : State α) (next : Time.Tag) : Prop where

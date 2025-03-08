@@ -5,7 +5,7 @@ namespace Reactor
 
 variable [Hierarchical α]
 
-theorem dependencies_subset (rtr : α) (rcn : ID) : dependencies rtr rcn ⊆ rtr[.rcn].ids :=
+theorem dependencies_subset (rtr : α) (rcn : α✦) : dependencies rtr rcn ⊆ rtr[.rcn].ids :=
   fun _ d => d.mem₁
 
 theorem equiv_eq_dependencies {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
@@ -13,11 +13,11 @@ theorem equiv_eq_dependencies {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
   ext i j
   exact ⟨.equiv <| .symm e, .equiv e⟩
 
-theorem mem_dependencies_subset {rtr : α} {rcn₁ rcn₂ : ID} (h : rcn₂ ∈ dependencies rtr rcn₁) :
+theorem mem_dependencies_subset {rtr : α} {rcn₁ rcn₂ : α✦} (h : rcn₂ ∈ dependencies rtr rcn₁) :
     dependencies rtr rcn₂ ⊆ dependencies rtr rcn₁ :=
   fun _ h' => Dependency.trans h' h
 
-theorem mem_dependencies_ssubset {rtr : α} {rcn₁ rcn₂ : ID}
+theorem mem_dependencies_ssubset {rtr : α} {rcn₁ rcn₂ : α✦}
     (a : Dependency.Acyclic rtr) (h : rcn₂ ∈ dependencies rtr rcn₁) :
     dependencies rtr rcn₂ ⊂ dependencies rtr rcn₁ :=
   ssubset_iff_subset_ne.mpr ⟨mem_dependencies_subset h, (a _ <| ·.symm ▸ h)⟩

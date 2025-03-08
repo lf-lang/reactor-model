@@ -18,9 +18,10 @@ inductive Value
 inductive Value.IsPresent : Value → Prop
   | intro : IsPresent (present val)
 
--- We use IDs to reference various kinds of components like ports, reactions, actions, etc.
--- The precise nature of IDs is not relevant, which is why we define the type as `opaque`.
-opaque ID : Type
+class Identifiable (α : Type) where
+  protected Id : Type
+
+postfix:max "✦" => Identifiable.Id
 
 -- Note: This approach is also used in the implementation of Lean:
 --       https://github.com/leanprover/lean4/blob/b81cff/src/Lean/Environment.lean#L18

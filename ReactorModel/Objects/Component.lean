@@ -5,7 +5,7 @@ inductive Component.Valued
   | out -- Output port
   | stv -- State variable
   | act -- Action
-  
+
 -- An enumeration of the different *kinds* of components that are addressable by ids in a reactor.
 inductive Component
   | val (v : Component.Valued)
@@ -20,19 +20,21 @@ namespace Component
 @[match_pattern] abbrev stv := Component.val .stv
 
 instance : Coe Component.Valued Component where
-  coe := val 
+  coe := val
 
--- The type of `WithTop ID`s extends the type of `ID`s with a `⊤` ID witch is used to refer to a/the
--- top level reactor. We don't include the `⊤` ID in the normal `ID` type, as most contexts require
--- that the `⊤` ID cannot not be used. For example, it should not be possible for a reaction to be
--- identified by the `⊤` ID. 
-abbrev idType : Component → Type
-  | rtr => WithTop ID
-  | _   => ID
+-- The type of `WithTop α`s extends the `Identifiable.Id` type of `α` with a `⊤` ID which is used to
+-- refer to a/the top level reactor. We don't include the `⊤` ID in the `Identifiable` type class,
+-- as most contexts require that the `⊤` ID cannot not be used. For example, it should not be
+-- possible for a reaction to be identified by the `⊤` ID.
+abbrev idType (α : Type) [Identifiable α] : Component → Type
+  | rtr => WithTop α✦
+  | _   => α✦
 
-instance {cpt : Component} : Coe ID cpt.idType where
+notation:max α:100 "✦" cpt:100 => Component.idType α cpt
+
+instance [Identifiable α] {cpt : Component} : Coe (α✦) α✦cpt where
   coe i :=
-    match cpt with 
+    match cpt with
     | .rtr | .rcn | .val _ => i
 
 end Component

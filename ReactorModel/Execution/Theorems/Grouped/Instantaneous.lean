@@ -34,7 +34,7 @@ instance : Coe (s₁ ↓ₛ s₂) (Step s₁ s₂) where
 instance : Coe (s₁ ↓ₑ s₂) (Step s₁ s₂) where
   coe := Step.exec
 
-def rcn : (s₁ ↓ᵢ s₂) → ID
+def rcn : (s₁ ↓ᵢ s₂) → α✦
   | skip e | exec e => e.rcn
 
 theorem allows_rcn : (e : s₁ ↓ᵢ s₂) → s₁.Allows e.rcn
@@ -53,7 +53,7 @@ theorem progress_eq : (e : s₁ ↓ᵢ s₂) → s₂.progress = s₁.progress.i
   | skip e | exec e => e.progress_eq
 
 -- Corollary of `InstStep.progress_eq`.
-theorem progress_monotonic {rcn : ID} (e : s₁ ↓ᵢ s₂) (h : rcn ∈ s₁.progress) : rcn ∈ s₂.progress :=
+theorem progress_monotonic {rcn : α✦} (e : s₁ ↓ᵢ s₂) (h : rcn ∈ s₁.progress) : rcn ∈ s₂.progress :=
   e.progress_eq ▸ Set.mem_insert_of_mem _ h
 
 -- Corollary of `InstStep.progress_eq`.
@@ -176,9 +176,9 @@ end Step
 
 namespace Step.TC
 
-variable [Hierarchical α] {s₁ s₂ : State α} {rcn : ID}
+variable [Hierarchical α] {s₁ s₂ : State α} {rcn : α✦}
 
-def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List ID
+def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List α✦
   | single e => [e.rcn]
   | trans e e' => e.rcn :: e'.rcns
 
@@ -364,7 +364,7 @@ namespace Closed
 
 variable [Hierarchical α] {s s₁ s₂ : State α}
 
-abbrev rcns (e : s₁ ↓ᵢ| s₂) : List ID :=
+abbrev rcns (e : s₁ ↓ᵢ| s₂) : List α✦ :=
   e.exec.rcns
 
 theorem preserves_nontrivial (n : s₁.Nontrivial) (e : s₁ ↓ᵢ| s₂) : s₂.Nontrivial :=

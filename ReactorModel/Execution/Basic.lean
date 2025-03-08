@@ -7,7 +7,7 @@ variable [Hierarchical α]
 namespace Execution
 namespace Step
 
-inductive Apply : Change → State α → State α → Type
+inductive Apply : Change α✦ → State α → State α → Type
   | inp {rtr} : (LawfulUpdate .inp i v s.rtr rtr) → Apply (.inp i v) s { s with rtr }
   | out {rtr} : (LawfulUpdate .out i v s.rtr rtr) → Apply (.out i v) s { s with rtr }
   | stv {rtr} : (LawfulUpdate .stv i v s.rtr rtr) → Apply (.stv i v) s { s with rtr }
@@ -16,7 +16,7 @@ inductive Apply : Change → State α → State α → Type
 
 notation s₁:max " -[" c "]→ " s₂:max => Apply c s₁ s₂
 
-inductive Apply.RTC : Reaction.Output → State α → State α → Type
+inductive Apply.RTC : Reaction.Output α✦ → State α → State α → Type
   | refl  : Apply.RTC [] s s
   | trans : (s₁ -[hd]→ s₂) → (Apply.RTC tl s₂ s₃) → Apply.RTC (hd :: tl) s₁ s₃
 

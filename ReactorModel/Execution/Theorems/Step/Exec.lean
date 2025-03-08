@@ -6,7 +6,7 @@ namespace Execution.Step.Exec
 
 variable [Hierarchical α] {s₁ : State α}
 
-def rcn :                  (s₁ ↓ₑ s₂) → ID                               | mk (rcn := r) .. => r
+def rcn :                  (s₁ ↓ₑ s₂) → α✦                               | mk (rcn := r) .. => r
 def applied :              (s₁ ↓ₑ s₂) → State α                          | mk (s₂ := s) .. => s
 theorem allows_rcn :   (e : s₁ ↓ₑ s₂) → Allows s₁ e.rcn                  | mk a .. => a
 theorem triggers_rcn : (e : s₁ ↓ₑ s₂) → Triggers s₁ e.rcn                | mk _ t _ => t
@@ -50,7 +50,7 @@ end Execution.Step.Exec
 
 namespace Execution.Step.Exec
 
-variable [Proper α] {s s₁ : State α} {rcn : Reaction}
+variable [Proper α] {s s₁ : State α} {rcn : Reaction α✦}
 
 theorem indep_restriction_eq
     (e : s₁ ↓ₑ s₂) (hi : e.rcn ≮[s₁.rtr]≯ i) (ho : s₁.rtr[.rcn][i] = some rcn) :

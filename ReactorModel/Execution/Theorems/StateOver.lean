@@ -52,7 +52,7 @@ theorem exists_allowed_of_acyclic_not_closed
 
 -- A forcing state for `rcn` is a state over `rtr` where the only possible next execution step
 -- involves `rcn`. This construction is only sensible for `rcn ∈ rtr[.rcn]`.
-def forcing (rtr : α) (rcn : ID) : State.Over rtr where
+def forcing (rtr : α) (rcn : α✦) : State.Over rtr where
   rtr := rtr
   tag := 0
   progress := rtr[.rcn].ids \ {rcn}
@@ -60,7 +60,7 @@ def forcing (rtr : α) (rcn : ID) : State.Over rtr where
   progress_sub := by simp
   events_sub := by simp [Partial.empty_ids]
 
-variable {rtr : α} {rcn : ID}
+variable {rtr : α} {rcn : α✦}
 omit [Reactor.Finite α]
 
 theorem forcing_not_closed (h : rcn ∈ rtr[.rcn]) : ¬(forcing rtr rcn).Closed := by

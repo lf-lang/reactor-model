@@ -4,7 +4,7 @@ namespace Reactor
 
 class Extensional (α) extends Reactor α where
   ext_iff : (rtr₁ = rtr₂) ↔ (get? rtr₁ = get? rtr₂)
-  
+
 variable [Extensional α] {rtr₁ rtr₂ : α}
 
 @[ext]
