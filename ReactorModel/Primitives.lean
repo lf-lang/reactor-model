@@ -26,14 +26,11 @@ class Identifiable (α : Type) where
 
 postfix:max "✦" => Identifiable.Id
 
--- Note: This approach is also used in the implementation of Lean:
---       https://github.com/leanprover/lean4/blob/b81cff/src/Lean/Environment.lean#L18
-opaque PrioritySpec : (p : Type) × (PartialOrder p) := ⟨Unit, inferInstance⟩
+class Prioritizable (ρ : Type) where
+  Priority : Type
+  order    : PartialOrder Priority
 
--- The `Priority` type is used to impose a (potentially partial) order on reactions.
-def Priority := PrioritySpec.fst
-
-instance : PartialOrder Priority := PrioritySpec.snd
+attribute [instance] Prioritizable.order
 
 -- The `Kind` type is used to generically distinguish between things which
 -- have an "input" and "output" variant. This is the case for ports as well

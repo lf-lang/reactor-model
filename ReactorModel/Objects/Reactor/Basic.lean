@@ -2,12 +2,13 @@ import ReactorModel.Objects.Reaction
 
 noncomputable section
 
-abbrev Component.type (α : Type) [Identifiable α] [_root_.Valued α] : Component → Type
+abbrev Component.type (α : Type) [Identifiable α] [_root_.Valued α] [Prioritizable α] :
+    Component → Type
   | .rtr   => α
   | .rcn   => Reaction α
   | .val _ => α◾
 
-class Reactor (α : Type) extends Identifiable α, Valued α where
+class Reactor (α : Type) extends Identifiable α, Valued α, Prioritizable α where
   get? : α → (cpt : Component) → (α✦ ⇀ cpt.type α)
 
 namespace Reactor

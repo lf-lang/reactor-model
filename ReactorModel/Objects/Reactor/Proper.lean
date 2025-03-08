@@ -22,7 +22,8 @@ inductive ValidDependency [Reactor α] (rtr : α) :
 
 -- Note: This proposition is only meaningful under the condition that `rcn₁` and `rcn₂` live in the
 --       same reactor.
-inductive NeedOrderedPriority [Identifiable α] [Valued α] (rcn₁ rcn₂ : Reaction α) : Prop
+inductive NeedOrderedPriority
+    [Identifiable α] [Valued α] [Prioritizable α] (rcn₁ rcn₂ : Reaction α) : Prop
   | overlap (h₁ : d ∈ rcn₁.deps .out) (h₂ : d ∈ rcn₂.deps .out)
   | hazard (h₁ : ⟨.stv, s⟩ ∈ rcn₁.deps k₁) (h₂ : ⟨.stv, s⟩ ∈ rcn₂.deps k₂) (ho : k₁ = .out ∨ k₂ = .out)
   | mutation (h₁ : rcn₁.Mutates) (h₂ : rcn₂.Mutates)

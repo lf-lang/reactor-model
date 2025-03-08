@@ -53,15 +53,15 @@ end Output
 --
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
-structure _root_.Reaction (α) [Identifiable α] [Valued α] where
+structure _root_.Reaction (α) [Identifiable α] [Valued α] [Prioritizable α] where
   deps                 : Kind → Set (Reaction.Dependency α✦)
   triggers             : Set (Reaction.Dependency α✦)
-  prio                 : Priority
+  prio                 : Prioritizable.Priority α
   body                 : (Input α) → (Output α)
   triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv }
   target_mem_deps      : ∀ {c : Change.Normal α}, (↑c ∈ body i) → c.target ∈ deps .out
 
-variable [Identifiable α] [Valued α]
+variable [Identifiable α] [Valued α] [Prioritizable α]
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
