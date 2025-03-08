@@ -11,29 +11,29 @@ structure State (α) [Hierarchical α] where
   rtr      : α
   tag      : Time.Tag
   progress : Set (α✦)
-  events   : α✦ ⇀ Time.Tag ⇉ Value
+  events   : α✦ ⇀ Time.Tag ⇉ α◾
 
 variable [Hierarchical α]
 
 namespace State
 
-def input (s : State α) (rcn : α✦) : Reaction.Input α✦ where
+def input (s : State α) (rcn : α✦) : Reaction.Input α where
   val cpt := s.rtr[.rcn][rcn] |>.elim ∅ (restriction · cpt)
   tag := s.tag
 where
-  restriction (rcn : Reaction α✦) (cpt : Component.Valued) :=
+  restriction (rcn : Reaction α) (cpt : Component.Valued) :=
     s.rtr[cpt].restrict { i | ⟨cpt, i⟩ ∈ rcn.deps .in }
 
-def output (s : State α) (rcn : α✦) : Reaction.Output α✦ :=
+def output (s : State α) (rcn : α✦) : Reaction.Output α :=
   s.rtr[.rcn][rcn] |>.elim [] (· <| s.input rcn)
 
 def record (s : State α) (rcn : α✦) : State α :=
   { s with progress := s.progress.insert rcn }
 
-def schedule (s : State α) (i : α✦) (t : Time) (v : Value) : State α :=
+def schedule (s : State α) (i : α✦) (t : Time) (v : α◾) : State α :=
   { s with events := s.events.update i (go · t v) }
 where
-  go (a : Time.Tag ⇉ Value) (t : Time) (v : Value) : Time.Tag ⇉ Value :=
+  go (a : Time.Tag ⇉ α◾) (t : Time) (v : α◾) : Time.Tag ⇉ α◾ :=
     match a.keys.filter (·.time = t) |>.max with
     | ⊥           => a.insert ⟨t, 0⟩ v
     | some ⟨_, m⟩ => a.insert ⟨t, m + 1⟩ v
@@ -41,8 +41,8 @@ where
 def scheduledTags (s : State α) : Set Time.Tag :=
   { g | ∃ i a, (s.events i = some a) ∧ (g ∈ a.keys) }
 
-def actions (s : State α) (g : Time.Tag) : α✦ ⇀ Value :=
-  s.rtr[.act].mapIdx fun i => s.events i >>= (· g) |>.getD .absent
+def actions (s : State α) (g : Time.Tag) : α✦ ⇀ α◾ :=
+  s.rtr[.act].mapIdx fun i => s.events i >>= (· g) |>.getD ⊥
 
 def unprocessed (s : State α) : Set α✦ :=
   { i ∈ s.rtr[.rcn] | i ∉ s.progress }

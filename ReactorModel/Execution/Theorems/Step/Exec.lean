@@ -50,7 +50,7 @@ end Execution.Step.Exec
 
 namespace Execution.Step.Exec
 
-variable [Proper α] {s s₁ : State α} {rcn : Reaction α✦}
+variable [Proper α] {s s₁ : State α} {rcn : Reaction α}
 
 theorem indep_restriction_eq
     (e : s₁ ↓ₑ s₂) (hi : e.rcn ≮[s₁.rtr]≯ i) (ho : s₁.rtr[.rcn][i] = some rcn) :

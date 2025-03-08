@@ -173,12 +173,12 @@ theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : rtr₁
 
 end LawfulMemUpdate
 
-theorem LawfulUpdate.equiv [Reactor α] {rtr₁ : α} {i} :
+theorem LawfulUpdate.equiv [Reactor α] {rtr₁ : α} {i v} :
     (LawfulUpdate cpt i v rtr₁ rtr₂) → rtr₁ ≈ rtr₂
   | notMem _ h => h ▸ (.refl _)
   | update u   => u.equiv
 
-theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} {i} :
+theorem LawfulUpdatable.equiv [LawfulUpdatable α] {rtr : α} {i v} :
     rtr ≈ (Updatable.update rtr cpt i v) :=
   (lawful rtr cpt i v).equiv
 

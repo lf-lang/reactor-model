@@ -3,20 +3,23 @@ import ReactorModel.Extensions
 noncomputable section
 open Classical
 
--- A `PresentValue` is a non-absent value.
--- We use this is `Value` to define the complete type of values.
-private opaque PresentValue : Type
-
 -- `Value`s are the objects that are consumed and produced by reactions
 -- and passed along via ports and actions.
 -- The `absent` value is a special value which is used with ports to
 -- represent that a given port is not populated with a value.
-inductive Value
-  | absent
-  | present (val : PresentValue)
+class Value (ν : Type) where
+  absent : ν
 
-inductive Value.IsPresent : Value → Prop
-  | intro : IsPresent (present val)
+instance [Value ν] : Bot ν where
+  bot := Value.absent
+
+class Valued (α : Type) where
+  Val  : Type
+  inst : Value Val
+
+attribute [instance] Valued.inst
+
+postfix:max "◾" => Valued.Val
 
 class Identifiable (α : Type) where
   protected Id : Type

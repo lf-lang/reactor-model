@@ -122,7 +122,7 @@ theorem ext_obj? [Proper α] {rtr₁ : α} (e : rtr₁ ≈ rtr₂)
           have ho₂ := get?_some_to_obj?_some hc₂
           exact h ho₁ ho₂
 
-theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} {i₁ i₂}
+theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α} {i₁ i₂ v₁ v₂}
     (u₁ : LawfulUpdate cpt₁ i₁ v₁ rtr rtr₁) (u₂ : LawfulUpdate cpt₂ i₂ v₂ rtr₁ rtr₂)
     (u₁' : LawfulUpdate cpt₂ i₂ v₂ rtr rtr₁') (u₂' : LawfulUpdate cpt₁ i₁ v₁ rtr₁' rtr₂')
     (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂) : rtr₂ = rtr₂' := by
@@ -164,7 +164,8 @@ theorem LawfulUpdate.ne_comm [Proper α] {rtr rtr₁ rtr₁' rtr₂ rtr₂' : α
     simp_all
 
 open Updatable in
-theorem LawfulUpdatable.update_ne_comm [Proper α] {rtr : α} {i₁ i₂} (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂) :
+theorem LawfulUpdatable.update_ne_comm
+    [Proper α] {rtr : α} {i₁ i₂ v₁ v₂} (h : cpt₁ ≠ cpt₂ ∨ i₁ ≠ i₂) :
     update (update rtr cpt₁ i₁ v₁) cpt₂ i₂ v₂ = update (update rtr cpt₂ i₂ v₂) cpt₁ i₁ v₁ :=
   LawfulUpdate.ne_comm (lawful ..) (lawful ..) (lawful ..) (lawful ..) h
 

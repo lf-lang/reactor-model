@@ -32,10 +32,10 @@ variable [Finite α]
 -- component type `cpt` with new values given by the map `vs`. When `vs.ids = rtr[cpt].ids` this is
 -- exactly what happens. When `vs.ids ≠ rtr[cpt].ids`, the values whose id is not in
 -- `rtr[cpt].ids ∩ vs.ids` remain unchanged.
-def set (rtr : α) (cpt : Component.Valued) (vs : α✦ ⇀ Value) : α :=
+def set (rtr : α) (cpt : Component.Valued) (vs : α✦ ⇀ α◾) : α :=
   go rtr cpt vs <| Finite.ids rtr cpt
 where
-  go (rtr : α) (cpt : Component.Valued) (vs : α✦ ⇀ Value) : List α✦ → α
+  go (rtr : α) (cpt : Component.Valued) (vs : α✦ ⇀ α◾) : List α✦ → α
     | [] => rtr
     | hd :: tl =>
       match vs hd with
@@ -63,12 +63,12 @@ theorem set.go_preserves {c : Component.Valued} {i o vs}
   case _ hi _ _ h => exact hi ho <| .inr <| .inl h.right
   case _ hi _ _ h => exact hi ho <| .inr <| .inr h
   case inl hd tl hi _ v _ h =>
-    have e := @LawfulUpdatable.equiv _ cpt v _ rtr ‹_›
+    have e := @LawfulUpdatable.equiv _ cpt _ rtr ‹_› v
     have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
     simp [hi ho' <| .inl h]
     injection ho' ▸ ho ▸ obj?_preserved_cpt h
   case inr.inl hd tl hi _ v _ h =>
-    have e := @LawfulUpdatable.equiv _ cpt v _ rtr ‹_›
+    have e := @LawfulUpdatable.equiv _ cpt _ rtr ‹_› v
     have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
     push_neg at h
     simp [hi ho' <| .inr <| .inl h.right]
@@ -86,7 +86,7 @@ theorem set.go_updated {cpt : Component.Valued} {o vs}
   case cons.inl tl hi h =>
     subst h
     simp [go, hv]
-    have e := @LawfulUpdatable.equiv _ cpt v _ rtr i
+    have e := @LawfulUpdatable.equiv _ cpt _ rtr i v
     have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
     by_cases ht : i ∈ tl
     case pos => exact hi ho' hv ht
@@ -96,7 +96,7 @@ theorem set.go_updated {cpt : Component.Valued} {o vs}
     split
     · exact hi ho hv ht
     case _ v _ =>
-      have e := @LawfulUpdatable.equiv _ cpt v _ rtr hd
+      have e := @LawfulUpdatable.equiv _ cpt _ rtr hd v
       have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
       exact hi ho' hv ht
 

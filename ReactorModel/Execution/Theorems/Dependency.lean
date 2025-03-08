@@ -131,7 +131,7 @@ theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} {i₁ i₂} (hi : i₁ ≮[
   left   := hi.left.equiv e
   right  := hi.right.equiv e
 
-theorem no_shared_state_deps [Proper α] {rtr : α} {rcn₁ rcn₂} {i₁ i₂ i j}
+theorem no_shared_state_deps [Proper α] {rtr : α} {rcn₁ rcn₂} {i₁ i₂ i j v}
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
     (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁.body i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by
   have hd₁ := rcn₁.target_mem_deps hs

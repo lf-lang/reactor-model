@@ -9,27 +9,31 @@ protected structure Dependency (ι) where
   cpt : Component.Valued
   id  : ι
 
-def _root_.Change.Normal.target (c : Change.Normal ι) : Reaction.Dependency ι where
+def _root_.Change.Normal.target [Identifiable α] [Valued α] (c : Change.Normal α) :
+    Reaction.Dependency α✦ where
   cpt := c.cpt
   id  := c.id
 
 @[ext]
-structure Input (ι) where
-  val : Component.Valued → ι ⇀ Value
+structure Input (α) [Identifiable α] [Valued α] where
+  val : Component.Valued → α✦ ⇀ α◾
   tag : Time.Tag
 
-abbrev Output (ι : Type) := List (Change ι)
+abbrev Output (α) [Identifiable α] [Valued α] := List (Change α)
 
 namespace Output
 
-def targets (out : Output ι) :=
-  { t : Component.Valued × ι | ∃ c ∈ out, c.Targets t.fst t.snd }
+variable [Identifiable α] [Valued α]
 
-theorem mem_targets_cons (h : t ∈ targets tl) : t ∈ targets (hd :: tl) := by
+def targets (out : Output α) :=
+  { t : Component.Valued × α✦ | ∃ c ∈ out, c.Targets t.fst t.snd }
+
+theorem mem_targets_cons {tl : Output α} (h : t ∈ targets tl) : t ∈ targets (hd :: tl) := by
   have ⟨c, hm, _⟩ := h
   exists c, by simp [hm]
 
-theorem target_mem_targets (hc : c ∈ out) (ht : c.target = some t) : t ∈ targets out := by
+theorem target_mem_targets {out : Output α} (hc : c ∈ out) (ht : c.target = some t) :
+    t ∈ targets out := by
   exists c, hc
   cases c <;> simp [Change.target] at *
   subst ht
@@ -49,36 +53,38 @@ end Output
 --
 -- The `outDepOnly` represents a constraint on the reaction's `body`.
 @[ext]
-structure _root_.Reaction (ι : Type) where
-  deps                 : Kind → Set (Reaction.Dependency ι)
-  triggers             : Set (Reaction.Dependency ι)
+structure _root_.Reaction (α) [Identifiable α] [Valued α] where
+  deps                 : Kind → Set (Reaction.Dependency α✦)
+  triggers             : Set (Reaction.Dependency α✦)
   prio                 : Priority
-  body                 : (Input ι) → (Output ι)
+  body                 : (Input α) → (Output α)
   triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv }
-  target_mem_deps      : ∀ {c : Change.Normal ι}, (↑c ∈ body i) → c.target ∈ deps .out
+  target_mem_deps      : ∀ {c : Change.Normal α}, (↑c ∈ body i) → c.target ∈ deps .out
+
+variable [Identifiable α] [Valued α]
 
 -- A coercion so that reactions can be called directly as functions.
 -- So when you see something like `rcn p s` that's the same as `rcn.body p s`.
-instance : CoeFun (Reaction ι) (fun _ => Input ι → Output ι) where
+instance : CoeFun (Reaction α) (fun _ => Input α → Output α) where
   coe rcn := rcn.body
 
 -- A reaction is normal if its body only produces normal changes.
-def Normal (rcn : Reaction ι) : Prop :=
+def Normal (rcn : Reaction α) : Prop :=
   ∀ {i c}, (c ∈ rcn i) → c.IsNormal
 
 -- A reaction is a mutation if its body can produce mutating changes.
-def Mutates (rcn : Reaction ι) : Prop :=
+def Mutates (rcn : Reaction α) : Prop :=
   ¬rcn.Normal
 
 protected inductive Kind
   | «mut»
   | norm
 
-def kind (rcn : Reaction ι) : Reaction.Kind :=
+def kind (rcn : Reaction α) : Reaction.Kind :=
   if rcn.Normal then .norm else .mut
 
 -- The condition under which a given reaction triggers on a given input.
-def TriggersOn (rcn : Reaction ι) (i : Input ι) : Prop :=
-  ∃ t v, (t ∈ rcn.triggers) ∧ (i.val t.cpt t.id = some v) ∧ v.IsPresent
+def TriggersOn (rcn : Reaction α) (i : Input α) : Prop :=
+  ∃ t v, (t ∈ rcn.triggers) ∧ (i.val t.cpt t.id = some v) ∧ (v ≠ ⊥)
 
 end Reaction
