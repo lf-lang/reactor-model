@@ -47,8 +47,8 @@ inductive Step (s₁ s₂ : State α) : Type
 -- An execution trace connecting two given states.
 inductive _root_.Execution : State α → State α → Type
   | refl  : Execution s s
-  | trans : (Step s₁ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
+  | trans : (Execution s₁ s₂) → (Step s₂ s₃) → Execution s₁ s₃
 
 def length {s₁ s₂ : State α} : (Execution s₁ s₂) → Nat
   | .refl      => 0
-  | .trans _ e => e.length + 1
+  | .trans e _ => e.length + 1

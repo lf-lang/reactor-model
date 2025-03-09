@@ -114,9 +114,6 @@ instance : Finite Ident :=
       | ⟨_ + 2, _⟩ => by contradiction
   }
 
-example {p : A → Prop} (h : ∀ x, ¬p x) : {a | p a} = ∅ := by
-  exact Set.subset_eq_empty h rfl
-
 instance : Reactor.Finite Rtr where
   fin rtr cpt := by
     cases cpt <;> try cases ‹Component.Valued›
