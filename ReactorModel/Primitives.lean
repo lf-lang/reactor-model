@@ -14,10 +14,10 @@ instance [Value ν] : Bot ν where
   bot := Value.absent
 
 class Valued (α : Type) where
-  Val  : Type
-  inst : Value Val
+  Val   : Type
+  value : Value Val
 
-attribute [instance] Valued.inst
+attribute [instance] Valued.value
 
 postfix:max "◾" => Valued.Val
 

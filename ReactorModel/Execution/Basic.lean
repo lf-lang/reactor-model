@@ -4,8 +4,7 @@ open Classical Reactor Execution State
 
 variable [Hierarchical α]
 
-namespace Execution
-namespace Step
+namespace Execution.Step
 
 inductive Apply : Change α → State α → State α → Type
   | inp {rtr} : (LawfulUpdate .inp i v s.rtr rtr) → Apply (.inp i v) s { s with rtr }
@@ -45,9 +44,11 @@ inductive Step (s₁ s₂ : State α) : Type
   | exec (e : s₁ ↓ₑ s₂)
   | time (t : s₁ ↓ₜ s₂)
 
-end Execution
-
 -- An execution trace connecting two given states.
-inductive Execution : State α → State α → Type
+inductive _root_.Execution : State α → State α → Type
   | refl  : Execution s s
   | trans : (Step s₁ s₂) → (Execution s₂ s₃) → Execution s₁ s₃
+
+def length {s₁ s₂ : State α} : (Execution s₁ s₂) → Nat
+  | .refl      => 0
+  | .trans _ e => e.length + 1
