@@ -24,7 +24,7 @@ def FiniteVariability (α) [Hierarchical α] : Prop :=
   ∀ g s, ∃ b, ∀ {s' : State α} (e : Execution s s'),
     (s'.tag < g) → e.length < b
 
-private def LoopModel.state₀ (microstep : Nat) : State LoopModel.Rtr where
+def LoopModel.state₀ (microstep : Nat) : State LoopModel.Rtr where
   rtr := { act := true }
   tag := ⟨0, microstep⟩
   progress := ∅
@@ -50,21 +50,7 @@ where
   execStep (m) : (state₀ m) ↓ₑ (state₀ m |>.record .r) :=
     .mk
       {
-        mem := by
-          simp only [Partial.mem_iff, Hierarchical.obj?]
-          exists LoopModel.Rtr.rcn
-          split
-          case isTrue h =>
-            have o := h.choose_spec
-            obtain ⟨_, ho⟩ := h
-            rw [o.unique ho]
-            cases ho; cases ‹Member ..›; cases ‹StrictMember ..›
-            all_goals simp only [state₀, get?] at ‹_ = some _›
-            next _ h => injection h with h; subst h; rfl
-            next _ h => contradiction
-          case isFalse h =>
-            push_neg at h
-            exact h _ ⟨.strict (.final rfl)⟩ |>.elim
+        mem := by simp [Partial.mem_iff, LoopModel.Rtr.obj?_rcn_r]
         deps := by
           intro i h
           rw [dependencies, Set.mem_setOf] at h
@@ -72,9 +58,12 @@ where
           sorry
         unprocessed _ := by contradiction
       }
+      (.intro (LoopModel.Rtr.obj?_rcn_r _) ⟨⟨.act, .a⟩, true, by
+        simp [LoopModel.Rtr.obj?_rcn_r, LoopModel.Rtr.obj?_act_a, LoopModel.Rtr.rcn, state₀,
+              State.input, State.input.restriction, Partial.restrict]
+        ⟩
+      )
       (by sorry)
-      (by sorry)
-
 
 private theorem LoopModel.execution₀_length_le (microstep : Nat) :
     microstep ≤ (execution₀ microstep).length := by

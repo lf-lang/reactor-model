@@ -41,7 +41,9 @@ structure Wellformed [idx : Hierarchical α] (rtr : α) : Prop where
   valid_deps    : (rtr[.rtr][i] = some con) → (con{.rcn}{j} = some rcn) → (d ∈ rcn.deps k) →
                   (ValidDependency con rcn.kind k d)
 
+-- TODO: Is there some other way to reference the `Hierarchical α` instance, without constructing it
+--       explicitly.
 class Proper (α) extends Extensional α, Hierarchical α, WellFounded α, LawfulUpdatable α where
-  wellformed : ∀ rtr : α, Wellformed rtr (idx := toHierarchical)
+  wellformed : ∀ rtr : α, Wellformed rtr (idx := ⟨unique_ids⟩)
 
 end Reactor
