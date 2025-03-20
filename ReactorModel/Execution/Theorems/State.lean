@@ -16,18 +16,23 @@ theorem output_congr (hr : s₁.rtr = s₂.rtr := by rfl) (ht : s₁.tag = s₂.
     s₁.output i = s₂.output i := by
   simp [output, input_congr hr ht, hr]
 
+@[simp]
 theorem record_preserves_rtr (s : State α) (rcn) : (s.record rcn).rtr = s.rtr :=
   rfl
 
+@[simp]
 theorem record_preserves_tag (s : State α) (rcn) : (s.record rcn).tag = s.tag :=
   rfl
 
+@[simp]
 theorem record_preserves_events (s : State α) (rcn) : (s.record rcn).events = s.events :=
   rfl
 
+@[simp]
 theorem record_progress_eq (s : State α) (rcn) : (s.record rcn).progress = s.progress.insert rcn :=
   rfl
 
+@[simp]
 theorem record_preserves_output (s : State α) (rcn₁ rcn₂) :
     (s.record rcn₁).output rcn₂ = s.output rcn₂ :=
   output_congr (s.record_preserves_rtr _) (s.record_preserves_tag _)
@@ -36,12 +41,15 @@ theorem record_comm : (s.record rcn₁).record rcn₂ = (s.record rcn₂).record
   simp [record]
   apply Set.insert_comm
 
+@[simp]
 theorem schedule_preserves_rtr (s : State α) (i t v) : (s.schedule i t v).rtr = s.rtr :=
   rfl
 
+@[simp]
 theorem schedule_preserves_tag (s : State α) (i t v) : (s.schedule i t v).tag = s.tag :=
   rfl
 
+@[simp]
 theorem schedule_preserves_progress (s : State α) (i t v) :
     (s.schedule i t v).progress = s.progress :=
   rfl
@@ -143,7 +151,8 @@ theorem target_not_mem_indep_output
     case stv =>
       exact hi.no_shared_state_deps h₁ h₂ hc
     all_goals
-      exact hi.left.deps_disjoint h₁ h₂ (rcn₁.target_mem_deps hc) <| by simp [Change.Normal.target]
+      exact hi.left.deps_disjoint h₁ h₂ hi.not_eq (rcn₁.target_mem_deps hc) <| by
+        simp [Change.Normal.target]
 
 theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
     Disjoint (s.output i₁).targets (s.output i₂).targets := by

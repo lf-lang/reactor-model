@@ -83,6 +83,10 @@ def attach (f : α ⇀ β) : α ⇀ { b // ∃ a, f a = some b } :=
 def map (g : β → γ) (f : α ⇀ β) : α ⇀ γ :=
   fun a => g <$> f a
 
+@[simp]
+theorem map_empty (g : β → γ) : Partial.map g (∅ : α ⇀ β) = ∅ :=
+  rfl
+
 theorem map_val (f : α ⇀ β) (g : β → γ) : (f.map g) a = (f a).map g :=
   rfl
 

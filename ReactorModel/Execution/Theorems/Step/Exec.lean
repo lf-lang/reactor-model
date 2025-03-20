@@ -82,7 +82,7 @@ theorem indep_comm
   have ho₂ := e₂.indep_output_eq hi.symm
   cases e₁; cases e₁₂; cases e₂; cases e₂₁
   case _ rcn₁ s₁ _ _ a₁ rcn₂ s₁₂ _ _ a₁₂ _ s₂ _ _ a₂ _ s₂₁ _ _ a₂₁ =>
-    cases hr₁; cases hr₂; simp [Exec.rcn] at *
+    cases hr₁; cases hr₂; simp only [Exec.rcn] at *
     have ⟨z₁₂, f₁₂⟩ := Apply.RTC.construct s₁ (s.output rcn₂)
     have ⟨z₂₁, f₂₁⟩ := Apply.RTC.construct s₂ (s.output rcn₁)
     rw [←ho₁] at a₁₂; rw [←ho₂] at a₂₁

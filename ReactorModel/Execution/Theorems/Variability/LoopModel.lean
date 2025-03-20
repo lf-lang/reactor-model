@@ -1,6 +1,7 @@
 import ReactorModel.Objects.Reactor.Proper
 import ReactorModel.Objects.Reactor.Finite
 import ReactorModel.Objects.Reactor.Theorems.Hierarchical
+import ReactorModel.Execution.Theorems.Dependency
 
 open Reactor
 
@@ -81,6 +82,11 @@ theorem Rtr.obj?_rcn_a (rtr : Rtr) : rtr[.rcn][Ident.a] = none := by
   obtain ⟨_, ⟨m⟩⟩ := ‹∃ _, _›
   cases m; cases ‹StrictMember ..› <;> contradiction
 
+theorem Rtr.rcn_ids (rtr : Rtr) : rtr[.rcn].ids = {.r} := by
+  simp [Partial.ids, Set.eq_singleton_iff_unique_mem, obj?_rcn_r]
+  intro i _ _
+  cases i <;> simp [Rtr.obj?_rcn_a] at *
+
 -- TODO: This is exactly the same proof as `Rtr.obj?_rcn_r`.
 theorem Rtr.obj?_act_a (rtr : Rtr) : rtr[.act][Ident.a] = some rtr.act := by
   rw [Hierarchical.obj?]
@@ -97,7 +103,7 @@ theorem Rtr.obj?_act_a (rtr : Rtr) : rtr[.act][Ident.a] = some rtr.act := by
     push_neg at h
     exact h _ ⟨.strict (.final rfl)⟩ |>.elim
 
-theorem Rtr.obj?_val_not_act (rtr : Rtr) {cpt : Component.Valued} (h : cpt ≠ .act) :
+theorem Rtr.obj?_val_not_act (rtr : Rtr) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
     rtr[cpt][i] = none := by
   cases cpt
   case act => contradiction
@@ -108,6 +114,28 @@ theorem Rtr.obj?_val_not_act (rtr : Rtr) {cpt : Component.Valued} (h : cpt ≠ .
     case isTrue h =>
       obtain ⟨_, ⟨m⟩⟩ := ‹∃ _, _›
       cases m; cases ‹StrictMember ..› <;> contradiction
+
+@[simp]
+theorem Rtr.val_not_act_empty (rtr : Rtr) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
+    rtr[cpt] = ∅ := by
+  sorry
+
+theorem Rtr.no_deps (rtr : Rtr) (i₁ i₂ : Rtr✦) : i₁ ≮[rtr] i₂ := by
+  intro h
+  induction h <;> try contradiction
+  next i₁ _ i₂ _ _ _ _ _ _ _ _ =>
+    cases i₁ <;> cases i₂ <;> simp_all [Rtr.obj?_rcn_a]
+  next i _ _ _ hc hr _ hm _ =>
+    have h := Reactor.Hierarchical.obj?_some_extend hc hr
+    simp at h
+    cases i
+    case a => simp [Rtr.obj?_rcn_a] at h
+    case r =>
+      simp only [Rtr.obj?_rcn_r, Option.some_inj] at h
+      simp only [Reaction.Mutates, Reaction.Normal, ←h, not_forall, Classical.not_imp] at hm
+      obtain ⟨_, _, h, hn⟩ := hm
+      simp only [rcn, List.mem_cons, List.not_mem_nil, or_false] at h
+      exact (h ▸ hn) .intro
 
 instance : WellFounded Rtr where
   wf := by

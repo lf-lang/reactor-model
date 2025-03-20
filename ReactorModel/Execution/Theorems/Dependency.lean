@@ -15,7 +15,7 @@ theorem equiv (e : rtr₁ ≈ rtr₂) (d : j₁ <[rtr₂] j₂) : j₁ <[rtr₁]
     have ⟨_, h₁', e⟩ := obj?_rtr_equiv' e h₁
     exact prio h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃) ‹_› ‹_›
   | depOverlap h₁ h₂ =>
-    exact depOverlap (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› ‹_› ‹_›
+    exact depOverlap (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂) ‹_› ‹_› ‹_› ‹_›
   | mutNorm h₁ h₂ h₃ =>
     have ⟨_, h₁', e⟩ := obj?_rtr_equiv' e h₁
     exact mutNorm h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃) ‹_› ‹_›
@@ -105,9 +105,9 @@ theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} {i₁ i₂} (h : i₁ ≮[r
   (h <| ·.equiv e)
 
 theorem deps_disjoint [Hierarchical α] {rtr : α} {rcn₁ rcn₂} {i₁ i₂} {d} (hi : i₁ ≮[rtr] i₂)
-    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (h : d ∈ rcn₁.deps .out)
-    (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
-  byContradiction fun hd => hi <| .depOverlap h₁ h₂ h (not_not.mp hd) hs
+    (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hn : i₁ ≠ i₂)
+    (h : d ∈ rcn₁.deps .out) (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
+  byContradiction fun hd => hi <| .depOverlap h₁ h₂ hn h (not_not.mp hd) hs
 
 end NotDependent
 

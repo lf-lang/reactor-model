@@ -16,7 +16,7 @@ inductive Dependency (rtr : α) : α✦ → α✦ → Prop
     (rtr[.rtr][i] = some con) → (con{.rcn}{i₁} = some rcn₁) → (con{.rcn}{i₂} = some rcn₂) →
     (rcn₁.Mutates ↔ rcn₂.Mutates) → (rcn₁.prio > rcn₂.prio) → Dependency rtr i₁ i₂
   | depOverlap {d : Reaction.Dependency α✦} :
-    (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (d ∈ rcn₁.deps .out) →
+    (rtr[.rcn][i₁] = some rcn₁) → (rtr[.rcn][i₂] = some rcn₂) → (i₁ ≠ i₂) → (d ∈ rcn₁.deps .out) →
     (d ∈ rcn₂.deps .in) → (d.cpt ≠ .stv) → Dependency rtr i₁ i₂
   | mutNorm :
     (rtr[.rtr][i] = some con) → (con{.rcn}{iₘ} = some m) → (con{.rcn}{iₙ} = some n) → (m.Mutates) →

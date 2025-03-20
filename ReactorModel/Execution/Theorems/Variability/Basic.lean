@@ -36,34 +36,61 @@ where
     | 0 => .singleton ⟨0, 0⟩ true
     | n + 1 => sorry -- TODO: The execution semantics don't include deleting old events.
 
-private def LoopModel.execution₀ : (microstep : Nat) → Execution (state₀ 0) (state₀ microstep)
+open _root_.LoopModel in
+private noncomputable def LoopModel.execution₀ :
+    (microstep : Nat) → Execution (state₀ 0) (state₀ microstep)
   | 0     => .refl
   | m + 1 =>
     let e := execution₀ m
     let s₁ := state₀ m
-    let s₂ := s₁.record .r
+    let s₂ := s₁.schedule .a 0 true |>.record .r
     let s₃ := state₀ (m + 1)
-    have hs : { s₂ with tag := ⟨0, m + 1⟩ } = s₃ := sorry
-    let timeStep : s₂ ↓ₜ s₃ := hs ▸ sorry -- .Step.Time.mk sorry sorry sorry
+    let timeStep : s₂ ↓ₜ s₃ := sorry
     .trans (.trans (execution₀ m) (.exec <| execStep m)) (.time timeStep)
 where
-  execStep (m) : (state₀ m) ↓ₑ (state₀ m |>.record .r) :=
-    .mk
-      {
-        mem := by simp [Partial.mem_iff, LoopModel.Rtr.obj?_rcn_r]
-        deps := by
-          intro i h
-          rw [dependencies, Set.mem_setOf] at h
-          -- h should be a contradiction, as r doesnt have any dependencies
-          sorry
-        unprocessed _ := by contradiction
-      }
-      (.intro (LoopModel.Rtr.obj?_rcn_r _) ⟨⟨.act, .a⟩, true, by
-        simp [LoopModel.Rtr.obj?_rcn_r, LoopModel.Rtr.obj?_act_a, LoopModel.Rtr.rcn, state₀,
-              State.input, State.input.restriction, Partial.restrict]
-        ⟩
-      )
-      (by sorry)
+  execStep (m) : (state₀ m) ↓ₑ (state₀ m |>.schedule .a 0 true |>.record .r) :=
+    .mk execStep_allows execStep_triggers execStep_apply
+  execStep_allows {m} : (state₀ m).Allows .r := {
+      mem           := by simp [Partial.mem_iff, Rtr.obj?_rcn_r]
+      deps          := by simp [dependencies, Rtr.no_deps]
+      unprocessed _ := by contradiction
+    }
+  execStep_triggers {m} : (state₀ m).Triggers .r :=
+    .intro (Rtr.obj?_rcn_r _) <| by
+      exists ⟨.act, .a⟩, true
+      simp [LoopModel.Rtr.obj?_rcn_r, Rtr.obj?_act_a, Rtr.rcn, state₀, State.input,
+            State.input.restriction, Partial.restrict]
+  execStep_apply {m} : (state₀ m) -[(state₀ m).output .r]→ (state₀ m |>.schedule .a 0 true) := by
+    simp only [Rtr.obj?_rcn_r, Rtr.rcn, State.input, State.output, Option.elim_some]
+    exact Step.Apply.RTC.trans .act .refl
+  timeStep (m) : (state₀ m |>.schedule .a 0 true |>.record .r) ↓ₜ (state₀ <| m + 1) :=
+    let s₁ := state₀ m |>.schedule .a 0 true |>.record .r
+    let s₂ := { s₁ with rtr := s₁.rtr, tag := ⟨0, m + 1⟩, progress := ∅ }
+    have h : s₂ = (state₀ <| m + 1) := by
+      simp only [state₀, State.record_preserves_rtr, State.schedule_preserves_rtr,
+                 State.record_preserves_events, State.mk.injEq, true_and, s₂, s₁, State.schedule]
+      sorry
+    h ▸ .mk timeStep_closed timeStep_next timeStep_refresh
+  timeStep_closed {m} : (state₀ m |>.schedule .a 0 true |>.record .r).Closed := by
+    rw [State.Closed, Rtr.rcn_ids]
+    simp [State.schedule_preserves_progress, State.record_progress_eq, state₀, Set.insert]
+  timeStep_next {m} : (state₀ m |>.schedule .a 0 true |>.record .r).NextTag ⟨0, m + 1⟩ := {
+      mem   := sorry
+      bound := sorry
+      least := sorry
+    }
+  timeStep_refresh {m} :
+      Refresh (state₀ m |>.schedule .a 0 true |>.record .r).rtr
+              (state₀ m |>.schedule .a 0 true |>.record .r).rtr
+              ((state₀ m |>.schedule .a 0 true |>.record .r).actions ⟨0, m + 1⟩) := {
+      equiv    := .refl _
+      eq_state := rfl
+      inputs   := by simp
+      outputs  := by simp
+      acts     := by
+        simp [State.actions]
+        sorry
+    }
 
 private theorem LoopModel.execution₀_length_le (microstep : Nat) :
     microstep ≤ (execution₀ microstep).length := by
