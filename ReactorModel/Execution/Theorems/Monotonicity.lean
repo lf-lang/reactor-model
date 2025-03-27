@@ -10,4 +10,4 @@ variable [Proper α] {s₁ s₂ : State α}
 theorem tag_le (e : Execution s₁ s₂) : s₁.tag ≤ s₂.tag := by
   induction e
   case refl           => rfl
-  case trans e₁ e₂ ih => exact e₁.tag_le.trans ih
+  case trans e₁ e₂ ih => exact ih.trans e₂.tag_le
