@@ -13,14 +13,21 @@ namespace Tail
 
 variable [Hierarchical α] {s₁ s₂ : State α}
 
-theorem preserves_tag  : (Tail s₁ s₂) → s₁.tag = s₂.tag
-  | none => rfl
-  | some e => e.preserves_tag 
+def length : (Tail s₁ s₂) → Nat
+  | none   => 0
+  | some e => e.length
 
-theorem closed_to_none (h : s₁.Closed) (e : Tail s₁ s₂) : s₁ = s₂ := by
-  cases e
-  case none => rfl
-  case some e => exact absurd h e.not_closed 
+def length_le [Reactor.Finite α] {s₁ s₂ : State α} : (e : Tail s₁ s₂) → e.length ≤ s₁.rtr#.rcn + 1
+  | none   => by simp [length]
+  | some e => e.length_le_rcns_card.trans (Nat.le_succ _)
+
+theorem preserves_tag  : (Tail s₁ s₂) → s₁.tag = s₂.tag
+  | none   => rfl
+  | some e => e.preserves_tag
+
+theorem closed_to_none (h : s₁.Closed) : (Tail s₁ s₂) → s₁ = s₂
+  | none   => rfl
+  | some e => absurd h e.not_closed
 
 end Tail
 
@@ -28,6 +35,6 @@ theorem Tail.deterministic [Proper α] {s s₁ s₂ : State α} (hp : s₁.progr
     (Tail s s₁) → (Tail s s₂) → s₁ = s₂
   | none, none                  => rfl
   | some e₁, some e₂            => e₁.deterministic e₂ hp
-  | none, some e | some e, none => e.progress_ne (by simp [hp]) |>.elim 
+  | none, some e | some e, none => e.progress_ne (by simp [hp]) |>.elim
 
 end Execution.Grouped

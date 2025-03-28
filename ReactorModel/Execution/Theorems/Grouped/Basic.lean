@@ -1,3 +1,4 @@
+import ReactorModel.Execution.Theorems.Step.Basic
 import ReactorModel.Execution.Theorems.Grouped.Instantaneous
 import ReactorModel.Execution.Theorems.Grouped.Steps
 import ReactorModel.Execution.Theorems.Grouped.Tail
@@ -11,8 +12,13 @@ structure Grouped [Hierarchical α] (s₁ s₂ : State α) where
   steps : Grouped.Steps s₁ tl
   tail  : Grouped.Tail  tl s₂
 
+namespace Grouped
+
+def length [Hierarchical α] {s₁ s₂ : State α} (e : Grouped s₁ s₂) : Nat :=
+  e.steps.length + e.tail.length
+
 -- TODO: Most of the case bashing is copied from `Steps.deterministic`. What is the underlying lemma?
-theorem Grouped.deterministic [Proper α] {s s₁ s₂ : State α}
+theorem deterministic [Proper α] {s s₁ s₂ : State α}
     (n : s.Nontrivial) (ht : s₁.tag = s₂.tag) (hp : s₁.progress = s₂.progress) :
     (Grouped s s₁) → (Grouped s s₂) → s₁ = s₂
   | mk (tl := tl₁) steps₁ tail₁, mk (tl := tl₂) steps₂ tail₂ => by
@@ -42,22 +48,37 @@ theorem Grouped.deterministic [Proper α] {s s₁ s₂ : State α}
     case refl.step.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
     case step.refl.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
 
-theorem Grouped.tag_le [Hierarchical α] {s₁ s₂ : State α} (e : Grouped s₁ s₂) : s₁.tag ≤ s₂.tag :=
+theorem tag_le [Hierarchical α] {s₁ s₂ : State α} (e : Grouped s₁ s₂) : s₁.tag ≤ s₂.tag :=
   e.tail.preserves_tag ▸ e.steps.tag_le
 
-def to_grouped [Hierarchical α] {s₁ s₂ : State α} (n : s₁.Nontrivial) : (Execution s₁ s₂) → Grouped s₁ s₂
-  | .refl => ⟨.refl, .none⟩
-  | .trans (.time e) tl =>
-    match tl.to_grouped (e.preserves_nontrivial n) with
-    | ⟨.refl, tl⟩              => ⟨.step e .refl, tl⟩
-    | ⟨.step (.inst f) f', tl⟩ => ⟨.step (.time e) <| .step f f', tl⟩
-    | ⟨.step (.time f) _, _⟩   => e.nonrepeatable f n |>.elim
-  | .trans (.skip e) tl | .trans (.exec e) tl =>
-    let ⟨steps, tail⟩ := tl.to_grouped (e.preserves_nontrivial n)
-    match steps, tail with
-    | .refl,                   .none    => ⟨.refl, .some <| .single e⟩
-    | .refl,                   .some e' => ⟨.refl, .some <| .trans e e'⟩
-    | .step (.inst ⟨f, h⟩) f', tl       => ⟨.step (.inst ⟨.trans e f, h⟩) f', tl⟩
-    | .step (.time f) f',      tl       => ⟨.step (.inst ⟨.single e, f.closed⟩) <| .step f f', tl⟩
+end Grouped
 
-end Execution
+def toGrouped [Hierarchical α] {s₁ s₂ : State α} : (Execution s₁ s₂) → Grouped s₁ s₂
+  | .refl => ⟨.refl, .none⟩
+  | .trans stp tl =>
+    match tl.toGrouped with
+    | ⟨.refl, tl⟩ =>
+      match stp with
+      | .time e => ⟨.step e .refl, tl⟩
+      | .skip e | .exec e =>
+        match tl with
+        | .none    => ⟨.refl, .some <| .single e⟩
+        | .some e' => ⟨.refl, .some <| .trans e e'⟩
+    | ⟨.step (.inst f) f', tl⟩ =>
+      match stp with
+      | .time e           => ⟨.step (.time e) <| .step f f', tl⟩
+      | .skip e | .exec e => ⟨.step (.inst ⟨.trans e f.exec, f.closed⟩) f', tl⟩
+    | ⟨.step (.time f) f', tl⟩ =>
+      match stp with
+      | .time e           => ⟨.step (.time e) (.step (.time f) f'), tl⟩
+      | .skip e | .exec e => ⟨.step (.inst ⟨.single e, f.closed⟩) <| .step f f', tl⟩
+
+theorem toGrouped_length [Hierarchical α] {s₁ s₂ : State α} (e : Execution s₁ s₂) :
+    e.length = e.toGrouped.length := by
+  induction e using toGrouped.induct
+  all_goals
+    simp only [length, toGrouped, *]
+    simp +arith [Grouped.length, Grouped.Steps.length, Grouped.Step.length, Grouped.Tail.length,
+                 Instantaneous.Closed.length, Instantaneous.Step.TC.length]
+
+  end Execution

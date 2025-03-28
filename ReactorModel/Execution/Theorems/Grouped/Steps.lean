@@ -1,5 +1,6 @@
 import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.Grouped.Instantaneous
+import ReactorModel.Objects.Reactor.Theorems.Hierarchical
 
 open Reactor
 
@@ -19,9 +20,21 @@ instance : Coe (s₁ ↓ᵢ| s₂) (Step s₁ s₂) where
 instance : Coe (s₁ ↓ₜ s₂) (Step s₁ s₂) where
   coe := time
 
+def length : (Step s₁ s₂) → Nat
+  | inst e => e.length
+  | time _ => 1
+
+def length_le [Reactor.Finite α] {s₁ s₂ : State α} :
+    (e : Step s₁ s₂) → e.length ≤ s₁.rtr#.rcn + 1
+  | inst e => e.length_le_rcns_card.trans (Nat.le_succ _)
+  | time _ => by simp [length]
+
 theorem tag_le : (Step s₁ s₂) → s₁.tag ≤ s₂.tag
   | inst e => e.preserves_tag ▸ le_refl _
   | time e => le_of_lt e.tag_lt
+
+theorem equiv : (Step s₁ s₂) → s₁.rtr ≈ s₂.rtr
+  | inst e | time e => e.equiv
 
 theorem preserves_nontrivial (n : s₁.Nontrivial) : (Step s₁ s₂) → s₂.Nontrivial
   | inst e | time e => e.preserves_nontrivial n
@@ -39,10 +52,34 @@ inductive Steps [Hierarchical α] : State α → State α → Type
 
 namespace Steps
 
-theorem tag_le [Hierarchical α] {s₁ s₂ : State α} (e : Steps s₁ s₂) : s₁.tag ≤ s₂.tag := by
-  induction e
-  case refl => rfl
-  case step e _ hi => exact le_trans e.tag_le hi
+section
+
+variable [Hierarchical α]
+
+def length {s₁ s₂ : State α} : (Steps s₁ s₂) → Nat
+  | refl      => 0
+  | step e e' => e'.length + e.length
+
+def steps {s₁ s₂ : State α} : (Steps s₁ s₂) → Nat
+  | refl      => 0
+  | step _ e' => e'.steps + 1
+
+theorem equiv {s₁ s₂ : State α} : (Steps s₁ s₂) → s₁.rtr ≈ s₂.rtr
+  | refl      => .refl _
+  | step e e' => Equivalent.trans e.equiv e'.equiv
+
+def length_le [Reactor.Finite α] {s₁ s₂ : State α} (e : Steps s₁ s₂) :
+    e.length ≤ e.steps * (s₁.rtr#.rcn + 1) := by
+  induction e <;> simp only [length, Nat.zero_le]
+  case step stp e ih =>
+    apply le_trans <| Nat.add_le_add ih stp.length_le
+    simp [steps, equiv_card_eq stp.equiv, Nat.add_mul]
+
+theorem tag_le {s₁ s₂ : State α} : (Steps s₁ s₂) → s₁.tag ≤ s₂.tag
+  | .refl      => le_rfl
+  | .step e e' => e.tag_le.trans e'.tag_le
+
+end
 
 theorem deterministic [Proper α] {s s₁ s₂ : State α}
     (e₁ : Steps s s₁) (e₂ : Steps s s₂) (n : s.Nontrivial) (ht : s₁.tag = s₂.tag)

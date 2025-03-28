@@ -3,6 +3,7 @@ import ReactorModel.Execution.Theorems.Step.Exec
 import ReactorModel.Execution.Theorems.Step.Time
 
 open Classical List Reactor
+open scoped Finset
 
 namespace Execution.Instantaneous
 
@@ -179,8 +180,16 @@ namespace Step.TC
 variable [Hierarchical α] {s₁ s₂ : State α} {rcn : α✦}
 
 def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List α✦
-  | single e => [e.rcn]
+  | single e   => [e.rcn]
   | trans e e' => e.rcn :: e'.rcns
+
+def length {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → Nat
+  | single _   => 1
+  | trans _ e' => e'.length + 1
+
+theorem length_eq_rcns_length {s₁ s₂ : State α} : (e : s₁ ↓ᵢ+ s₂) → e.length = e.rcns.length
+  | single _   => rfl
+  | trans _ e' => by simp [length, rcns, e'.length_eq_rcns_length]
 
 theorem preserves_nontrivial (n : s₁.Nontrivial) (e : s₁ ↓ᵢ+ s₂) : s₂.Nontrivial := by
   induction e
@@ -251,6 +260,15 @@ theorem mem_rcns_iff (e : s₁ ↓ᵢ+ s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
   simp [e.progress_eq, or_and_right]
   exact e.mem_rcns_not_mem_progress
 
+theorem rcns_subset_rtr_rcns (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₁.rtr[.rcn] := by
+  induction e
+  case single e => sorry
+  case trans e e' ih =>
+    simp [rcns] at h
+    cases h
+    case inl => sorry
+    case inr => sorry
+
 theorem equiv {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → s₁.rtr ≈ s₂.rtr
   | single e   => e.equiv
   | trans e e' => Reactor.Equivalent.trans e.equiv e'.equiv
@@ -279,6 +297,12 @@ theorem progress_ssubset (e : s₁ ↓ᵢ+ s₂) : s₁.progress ⊂ s₂.progre
 
 theorem progress_ne (e : s₁ ↓ᵢ+ s₂) : s₁.progress ≠ s₂.progress :=
   ne_of_lt e.progress_ssubset
+
+theorem length_le_rcns_card [Reactor.Finite α] (e : s₁ ↓ᵢ+ s₂) : e.length ≤ s₁.rtr#.rcn := by
+  rw [e.length_eq_rcns_length, ←toFinset_card_of_nodup e.rcns_nodup, Finite.card]
+  apply Finset.card_le_card (fun _ => ?_)
+  simp only [mem_toFinset, Set.Finite.mem_toFinset]
+  apply rcns_subset_rtr_rcns
 
 end Step.TC
 
@@ -366,6 +390,12 @@ variable [Hierarchical α] {s s₁ s₂ : State α}
 
 abbrev rcns (e : s₁ ↓ᵢ| s₂) : List α✦ :=
   e.exec.rcns
+
+def length (e : s₁ ↓ᵢ| s₂) : Nat :=
+  e.exec.length
+
+theorem length_le_rcns_card [Reactor.Finite α] (e : s₁ ↓ᵢ| s₂) : e.length ≤ s₁.rtr#.rcn :=
+  e.exec.length_le_rcns_card
 
 theorem preserves_nontrivial (n : s₁.Nontrivial) (e : s₁ ↓ᵢ| s₂) : s₂.Nontrivial :=
   e.exec.preserves_nontrivial n

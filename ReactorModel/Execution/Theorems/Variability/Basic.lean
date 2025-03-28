@@ -42,6 +42,8 @@ theorem LoopModel.state₀_schedule_actionEvents (m) :
     State.schedule.go (α := Rtr) (state₀.actionEvents m) 0 true = state₀.actionEvents (m + 1) := by
   sorry
 
+-- TODO: Define a ++ operator for executions
+
 open _root_.LoopModel in
 private noncomputable def LoopModel.execution₀ :
     (microstep : Nat) → Execution (state₀ 0) (state₀ microstep)

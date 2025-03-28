@@ -11,4 +11,9 @@ class Finite (α) [Hierarchical α] where
 def Finite.ids [Hierarchical α] [Finite α] (rtr : α) (cpt : Component) : List α✦cpt :=
   (fin rtr cpt).toFinset.toList
 
+def Finite.card [Hierarchical α] [Finite α] (rtr : α) (cpt : Component) : Nat :=
+  (fin rtr cpt).toFinset.card
+
+notation rtr "#" cpt:max => Finite.card rtr cpt
+
 namespace Reactor
