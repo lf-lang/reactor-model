@@ -60,24 +60,43 @@ def length {s₁ s₂ : State α} : (Steps s₁ s₂) → Nat
   | refl      => 0
   | step e e' => e'.length + e.length
 
-def steps {s₁ s₂ : State α} : (Steps s₁ s₂) → Nat
+def count {s₁ s₂ : State α} : (Steps s₁ s₂) → Nat
   | refl      => 0
-  | step _ e' => e'.steps + 1
+  | step _ e' => e'.count + 1
 
 theorem equiv {s₁ s₂ : State α} : (Steps s₁ s₂) → s₁.rtr ≈ s₂.rtr
   | refl      => .refl _
   | step e e' => Equivalent.trans e.equiv e'.equiv
 
-def length_le [Reactor.Finite α] {s₁ s₂ : State α} (e : Steps s₁ s₂) :
-    e.length ≤ e.steps * (s₁.rtr#.rcn + 1) := by
-  induction e <;> simp only [length, Nat.zero_le]
-  case step stp e ih =>
-    apply le_trans <| Nat.add_le_add ih stp.length_le
-    simp [steps, equiv_card_eq stp.equiv, Nat.add_mul]
-
 theorem tag_le {s₁ s₂ : State α} : (Steps s₁ s₂) → s₁.tag ≤ s₂.tag
   | .refl      => le_rfl
   | .step e e' => e.tag_le.trans e'.tag_le
+
+def length_le [Reactor.Finite α] {s₁ s₂ : State α} (e : Steps s₁ s₂) :
+    e.length ≤ e.count * (s₁.rtr#.rcn + 1) := by
+  induction e <;> simp only [length, Nat.zero_le]
+  case step stp e ih =>
+    apply le_trans <| Nat.add_le_add ih stp.length_le
+    simp [count, equiv_card_eq stp.equiv, Nat.add_mul]
+
+open Time.Tag in
+def count_le
+    [Reactor.Finite α] {s₁ s₂ : State α} (ht : s₁.tag.time = s₂.tag.time) (e : Steps s₁ s₂) :
+    e.count ≤ 2 * (s₂.tag.microstep - s₁.tag.microstep) + 1 := by
+  induction e
+  case refl => simp [count]
+  case step e e' ih =>
+    simp only [count]
+    have ht' := Nat.le_antisymm (le_to_le_time e.tag_le) (ht ▸ le_to_le_time e'.tag_le)
+    have hm₁ := le_microsteps_of_eq_time e.tag_le ht'
+    have hm₂ := le_microsteps_of_eq_time e'.tag_le (ht ▸ ht').symm
+    have := ih (ht ▸ ht').symm
+    apply Nat.add_le_add_right (le_trans this ?_)
+    sorry
+    -- PROBLEM: This bound is not sufficient for the inductive step.
+    --          The problem is that it is important for us to know whether the first step is a time
+    --          or an inst step. This changes the +1 in the bound.
+    --          Or is there some other bound which works around this issue?
 
 end
 

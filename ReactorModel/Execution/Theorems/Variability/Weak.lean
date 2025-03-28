@@ -19,12 +19,21 @@ def WeakFiniteVariability (α) [Hierarchical α] : Prop :=
   ∀ t m s, ∃ b, ∀ {s' : State α} (e : Execution s s'),
     (s.tag.time = t) → (s'.tag ≤ ⟨t, m⟩) → e.length ≤ b
 
+open Time.Tag in
 theorem weakly_finitely_variable [Proper α] [fin : Reactor.Finite α] : WeakFiniteVariability α := by
   intros t m s₁
-  exists (m - s₁.tag.microstep) * (s₁.rtr#.rcn + 1) + (s₁.rtr#.rcn + 1)
-  intro s₂ e ht₁ hm
+  exists (2 * (m - s₁.tag.microstep) + 1) * (s₁.rtr#.rcn + 1) + (s₁.rtr#.rcn + 1)
+  intro s₂ e ht hm
   let g := e.toGrouped
   rw [e.toGrouped_length, Grouped.length]
   apply Nat.add_le_add ?_ (equiv_card_eq g.steps.equiv _ ▸ g.tail.length_le)
-  suffices h : g.steps.steps = m - s₁.tag.microstep by exact h ▸ g.steps.length_le
-  sorry
+  apply le_trans g.steps.length_le
+  have htl := g.tail.preserves_tag
+  have h := le_antisymm (le_to_le_time g.steps.tag_le) <| ht ▸ le_to_le_time (htl.symm ▸ hm)
+  apply le_trans <| Nat.mul_le_mul_right (s₁.rtr#Component.rcn + 1) (g.steps.count_le h)
+  have h := htl ▸ le_microsteps_of_eq_time (ht ▸ hm) (htl ▸ h.symm)
+  -- TODO: Can we solve this by linarith?
+  apply Nat.mul_le_mul_right
+  apply Nat.add_le_add_right
+  apply Nat.mul_le_mul_left
+  apply Nat.sub_le_sub_right h

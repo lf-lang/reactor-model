@@ -99,4 +99,13 @@ theorem lt_of_lt_time (h : t₁ < t₂ := by decide) : (⟨t₁, m₁⟩ : Time.
   simp_all only [gt_iff_lt, Nat.lt_eq, Nat.le_eq, true_or, not_or, not_lt, not_and, not_le, true_and]
   exact ⟨le_of_lt h, (ne_of_lt h ·.symm |>.elim)⟩
 
+theorem le_to_le_time (h : (⟨t₁, m₁⟩ : Time.Tag) ≤ ⟨t₂, m₂⟩) : t₁ ≤ t₂ := by
+  simp only [(· ≤ ·)] at h
+  sorry
+
+theorem le_microsteps_of_eq_time {g₁ g₂ : Time.Tag} (h : g₁ ≤ g₂) (ht : g₁.time = g₂.time) :
+    g₁.microstep ≤ g₂.microstep := by
+  simp only [(· ≤ ·)] at h
+  sorry
+
 end Time.Tag
