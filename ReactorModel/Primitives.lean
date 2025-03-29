@@ -101,11 +101,11 @@ theorem lt_of_lt_time (h : t₁ < t₂ := by decide) : (⟨t₁, m₁⟩ : Time.
 
 theorem le_to_le_time (h : (⟨t₁, m₁⟩ : Time.Tag) ≤ ⟨t₂, m₂⟩) : t₁ ≤ t₂ := by
   simp only [(· ≤ ·)] at h
-  sorry
+  cases h <;> simp_all [le_of_lt]
 
 theorem le_microsteps_of_eq_time {g₁ g₂ : Time.Tag} (h : g₁ ≤ g₂) (ht : g₁.time = g₂.time) :
     g₁.microstep ≤ g₂.microstep := by
   simp only [(· ≤ ·)] at h
-  sorry
+  simp_all
 
 end Time.Tag

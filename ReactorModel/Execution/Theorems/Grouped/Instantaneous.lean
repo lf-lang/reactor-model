@@ -261,13 +261,10 @@ theorem mem_rcns_iff (e : s₁ ↓ᵢ+ s₂) : rcn ∈ e.rcns ↔ (rcn ∈ s₂.
   exact e.mem_rcns_not_mem_progress
 
 theorem rcns_subset_rtr_rcns (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₁.rtr[.rcn] := by
-  induction e
-  case single e => sorry
-  case trans e e' ih =>
-    simp [rcns] at h
-    cases h
-    case inl => sorry
-    case inr => sorry
+  induction e <;> simp only [rcns, mem_cons] at h <;> cases h
+  case single.inr         => contradiction
+  case trans.inr e _ ih h => exact Equivalent.obj?_rcn_eq e.equiv ▸ ih h
+  all_goals exact ‹_ = _› ▸ ‹_ ↓ᵢ _ ›.allows_rcn.mem
 
 theorem equiv {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → s₁.rtr ≈ s₂.rtr
   | single e   => e.equiv
