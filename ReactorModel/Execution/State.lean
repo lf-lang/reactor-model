@@ -63,9 +63,6 @@ structure NextTag (s : State α) (next : Time.Tag) : Prop where
 def Closed (s : State α) : Prop :=
   s.progress = s.rtr[.rcn].ids
 
-def Nontrivial (s : State α) : Prop :=
-  s.rtr[.rcn].Nonempty
-
 structure Terminal (s : State α) : Prop where
   closed  : s.Closed
   no_next : ∀ g, ¬s.NextTag g

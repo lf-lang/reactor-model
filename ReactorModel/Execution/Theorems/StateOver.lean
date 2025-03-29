@@ -1,5 +1,7 @@
 import ReactorModel.Execution.Theorems.State
-import ReactorModel.Execution.Theorems.Trivial
+import ReactorModel.Execution.Theorems.Step.Time
+import ReactorModel.Execution.Theorems.Step.Exec
+import ReactorModel.Execution.Theorems.Step.Skip
 
 noncomputable section
 open Reactor Classical

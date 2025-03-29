@@ -36,9 +36,6 @@ theorem tag_le : (Step s₁ s₂) → s₁.tag ≤ s₂.tag
 theorem equiv : (Step s₁ s₂) → s₁.rtr ≈ s₂.rtr
   | inst e | time e => e.equiv
 
-theorem preserves_nontrivial (n : s₁.Nontrivial) : (Step s₁ s₂) → s₂.Nontrivial
-  | inst e | time e => e.preserves_nontrivial n
-
 end Step
 
 theorem Step.deterministic [Proper α] {s s₁ s₂ : State α} : (Step s s₁) → (Step s s₂) → s₁ = s₂
@@ -100,13 +97,12 @@ def count_le
 
 end
 
-theorem deterministic [Proper α] {s s₁ s₂ : State α}
-    (e₁ : Steps s s₁) (e₂ : Steps s s₂) (n : s.Nontrivial) (ht : s₁.tag = s₂.tag)
+theorem deterministic
+    [Proper α] {s s₁ s₂ : State α} (e₁ : Steps s s₁) (e₂ : Steps s s₂) (ht : s₁.tag = s₂.tag)
     (hp : s₁.progress = s₂.progress) : s₁ = s₂ := by
   induction e₁ <;> cases e₂
   case refl.refl => rfl
-  case step.step e₁ _ hi _ e₂ e₂' =>
-    exact hi (e₁.deterministic e₂ ▸ e₂') (e₁.preserves_nontrivial n) ht hp
+  case step.step e₁ _ hi _ e₂ e₂' => exact hi (e₁.deterministic e₂ ▸ e₂') ht hp
   all_goals cases ‹Step _ _›
   case refl.step.time e' e   => exact absurd ht <| ne_of_lt <| lt_of_lt_of_le e.tag_lt e'.tag_le
   case step.refl.time e' _ e => exact absurd ht.symm <| ne_of_lt <| lt_of_lt_of_le e.tag_lt e'.tag_le

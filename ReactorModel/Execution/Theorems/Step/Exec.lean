@@ -26,9 +26,6 @@ theorem equiv (e : s₁ ↓ₑ s₂) : s₁.rtr ≈ s₂.rtr := by
 theorem progress_eq (e : s₁ ↓ₑ s₂) : s₂.progress = s₁.progress.insert e.rcn := by
   simp [e.dst_eq, State.record_progress_eq, e.apply.preserves_progress]
 
-theorem preserves_nontrivial {e : s₁ ↓ₑ s₂} (n : s₁.Nontrivial) : s₂.Nontrivial :=
-  n.equiv e.equiv
-
 theorem indep_allows_iff (e : s₁ ↓ₑ s₂) (hi : i ≮[s₁.rtr]≯ e.rcn) :
     s₁.Allows i ↔ s₂.Allows i := by
   have a := e.apply

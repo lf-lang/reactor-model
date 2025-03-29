@@ -16,4 +16,3 @@ import ReactorModel.Execution.Theorems.Progress
 import ReactorModel.Execution.Theorems.Reactor
 import ReactorModel.Execution.Theorems.State
 import ReactorModel.Execution.Theorems.StateOver
-import ReactorModel.Execution.Theorems.Trivial

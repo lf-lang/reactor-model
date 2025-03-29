@@ -115,13 +115,6 @@ theorem NextTag.isLeast (n : NextTag s g) : IsLeast { g' ∈ s.scheduledTags | s
 theorem NextTag.deterministic {s : State α} (n₁ : NextTag s g₁) (n₂ : NextTag s g₂) : g₁ = g₂ :=
   n₁.isLeast.unique n₂.isLeast
 
-theorem Closed.progress_nonempty (n : s.Nontrivial) (h : Closed s) : s.progress.Nonempty := by
-  simp_all [Closed, ←Partial.Nonempty.iff_ids_nonempty]
-  exact n
-
-theorem Nontrivial.equiv (e : s₁.rtr ≈ s₂.rtr) (n : s₁.Nontrivial) : s₂.Nontrivial := by
-  simp_all [Nontrivial, Equivalent.obj?_rcn_eq e]
-
 theorem Terminal.not_of_not_closed (h : ¬s.Closed) : ¬State.Terminal s :=
   (h ·.closed)
 
