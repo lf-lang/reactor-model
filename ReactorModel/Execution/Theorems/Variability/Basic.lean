@@ -1,6 +1,7 @@
 import ReactorModel.Execution.Theorems.Step.Basic
 import ReactorModel.Execution.Theorems.State
 import ReactorModel.Execution.Theorems.Variability.LoopModel
+import ReactorModel.Execution.Theorems.Execution
 
 open Classical Reactor
 
@@ -22,8 +23,7 @@ namespace Execution
 --       type class instances) defines the model.
 def FiniteVariability (α) [Hierarchical α] : Prop :=
   ∀ g s, ∃ b, ∀ {s' : State α} (e : Execution s s'),
-    (s'.tag < g) → e.length < b
--- TODO: Change this definition to use ≤ b to match the def of WeakFiniteVariability
+    (s'.tag ≤ g) → e.length ≤ b
 
 noncomputable def LoopModel.state₀ (microstep : Nat) : State LoopModel.Rtr where
   rtr := { act := true }
@@ -50,11 +50,10 @@ private noncomputable def LoopModel.execution₀ :
   | 0     => .refl
   | m + 1 =>
     let e := execution₀ m
-    let s₁ := state₀ m
-    let s₂ := s₁.schedule .a 0 true |>.record .r
-    let s₃ := state₀ (m + 1)
-    let timeStep : s₂ ↓ₜ s₃ := sorry
-    .trans (.trans (execution₀ m) (.exec <| execStep m)) (.time timeStep)
+    let s₁ := state₀ m |>.schedule .a 0 true |>.record .r
+    let s₂ := state₀ (m + 1)
+    let timeStep : s₁ ↓ₜ s₂ := sorry
+    execution₀ m |>.push (.exec <| execStep m) |>.push (.time timeStep)
 where
   execStep (m) : (state₀ m) ↓ₑ (state₀ m |>.schedule .a 0 true |>.record .r) :=
     .mk execStep_allows execStep_triggers execStep_apply
@@ -125,7 +124,7 @@ private theorem LoopModel.execution₀_length_le (microstep : Nat) :
     microstep ≤ (execution₀ microstep).length := by
   induction microstep
   case zero => rfl
-  case succ => rw [execution₀, length, length]; omega
+  case succ => simp [execution₀, Nat.le_add_right_of_le, *]
 
 -- Properness of a finite reactor model is not sufficient for finite variability. This is a
 -- consequence of logical tags being super-dense.
@@ -136,6 +135,6 @@ open LoopModel in
 theorem not_finitely_variable : ¬∀ (α) [Proper α] [Reactor.Finite α], FiniteVariability α := by
   intro h
   have ⟨b, h⟩ := h _ ⟨1, 0⟩ (state₀ 0)
-  have := h (execution₀ b) Time.Tag.lt_of_lt_time
-  have := execution₀_length_le b
+  have := h (execution₀ <| b + 1) (le_of_lt <| Time.Tag.lt_of_lt_time Nat.zero_lt_one)
+  have := execution₀_length_le (b + 1)
   omega

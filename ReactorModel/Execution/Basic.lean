@@ -52,3 +52,7 @@ inductive _root_.Execution : State α → State α → Type
 def length {s₁ s₂ : State α} : (Execution s₁ s₂) → Nat
   | .refl      => 0
   | .trans _ e => e.length + 1
+
+def push {s₁ s₂ : State α} (stp : Step s₂ s₃) : (Execution s₁ s₂) → Execution s₁ s₃
+  | refl        => trans stp refl
+  | trans hd tl => trans hd (tl.push stp)
