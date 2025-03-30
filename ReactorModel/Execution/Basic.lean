@@ -1,6 +1,6 @@
 import ReactorModel.Execution.State
 
-open Classical Reactor Execution State
+open Reactor Execution State
 
 variable [Hierarchical α]
 

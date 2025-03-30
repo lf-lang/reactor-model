@@ -5,28 +5,28 @@ import ReactorModel.Execution.Theorems.Dependency
 
 open Reactor
 
-namespace LoopModel
+namespace Loop
 
 inductive Ident where
   | r
   | a
 
 @[ext]
-structure Rtr where
+structure Reactor where
   act : Bool
 
-instance : Identifiable Rtr where
+instance : Identifiable Reactor where
   Id := Ident
 
-instance : Valued Rtr where
+instance : Valued Reactor where
   Val          := Bool
   value.absent := false
 
-instance : Prioritizable Rtr where
+instance : Prioritizable Reactor where
   Priority := Unit
   order    := inferInstance
 
-def Rtr.rcn : Reaction Rtr where
+def rcn : Reaction Reactor where
   deps _               := {⟨.act, .a⟩}
   triggers             := {⟨.act, .a⟩}
   prio                 := .unit
@@ -34,20 +34,20 @@ def Rtr.rcn : Reaction Rtr where
   triggers_sub_in_deps := by simp_all
   target_mem_deps      := by simp_all [Change.Normal.target]
 
-instance : Reactor Rtr where
+instance : _root_.Reactor Reactor where
   get? rtr
-    | .rcn, .r => Rtr.rcn
+    | .rcn, .r => rcn
     | .act, .a => rtr.act
     | _,    _  => none
 
-instance : Extensional Rtr where
+instance : Extensional Reactor where
   ext_iff := by
     intro rtr₁ rtr₂
     constructor <;> intro h
     case mp  => rw [h]
     case mpr => ext; injection (by rw [h] : rtr₁{.act}{Ident.a} = rtr₂{.act}{Ident.a})
 
-instance : Hierarchical Rtr where
+instance : Hierarchical Reactor where
   unique_ids := by
     intro rtr cpt i
     constructor
@@ -61,7 +61,8 @@ instance : Hierarchical Rtr where
         cases m₂; cases s <;> cases ‹StrictMember ..› <;> try contradiction
         next h₁ _ h₂ => have h := h₁ ▸ h₂; injection h with h; subst h; rfl
 
-theorem Rtr.obj?_rcn_r (rtr : Rtr) : rtr[.rcn][Ident.r] = some rcn := by
+@[simp]
+theorem obj?_rcn_r (rtr : Reactor) : rtr[.rcn][Ident.r] = some rcn := by
   rw [Hierarchical.obj?]
   split
   case isTrue h =>
@@ -76,19 +77,23 @@ theorem Rtr.obj?_rcn_r (rtr : Rtr) : rtr[.rcn][Ident.r] = some rcn := by
     push_neg at h
     exact h _ ⟨.strict (.final rfl)⟩ |>.elim
 
-theorem Rtr.obj?_rcn_a (rtr : Rtr) : rtr[.rcn][Ident.a] = none := by
+@[simp]
+theorem obj?_rcn_a (rtr : Reactor) : rtr[.rcn][Ident.a] = none := by
   rw [Hierarchical.obj?]
   split <;> try rfl
   obtain ⟨_, ⟨m⟩⟩ := ‹∃ _, _›
   cases m; cases ‹StrictMember ..› <;> contradiction
 
-theorem Rtr.rcn_ids (rtr : Rtr) : rtr[.rcn].ids = {.r} := by
-  simp [Partial.ids, Set.eq_singleton_iff_unique_mem, obj?_rcn_r]
+@[simp]
+theorem rcn_ids (rtr : Reactor) : rtr[.rcn].ids = {.r} := by
+  simp only [Partial.ids, Set.eq_singleton_iff_unique_mem, Set.mem_setOf_eq, obj?_rcn_r,
+    Option.some.injEq, exists_eq', forall_exists_index, true_and]
   intro i _ _
-  cases i <;> simp [Rtr.obj?_rcn_a] at *
+  cases i <;> simp at *
 
--- TODO: This is exactly the same proof as `Rtr.obj?_rcn_r`.
-theorem Rtr.obj?_act_a (rtr : Rtr) : rtr[.act][Ident.a] = some rtr.act := by
+-- TODO: This is exactly the same proof as `Reactor.obj?_rcn_r`.
+@[simp]
+theorem obj?_act_a (rtr : Reactor) : rtr[.act][Ident.a] = some rtr.act := by
   rw [Hierarchical.obj?]
   split
   case isTrue h =>
@@ -103,7 +108,8 @@ theorem Rtr.obj?_act_a (rtr : Rtr) : rtr[.act][Ident.a] = some rtr.act := by
     push_neg at h
     exact h _ ⟨.strict (.final rfl)⟩ |>.elim
 
-theorem Rtr.obj?_val_not_act (rtr : Rtr) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
+@[simp]
+theorem obj?_val_not_act (rtr : Reactor) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
     rtr[cpt][i] = none := by
   cases cpt
   case act => contradiction
@@ -116,40 +122,39 @@ theorem Rtr.obj?_val_not_act (rtr : Rtr) {cpt : Component.Valued} (h : cpt ≠ .
       cases m; cases ‹StrictMember ..› <;> contradiction
 
 @[simp]
-theorem Rtr.val_not_act_empty (rtr : Rtr) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
+theorem val_not_act_empty (rtr : Reactor) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
     rtr[cpt] = ∅ := by
   sorry
 
-theorem Rtr.no_deps (rtr : Rtr) (i₁ i₂ : Rtr✦) : i₁ ≮[rtr] i₂ := by
+theorem no_deps (rtr : Reactor) (i₁ i₂ : Reactor✦) : i₁ ≮[rtr] i₂ := by
   intro h
   induction h <;> try contradiction
   next i₁ _ i₂ _ _ _ _ _ _ _ _ =>
-    cases i₁ <;> cases i₂ <;> simp_all [Rtr.obj?_rcn_a]
+    cases i₁ <;> cases i₂ <;> simp_all
   next i _ _ _ hc hr _ hm _ =>
     have h := Reactor.Hierarchical.obj?_some_extend hc hr
-    simp at h
     cases i
-    case a => simp [Rtr.obj?_rcn_a] at h
+    case a => simp at h
     case r =>
-      simp only [Rtr.obj?_rcn_r, Option.some_inj] at h
+      simp only [obj?_rcn_r, Option.some_inj] at h
       simp only [Reaction.Mutates, Reaction.Normal, ←h, not_forall, Classical.not_imp] at hm
       obtain ⟨_, _, h, hn⟩ := hm
       simp only [rcn, List.mem_cons, List.not_mem_nil, or_false] at h
       exact (h ▸ hn) .intro
 
-instance : WellFounded Rtr where
+instance : WellFounded Reactor where
   wf := by
     constructor; intro rtr₁
     constructor; intro rtr₂ h
     have ⟨_, _⟩ := h
     contradiction
 
-instance : Updatable Rtr where
+instance : Updatable Reactor where
   update rtr
     | .act, .a, v => { act := v }
     | _,    _,  _ => rtr
 
-instance : LawfulUpdatable Rtr where
+instance : LawfulUpdatable Reactor where
   lawful rtr cpt i v := by
     cases cpt <;> cases i
     case act.a =>
@@ -162,18 +167,14 @@ instance : LawfulUpdatable Rtr where
       apply LawfulUpdate.notMem ?_ rfl
       · constructor; intro m; cases m; cases ‹StrictMember _ _ _› <;> contradiction
 
-instance : Proper Rtr where
+instance : Proper Reactor where
   unique_ids     := Hierarchical.unique_ids
   wf             := WellFounded.wf
   update         := Updatable.update
   lawful         := LawfulUpdatable.lawful
   wellformed rtr := {
-    unique_inputs h₁ h₂ hi := by
-      rename_i i₁ _ i₂ _ _
-      cases i₁ <;> cases i₂ <;> simp_all [Rtr.obj?_rcn_a]
-    ordered_prio _ h₁ h₂ hi := by
-      rename_i i₁ _ i₂ _ _
-      cases i₁ <;> cases i₂ <;> contradiction
+    unique_inputs  h₁ h₂ hi := by rename_i i₁ _ i₂ _ _; cases i₁ <;> cases i₂ <;> simp_all
+    ordered_prio _ h₁ h₂ hi := by rename_i i₁ _ i₂ _ _; cases i₁ <;> cases i₂ <;> contradiction
     valid_deps hn hr hd := by
       sorry
   }
@@ -193,7 +194,7 @@ instance : Finite Ident :=
       | ⟨_ + 2, _⟩ => by contradiction
   }
 
-instance : Reactor.Finite Rtr where
+instance : Reactor.Finite Reactor where
   fin rtr cpt := by
     cases cpt <;> try cases ‹Component.Valued›
     case act =>
@@ -211,6 +212,4 @@ instance : Reactor.Finite Rtr where
     all_goals
       first
         | simp only [Partial.Finite, h, Set.finite_empty]
-        | exact Set.subset_eq_empty (by simp [Partial.ids, Rtr.obj?_val_not_act]) rfl
-
-end LoopModel
+        | exact Set.subset_eq_empty (by simp [Partial.ids]) rfl

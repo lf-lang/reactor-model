@@ -8,7 +8,8 @@ import ReactorModel.Execution.Theorems.Step.Exec
 import ReactorModel.Execution.Theorems.Step.Skip
 import ReactorModel.Execution.Theorems.Step.Time
 import ReactorModel.Execution.Theorems.Variability.Basic
-import ReactorModel.Execution.Theorems.Variability.LoopModel
+import ReactorModel.Execution.Theorems.Variability.Loop.Execution
+import ReactorModel.Execution.Theorems.Variability.Loop.Reactor
 import ReactorModel.Execution.Theorems.Variability.Weak
 import ReactorModel.Execution.Theorems.Dependency
 import ReactorModel.Execution.Theorems.Execution
