@@ -108,4 +108,9 @@ theorem le_microsteps_of_eq_time {g₁ g₂ : Time.Tag} (h : g₁ ≤ g₂) (ht 
   simp only [(· ≤ ·)] at h
   simp_all
 
+theorem lt_microsteps_of_eq_time {g₁ g₂ : Time.Tag} (h : g₁ < g₂) (ht : g₁.time = g₂.time) :
+    g₁.microstep < g₂.microstep := by
+  simp only [(· < ·), (· ≤ ·)] at h
+  simp_all
+
 end Time.Tag

@@ -69,6 +69,11 @@ theorem tag_le {s₁ s₂ : State α} : (Steps s₁ s₂) → s₁.tag ≤ s₂.
   | .refl      => le_rfl
   | .step e e' => e.tag_le.trans e'.tag_le
 
+theorem time_intermediate
+    {s₁ s₂ s₃ : State α} (hd : Step s₁ s₂) (tl : Steps s₂ s₃) (h : s₁.tag.time = s₃.tag.time) :
+    s₁.tag.time = s₂.tag.time :=
+  Nat.le_antisymm (Time.Tag.le_to_le_time hd.tag_le) (h ▸ Time.Tag.le_to_le_time tl.tag_le)
+
 def length_le [Reactor.Finite α] {s₁ s₂ : State α} (e : Steps s₁ s₂) :
     e.length ≤ e.count * (s₁.rtr#.rcn + 1) := by
   induction e <;> simp only [length, Nat.zero_le]
@@ -77,23 +82,43 @@ def length_le [Reactor.Finite α] {s₁ s₂ : State α} (e : Steps s₁ s₂) :
     simp [count, equiv_card_eq stp.equiv, Nat.add_mul]
 
 open Time.Tag in
-def count_le
-    [Reactor.Finite α] {s₁ s₂ : State α} (ht : s₁.tag.time = s₂.tag.time) (e : Steps s₁ s₂) :
-    e.count ≤ 2 * (s₂.tag.microstep - s₁.tag.microstep) + 1 := by
-  induction e
-  case refl => simp [count]
-  case step e e' ih =>
+theorem count_lt
+    [Reactor.Finite α] {s₁ s₂ s₃ : State α} (ht : s₁.tag.time = s₃.tag.time)
+    (stp : s₁ ↓ₜ s₂) (e : Steps s₂ s₃) : e.count < 2 * (s₃.tag.microstep - s₁.tag.microstep) :=
+  have ht₂ : s₁.tag.time = s₂.tag.time := time_intermediate stp e ht
+  match e with
+  | refl => by
     simp only [count]
-    have ht' := Nat.le_antisymm (le_to_le_time e.tag_le) (ht ▸ le_to_le_time e'.tag_le)
-    have hm₁ := le_microsteps_of_eq_time e.tag_le ht'
-    have hm₂ := le_microsteps_of_eq_time e'.tag_le (ht ▸ ht').symm
-    have := ih (ht ▸ ht').symm
-    apply Nat.add_le_add_right (le_trans this ?_)
-    sorry
-    -- PROBLEM: This bound is not sufficient for the inductive step.
-    --          The problem is that it is important for us to know whether the first step is a time
-    --          or an inst step. This changes the +1 in the bound.
-    --          Or is there some other bound which works around this issue?
+    have := lt_microsteps_of_eq_time stp.tag_lt ht
+    omega
+  | step (.time stp') e => by
+    simp only [count]
+    have := count_lt (ht₂ ▸ ht) stp' e
+    have := lt_microsteps_of_eq_time stp.tag_lt ht₂
+    omega
+  | step (.inst stp') refl => by
+    simp only [count]
+    have := lt_microsteps_of_eq_time (stp'.preserves_tag ▸ stp.tag_lt) ht
+    omega
+  | step (.inst stp') (step (.time stp'') e) => by
+    simp only [count]
+    have ht₃ := time_intermediate (.inst stp') (.step (.time stp'') e) (ht₂ ▸ ht)
+    have := count_lt (ht ▸ ht₂ ▸ ht₃).symm stp'' e
+    have := stp'.preserves_tag ▸ lt_microsteps_of_eq_time stp.tag_lt ht₂
+    omega
+  | step (.inst stp') (step (.inst stp'') _) =>
+    stp'.nonrepeatable stp'' |>.elim
+
+theorem count_le
+    [Reactor.Finite α] {s₁ s₂ : State α} (ht : s₁.tag.time = s₂.tag.time) :
+    (e : Steps s₁ s₂) → e.count ≤ 2 * (s₂.tag.microstep - s₁.tag.microstep) + 1
+  | refl | step (.inst _) refl             => by simp [count]
+  | step (.time stp) e                     => by simp [count, le_of_lt <| count_lt ht stp e]
+  | step (.inst stp) (step (.inst stp') _) => stp.nonrepeatable stp' |>.elim
+  | step (.inst stp) (step (.time stp') e) => by
+    simp only [count]
+    have := stp.preserves_tag ▸ count_lt (stp.preserves_tag ▸ ht) stp' e
+    omega
 
 end
 
@@ -112,7 +137,7 @@ theorem deterministic
   all_goals cases ‹Step _ _›
   case refl.step.inst.step.time e _ f' f => exact absurd ht <| ne_of_lt <| e.preserves_tag ▸ lt_of_lt_of_le f.tag_lt f'.tag_le
   case step.refl.inst.step.time e _ f' f => exact absurd ht.symm <| ne_of_lt <| e.preserves_tag ▸ lt_of_lt_of_le f.tag_lt f'.tag_le
-  case refl.step.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
-  case step.refl.inst.step.inst e _ f' f => exact e.nonrepeatable f |>.elim
+  case refl.step.inst.step.inst e _ _ f => exact e.nonrepeatable f |>.elim
+  case step.refl.inst.step.inst e _ _ f => exact e.nonrepeatable f |>.elim
 
 end Execution.Grouped.Steps
