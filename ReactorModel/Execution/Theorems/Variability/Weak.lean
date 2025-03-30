@@ -3,7 +3,7 @@ import ReactorModel.Execution.Theorems.State
 import ReactorModel.Execution.Theorems.Grouped.Basic
 import ReactorModel.Objects.Reactor.Theorems.Finite
 
-open Classical Reactor
+open Classical Reactor Time.Tag
 
 namespace Execution
 
@@ -19,8 +19,7 @@ def WeakFiniteVariability (α) [Hierarchical α] : Prop :=
   ∀ t m s, ∃ b, ∀ {s' : State α} (e : Execution s s'),
     (s.tag.time = t) → (s'.tag ≤ ⟨t, m⟩) → e.length ≤ b
 
-open Time.Tag in
-theorem weakly_finitely_variable [Proper α] [fin : Reactor.Finite α] : WeakFiniteVariability α := by
+theorem weakly_finitely_variable [Hierarchical α] [Reactor.Finite α] : WeakFiniteVariability α := by
   intros t m s₁
   exists (2 * (m - s₁.tag.microstep) + 1) * (s₁.rtr#.rcn + 1) + (s₁.rtr#.rcn + 1)
   intro s₂ e ht hm
