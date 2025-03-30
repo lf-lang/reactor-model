@@ -41,6 +41,10 @@ def empty : α ⇀ β :=
 instance {α β : Type _} : EmptyCollection (α ⇀ β) where
   emptyCollection := empty
 
+@[simp]
+theorem apply_empty : (∅ : α ⇀ β) a = none := by
+  rfl
+
 theorem empty_iff {f : α ⇀ β} : (f = ∅) ↔ (∀ a, f a = none) where
   mp h _ := h ▸ rfl
   mpr h := funext h
@@ -165,3 +169,31 @@ instance [DecidableEq α] : CoeFun (α ⇉ β) (fun _ => α → Option β) where
   coe f := f.lookup
 
 end Finmap
+
+instance [fin : Finite α] : Finite (WithTop α) :=
+  match fin with
+  | .intro (n := n) equiv =>
+    .intro (n := n + 1) {
+      toFun
+        | ⊤       => 0
+        | (a : α) => (equiv a) + 1
+      invFun
+        | 0          => ⊤
+        | ⟨x + 1, _⟩ => equiv.invFun ⟨x, by omega⟩
+      left_inv
+        | ⊤       => rfl
+        | (a : α) => by
+          simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, Equiv.invFun_as_coe]
+          split
+          · simp [Fin.succ] at *
+          next h =>
+            simp only [Fin.succ, Equiv.toFun_as_coe, Nat.succ_eq_add_one, Fin.mk.injEq,
+                       add_left_inj, WithTop.coe_eq_coe] at h
+            subst h
+            simp
+      right_inv
+        | 0          => rfl
+        | ⟨_ + 1, _⟩ => by
+          simp
+          sorry
+    }

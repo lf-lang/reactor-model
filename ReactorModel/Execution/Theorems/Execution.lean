@@ -1,15 +1,15 @@
 import ReactorModel.Execution.Theorems.Grouped.Basic
 
-open Classical Reactor
+open Reactor
 
 namespace Execution
 
-variable [Proper α] {s s₁ s₂ s₃ : State α}
-
 @[simp]
-theorem push_length (e : Execution s₁ s₂) (stp : Step s₂ s₃) :
+theorem push_length [Hierarchical α] {s₁ s₂ s₃ : State α} (e : Execution s₁ s₂) (stp : Step s₂ s₃) :
     (e.push stp).length = e.length + 1 := by
   induction e <;> simp_all [push, length]
+
+variable [Proper α] {s : State α}
 
 theorem deterministic
     (e₁ : Execution s s₁) (e₂ : Execution s s₂) (ht : s₁.tag = s₂.tag)

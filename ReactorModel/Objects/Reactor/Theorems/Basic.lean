@@ -3,6 +3,7 @@ import ReactorModel.Objects.Reactor.Hierarchical
 
 noncomputable section
 open Classical
+
 namespace Reactor
 
 /- ---------------------------------------------------------------------------------------------- -/

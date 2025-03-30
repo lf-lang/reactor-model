@@ -2,7 +2,7 @@ import ReactorModel.Execution.Basic
 import ReactorModel.Execution.Theorems.State
 
 noncomputable section
-open Classical Reactor Execution State
+open Reactor Execution State
 
 namespace Execution.Step.Apply
 

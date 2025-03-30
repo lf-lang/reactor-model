@@ -3,7 +3,7 @@ import ReactorModel.Execution.Theorems.State
 import ReactorModel.Execution.Theorems.Grouped.Basic
 import ReactorModel.Objects.Reactor.Theorems.Finite
 
-open Classical Reactor Time.Tag
+open Reactor Time.Tag
 
 namespace Execution
 

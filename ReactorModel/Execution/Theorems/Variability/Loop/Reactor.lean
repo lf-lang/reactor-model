@@ -124,7 +124,8 @@ theorem obj?_val_not_act (rtr : Reactor) {cpt : Component.Valued} (h : cpt ≠ .
 @[simp]
 theorem val_not_act_empty (rtr : Reactor) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
     rtr[cpt] = ∅ := by
-  sorry
+  ext
+  simp [obj?_val_not_act _ h]
 
 theorem no_deps (rtr : Reactor) (i₁ i₂ : Reactor✦) : i₁ ≮[rtr] i₂ := by
   intro h
@@ -176,7 +177,18 @@ instance : Proper Reactor where
     unique_inputs  h₁ h₂ hi := by rename_i i₁ _ i₂ _ _; cases i₁ <;> cases i₂ <;> simp_all
     ordered_prio _ h₁ h₂ hi := by rename_i i₁ _ i₂ _ _; cases i₁ <;> cases i₂ <;> contradiction
     valid_deps hn hr hd := by
-      sorry
+      rename_i j r k _
+      cases j
+      case a => contradiction
+      case r =>
+        simp only [get?, Option.some.injEq] at hr
+        subst hr
+        simp only [rcn, Set.mem_singleton_iff] at hd
+        subst hd
+        cases k
+        all_goals
+          constructor
+          simp [get?, Partial.mem_iff]
   }
 
 instance : Finite Ident :=
@@ -197,15 +209,9 @@ instance : Finite Ident :=
 instance : Reactor.Finite Reactor where
   fin rtr cpt := by
     cases cpt <;> try cases ‹Component.Valued›
-    case act =>
-      simp only [Partial.Finite, Partial.ids]
-      sorry -- This should hold because `Ident` is finite, so any set over `Ident` is finite.
-    case rcn =>
-      simp only [Partial.Finite, Partial.ids]
-      sorry -- This should hold because `Ident` is finite, so any set over `Ident` is finite.
-    case rtr =>
-      simp only [Partial.Finite, Partial.ids]
-      sorry -- The top level reactor is also counted.
+    case act => simp only [Partial.Finite, Partial.ids, @Set.toFinite Ident]
+    case rcn => simp only [Partial.Finite, Partial.ids, @Set.toFinite Ident]
+    case rtr => simp only [Partial.Finite, Partial.ids, @Set.toFinite (WithTop Ident)]
     case' inp => have h : rtr[.inp].ids = ∅ := ?_
     case' out => have h : rtr[.out].ids = ∅ := ?_
     case' stv => have h : rtr[.stv].ids = ∅ := ?_
