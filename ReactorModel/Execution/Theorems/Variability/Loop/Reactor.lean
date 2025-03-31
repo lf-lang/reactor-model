@@ -108,6 +108,14 @@ theorem obj?_act_a (rtr : Reactor) : rtr[.act][Ident.a] = some rtr.act := by
     push_neg at h
     exact h _ ⟨.strict (.final rfl)⟩ |>.elim
 
+-- TODO: This is exactly the same proof as `Reactor.obj?_rcn_a`.
+@[simp]
+theorem obj?_act_r (rtr : Reactor) : rtr[.act][Ident.r] = none := by
+  rw [Hierarchical.obj?]
+  split <;> try rfl
+  obtain ⟨_, ⟨m⟩⟩ := ‹∃ _, _›
+  cases m; cases ‹StrictMember ..› <;> contradiction
+
 @[simp]
 theorem obj?_val_not_act (rtr : Reactor) {cpt : Component.Valued} (h : cpt ≠ .act := by simp) :
     rtr[cpt][i] = none := by

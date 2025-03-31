@@ -73,25 +73,37 @@ theorem closedState₀_nextTag (μ) : (closedState₀ μ).NextTag ⟨0, μ + 1�
   bound := sorry
   least := sorry
 
+@[simp]
+theorem closedState₀_action_a (μ) : (closedState₀ μ).actions ⟨0, μ + 1⟩ .a = true := by
+  sorry
+
+@[simp]
+theorem closedState₀_action_r (μ) : (closedState₀ μ).actions ⟨0, μ + 1⟩ .r = none := by
+  simp only [State.actions, State.record_preserves_events, Option.bind_eq_bind,
+    State.record_preserves_rtr, State.schedule_preserves_rtr, Option.eq_none_iff_forall_not_mem,
+    Option.mem_def]
+  apply forall_not_of_not_exists
+  simp only [← Partial.mem_iff, State.record_preserves_rtr, State.schedule_preserves_rtr,
+    Partial.mem_def, Partial.mapIdx_ids]
+  simp [←Partial.mem_def, Partial.mem_iff]
+
 theorem closedState₀_refresh (μ) :
     Refresh (closedState₀ μ).rtr (closedState₀ μ).rtr ((closedState₀ μ).actions ⟨0, μ + 1⟩) where
   equiv    := .refl _
   eq_state := rfl
   inputs   := by simp
   outputs  := by simp
-  acts     := by
-    simp [State.actions]
-    sorry
+  acts     := by ext i a; cases i <;> simp [state₀]
 
 def stepFromClosedState₀ (μ : Nat) : Step (closedState₀ μ) (state₀ <| μ + 1) :=
-  let s₂ := { (closedState₀ μ) with tag := ⟨0, μ + 1⟩, progress := ∅ }
-    have h : s₂ = (state₀ <| μ + 1) := by
-      simp only [state₀, State.record_preserves_rtr, State.schedule_preserves_rtr,
-                 State.record_preserves_events, State.mk.injEq, true_and, s₂, State.schedule]
-      funext i
-      cases i <;> simp only [Partial.update, reduceCtorEq, ↓reduceIte, Option.map_eq_map,
-                             Option.map_some', state₀_schedule_actionEvents, s₂]
-  .time <| h ▸ .mk (closedState₀_closed μ) (closedState₀_nextTag μ) (closedState₀_refresh μ)
+  let stp := Step.Time.mk (closedState₀_closed μ) (closedState₀_nextTag μ) (closedState₀_refresh μ)
+  .time <| dst_cast ▸ stp
+where
+  dst_cast : (state₀ <| μ + 1) = { closedState₀ μ with tag := ⟨0, μ + 1⟩, progress := ∅ } := by
+    simp only [state₀, State.record_preserves_rtr, State.schedule_preserves_rtr,
+                State.record_preserves_events, State.mk.injEq, true_and, State.schedule]
+    funext i
+    cases i <;> simp [Partial.update, state₀_schedule_actionEvents]
 
 def execution₀ : (μ : Nat) → Execution (state₀ 0) (state₀ μ)
   | 0     => .refl

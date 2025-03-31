@@ -41,8 +41,11 @@ where
 def scheduledTags (s : State α) : Set Time.Tag :=
   { g | ∃ i a, (s.events i = some a) ∧ (g ∈ a.keys) }
 
+-- TODO: I don't think any proofs depend on this definition. That is, we could generalize the model
+--       over how future actions are determined and instantiate this concrete definition only for
+--       proper reactors.
 def actions (s : State α) (g : Time.Tag) : α✦ ⇀ α◾ :=
-  s.rtr[.act].mapIdx fun i => s.events i >>= (· g) |>.getD ⊥
+  s.rtr[.act].mapIdx (fun i => s.events i >>= (· g) |>.getD ⊥)
 
 def unprocessed (s : State α) : Set α✦ :=
   { i ∈ s.rtr[.rcn] | i ∉ s.progress }
