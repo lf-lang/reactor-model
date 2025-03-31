@@ -46,11 +46,7 @@ abbrev Kind.opposite : Kind → Kind
   | .in => .out
   | .out => .in
 
-def Time := Nat
-deriving LinearOrder
-
-instance : OfNat Time n where
-  ofNat := n
+abbrev Time := Nat
 
 -- A `Time.Tag` is used to represent a logical time tag.
 -- The order of these tags is lexicographical with the `time` taking priority.
