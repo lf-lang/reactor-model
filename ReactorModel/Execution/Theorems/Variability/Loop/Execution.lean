@@ -20,9 +20,34 @@ where
     | 0     => .singleton ⟨0, 0⟩ true
     | m + 1 => (actionEvents m).insert ⟨0, m + 1⟩ true
 
-theorem state₀_schedule_actionEvents (μ) :
-    State.schedule.go (α := Reactor) (state₀.actionEvents μ) 0 true = state₀.actionEvents (μ + 1) := by
-  sorry
+theorem state₀_actionEvents_keys_time : ∀ i ∈ (state₀.actionEvents μ).keys, i.time = 0 := by
+  intro i h
+  induction μ
+  case zero => simp_all [state₀.actionEvents]
+  case succ ih =>
+    simp only [Finmap.mem_keys, state₀.actionEvents, Finmap.mem_insert] at *
+    cases h <;> simp_all
+
+@[simp]
+theorem state₀_actionEvents_keys_max (μ) : (state₀.actionEvents μ).keys.max = some ⟨0, μ⟩ := by
+  induction μ
+  case zero => rfl
+  case succ μ ih =>
+    simp only [state₀.actionEvents, Finmap.insert_keys, Finset.max_insert, ih]
+    have := Time.Tag.lt_of_lt_microstep (t := 0) (m₁ := μ) (m₂ := μ + 1) (h := by simp)
+    exact max_eq_left_of_lt <| (WithBot.unbotD_lt_iff fun a => this).mp this
+
+theorem state₀_schedule_actionEvents :
+    (μ : Nat) →
+    State.schedule.go (α := Reactor) (state₀.actionEvents μ) 0 true =
+    state₀.actionEvents (μ + 1)
+  | .zero => rfl
+  | .succ _ => by
+    rw (occs := [2]) [state₀.actionEvents]
+    simp [State.schedule.go]
+    split <;> simp only [Finset.filter_true_of_mem state₀_actionEvents_keys_time,
+                         state₀_actionEvents_keys_max, reduceCtorEq] at *
+    · injections; simp_all
 
 theorem state₀_allows_r (μ) : (state₀ μ).Allows .r where
   mem           := by simp [Partial.mem_iff]
@@ -69,9 +94,9 @@ theorem closedState₀_nextTag_mem_scheduled (μ) : ⟨0, μ + 1⟩ ∈ (closedS
     · sorry
 
 theorem closedState₀_nextTag (μ) : (closedState₀ μ).NextTag ⟨0, μ + 1⟩ where
-  mem   := closedState₀_nextTag_mem_scheduled μ
-  bound := sorry
-  least := sorry
+  mem       := closedState₀_nextTag_mem_scheduled μ
+  bound     := by simp [state₀, Time.Tag.lt_of_lt_microstep]
+  least _ _ := Time.Tag.lt_microstep_to_le_succ_microstep
 
 @[simp]
 theorem closedState₀_action_a (μ) : (closedState₀ μ).actions ⟨0, μ + 1⟩ .a = true := by
@@ -96,8 +121,7 @@ theorem closedState₀_refresh (μ) :
   acts     := by ext i a; cases i <;> simp [state₀]
 
 def stepFromClosedState₀ (μ : Nat) : Step (closedState₀ μ) (state₀ <| μ + 1) :=
-  let stp := Step.Time.mk (closedState₀_closed μ) (closedState₀_nextTag μ) (closedState₀_refresh μ)
-  .time <| dst_cast ▸ stp
+  .time <| dst_cast ▸ .mk (closedState₀_closed μ) (closedState₀_nextTag μ) (closedState₀_refresh μ)
 where
   dst_cast : (state₀ <| μ + 1) = { closedState₀ μ with tag := ⟨0, μ + 1⟩, progress := ∅ } := by
     simp only [state₀, State.record_preserves_rtr, State.schedule_preserves_rtr,

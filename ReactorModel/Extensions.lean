@@ -1,5 +1,6 @@
 import Mathlib.Data.Finmap
 import Mathlib.Data.Finite.Defs
+import Mathlib.Data.Finset.Insert
 
 open Classical
 
@@ -171,6 +172,10 @@ infix:50 " ⇉ " => (Finmap fun _ : · => ·)
 
 instance [DecidableEq α] : CoeFun (α ⇉ β) (fun _ => α → Option β) where
   coe f := f.lookup
+
+theorem insert_keys [DecidableEq α] (f : α ⇉ β) (a b) :
+    (f.insert a b).keys = Insert.insert a f.keys := by
+  sorry
 
 end Finmap
 
