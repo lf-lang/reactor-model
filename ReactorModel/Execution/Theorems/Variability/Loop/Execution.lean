@@ -75,23 +75,7 @@ theorem closedState₀_closed (μ) : (closedState₀ μ).Closed := by
 
 theorem closedState₀_nextTag_mem_scheduled (μ) : ⟨0, μ + 1⟩ ∈ (closedState₀ μ).scheduledTags := by
   exists .a
-  simp [State.scheduledTags, State.schedule, state₀, Partial.update, State.schedule.go, state₀.actionEvents]
-  induction μ
-  case zero =>
-    simp [state₀.actionEvents]
-    split
-    · contradiction
-    next h =>
-      have ⟨h, _⟩ := Finset.mem_filter.mp <| Finset.mem_of_max h
-      simp only [Finset.mem_singleton, Time.Tag.mk.injEq] at h
-      simp [h.right, Finmap.mem_keys]
-  case succ ih =>
-    simp [state₀.actionEvents]
-    split
-    next m _ h =>
-      have := Finset.filter_eq_empty_iff.mp (Finset.max_eq_bot.mp h) (x := ⟨0, m + 1⟩) (by simp [Finmap.mem_keys])
-      contradiction
-    · sorry
+  simp [State.schedule, Finmap.mem_keys, state₀, state₀_schedule_actionEvents, state₀.actionEvents]
 
 theorem closedState₀_nextTag (μ) : (closedState₀ μ).NextTag ⟨0, μ + 1⟩ where
   mem       := closedState₀_nextTag_mem_scheduled μ

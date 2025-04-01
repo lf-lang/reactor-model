@@ -175,7 +175,8 @@ instance [DecidableEq α] : CoeFun (α ⇉ β) (fun _ => α → Option β) where
 
 theorem insert_keys [DecidableEq α] (f : α ⇉ β) (a b) :
     (f.insert a b).keys = Insert.insert a f.keys := by
-  sorry
+  ext
+  simp [Finmap.mem_keys]
 
 end Finmap
 
@@ -202,7 +203,5 @@ instance [fin : Finite α] : Finite (WithTop α) :=
             simp
       right_inv
         | 0          => rfl
-        | ⟨_ + 1, _⟩ => by
-          simp
-          sorry
+        | ⟨x + 1, isLt⟩ => by ext; simp_all [Fin.val_add]
     }

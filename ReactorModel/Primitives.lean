@@ -115,6 +115,10 @@ theorem lt_microsteps_of_eq_time {g₁ g₂ : Time.Tag} (h : g₁ < g₂) (ht : 
 
 theorem lt_microstep_to_le_succ_microstep {g₁ g₂ : Time.Tag} (h : g₁ < g₂) :
     { g₁ with microstep := g₁.microstep + 1 } ≤ g₂ := by
-  sorry
+  simp only [(· < ·), (· ≤ ·)] at *
+  rcases h with ⟨h₁ | h₂, h₃⟩
+  · simp_all
+  · simp_all only [Nat.lt_eq, lt_self_iff_false, Nat.le_eq, true_and, false_or, not_le]
+    omega
 
 end Time.Tag
