@@ -19,8 +19,7 @@ namespace Execution
 --       property of the *model* of Reactors, and the given reactor type (or rather its accompanying
 --       type class instances) defines the model.
 def FiniteVariability (α) [Hierarchical α] : Prop :=
-  ∀ g s, ∃ b, ∀ {s' : State α} (e : Execution s s'),
-    (s'.tag ≤ g) → e.length ≤ b
+  ∀ g s, ∃ b, ∀ {s' : State α} (e : Execution s s'), (s'.tag ≤ g) → e.length ≤ b
 
 -- Properness of a finite reactor model is not sufficient for finite variability. This is a
 -- consequence of logical tags being super-dense.
