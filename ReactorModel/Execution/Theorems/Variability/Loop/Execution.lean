@@ -84,7 +84,8 @@ theorem closedState₀_nextTag (μ) : (closedState₀ μ).NextTag ⟨0, μ + 1�
 
 @[simp]
 theorem closedState₀_action_a (μ) : (closedState₀ μ).actions ⟨0, μ + 1⟩ .a = true := by
-  sorry
+  simp [State.actions, Partial.mapIdx, Partial.mem_iff, State.schedule, state₀,
+        state₀_schedule_actionEvents, state₀.actionEvents]
 
 @[simp]
 theorem closedState₀_action_r (μ) : (closedState₀ μ).actions ⟨0, μ + 1⟩ .r = none := by
