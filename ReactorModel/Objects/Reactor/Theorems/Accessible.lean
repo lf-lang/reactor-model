@@ -15,14 +15,17 @@ variable [Accessible α] {rtr : α}
 theorem obj?_preserved (h : c ≠ cpt ∨ j ≠ i) : (update rtr cpt i v)[c][j] = rtr[c][j] :=
   lawful rtr cpt i v |>.obj?_preserved h
 
+@[grind]
 theorem obj?_preserved_cpt (h : c ≠ cpt := by exact (nomatch ·)) :
     (update rtr cpt i v)[c][j] = rtr[c][j] :=
   obj?_preserved <| .inl h
 
+@[grind]
 theorem obj?_preserved_id {c : Component.Valued} (h : j ≠ i) :
     (update rtr cpt i v)[c][j] = rtr[c][j] :=
   obj?_preserved <| .inr h
 
+@[grind]
 theorem obj?_updated : (update rtr cpt i v)[cpt][i] = (fun _ => v) <$> rtr[cpt][i] :=
   lawful rtr cpt i v |>.obj?_updated
 
@@ -35,6 +38,7 @@ variable [Finite α]
 def set (rtr : α) (cpt : Component.Valued) (vs : α✦ ⇀ α◾) : α :=
   go rtr cpt vs <| Finite.ids rtr cpt
 where
+  @[grind]
   go (rtr : α) (cpt : Component.Valued) (vs : α✦ ⇀ α◾) : List α✦ → α
     | [] => rtr
     | hd :: tl =>
@@ -43,6 +47,7 @@ where
       | some v => go (Updatable.update rtr cpt hd v) cpt vs tl
 
 omit [Finite α] in
+@[grind]
 theorem set.go_equiv : rtr ≈ set.go rtr cpt vs ids := by
   induction ids generalizing rtr <;> simp [go]
   case nil     => exact .refl _
@@ -51,62 +56,35 @@ theorem set.go_equiv : rtr ≈ set.go rtr cpt vs ids := by
     case none => exact hi
     case some => exact Equivalent.trans LawfulUpdatable.equiv hi
 
+@[grind]
 theorem set_equiv : rtr ≈ set rtr cpt vs :=
   set.go_equiv
 
 omit [Finite α] in
+@[grind]
 theorem set.go_preserves {c : Component.Valued} {i o vs}
     (ho : rtr[c][i] = some o) (h : c ≠ cpt ∨ i ∉ ids ∨ vs i = none) :
     (set.go rtr cpt vs ids)[c][i] = some o := by
-  induction ids generalizing rtr o <;> simp_all [go]; split <;> cases h <;> try cases ‹_ ∨ _›
-  case _ hi _ _ h => exact hi ho <| .inl h
-  case _ hi _ _ h => exact hi ho <| .inr <| .inl h.right
-  case _ hi _ _ h => exact hi ho <| .inr <| .inr h
-  case inl hd tl hi _ v _ h =>
-    have e := @LawfulUpdatable.equiv _ cpt _ rtr ‹_› v
-    have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
-    simp [hi ho' <| .inl h]
-    injection ho' ▸ ho ▸ obj?_preserved_cpt h
-  case inr.inl hd tl hi _ v _ h =>
-    have e := @LawfulUpdatable.equiv _ cpt _ rtr ‹_› v
-    have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
-    push_neg at h
-    simp [hi ho' <| .inr <| .inl h.right]
-    injection ho' ▸ ho ▸ obj?_preserved_id h.left
-  case inr.inr hd tl hi _ v _ h =>
-    have hh : i ≠ hd := by by_contra; simp_all
-    have ho' := ho ▸ (@LawfulUpdatable.lawful _ _ rtr cpt hd v).obj?_preserved (c := c) (.inr hh)
-    exact hi ho' (.inr <| .inr h)
+  induction ids generalizing rtr o <;> grind
 
 omit [Finite α] in
+@[grind]
 theorem set.go_updated {cpt : Component.Valued} {o vs}
     (ho : rtr[cpt][i] = some o) (hv : vs i = some v) (h : i ∈ ids) :
     (set.go rtr cpt vs ids)[cpt][i] = v := by
   induction ids generalizing rtr o v i <;> simp at h; cases h
-  case cons.inl tl hi h =>
-    subst h
-    simp [go, hv]
-    have e := @LawfulUpdatable.equiv _ cpt _ rtr i v
-    have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
-    by_cases ht : i ∈ tl
-    case pos => exact hi ho' hv ht
-    case neg => simp [set.go_preserves ho' (.inr <| .inl ht), ho' ▸ obj?_updated, ho]
-  case cons.inr hd _ hi ht =>
-    simp [go]
-    split
-    · exact hi ho hv ht
-    case _ v _ =>
-      have e := @LawfulUpdatable.equiv _ cpt _ rtr hd v
-      have ⟨_, ho'⟩ := Equivalent.obj?_some_iff e |>.mp ⟨_, ho⟩
-      exact hi ho' hv ht
+  · grind
+  · simp only [go]; split <;> grind
 
+@[grind]
 theorem set_updated' : (set rtr cpt vs)[cpt] = fun i => rtr[cpt][i] >>= (vs i |>.getD ·) := by
   ext1 i
   cases ho : rtr[cpt][i] <;> simp [bind, Option.getD] <;> try split
   · exact Equivalent.obj?_none_iff set_equiv |>.mp ho
-  · exact set.go_updated ho ‹_› <| mem_ids_iff.mpr ⟨_, ho⟩
-  · exact set.go_preserves ho <| .inr <| .inr ‹_›
+  · exact set.go_updated ho ‹_› <| by grind
+  · exact set.go_preserves ho <| by grind
 
+@[grind]
 theorem set_updated {cpt : Component.Valued} (h : vs.ids = rtr[cpt].ids) :
     (set rtr cpt vs)[cpt] = vs := by
   simp [set_updated', bind, Option.bind]
@@ -118,8 +96,9 @@ theorem set_updated {cpt : Component.Valued} (h : vs.ids = rtr[cpt].ids) :
       specialize h i
       simp [hn] at h
   · exact Option.eq_none_iff_forall_not_mem.mpr h |>.symm
-  · obtain ⟨_, h⟩ := h; simp [h]
+  · grind
 
+@[grind]
 theorem set_preserves (h : c ≠ cpt) : (set rtr cpt vs)[c] = rtr[c] := by
   ext1 i
   cases ho : rtr[c][i]

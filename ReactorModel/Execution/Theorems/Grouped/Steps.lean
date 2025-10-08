@@ -57,6 +57,7 @@ def length {s₁ s₂ : State α} : (Steps s₁ s₂) → Nat
   | refl      => 0
   | step e e' => e'.length + e.length
 
+@[grind]
 def count {s₁ s₂ : State α} : (Steps s₁ s₂) → Nat
   | refl      => 0
   | step _ e' => e'.count + 1
@@ -86,26 +87,21 @@ theorem count_lt
     [Reactor.Finite α] {s₁ s₂ s₃ : State α} (ht : s₁.tag.time = s₃.tag.time)
     (stp : s₁ ↓ₜ s₂) (e : Steps s₂ s₃) : e.count < 2 * (s₃.tag.microstep - s₁.tag.microstep) :=
   have ht₂ : s₁.tag.time = s₂.tag.time := time_intermediate stp e ht
+  have := stp.tag_lt
   match e with
-  | refl => by
-    simp only [count]
-    have := lt_microsteps_of_eq_time stp.tag_lt ht
-    omega
+  | refl => by grind
   | step (.time stp') e => by
-    simp only [count]
     have := count_lt (ht₂ ▸ ht) stp' e
-    have := lt_microsteps_of_eq_time stp.tag_lt ht₂
-    omega
+    grind
   | step (.inst stp') refl => by
-    simp only [count]
-    have := lt_microsteps_of_eq_time (stp'.preserves_tag ▸ stp.tag_lt) ht
-    omega
+    have := stp'.preserves_tag
+    grind
   | step (.inst stp') (step (.time stp'') e) => by
     simp only [count]
     have ht₃ := time_intermediate (.inst stp') (.step (.time stp'') e) (ht₂ ▸ ht)
     have := count_lt (ht ▸ ht₂ ▸ ht₃).symm stp'' e
-    have := stp'.preserves_tag ▸ lt_microsteps_of_eq_time stp.tag_lt ht₂
-    omega
+    have := stp'.preserves_tag
+    grind
   | step (.inst stp') (step (.inst stp'') _) =>
     stp'.nonrepeatable stp'' |>.elim
 

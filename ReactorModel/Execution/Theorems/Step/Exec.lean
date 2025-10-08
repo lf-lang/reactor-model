@@ -13,6 +13,8 @@ theorem triggers_rcn : (e : s₁ ↓ₑ s₂) → Triggers s₁ e.rcn           
 def apply :            (e : s₁ ↓ₑ s₂) → s₁ -[s₁.output e.rcn]→ e.applied | mk _ _ a => a
 theorem dst_eq :       (e : s₁ ↓ₑ s₂) → s₂ = e.applied.record e.rcn      | mk .. => rfl
 
+attribute [grind] allows_rcn triggers_rcn dst_eq
+
 theorem applied_rtr_eq (e : s₁ ↓ₑ s₂) : e.applied.rtr = s₂.rtr := by
   cases e
   simp [applied, record_preserves_rtr]

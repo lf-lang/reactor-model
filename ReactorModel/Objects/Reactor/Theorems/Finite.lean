@@ -5,6 +5,7 @@ namespace Reactor
 
 variable [Hierarchical α] [Finite α] {rtr rtr₁ rtr₂ : α}
 
+@[grind]
 theorem mem_ids_iff : (i ∈ Finite.ids rtr cpt) ↔ (∃ o, rtr[cpt][i] = some o) := by
   simp [Finite.ids, ←Partial.mem_def, Partial.mem_iff]
 

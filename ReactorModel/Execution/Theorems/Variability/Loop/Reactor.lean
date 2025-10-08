@@ -29,6 +29,7 @@ instance : Prioritizable Reactor where
   Priority := Unit
   order    := inferInstance
 
+@[grind]
 def rcn : Reaction Reactor where
   deps _               := {⟨.act, .a⟩}
   triggers             := {⟨.act, .a⟩}
@@ -62,7 +63,7 @@ instance : Hierarchical Reactor where
       case rtr => cases s <;> contradiction
       all_goals
         cases m₂; cases s <;> cases ‹StrictMember ..› <;> try contradiction
-        next h₁ _ h₂ => have h := h₁ ▸ h₂; injection h with h; subst h; rfl
+        grind
 
 @[simp]
 theorem obj?_rcn_r (rtr : Reactor) : rtr[.rcn][Ident.r] = some rcn := by
@@ -149,10 +150,10 @@ theorem no_deps (rtr : Reactor) (i₁ i₂ : Reactor✦) : i₁ ≮[rtr] i₂ :=
     case a => simp at h
     case r =>
       simp only [obj?_rcn_r, Option.some_inj] at h
-      simp only [Reaction.Mutates, Reaction.Normal, ←h, not_forall, Classical.not_imp] at hm
-      obtain ⟨_, _, h, hn⟩ := hm
-      simp only [rcn, List.mem_cons, List.not_mem_nil, or_false] at h
-      exact (h ▸ hn) .intro
+      simp only [Reaction.Mutates, Reaction.Normal, ←h, not_forall] at hm
+      obtain ⟨_, _, h, _⟩ := hm
+      simp only [rcn] at h
+      grind [List.not_mem_nil]
 
 instance : WellFounded Reactor where
   wf := by

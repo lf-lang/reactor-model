@@ -32,6 +32,4 @@ theorem weakly_finitely_variable [Hierarchical α] [Reactor.Finite α] : WeakFin
   apply le_trans <| Nat.mul_le_mul_right (s₁.rtr#Component.rcn + 1) (g.steps.count_le h)
   have h := htl ▸ le_microsteps_of_eq_time (ht ▸ hm) (htl ▸ h.symm)
   apply Nat.mul_le_mul_right
-  apply Nat.add_le_add_right
-  apply Nat.mul_le_mul_left
-  apply Nat.sub_le_sub_right h
+  grind

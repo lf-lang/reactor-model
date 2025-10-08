@@ -141,11 +141,9 @@ theorem target_not_mem_indep_output
     all_goals
       intro ⟨⟩
       apply absurd hd
-    case stv =>
-      exact hi.no_shared_state_deps h₁ h₂ hc
+    case stv => grind
     all_goals
-      exact hi.left.deps_disjoint h₁ h₂ hi.not_eq (rcn₁.target_mem_deps hc) <| by
-        simp [Change.Normal.target]
+      exact hi.left.deps_disjoint h₁ h₂ hi.not_eq (rcn₁.target_mem_deps hc) (by simp)
 
 theorem indep_output_disjoint_targets (hi : i₁ ≮[s.rtr]≯ i₂) :
     Disjoint (s.output i₁).targets (s.output i₂).targets := by

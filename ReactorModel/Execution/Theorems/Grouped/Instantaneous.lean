@@ -81,6 +81,7 @@ theorem seq_rcn_ne (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) : e₁.rc
 
 end Step
 
+@[grind]
 theorem Step.deterministic [Readable α] {s s₁ s₂ : State α}
     (e₁ : s ↓ᵢ s₁) (e₂ : s ↓ᵢ s₂) (h : e₁.rcn = e₂.rcn) : s₁ = s₂ := by
   cases e₁ <;> cases e₂ <;> simp [rcn] at h
@@ -88,8 +89,7 @@ theorem Step.deterministic [Readable α] {s s₁ s₂ : State α}
   case exec.exec e₁ e₂ => simp [e₁.dst_eq, e₂.dst_eq, h, e₁.apply.deterministic (h.symm ▸ e₂.apply)]
   all_goals
     have := ‹_ ↓ₛ _›.not_triggers_rcn
-    have := ‹_ ↓ₑ _›.triggers_rcn
-    simp_all
+    grind
 
 namespace Step
 
@@ -164,6 +164,7 @@ theorem prepend_indep' (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : 
     refine ⟨_, _, .exec f₁, .exec f₂, rfl, rfl, ?_⟩
     exact Step.Exec.indep_comm e₁ e₂ f₁ f₂ rfl rfl h |>.symm
 
+@[grind]
 theorem prepend_indep (e₁ : s₁ ↓ᵢ s₂) (e₂ : s₂ ↓ᵢ s₃) (h : e₁.rcn ≮[s₁.rtr] e₂.rcn) :
     ∃ (s₂' : _) (e₁' : s₁ ↓ᵢ s₂') (e₂' : s₂' ↓ᵢ s₃), (e₁'.rcn = e₂.rcn) ∧ (e₂'.rcn = e₁.rcn) := by
   have ⟨s₂', _, e₁', e₂', h₁, h₂, h⟩ := prepend_indep' e₁ e₂ h
@@ -176,6 +177,7 @@ namespace Step.TC
 
 variable [Hierarchical α] {s₁ s₂ : State α} {rcn : α✦}
 
+@[grind]
 def rcns {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → List α✦
   | single e   => [e.rcn]
   | trans e e' => e.rcn :: e'.rcns
@@ -208,6 +210,7 @@ theorem progress_eq (e : s₁ ↓ᵢ+ s₂) : s₂.progress = s₁.progress ∪ 
 theorem rcns_mem_progress (e : s₁ ↓ᵢ+ s₂) (h : rcn ∈ e.rcns) : rcn ∈ s₂.progress :=
   e.progress_eq ▸ Set.mem_union_right _ h
 
+@[grind]
 theorem rcns_ne_nil {s₁ s₂ : State α} : (e : s₁ ↓ᵢ+ s₂) → e.rcns ≠ []
   | single _ | trans .. => by simp [rcns]
 
@@ -270,6 +273,7 @@ theorem head_minimal (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) : (e.rcn ::
   replace hc := mt e.progress_monotonic <| e'.mem_rcns_not_mem_progress hm
   exact hc <| e.allows_rcn.deps h
 
+@[grind]
 theorem head_not_mem_tail (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) (h : i ∈ e'.rcns) : e.rcn ≠ i := by
   intro hc
   have := trans e e' |>.rcns_nodup
@@ -300,6 +304,7 @@ namespace Step.TC
 variable [Proper α] {s s₁ s₂ : State α}
 
 -- The core lemma for `prepend_minimal`.
+@[grind →]
 theorem cons_prepend_minimal
     (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) (hm : i ∈ e'.rcns) (hr : (e.rcn :: e'.rcns) ≮[s₁.rtr] i) :
     ∃ f : s₁ ↓ᵢ+ s₃, f.rcns = i :: e.rcn :: (e'.rcns.erase i) := by
@@ -307,63 +312,46 @@ theorem cons_prepend_minimal
   case single e' =>
     have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' <| hm ▸ hr.cons_head
     exists trans f (single f')
-    simp [hm, rcns, ←hf₁, ←hf₂]
+    grind
   case trans s₁ s₂ s₄ e' e'' hi =>
     cases hm
     case inl hm =>
       simp [hm] at hr
       have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep e' hr.cons_head
       exists trans f <| trans f' e''
-      simp [hm, rcns, ←hf₁, ←hf₂]
+      grind
     case inr hm =>
       have ⟨f, hf⟩ :=  hi e' hm <| hr.cons_tail.equiv e.equiv
       cases f <;> simp [rcns] at hf
       case trans f f'' =>
         have ⟨h₁, h₂⟩ := hf
-        have ⟨_, f, f', ⟨hf₁, hf₂⟩⟩ := e.prepend_indep f <| h₁.symm ▸ hr |>.cons_head
+        have ⟨_, f, f', _⟩ := e.prepend_indep f <| h₁.symm ▸ hr |>.cons_head
         exists trans f <| trans f' f''
-        have h₃ := e''.rcns.erase_cons_tail <| by
-          simp only [beq_iff_eq]; exact head_not_mem_tail e' e'' hm
-        simp [rcns, hf₁, h₁, hf₂, h₂, h₃]
+        grind [erase_cons_tail]
 
 theorem prepend_minimal (e : s₁ ↓ᵢ+ s₂) (hm : i ∈ e.rcns) (hr : e.rcns ≮[s₁.rtr] i) :
     ∃ (e' : s₁ ↓ᵢ+ s₂), e'.rcns = i :: (e.rcns.erase i) := by
   cases e <;> (simp [rcns] at *; try cases ‹_ ∨ _›)
-  case single e =>
-    exists single e
-    simp [hm, rcns]
-  case trans.inl e e' h =>
-    exists trans e e'
-    simp [rcns, h]
-  case trans.inr e e' h =>
-    have h' := e'.rcns.erase_cons_tail <| by simp only [beq_iff_eq]; exact head_not_mem_tail e e' h
-    exact h' ▸ cons_prepend_minimal e e' h hr
+  case' single e         => exists single e
+  case' trans.inl e e' _ => exists trans e e'
+  all_goals grind
 
 theorem rcns_perm_deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : e₁.rcns ~ e₂.rcns) :
     (s₁.rtr = s₂.rtr) ∧ (s₁.events = s₂.events) := by
   induction e₁
-  case single e =>
-    cases e₂ <;> simp [rcns] at hp ⊢
-    case single e' => simp [e.deterministic e' hp]
-    case trans e'  => exact absurd rfl (hp.right ▸ e'.rcns_ne_nil)
+  case single => grind [cases Step.TC, perm_singleton, singleton_perm]
   case trans s sₘ₁ s₁ e₁ e₁' hi =>
     have hm := hp.mem_iff.mp List.mem_cons_self
     have hm' := e₁'.head_minimal e₁ |>.perm hp
     have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
-    cases e₂ <;> simp [rcns] at he₂
-    case trans sₘ₂ e₂ e₂' =>
-      have ⟨h, h'⟩ := he₂
-      cases e₁.deterministic e₂ h.symm
-      apply hi e₂'
-      rw [h']
-      exact List.perm_cons _ |>.mp (hp.trans <| List.perm_cons_erase hm)
+    cases e₂
+    case trans =>
+      have := (List.perm_cons _).mp <| hp.trans (List.perm_cons_erase hm)
+      grind
     case single =>
-      exfalso
-      simp [rcns] at hp
-      have ⟨hd, tl, h⟩ := e₂.rcns_cons
-      have ⟨_, _, h'⟩ := e₁'.rcns_cons
-      simp only [h', h, reduceCtorEq, cons.injEq, false_or] at hp he₂
-      simp [he₂.right.right] at hp
+      have := e₂.rcns_cons
+      have := e₁'.rcns_cons
+      grind [perm_singleton]
 
 theorem deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) (hp : s₁.progress = s₂.progress) :
     s₁ = s₂ := by

@@ -27,6 +27,7 @@ where
 def output (s : State α) (rcn : α✦) : Reaction.Output α :=
   s.rtr[.rcn][rcn] |>.elim [] (· <| s.input rcn)
 
+@[grind]
 def record (s : State α) (rcn : α✦) : State α :=
   { s with progress := s.progress.insert rcn }
 

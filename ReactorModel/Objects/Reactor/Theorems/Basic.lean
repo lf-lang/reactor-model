@@ -15,21 +15,23 @@ variable [Reactor α] {rtr₁ : α}
 theorem refl (rtr₁ : α) : rtr₁ ≃[cpt][i] rtr₁ :=
   fun _ => rfl
 
-@[symm]
+@[symm, grind]
 theorem symm (e : rtr₁ ≃[cpt][i] rtr₂) : rtr₂ ≃[cpt][i] rtr₁ :=
   (e · |>.symm)
 
-@[trans]
+@[trans, grind →]
 theorem trans (e₁ : rtr₁ ≃[cpt][i] rtr₂) (e₂ : rtr₂ ≃[cpt][i] rtr₃) : rtr₁ ≃[cpt][i] rtr₃ :=
   fun h => (e₁ h).trans (e₂ h)
 
 instance : Equivalence fun rtr₁ rtr₂ : α => rtr₁ ≃[cpt][i] rtr₂ :=
   { refl, symm, trans }
 
+@[grind]
 theorem mem_iff (e : rtr₁ ≃[cpt][i] rtr₂) (h : c ≠ cpt ∨ j ≠ i) : j ∈ rtr₁{c} ↔ j ∈ rtr₂{c} := by
   simp [Partial.mem_iff]
   exact ⟨(e h ▸ ·), (e h ▸ ·)⟩
 
+@[grind]
 theorem valued {c cpt : Component.Valued} (e : rtr₁ ≃[cpt][i] rtr₂) (h : c ≠ cpt ∨ j ≠ i) :
     rtr₁{c}{j} = rtr₂{c}{j} :=
   e <| h.elim (by simp [*]) Or.inr
@@ -38,6 +40,7 @@ end RootEqualUpTo
 
 /- ---------------------------------------------------------------------------------------------- -/
 
+@[grind]
 inductive Equivalent [inst : Reactor α] : α → α → Prop
   | refl (rtr) : Equivalent rtr rtr
   | struct
@@ -53,15 +56,13 @@ variable [Reactor α] {rtr₁ : α}
 instance : HasEquiv α where
   Equiv := Equivalent
 
-@[symm]
+-- TODO: This is only here to make `grind` understand the notation.
+@[grind]
+theorem equiv_notation_def : rtr₁ ≈ rtr₂ ↔ Equivalent rtr₁ rtr₂ := Iff.rfl
+
+@[symm, grind]
 theorem symm (e : rtr₁ ≈ rtr₂) : rtr₂ ≈ rtr₁ := by
-  induction e
-  case refl => exact .refl _
-  case struct h₁ h₂ _ hi =>
-    constructor <;> intros
-    · exact h₁ ‹_› ‹_› |>.symm
-    · exact h₂ ‹_› ‹_› |>.symm
-    · exact hi ‹_› ‹_›
+  induction e <;> grind
 
 @[trans]
 theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : rtr₁ ≈ rtr₃ := by
@@ -72,25 +73,25 @@ theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : rtr₁ ≈
     case refl => exact .struct ‹_› ‹_› ‹_›
     case struct h₁' h₂' h₃'=>
       apply Equivalent.struct
-      · intros; exact h₁ ‹_› ‹_› |>.trans (h₁' ‹_› ‹_›)
+      · grind
       · intro _ _ _ h _
-        have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rcn ‹_› |>.mp <| Partial.mem_iff.mpr ⟨_, h⟩
-        exact h₂ ‹_› h |>.trans (h₂' h ‹_›)
+        have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rcn ‹_› |>.mp <| by grind
+        grind
       · intro _ _ _ h _
-        have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rtr ‹_› |>.mp <| Partial.mem_iff.mpr ⟨_, h⟩
+        have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rtr ‹_› |>.mp <| by grind
         exact hi ‹_› h (h₃' h ‹_›)
+
 
 instance : Equivalence fun rtr₁ rtr₂ : α => rtr₁ ≈ rtr₂ :=
   { refl, symm, trans }
 
 theorem mem_get?_iff : (rtr₁ ≈ rtr₂) → (i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt})
-  | refl _      => Iff.refl _
-  | struct h .. => h _ _
+  | refl _ | struct .. => by grind
 
+@[grind]
 theorem get?_rcn_some_eq :
     (rtr₁ ≈ rtr₂) → (rtr₁{.rcn}{i} = some r₁) → (rtr₂{.rcn}{i} = some r₂) → r₁ = r₂
-  | refl _       => by simp_all
-  | struct _ h _ => h
+  | refl _ | struct .. => by grind
 
 theorem get?_rtr_some_equiv :
     (rtr₁ ≈ rtr₂) → (rtr₁{.rtr}{i} = some n₁) → (rtr₂{.rtr}{i} = some n₂) → n₁ ≈ n₂
@@ -105,13 +106,13 @@ theorem get?_none_iff (e : rtr₁ ≈ rtr₂) : (rtr₁{cpt}{i} = none) ↔ (rtr
   simp only [Option.eq_none_iff_forall_not_mem, ←not_exists]
   simp [get?_some_iff e]
 
+@[grind →]
 theorem get?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₂{.rcn} = rtr₁{.rcn} := by
   funext i
   by_cases h₁ : ∃ o, rtr₁{.rcn}{i} = some o
   case pos =>
-    have ⟨_, h₂⟩ := get?_some_iff e |>.mp h₁
-    have ⟨_, h₁⟩ := h₁
-    exact get?_rcn_some_eq e h₁ h₂ ▸ h₁ |>.symm ▸ h₂
+    have := get?_some_iff e |>.mp h₁
+    grind
   case neg =>
     have h₂ := get?_some_iff e |>.not.mp h₁
     push_neg at h₁ h₂
@@ -125,52 +126,17 @@ namespace LawfulMemUpdate
 variable [Reactor α]
 
 def member₁ {rtr₁ : α} : (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember cpt i rtr₁
-  | final _ h _  => .final h
+  | final _ h _    => .final h
   | nested _ h _ u => .nested h u.member₁
 
 def member₂ {rtr₁ : α} : (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember cpt i rtr₂
-  | final _ _ h  => .final h
+  | final _ _ h    => .final h
   | nested _ _ h u => .nested h u.member₂
 
 theorem equiv {rtr₁ : α} (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) : rtr₁ ≈ rtr₂ := by
   induction u <;> constructor
-  case final.mem_get?_iff e h₁ h₂ =>
-    intro c j
-    by_cases hc : c = cpt <;> try subst hc
-    case neg => exact e.mem_iff (.inl hc)
-    case pos =>
-      by_cases hj : j = i <;> try subst hj
-      case neg => exact e.mem_iff (.inr hj)
-      case pos => simp [Partial.mem_iff, h₁, h₂]
-  case final.get?_rcn_some_eq e _ _ =>
-    intro j _ _ h₁ h₂
-    have h := e (c := .rcn) (j := j) (.inl <| by simp)
-    simp_all
-  case final.get?_rtr_some_equiv e _ _ =>
-    intro j _ _ h₁ h₂
-    have h := e (c := .rtr) (j := j) (.inl <| by simp)
-    simp_all
-    apply Equivalent.refl
-  case nested.mem_get?_iff j _ _ _ _ e h₁ h₂ _ _ =>
-    intro c j'
-    by_cases hc : c = .rtr <;> try subst hc
-    case neg => exact e.mem_iff (.inl hc)
-    case pos =>
-      by_cases hj : j' = j <;> try subst hj
-      case neg => exact e.mem_iff (.inr hj)
-      case pos => simp [Partial.mem_iff, h₁, h₂]
-  case nested.get?_rcn_some_eq e h₁ h₂ _ _ =>
-    intro j _ _ h₁ h₂
-    have h := e (c := .rcn) (j := j) (.inl <| by simp)
-    simp_all
-  case nested.get?_rtr_some_equiv j _ _ _ _ e _ _ _ hi =>
-    intro j' n₁' n₂' h₁' h₂'
-    by_cases hj : j' = j <;> try subst hj
-    case pos => simp_all; assumption
-    case neg =>
-      have := e (c := .rtr) (j := j') (.inr hj)
-      simp_all
-      apply Equivalent.refl
+  case nested.get?_rtr_some_equiv j _ _ _ _ _ _ _ _ _ => by_cases j = ‹_› <;> grind
+  all_goals grind
 
 end LawfulMemUpdate
 
@@ -206,6 +172,7 @@ def split' :
   | final h     => ⟨⊤, ⟨.root, h⟩⟩
   | nested hn s => let ⟨j, ⟨s', hs'⟩⟩ := split s hn; ⟨j, ⟨.strict s', by rw [object, hs']⟩⟩
 
+@[grind]
 def extend :
     {rtr : α} → (s : StrictMember .rtr i rtr) → (s.object{cpt}{j} = some o) → StrictMember cpt j rtr
   | _, final hn,    h => nested hn (final h)
@@ -217,20 +184,17 @@ theorem extend_object :
   | _, final _,     _ => rfl
   | _, nested hn s, h => nested_object hn ▸ (extend_object s <| nested_object hn ▸ h)
 
+@[grind]
 theorem extend_not_final (s : StrictMember .rtr i rtr) (h : s.object{cpt}{j} = some o)
     (hf : rtr{cpt}{j} = some o') : s.extend h ≠ final hf := by
   cases s <;> simp [extend]
 
+@[grind]
 theorem extend_inj
     {s₁ : StrictMember .rtr i₁ rtr} {s₂ : StrictMember .rtr i₂ rtr}
     {h₁ : s₁.object{cpt}{j} = some o₁} {h₂ : s₂.object{cpt}{j} = some o₂}
     (h : s₁.extend h₁ = s₂.extend h₂) : i₁ = i₂ := by
-  induction s₁ generalizing i₂ <;> cases s₂
-  all_goals simp [extend] at h; obtain ⟨hj, hr, h⟩ := h; subst hj hr
-  case final.final  => rfl
-  case nested.nested hi _ _ => exact hi <| eq_of_heq h
-  case final.nested => exact absurd (eq_of_heq h).symm <| StrictMember.extend_not_final _ _ _
-  case nested.final => exact absurd (eq_of_heq h) <| StrictMember.extend_not_final _ _ _
+  induction s₁ generalizing i₂ <;> cases s₂ <;> grind
 
 def fromLawfulMemUpdate {rtr₁ : α} :
     (StrictMember c j rtr₂) → (LawfulMemUpdate cpt i v rtr₁ rtr₂) → StrictMember c j rtr₁
@@ -246,6 +210,7 @@ def fromLawfulUpdate {rtr₂ : α} (s : StrictMember c j rtr₂) :
   | .notMem _ h => h ▸ s
   | .update u   => s.fromLawfulMemUpdate u
 
+@[grind]
 def fromEquiv {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
     (StrictMember cpt i rtr₁) → StrictMember cpt i rtr₂
   | final h    => final (e.get?_some_iff.mp ⟨_, h⟩).choose_spec
@@ -256,6 +221,7 @@ def fromEquiv {rtr₁ : α} (e : rtr₁ ≈ rtr₂) :
 
 end
 
+@[grind]
 inductive Equivalent [inst : Reactor α] :
     {rtr₁ rtr₂ : α} → {cpt : Component} → {i : α✦} → (StrictMember cpt i rtr₁) →
     (StrictMember cpt i rtr₂) → Prop
@@ -323,11 +289,7 @@ theorem extend_object :
 theorem extend_inj
     {m₁ : Member .rtr i₁ rtr} {m₂ : Member .rtr i₂ rtr} {h₁ : m₁.object{cpt}{j} = some o₁}
     {h₂ : m₂.object{cpt}{j} = some o₂} (h : m₁.extend h₁ = m₂.extend h₂) : i₁ = i₂ := by
-  cases m₁ <;> cases m₂ <;> simp [Member.extend] at h
-  case root.root     => rfl
-  case strict.strict => simp [StrictMember.extend_inj h]
-  case root.strict   => exact absurd h.symm <| StrictMember.extend_not_final _ _ _
-  case strict.root   => exact absurd h <| StrictMember.extend_not_final _ _ _
+  cases m₁ <;> cases m₂ <;> simp only [extend] at h <;> grind
 
 def fromLawfulMemUpdate (m : Member c j rtr₂) (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) :
     Member c j rtr₁ :=

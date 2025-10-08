@@ -59,6 +59,7 @@ def target : Change α → Option (Component.Valued × α✦)
   | norm ⟨cpt, i, _⟩ => (cpt, i)
   | «mut» ..         => none
 
+@[grind]
 inductive IsNormal : Change α → Prop where
   | intro : IsNormal (norm _)
 

@@ -43,9 +43,11 @@ end
 theorem equiv (e : rtr₁ ≈ rtr₂) (wf : Wellformed rtr₁) : Wellformed rtr₂ where
   unique_inputs h₁ h₂ :=
     wf.unique_inputs (e.obj?_rcn_eq.symm ▸ h₁) (e.obj?_rcn_eq.symm ▸ h₂)
-  ordered_prio h₁ h₂ h₃ :=
+  ordered_prio h₁ h₂ h₃ := by
     have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
-    ordered_prio ‹_› h₁' (get?_rcn_eq e ▸ h₂) (get?_rcn_eq e ▸ h₃)
+    have := get?_rcn_eq e ▸ h₂
+    have := get?_rcn_eq e ▸ h₃
+    grind
   valid_deps h₁ h₂ h₃ :=
     have ⟨_, h₁', e⟩ := Equivalent.obj?_rtr_equiv' e h₁
     wf.valid_deps h₁' (get?_rcn_eq e ▸ h₂) h₃ |>.equiv ‹_› h₁' h₁
@@ -80,7 +82,7 @@ theorem shared_dep_local
         have hc₂' := obj?_some_extend hc₂ hn₂
         have hj := mem_get?_rtr_eq hc₁' hc₂' hj₁ hj₂
         injection hj with hj
-        exact get?_some_rtr_eq hc₁ hc₂ (hj ▸ hn₁) hn₂
+        grind
     all_goals
       cases hk₁ : rcn₁.kind <;> cases hk₂ : rcn₂.kind <;> cases hk₁ ▸ hv₁ <;> cases hk₂ ▸ hv₂
       all_goals exact mem_get?_rtr_eq hc₁ hc₂ ‹_› ‹_›

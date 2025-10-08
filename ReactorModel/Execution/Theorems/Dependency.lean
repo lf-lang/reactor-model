@@ -104,6 +104,7 @@ theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} {i₁ i₂} (h : i₁ ≮[r
     i₁ ≮[rtr₂] i₂ :=
   (h <| ·.equiv e)
 
+@[grind]
 theorem deps_disjoint [Hierarchical α] {rtr : α} {rcn₁ rcn₂} {i₁ i₂} {d} (hi : i₁ ≮[rtr] i₂)
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂) (hn : i₁ ≠ i₂)
     (h : d ∈ rcn₁.deps .out) (hs : d.cpt ≠ .stv) : d ∉ rcn₂.deps .in :=
@@ -118,6 +119,8 @@ structure Independent [Hierarchical α] (rtr : α) (rcn₁ rcn₂ : α✦) : Pro
 
 namespace Independent
 
+attribute [grind] not_eq left right
+
 notation:50 rcn₁ " ≮[" rtr "]≯ " rcn₂ => Independent rtr rcn₁ rcn₂
 
 theorem symm [Hierarchical α] {rtr : α} {i₁ i₂} (hi : i₁ ≮[rtr]≯ i₂) : i₂ ≮[rtr]≯ i₁ where
@@ -131,6 +134,7 @@ theorem equiv [Hierarchical α] {rtr₁ rtr₂ : α} {i₁ i₂} (hi : i₁ ≮[
   left   := hi.left.equiv e
   right  := hi.right.equiv e
 
+@[grind]
 theorem no_shared_state_deps [Proper α] {rtr : α} {rcn₁ rcn₂} {i₁ i₂ i j v}
     (h₁ : rtr[.rcn][i₁] = some rcn₁) (h₂ : rtr[.rcn][i₂] = some rcn₂)
     (hi : i₁ ≮[rtr]≯ i₂) (hs : .stv j v ∈ rcn₁.body i) : ⟨.stv, j⟩ ∉ rcn₂.deps k := by

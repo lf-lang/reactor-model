@@ -12,6 +12,8 @@ theorem allows_rcn :       (e : s₁ ↓ₛ s₂) → Allows s₁ e.rcn      | m
 theorem not_triggers_rcn : (e : s₁ ↓ₛ s₂) → ¬Triggers s₁ e.rcn   | mk _ t => t
 theorem dst_eq :           (e : s₁ ↓ₛ s₂) → s₂ = s₁.record e.rcn | mk .. => rfl
 
+attribute [grind] allows_rcn not_triggers_rcn dst_eq
+
 theorem preserves_rtr (e : s₁ ↓ₛ s₂) : s₁.rtr = s₂.rtr := by
   simp [e.dst_eq, State.record_preserves_rtr]
 

@@ -61,6 +61,8 @@ structure _root_.Reaction (α) [Identifiable α] [Valued α] [Prioritizable α] 
   triggers_sub_in_deps : triggers ⊆ { d | d ∈ deps .in ∧ d.cpt ≠ .stv }
   target_mem_deps      : ∀ {c : Change.Normal α}, (↑c ∈ body i) → c.target ∈ deps .out
 
+attribute [grind →] target_mem_deps
+
 variable [Identifiable α] [Valued α] [Prioritizable α]
 
 -- A coercion so that reactions can be called directly as functions.

@@ -16,8 +16,9 @@ instance : Coe (List α) (Set α) where
 
 end List
 
+@[grind _=_]
 theorem Set.insert_union' (s₁ s₂ : Set α) (a : α) : (insert a s₁) ∪ s₂ = s₁ ∪ (insert a s₂) := by
-  rw [Set.insert_union, Set.union_comm, ←Set.insert_union, Set.union_comm]
+  grind
 
 abbrev Partial (α β) := α → Option β
 
@@ -25,14 +26,17 @@ infixr:50 " ⇀ " => Partial
 
 namespace Partial
 
+@[grind]
 def ids (f : α ⇀ β) := { a | ∃ b, f a = some b }
 
 instance : Membership α (α ⇀ β) where
   mem f a := a ∈ f.ids
 
+@[grind =_]
 theorem mem_def {f : α ⇀ β} : (a ∈ f) ↔ (a ∈ f.ids) := by
   rfl
 
+@[grind]
 theorem mem_iff {f : α ⇀ β} : (a ∈ f) ↔ (∃ b, f a = some b) := by
   rfl
 
@@ -42,7 +46,7 @@ def empty : α ⇀ β :=
 instance {α β : Type _} : EmptyCollection (α ⇀ β) where
   emptyCollection := empty
 
-@[simp]
+@[simp, grind]
 theorem apply_empty : (∅ : α ⇀ β) a = none := by
   rfl
 
@@ -59,6 +63,7 @@ theorem empty_ids : (∅ : α ⇀ β).ids = ∅ :=
 theorem not_mem_empty {a : α} : a ∉ (∅ : α ⇀ β) := by
   simp [mem_def, empty_ids]
 
+@[grind]
 def Nonempty (f : α ⇀ β) : Prop :=
   f ≠ ∅
 
@@ -138,7 +143,7 @@ theorem update_self (f : α ⇀ β) (a : α) (g : β → β) : (f.update a g) a 
 
 theorem update_ne_comm [DecidableEq α] (f : α ⇀ β) {a₁ a₂ : α} (h : a₁ ≠ a₂) (g₁ g₂ : β → β) :
     (f.update a₁ g₁).update a₂ g₂ = (f.update a₂ g₂).update a₁ g₁ := by
-  ext1 a; by_cases a = a₁ <;> by_cases a = a₂ <;> simp_all [update]
+  grind [update]
 
 def const (as : Set α) (b : β) [DecidablePred (· ∈ as)] : α ⇀ β :=
   fun a => if a ∈ as then b else none
@@ -147,13 +152,7 @@ theorem const_ids (as : Set α) (b : β) : (const as b).ids = as := by
   simp [const, ids]
 
 theorem const_eq_map_const (f : α ⇀ β) (b : b) : f.map (fun _ => b) = const f.ids b := by
-  ext1 a
-  simp [const, map_val, ids]
-  split <;> simp [Option.map]
-  case isTrue h => have ⟨_, h⟩ := h; simp [h]
-  case isFalse h =>
-    cases hb : f a <;> simp
-    case some b => push_neg at h; have := hb ▸ h b; contradiction
+  grind [map_val, const, Option.map.eq_def]
 
 def mapIdx (g : α → β) (f : α ⇀ β) [DecidablePred (· ∈ f)] : α ⇀ β :=
   fun a => if a ∈ f then g a else none
@@ -175,8 +174,7 @@ instance [DecidableEq α] : CoeFun (α ⇉ β) (fun _ => α → Option β) where
 
 theorem insert_keys [DecidableEq α] (f : α ⇉ β) (a b) :
     (f.insert a b).keys = Insert.insert a f.keys := by
-  ext
-  simp [Finmap.mem_keys]
+  grind [mem_keys, mem_insert]
 
 end Finmap
 
@@ -194,6 +192,6 @@ instance [fin : Finite α] : Finite (WithTop α) :=
         | ⊤       => rfl
         | (a : α) => by simp
       right_inv
-        | 0          => rfl
-        | ⟨x + 1, isLt⟩ => by ext; simp_all
+        | 0             => rfl
+        | ⟨x + 1, isLt⟩ => by simp_all
     }

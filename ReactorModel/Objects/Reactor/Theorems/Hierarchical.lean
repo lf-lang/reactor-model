@@ -11,6 +11,9 @@ variable [Hierarchical α] {rtr rtr₁ : α}
 theorem unique (s₁ s₂ : StrictMember cpt i rtr) : s₁ = s₂ := by
   injection unique_ids.allEq (.strict s₁) (.strict s₂)
 
+instance : Subsingleton (StrictMember cpt i rtr) where
+  allEq := unique
+
 theorem equiv
     (e : rtr₁ ≈ rtr₂) (s₁ : StrictMember cpt i rtr₁) (s₂ : StrictMember cpt i rtr₂) : s₁ ∼ s₂ := by
   induction s₁ generalizing rtr₂ <;> cases s₂
@@ -129,6 +132,7 @@ theorem rtr_equiv (e : rtr₁ ≈ rtr₂) :
   | root,      root      => e
   | strict s₁, strict s₂ => s₁.rtr_equiv e s₂
 
+@[grind]
 theorem equiv_rcn_eq (e : rtr₁ ≈ rtr₂) :
     (m₁ : Member .rcn i rtr₁) → (m₂ : Member .rcn i rtr₂) → m₁.object = m₂.object
   | strict s₁, strict s₂ => s₁.equiv_rcn_eq e s₂
@@ -149,6 +153,7 @@ variable [Hierarchical α] {rtr : α}
 theorem unique : (Object rtr cpt i o₁) → (Object rtr cpt i o₂) → o₁ = o₂
   | ⟨m₁⟩, ⟨m₂⟩ => m₁.unique m₂ ▸ rfl
 
+@[grind]
 theorem iff_obj?_some : (Object rtr cpt i o) ↔ (rtr[cpt][i] = some o) where
   mp := by
     intro ⟨m⟩
@@ -179,6 +184,7 @@ namespace Hierarchical
 
 variable [Hierarchical α] {rtr : α}
 
+@[grind]
 theorem get?_some_to_obj?_some (h : rtr{cpt}{i} = some o) : rtr[cpt][i] = some o :=
   Object.iff_obj?_some.mp ⟨.final h⟩
 
@@ -202,6 +208,7 @@ theorem obj?_some_nested' (h : rtr{.rtr}{i} = some rtr') (ho : rtr'[cpt][i'] = s
   all_goals
     exact ⟨_, obj?_some_nested h ho⟩
 
+@[grind]
 theorem obj?_some_extend (ho : rtr[.rtr][c] = some con) (hc : con{cpt}{i} = some o) :
     rtr[cpt][i] = some o := by
   have ⟨m⟩ := Object.iff_obj?_some.mpr ho
@@ -217,12 +224,14 @@ theorem obj?_some_split {i : α✦} (ho : rtr[cpt][i] = some o) :
 theorem member_isEmpty_obj?_none (h : IsEmpty <| Member cpt i rtr) : rtr[cpt][i] = none :=
   Object.not_iff_obj?_none.mp (Object.not_of_member_isEmpty h ·)
 
+@[grind]
 theorem get?_some_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂)
     (hc₁ : con₁{cpt}{j} = some o₁) (hc₂ : con₂{cpt}{j} = some o₂) : c₁ = c₂ := by
   have ⟨m₁⟩ := Object.iff_obj?_some.mpr ho₁
   have ⟨m₂⟩ := Object.iff_obj?_some.mpr ho₂
   exact Member.extend_inj <| (m₁.extend hc₁).unique (m₂.extend hc₂)
 
+@[grind]
 theorem mem_get?_rtr_eq (ho₁ : rtr[.rtr][c₁] = some con₁) (ho₂ : rtr[.rtr][c₂] = some con₂)
     (hc₁ : j ∈ con₁{cpt}) (hc₂ : j ∈ con₂{cpt}) : c₁ = c₂ :=
   get?_some_rtr_eq ho₁ ho₂ (Partial.mem_iff.mp hc₁).choose_spec (Partial.mem_iff.mp hc₂).choose_spec
@@ -259,17 +268,20 @@ theorem obj?_none_iff (e : rtr₁ ≈ rtr₂) : (rtr₁[cpt][i] = none) ↔ (rtr
   · exact Equivalent.symm e
   · exact e
 
+@[grind]
 theorem obj?_rtr_equiv
     (e : rtr₁ ≈ rtr₂) (h₁ : rtr₁[.rtr][i] = some n₁) (h₂ : rtr₂[.rtr][i] = some n₂) : n₁ ≈ n₂ := by
   have ⟨m₁⟩ := Object.iff_obj?_some.mpr h₁
   have ⟨m₂⟩ := Object.iff_obj?_some.mpr h₂
   exact m₁.rtr_equiv e m₂
 
+@[grind]
 theorem obj?_rtr_equiv' (e : rtr₁ ≈ rtr₂) (h₂ : rtr₂[.rtr][i] = some n₂) :
     ∃ n₁, (rtr₁[.rtr][i] = some n₁) ∧ (n₁ ≈ n₂) := by
-  have ⟨_, h₁⟩ := obj?_some_iff e |>.mpr ⟨_, h₂⟩
-  exact ⟨_, h₁, Equivalent.obj?_rtr_equiv e h₁ h₂⟩
+  have := obj?_some_iff e |>.mpr ⟨_, h₂⟩
+  grind
 
+@[grind]
 theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] := by
   funext i
   cases ho₁ : rtr₁[.rcn][i]
@@ -278,7 +290,7 @@ theorem obj?_rcn_eq (e : rtr₁ ≈ rtr₂) : rtr₁[.rcn] = rtr₂[.rcn] := by
     have ⟨_, ho₂⟩ := obj?_some_iff e |>.mp ⟨_, ho₁⟩
     have ⟨m₁⟩ := Object.iff_obj?_some.mpr ho₁
     have ⟨m₂⟩ := Object.iff_obj?_some.mpr ho₂
-    simp [ho₂, m₁.equiv_rcn_eq e m₂]
+    grind
 
 end Equivalent
 

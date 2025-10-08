@@ -16,6 +16,7 @@ namespace Reactor
 notation rtr "{" cpt "}"        => get? rtr cpt
 notation rtr "{" cpt "}{" i "}" => get? rtr cpt i
 
+@[grind]
 inductive StrictMember [Reactor α] (cpt : Component) (i) : α → Type
   | final  : (rtr{cpt}{i} = some o) → StrictMember cpt i rtr
   | nested : (rtr₁{.rtr}{j} = some rtr₂) → (StrictMember cpt i rtr₂) → StrictMember cpt i rtr₁
@@ -59,6 +60,7 @@ end Member
 inductive Object [Reactor α] (rtr : α) (cpt : Component) (i : α✦cpt) : cpt.type α → Prop
   | intro (m : Member cpt i rtr) : Object rtr cpt i m.object
 
+@[grind]
 def RootEqualUpTo [Reactor α] (cpt : Component) (i : α✦) (rtr₁ rtr₂ : α) : Prop :=
   ∀ {c j}, (c ≠ cpt ∨ j ≠ i) → rtr₁{c}{j} = rtr₂{c}{j}
 
