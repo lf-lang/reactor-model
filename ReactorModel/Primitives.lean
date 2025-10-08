@@ -75,7 +75,7 @@ instance : LinearOrder Time.Tag where
     | .inr ⟨h₁, h₁'⟩, .inr ⟨h₂, h₂'⟩ => exact Time.Tag.ext (h₁ ▸ h₂) (h₁'.antisymm h₂')
   le_total := by
     intro ⟨t₁, m₁⟩ ⟨t₂, m₂⟩
-    by_cases ht : t₁ = t₂ <;> by_cases hm : m₁ = m₂ <;> simp_all
+    by_cases ht : t₁ = t₂ <;> by_cases hm : m₁ = m₂ <;> try simp_all
     · exact .inr ⟨rfl, le_rfl⟩
     · cases Nat.le_total m₁ m₂
       · exact .inl <| .inr ⟨rfl, ‹_›⟩
@@ -84,15 +84,14 @@ instance : LinearOrder Time.Tag where
       cases Nat.le_total t₁ t₂
       · exact .inl <| .inl <| lt_of_le_of_ne ‹_› ht
       · exact .inr <| .inl <| lt_of_le_of_ne ‹_› (ht ·.symm)
-  decidableLE := inferInstance
-  decidableEq := inferInstance
+  toDecidableLE := inferInstance
 
 instance : OfNat Time.Tag 0 where
   ofNat := ⟨0, 0⟩
 
 theorem lt_of_lt_time (h : t₁ < t₂ := by decide) : (⟨t₁, m₁⟩ : Time.Tag) < ⟨t₂, m₂⟩ := by
   simp only [(· < ·), (· ≤ ·)]
-  simp_all only [gt_iff_lt, Nat.lt_eq, Nat.le_eq, true_or, not_or, not_lt, not_and, not_le, true_and]
+  simp_all only [Nat.lt_eq, Nat.le_eq, true_or, not_or, not_lt, not_and, not_le, true_and]
   exact ⟨le_of_lt h, (ne_of_lt h ·.symm |>.elim)⟩
 
 theorem lt_of_lt_microstep (h : m₁ < m₂ := by decide) : (⟨t, m₁⟩ : Time.Tag) < ⟨t, m₂⟩ := by

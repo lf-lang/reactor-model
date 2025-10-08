@@ -3,6 +3,9 @@ import ReactorModel.Objects.Reactor.Finite
 import ReactorModel.Objects.Reactor.Theorems.Hierarchical
 import ReactorModel.Execution.Theorems.Dependency
 
+-- All build errors in this file are bugs in Lean:
+-- https://github.com/leanprover/lean4/issues/10279
+
 open Reactor
 
 namespace Loop

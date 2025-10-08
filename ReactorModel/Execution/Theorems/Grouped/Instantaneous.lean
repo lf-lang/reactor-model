@@ -264,7 +264,7 @@ theorem equiv {s₁ s₂ : State α} : (s₁ ↓ᵢ+ s₂) → s₁.rtr ≈ s₂
 
 theorem head_minimal (e : s₁ ↓ᵢ s₂) (e' : s₂ ↓ᵢ+ s₃) : (e.rcn :: e'.rcns) ≮[s₁.rtr] e.rcn := by
   by_contra hc
-  simp only [MinimalReaction, mem_cons, forall_eq_or_imp, not_and, not_forall, Classical.not_imp,
+  simp only [MinimalReaction, mem_cons, forall_eq_or_imp, not_and, not_forall,
     Decidable.not_not] at hc
   have ⟨_, hm, h⟩ := hc e.acyclic
   replace hc := mt e.progress_monotonic <| e'.mem_rcns_not_mem_progress hm
@@ -347,7 +347,7 @@ theorem rcns_perm_deterministic (e₁ : s ↓ᵢ+ s₁) (e₂ : s ↓ᵢ+ s₂) 
     case single e' => simp [e.deterministic e' hp]
     case trans e'  => exact absurd rfl (hp.right ▸ e'.rcns_ne_nil)
   case trans s sₘ₁ s₁ e₁ e₁' hi =>
-    have hm := hp.mem_iff.mp <| List.mem_cons_self _ _
+    have hm := hp.mem_iff.mp List.mem_cons_self
     have hm' := e₁'.head_minimal e₁ |>.perm hp
     have ⟨e₂, he₂⟩ := e₂.prepend_minimal hm hm'
     cases e₂ <;> simp [rcns] at he₂

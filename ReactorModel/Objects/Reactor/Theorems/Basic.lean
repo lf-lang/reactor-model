@@ -23,7 +23,7 @@ theorem symm (e : rtr₁ ≃[cpt][i] rtr₂) : rtr₂ ≃[cpt][i] rtr₁ :=
 theorem trans (e₁ : rtr₁ ≃[cpt][i] rtr₂) (e₂ : rtr₂ ≃[cpt][i] rtr₃) : rtr₁ ≃[cpt][i] rtr₃ :=
   fun h => (e₁ h).trans (e₂ h)
 
-instance : Equivalence ((· : α) ≃[cpt][i] ·) :=
+instance : Equivalence fun rtr₁ rtr₂ : α => rtr₁ ≃[cpt][i] rtr₂ :=
   { refl, symm, trans }
 
 theorem mem_iff (e : rtr₁ ≃[cpt][i] rtr₂) (h : c ≠ cpt ∨ j ≠ i) : j ∈ rtr₁{c} ↔ j ∈ rtr₂{c} := by
@@ -80,7 +80,7 @@ theorem trans (e₁ : rtr₁ ≈ rtr₂) (e₂ : rtr₂ ≈ rtr₃) : rtr₁ ≈
         have ⟨_, h⟩ := Partial.mem_iff.mp <| h₁ .rtr ‹_› |>.mp <| Partial.mem_iff.mpr ⟨_, h⟩
         exact hi ‹_› h (h₃' h ‹_›)
 
-instance : Equivalence ((· : α) ≈ ·) :=
+instance : Equivalence fun rtr₁ rtr₂ : α => rtr₁ ≈ rtr₂ :=
   { refl, symm, trans }
 
 theorem mem_get?_iff : (rtr₁ ≈ rtr₂) → (i ∈ rtr₁{cpt} ↔ i ∈ rtr₂{cpt})
@@ -280,7 +280,7 @@ theorem trans
   induction e₁ generalizing rtr₃ <;> cases e₂ <;> constructor <;> try assumption
   case nested.nested hi₁ _ _ _ _ hi₂ => exact hi₁ hi₂
 
-instance {rtr : α} : Equivalence (Equivalent (· : StrictMember cpt i rtr) ·) :=
+instance {rtr : α} : Equivalence (fun s₁ s₂ : StrictMember cpt i rtr => Equivalent s₁ s₂) :=
   { refl, symm, trans }
 
 theorem to_eq {rtr : α} {s₁ s₂ : StrictMember cpt i rtr} : (s₁ ∼ s₂) → s₁ = s₂
@@ -370,7 +370,7 @@ theorem trans
   case strict =>
     cases cpt <;> cases e₁ <;> cases e₂ <;> exact .strict <| StrictMember.Equivalent.trans ‹_› ‹_›
 
-instance : Equivalence (Equivalent (· : Member cpt i rtr) ·) :=
+instance : Equivalence (fun m₁ m₂ : Member cpt i rtr => Equivalent m₁ m₂) :=
   { refl, symm, trans }
 
 theorem to_eq {m₁ m₂ : Member cpt i rtr} : (m₁ ∼ m₂) → m₁ = m₂

@@ -102,7 +102,7 @@ theorem set.go_updated {cpt : Component.Valued} {o vs}
 
 theorem set_updated' : (set rtr cpt vs)[cpt] = fun i => rtr[cpt][i] >>= (vs i |>.getD ·) := by
   ext1 i
-  cases ho : rtr[cpt][i] <;> simp [bind, ho, Option.getD] <;> try split
+  cases ho : rtr[cpt][i] <;> simp [bind, Option.getD] <;> try split
   · exact Equivalent.obj?_none_iff set_equiv |>.mp ho
   · exact set.go_updated ho ‹_› <| mem_ids_iff.mpr ⟨_, ho⟩
   · exact set.go_preserves ho <| .inr <| .inr ‹_›

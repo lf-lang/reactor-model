@@ -45,7 +45,7 @@ theorem iff_mem_acyclic {rtr : α} : (Acyclic rtr) ↔ (∀ i ∈ rtr[.rcn], ¬(
   case mpr => exact ⟨_, h.right⟩
 
 theorem of_trivial (triv : rtr[.rcn] = ∅) : Dependency.Acyclic rtr := by
-  simp_all [Dependency.Acyclic.iff_mem_acyclic, triv]
+  simp_all [Dependency.Acyclic.iff_mem_acyclic]
   intros _ h
   exact absurd h Partial.not_mem_empty
 
@@ -157,7 +157,7 @@ variable [Hierarchical α] {rtr rtr₁ rtr₂ : α}
 notation:50 rcns " ≮[" rtr "] " rcn => MinimalReaction rtr rcns rcn
 
 theorem cons_head (m : (hd :: tl) ≮[rtr] rcn) : hd ≮[rtr] rcn :=
-  m hd <| List.mem_cons_self _ _
+  m hd List.mem_cons_self
 
 theorem cons_tail (m : (hd :: tl) ≮[rtr] rcn) : tl ≮[rtr] rcn :=
   (m · <| List.mem_cons_of_mem _ ·)

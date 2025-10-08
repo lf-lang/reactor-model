@@ -51,7 +51,7 @@ theorem empty_iff {f : α ⇀ β} : (f = ∅) ↔ (∀ a, f a = none) where
   mpr h := funext h
 
 theorem empty_iff_ids_empty {f : α ⇀ β} : (f = ∅) ↔ (f.ids = ∅) := by
-  simp [ids, empty_iff, Set.eq_empty_iff_forall_not_mem, Option.eq_none_iff_forall_not_mem]
+  simp [ids, empty_iff, Set.eq_empty_iff_forall_notMem, Option.eq_none_iff_forall_not_mem]
 
 theorem empty_ids : (∅ : α ⇀ β).ids = ∅ :=
   empty_iff_ids_empty.mp rfl
@@ -186,22 +186,14 @@ instance [fin : Finite α] : Finite (WithTop α) :=
     .intro (n := n + 1) {
       toFun
         | ⊤       => 0
-        | (a : α) => (equiv a) + 1
+        | (a : α) => ⟨equiv a + 1, by simp⟩
       invFun
         | 0          => ⊤
         | ⟨x + 1, _⟩ => equiv.invFun ⟨x, by omega⟩
       left_inv
         | ⊤       => rfl
-        | (a : α) => by
-          simp only [Fin.coe_eq_castSucc, Fin.coeSucc_eq_succ, Equiv.invFun_as_coe]
-          split
-          · simp [Fin.succ] at *
-          next h =>
-            simp only [Fin.succ, Equiv.toFun_as_coe, Nat.succ_eq_add_one, Fin.mk.injEq,
-                       add_left_inj, WithTop.coe_eq_coe] at h
-            subst h
-            simp
+        | (a : α) => by simp
       right_inv
         | 0          => rfl
-        | ⟨x + 1, isLt⟩ => by ext; simp_all [Fin.val_add]
+        | ⟨x + 1, isLt⟩ => by ext; simp_all
     }

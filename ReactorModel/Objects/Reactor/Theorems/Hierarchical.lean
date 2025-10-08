@@ -104,7 +104,7 @@ theorem lawfulMemUpdate_object_preserved
         cases h₂ ▸ (e (c := .rtr) (j := j₁) (.inr hj)) ▸ h₁
         simp [s₁.unique s₂]
       case pos =>
-        simp_all [hj]
+        simp_all
         exact hi (h₁ ▸ h₂ ▸ u) _
   case final.nested h₁ _ _ s₂ h₂ =>
     have h := (final h₁ |>.fromEquiv u.equiv).unique (nested h₂ s₂)
@@ -320,7 +320,7 @@ theorem obj?_updated (u : LawfulMemUpdate cpt i v rtr₁ rtr₂) :
     rtr₂[cpt][i] = (fun _ => v) <$> rtr₁[cpt][i] := by
   induction u
   case final h₁ h₂ =>
-    rw [get?_some_to_obj?_some h₁, get?_some_to_obj?_some h₂, Option.map_some]
+    simp [get?_some_to_obj?_some h₁, get?_some_to_obj?_some h₂]
   case nested h₁ h₂ u hi =>
     have ⟨_, h₁'⟩ := u.obj?_some₁
     have ⟨_, h₂'⟩ := u.obj?_some₂
